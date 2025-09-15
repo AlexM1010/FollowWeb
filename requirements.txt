@@ -2,3 +2,5 @@ networkx
 pyvis
 pandas
 matplotlib
+instaloader
+PyYAML

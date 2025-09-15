@@ -1,2 +1,4 @@
-followers.txt
+followers.json
 .vscode/launch.json
+__pycache__
+Visualizations
