@@ -3,59 +3,51 @@ from pyvis.network import Network
 import pandas as pd
 from networkx.algorithms import community
 import matplotlib.pyplot as plt
-import math 
-
-# ============================ CONFIGURATION ============================
-# All settings are here for easy adjustment.
-CONFIG = {
-    "input_file": "followers.txt",
-    "pruning": {
-        "min_connections": 6  # Set the minimum number of connections for a node to be kept.
-    },
-    "visualization": {
-        "width": "100%",
-        "height": "90vh", # Changed to viewport height for better responsiveness
-        "notebook": False, # Set to True if running in a Jupyter Notebook
-        "base_node_size": 10,
-        "node_size_multiplier": 8, # Adjusted for logarithmic scaling
-        "scaling_algorithm": "logarithmic" # 'logarithmic' is recommended for networks with large variations in node degrees
-    }
-}
+import math
+import argparse
+import yaml
+import json
 
 # ============================ FUNCTIONS ============================
 
-def load_graph_from_file(filepath: str) -> nx.DiGraph:
+def load_graph_from_json(filepath: str) -> nx.DiGraph:
     """
-    Loads network data from the specified text file into a NetworkX DiGraph.
-    The file is expected to be in triplets: username, comma-separated followers, comma-separated followees.
+    Loads network data from the specified JSON file into a NetworkX DiGraph.
+    The file is expected to be a list of objects, each with a 'user', 'followers', and 'following' key.
     """
     print(f"Attempting to load graph data from '{filepath}'...")
     G = nx.DiGraph()
     try:
         with open(filepath, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+            data = json.load(f)
     except FileNotFoundError:
         print(f"ERROR: The file '{filepath}' was not found.")
         return G
+    except json.JSONDecodeError:
+        print(f"ERROR: Could not decode JSON from '{filepath}'.")
+        return G
 
-    i = 0
-    while i < len(lines):
-        user = lines[i].strip()
-        followers = lines[i+1].strip().split(',')
-        followees = lines[i+2].strip().split(',')
+    if not isinstance(data, list):
+        print("ERROR: JSON data is not a list of users.")
+        return G
+
+    for user_data in data:
+        user = user_data.get("user")
+        followers = user_data.get("followers", [])
+        followees = user_data.get("following", [])
+
+        if not user:
+            print("WARNING: 'user' not found in one of the JSON objects.")
+            continue
 
         # Add follower edges (follower -> user)
-        if followers != ['']:
-            for follower in followers:
-                G.add_edge(follower, user)
-        
+        for follower in followers:
+            G.add_edge(follower, user)
+
         # Add followee edges (user -> followee)
-        if followees != ['']:
-            for followee in followees:
-                G.add_edge(user, followee)
-        
-        i += 3
-        
+        for followee in followees:
+            G.add_edge(user, followee)
+
     print(f"Graph loaded successfully with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
     return G
 
@@ -126,14 +118,14 @@ def analyze_network(G: nx.Graph):
     print("\nAnalysis complete.")
     return G
 
-def visualize_network(G: nx.DiGraph, output_filename: str):
+def visualize_network(G: nx.DiGraph, output_filename: str, config: dict):
     """
     Creates an interactive HTML visualization of the graph using PyVis.
     Nodes are sized by degree and colored by community.
     """
     print(f"\nCreating visualization... this may take a moment.")
     
-    vis_config = CONFIG['visualization']
+    vis_config = config['visualization']['visualization_settings']
     
     net = Network(
         height=vis_config['height'], 
@@ -166,7 +158,7 @@ def visualize_network(G: nx.DiGraph, output_filename: str):
             label=node,
             size=node_size,
             color=color_map.get(community_id, '#808080'), # Default to grey
-            title=( # HTML tooltip on hover
+            title=( 
                 f"{node} |"
                 f"Connections (Degree): {degree} |"
                 f"Community ID: {community_id}"
@@ -187,15 +179,27 @@ def visualize_network(G: nx.DiGraph, output_filename: str):
         print(f"ERROR: Failed to save the graph. {e}")
 
 
-# ============================ MAIN EXECUTION ============================
+# ============================ MAIN EXECUTION ============================ 
 
-if __name__ == "__main__":
-    # Load from the text file
-    graph = load_graph_from_file(CONFIG["input_file"])
+def main():
+    parser = argparse.ArgumentParser(description="Visualize Instagram follower network.")
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file.')
+    parser.add_argument('--input_file', type=str, help='Path to the JSON file containing scraped data. Overrides config.yaml.')
+    parser.add_argument('--min_connections', type=int, help='Minimum number of connections for nodes to be included in visualization. Overrides config.yaml.')
+    args = parser.parse_args()
+ 
+    with open(args.config, 'r') as f:
+        config = yaml.safe_load(f)
+ 
+    vis_config = config['visualization']
+ 
+    # Load from the JSON file
+    input_file = args.input_file if args.input_file else vis_config['input_file']
+    graph = load_graph_from_json(input_file)
     
     if graph.number_of_nodes() > 0:
         # Prune the graph to focus on the core network
-        min_connections = CONFIG["pruning"]["min_connections"]
+        min_connections = args.min_connections if args.min_connections is not None else vis_config["pruning"]["min_connections"]
         pruned_graph = prune_graph(graph, min_connections)
         
         # Analyze the network to find communities and influential nodes
@@ -203,5 +207,8 @@ if __name__ == "__main__":
         
         # Create the interactive visualization
         # Dynamically create the output filename
-        output_filename = f"FollowWeb_{min_connections}.html"
-        visualize_network(analyzed_graph, output_filename)
+        output_filename = f"FollowWeb_Visualization_{min_connections}.html"
+        visualize_network(analyzed_graph, output_filename, config)
+
+if __name__ == "__main__":
+    main()
