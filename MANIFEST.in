@@ -1,0 +1,29 @@
+# Include documentation files
+include README.md
+include pyproject.toml
+include setup.cfg
+include requirements.txt
+include requirements-test.txt
+include Makefile
+include pytest.ini
+include tox.ini
+include .gitignore
+
+# Include all documentation
+recursive-include docs *.md
+
+# Include test files
+recursive-include tests *.py
+recursive-include tests *.md
+
+# Include package data
+recursive-include FollowWeb_Visualizor *.py
+
+# Exclude compiled Python files
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude .git*

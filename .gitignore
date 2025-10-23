@@ -1,0 +1,80 @@
+# Kiro and development directories
+.kiro/
+.pytest_cache/
+.vscode/
+lib/
+Output/
+Package/
+WorkingDocs/
+
+# Python package files - allow these for package development
+# (Override default Python .gitignore patterns for package files)
+!setup.py
+!pyproject.toml
+!MANIFEST.in
+!requirements*.txt
+!README-Package.md
+!FollowWeb_Visualizor/
+
+# Standard Python .gitignore patterns
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing and coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Environment and IDE
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# FollowWeb specific output files
+FollowWeb*.html
+FollowWeb*.png
+FollowWeb*.txt

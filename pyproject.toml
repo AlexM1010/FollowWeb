@@ -1,0 +1,230 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "followweb-visualizor"
+version = "1.0.0"
+description = "Social network analysis and visualization tool for Instagram follower/following relationships with community detection and influence metrics"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "FollowWeb Development Team"},
+]
+maintainers = [
+    {name = "FollowWeb Development Team"},
+]
+keywords = [
+    "social network analysis",
+    "graph theory", 
+    "network visualization",
+    "community detection",
+    "centrality analysis",
+    "instagram analysis",
+    "follower analysis",
+    "network metrics",
+    "social media analytics",
+    "graph algorithms",
+    "network science",
+    "social graphs",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Sociology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "networkx>=2.8.0",
+    "pandas>=1.5.0",
+    "matplotlib>=3.5.0",
+    "pyvis>=0.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-mock>=3.10.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "memory-profiler>=0.60.0",
+    "faker>=18.0.0",
+    "factory-boy>=3.2.0",
+    "pytest-doctestplus>=0.12.0",
+    "numpy>=1.21.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-mock>=3.10.0",
+    "pytest-benchmark>=4.0.0",
+    "memory-profiler>=0.60.0",
+    "faker>=18.0.0",
+    "factory-boy>=3.2.0",
+    "pytest-doctestplus>=0.12.0",
+    "numpy>=1.21.0",
+]
+docs = [
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "myst-parser>=0.18.0",
+]
+
+[project.scripts]
+followweb = "FollowWeb_Visualizor.main:main"
+
+[project.urls]
+Homepage = "https://github.com/followweb/followweb-visualizor"
+Documentation = "https://followweb-visualizor.readthedocs.io/"
+Repository = "https://github.com/followweb/followweb-visualizor.git"
+"Bug Tracker" = "https://github.com/followweb/followweb-visualizor/issues"
+Changelog = "https://github.com/followweb/followweb-visualizor/blob/main/docs/CHANGELOG.md"
+
+# Tool configurations
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+include = ["FollowWeb_Visualizor*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"FollowWeb_Visualizor" = ["*.py"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["FollowWeb_Visualizor"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "networkx.*",
+    "pyvis.*",
+    "matplotlib.*",
+    "pandas.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (slower, cross-module)",
+    "slow: Slow tests (performance, timing)",
+]
+minversion = "6.0"
+timeout = 300
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["FollowWeb_Visualizor"]
+parallel = true
+data_file = ".coverage"
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "setup.py",
+]
+
+[tool.coverage.paths]
+source = [
+    "FollowWeb_Visualizor/",
+    "*/site-packages/FollowWeb_Visualizor/",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+precision = 2
+skip_covered = false
+skip_empty = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+# Flake8 configuration (in setup.cfg since flake8 doesn't support pyproject.toml yet)
+# See setup.cfg for flake8 configuration

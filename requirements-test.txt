@@ -1,0 +1,35 @@
+# Testing dependencies for FollowWeb
+# These match the dependencies specified in pyproject.toml [project.optional-dependencies]
+
+# Core testing framework
+pytest>=7.0.0
+pytest-cov>=4.0.0          # Coverage reporting
+pytest-xdist>=3.0.0        # Parallel test execution
+pytest-timeout>=2.1.0      # Test timeout handling
+pytest-mock>=3.10.0        # Mocking utilities
+
+# Performance and benchmarking
+pytest-benchmark>=4.0.0    # Performance benchmarking
+memory-profiler>=0.60.0    # Memory usage profiling
+
+# Test utilities
+faker>=18.0.0              # Test data generation
+factory-boy>=3.2.0         # Test object factories
+numpy>=1.21.0              # Used in test data generation
+
+# Documentation testing
+pytest-doctestplus>=0.12.0 # Enhanced doctest support
+
+# Code quality tools
+flake8>=6.0.0              # Linting
+black>=23.0.0              # Code formatting
+isort>=5.12.0              # Import sorting
+mypy>=1.0.0                # Type checking
+
+# Build and distribution (optional for development)
+build>=0.10.0              # Modern Python build tool
+twine>=4.0.0               # Package uploading to PyPI
+wheel>=0.40.0              # Wheel building
+
+# Multi-environment testing
+tox>=4.0.0                 # Testing across multiple Python versions
