@@ -35,73 +35,88 @@ __email__ = ""  # Add if available
 __license__ = "MIT"  # Update as appropriate
 __url__ = ""  # Add repository URL if available
 
-# Core imports for public API
-from .main import PipelineOrchestrator
-from .config import FollowWebConfig, get_configuration_manager
-from .progress import ProgressTracker
+# Core imports for public API - graceful handling for modules not yet implemented
+try:
+    from .main import PipelineOrchestrator
+except ImportError:
+    PipelineOrchestrator = None
+
+try:
+    from .config import FollowWebConfig, get_configuration_manager
+except ImportError:
+    FollowWebConfig = None
+    get_configuration_manager = None
+
+try:
+    from .progress import ProgressTracker
+except ImportError:
+    ProgressTracker = None
 
 # Analysis components
 try:
     from .analysis import GraphLoader, NetworkAnalyzer, PathAnalyzer, FameAnalyzer
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
-    pass
+    GraphLoader = NetworkAnalyzer = PathAnalyzer = FameAnalyzer = None
 
 # Visualization components  
 try:
     from .visualization import MetricsCalculator, InteractiveRenderer, StaticRenderer, MetricsReporter
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
-    pass
+    MetricsCalculator = InteractiveRenderer = StaticRenderer = MetricsReporter = None
 
 # Utility functions
-from .utils import (
-    generate_output_filename,
-    get_community_colors, 
-    get_scaled_size,
-    format_time_duration,
-    ensure_output_directory
-)
+try:
+    from .utils import (
+        generate_output_filename,
+        get_community_colors, 
+        get_scaled_size,
+        format_time_duration,
+        ensure_output_directory,
+        ConfigurationError,
+        DataProcessingError,
+        VisualizationError
+    )
+except ImportError:
+    # Graceful handling if utils module is not fully implemented
+    generate_output_filename = get_community_colors = get_scaled_size = None
+    format_time_duration = ensure_output_directory = None
+    ConfigurationError = DataProcessingError = VisualizationError = None
 
-# Custom exceptions
-from .utils import (
-    ConfigurationError,
-    DataProcessingError,
-    VisualizationError
-)
+# Public API - only include items that are actually available
+__all__ = []
 
-# Public API
-__all__ = [
-    # Main classes
-    "PipelineOrchestrator",
-    "ProgressTracker",
-    
-    # Configuration
-    "FollowWebConfig",
-    "get_configuration_manager",
-    "load_config_from_dict",
-    
-    # Analysis classes (if available)
-    "GraphLoader",
-    "NetworkAnalyzer", 
-    "PathAnalyzer",
-    "FameAnalyzer",
-    
-    # Visualization classes (if available)
-    "MetricsCalculator",
-    "InteractiveRenderer",
-    "StaticRenderer", 
-    "MetricsReporter",
-    
-    # Utility functions
-    "generate_output_filename",
-    "get_community_colors",
-    "get_scaled_size", 
-    "format_time_duration",
-    "ensure_output_directory",
-    
-    # Exceptions
-    "ConfigurationError",
-    "DataProcessingError",
-    "VisualizationError",
-]
+# Add available items to __all__
+if PipelineOrchestrator is not None:
+    __all__.append("PipelineOrchestrator")
+if ProgressTracker is not None:
+    __all__.append("ProgressTracker")
+if FollowWebConfig is not None:
+    __all__.append("FollowWebConfig")
+if get_configuration_manager is not None:
+    __all__.append("get_configuration_manager")
+
+# Analysis classes (if available)
+for item in [GraphLoader, NetworkAnalyzer, PathAnalyzer, FameAnalyzer]:
+    if item is not None:
+        __all__.append(item.__name__)
+
+# Visualization classes (if available)
+for item in [MetricsCalculator, InteractiveRenderer, StaticRenderer, MetricsReporter]:
+    if item is not None:
+        __all__.append(item.__name__)
+
+# Utility functions (if available)
+for name, item in [
+    ("generate_output_filename", generate_output_filename),
+    ("get_community_colors", get_community_colors),
+    ("get_scaled_size", get_scaled_size),
+    ("format_time_duration", format_time_duration),
+    ("ensure_output_directory", ensure_output_directory),
+    ("ConfigurationError", ConfigurationError),
+    ("DataProcessingError", DataProcessingError),
+    ("VisualizationError", VisualizationError),
+]:
+    if item is not None:
+        __all__.append(name)
