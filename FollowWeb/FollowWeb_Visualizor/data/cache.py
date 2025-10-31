@@ -587,3 +587,31 @@ def get_cached_node_attributes(graph: nx.Graph, attribute_name: str) -> Dict[str
 def clear_all_caches() -> None:
     """Clear all caches - useful for testing and memory management."""
     get_cache_manager().clear_all_caches()
+
+
+def get_cached_community_colors(
+    num_communities: int,
+) -> Dict[str, Dict[int, Union[str, Tuple[float, ...]]]]:
+    """
+    Get cached community colors, generating them if not cached.
+
+    Args:
+        num_communities: Number of communities to generate colors for
+
+    Returns:
+        Dictionary with color schemes for communities
+    """
+    cache_manager = get_cache_manager()
+    cached_colors = cache_manager.get_cached_community_colors(num_communities)
+    
+    if cached_colors is not None:
+        return cached_colors
+    
+    # Generate new colors if not cached
+    from ..visualization.colors import get_community_colors
+    colors = get_community_colors(num_communities)
+    
+    # Cache the generated colors
+    cache_manager.cache_community_colors(num_communities, colors)
+    
+    return colors

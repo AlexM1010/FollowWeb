@@ -36,27 +36,16 @@ __license__ = "MIT"  # Update as appropriate
 __url__ = ""  # Add repository URL if available
 
 # Core imports for public API
-# Note: These imports will be updated as modules are implemented in the modular structure
-try:
-    from .config import FollowWebConfig, get_configuration_manager, load_config_from_dict
-except ImportError:
-    FollowWebConfig = None
-    get_configuration_manager = None
-    load_config_from_dict = None
-
-try:
-    from .main import PipelineOrchestrator
-except ImportError:
-    PipelineOrchestrator = None
-
-try:
-    from .utils import ProgressTracker
-except ImportError:
-    ProgressTracker = None
+from .core.config import FollowWebConfig, get_configuration_manager, load_config_from_dict
+from .main import PipelineOrchestrator
+from .utils import ProgressTracker
 
 # Analysis components
 try:
-    from .analysis import FameAnalyzer, GraphLoader, NetworkAnalyzer, PathAnalyzer
+    from .analysis.fame import FameAnalyzer
+    from .analysis.network import NetworkAnalyzer
+    from .analysis.paths import PathAnalyzer
+    from .data.loaders import GraphLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
     FameAnalyzer = None
@@ -66,18 +55,22 @@ except ImportError:
 
 # Visualization components
 try:
-    from .visualization import (
+    from .core.types import (
         ColorScheme,
         EdgeMetric,
-        InteractiveRenderer,
-        MetricsCalculator,
         NodeMetric,
-        StaticRenderer,
         VisualizationMetrics,
+    )
+    from .visualization.metrics import (
+        MetricsCalculator,
         calculate_shared_metrics,
-        get_shared_color_schemes,
         get_shared_layout_positions,
     )
+    from .visualization.renderers import (
+        InteractiveRenderer,
+        StaticRenderer,
+    )
+    from .visualization.colors import get_shared_color_schemes
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
     ColorScheme = None
@@ -92,163 +85,96 @@ except ImportError:
     get_shared_layout_positions = None
 
 # Error handling utilities
-try:
-    from .error_handling import (
-        ConfigurationErrorHandler,
-        ErrorRecoveryManager,
-        FileOperationHandler,
-        ValidationErrorHandler,
-        create_error_summary,
-        error_context,
-        handle_common_exceptions,
-        log_performance_warning,
-    )
-except ImportError:
-    ConfigurationErrorHandler = None
-    ErrorRecoveryManager = None
-    FileOperationHandler = None
-    ValidationErrorHandler = None
-    create_error_summary = None
-    error_context = None
-    handle_common_exceptions = None
-    log_performance_warning = None
+from .utils.validation import (
+    ConfigurationErrorHandler,
+    ValidationErrorHandler,
+)
+from .utils.files import (
+    ErrorRecoveryManager,
+    FileOperationHandler,
+    error_context,
+    handle_common_exceptions,
+)
 
 # Unified output system
-try:
-    from .unified_output import (
-        Logger,
-        OutputConfig,
-        OutputManager,
-    )
-except ImportError:
-    Logger = None
-    OutputConfig = None
-    OutputManager = None
+from .output.logging import Logger
+from .output.managers import OutputConfig, OutputManager
 
 # Parallel processing utilities
-try:
-    from .utils import (
-        ParallelConfig,
-        ParallelProcessingManager,
-        get_analysis_parallel_config,
-        get_nx_parallel_status_message,
-        get_parallel_manager,
-        get_testing_parallel_config,
-        get_visualization_parallel_config,
-        is_nx_parallel_available,
-        log_parallel_usage,
-    )
-except ImportError:
-    ParallelConfig = None
-    ParallelProcessingManager = None
-    get_analysis_parallel_config = None
-    get_nx_parallel_status_message = None
-    get_parallel_manager = None
-    get_testing_parallel_config = None
-    get_visualization_parallel_config = None
-    is_nx_parallel_available = None
-    log_parallel_usage = None
+from .utils.parallel import (
+    ParallelConfig,
+    ParallelProcessingManager,
+    get_analysis_parallel_config,
+    get_nx_parallel_status_message,
+    get_parallel_manager,
+    get_testing_parallel_config,
+    get_visualization_parallel_config,
+    is_nx_parallel_available,
+    log_parallel_usage,
+)
 
 # Enhanced metrics reporting
 try:
-    from .unified_output import MetricsReporter
+    from .output.managers import MetricsReporter
 except ImportError:
     MetricsReporter = None
 
 # Utility functions and exceptions
 # Validation functions
-try:
-    from .error_handling import (
-        validate_at_least_one_enabled,
-        validate_choice,
-        validate_ego_strategy_requirements,
-        validate_filesystem_safe_string,
-        validate_image_dimensions,
-        validate_k_value_dict,
-        validate_multiple_non_negative,
-        validate_non_empty_string,
-        validate_non_negative_integer,
-        validate_non_negative_number,
-        validate_path_string,
-        validate_positive_integer,
-        validate_positive_number,
-        validate_range,
-        validate_string_format,
-    )
-except ImportError:
-    validate_at_least_one_enabled = None
-    validate_choice = None
-    validate_ego_strategy_requirements = None
-    validate_filesystem_safe_string = None
-    validate_image_dimensions = None
-    validate_k_value_dict = None
-    validate_multiple_non_negative = None
-    validate_non_empty_string = None
-    validate_non_negative_integer = None
-    validate_non_negative_number = None
-    validate_path_string = None
-    validate_positive_integer = None
-    validate_positive_number = None
-    validate_range = None
-    validate_string_format = None
+from .utils.validation import (
+    validate_at_least_one_enabled,
+    validate_choice,
+    validate_ego_strategy_requirements,
+    validate_filesystem_safe_string,
+    validate_image_dimensions,
+    validate_k_value_dict,
+    validate_multiple_non_negative,
+    validate_non_empty_string,
+    validate_non_negative_integer,
+    validate_non_negative_number,
+    validate_path_string,
+    validate_positive_integer,
+    validate_positive_number,
+    validate_range,
+    validate_string_format,
+)
 
 # Emoji formatting functions
-try:
-    from .unified_output import (
-        EmojiFormatter,
-        format_completion,
-        format_error,
-        format_progress,
-        format_success,
-        format_timer,
-        safe_print_error,
-        safe_print_success,
-    )
-except ImportError:
-    EmojiFormatter = None
-    format_completion = None
-    format_error = None
-    format_progress = None
-    format_success = None
-    format_timer = None
-    safe_print_error = None
-    safe_print_success = None
+from .output.formatters import (
+    EmojiFormatter,
+    format_completion,
+    format_error,
+    format_progress,
+    format_success,
+    format_timer,
+    safe_print_error,
+    safe_print_success,
+)
 
 # Centralized caching system
-try:
-    from .utils import (
-        CentralizedCache,
-        ConfigurationError,
-        DataProcessingError,
-        VisualizationError,
-        calculate_graph_hash,
-        clear_all_caches,
-        ensure_output_directory,
-        format_time_duration,
-        generate_output_filename,
-        get_cache_manager,
-        get_cached_community_colors,
-        get_cached_node_attributes,
-        get_cached_undirected_graph,
-        get_community_colors,
-        get_scaled_size,
-    )
-except ImportError:
-    CentralizedCache = None
-    ConfigurationError = None
-    DataProcessingError = None
-    VisualizationError = None
-    calculate_graph_hash = None
-    clear_all_caches = None
-    ensure_output_directory = None
-    format_time_duration = None
-    generate_output_filename = None
-    get_cache_manager = None
-    get_cached_community_colors = None
-    get_cached_node_attributes = None
-    get_cached_undirected_graph = None
-    get_community_colors = None
-    get_scaled_size = None
+from .core.exceptions import (
+    ConfigurationError,
+    DataProcessingError,
+    VisualizationError,
+)
+from .data.cache import (
+    CentralizedCache,
+    calculate_graph_hash,
+    clear_all_caches,
+    get_cache_manager,
+    get_cached_community_colors,
+    get_cached_node_attributes,
+    get_cached_undirected_graph,
+)
+from .utils.files import (
+    ensure_output_directory,
+    generate_output_filename,
+)
+from .utils.math import (
+    format_time_duration,
+    get_scaled_size,
+)
+from .visualization.colors import get_community_colors
 
 # Public API
 __all__ = [
@@ -321,8 +247,6 @@ __all__ = [
     "ConfigurationErrorHandler",
     "error_context",
     "handle_common_exceptions",
-    "create_error_summary",
-    "log_performance_warning",
     # Parallel processing
     "ParallelConfig",
     "ParallelProcessingManager",
