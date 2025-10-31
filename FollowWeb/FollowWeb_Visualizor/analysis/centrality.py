@@ -20,7 +20,7 @@ from ..utils import ProgressTracker
 
 
 def calculate_betweenness_centrality(
-    graph: nx.Graph, config: Dict[str, Any], logger: logging.Logger, tracker: ProgressTracker
+    graph: nx.Graph, config: Dict[str, Any], logger: logging.Logger
 ) -> Dict[str, float]:
     """Calculate betweenness centrality with performance optimization."""
     graph_size = graph.number_of_nodes()
@@ -28,11 +28,30 @@ def calculate_betweenness_centrality(
     # Get parallel configuration for centrality calculation (logging done at analysis level)
     parallel_config = get_analysis_parallel_config(graph_size)
 
+    # Use a simulated progress tracker that shows animation during computation
+    import threading
+    import time as time_module
+    
+    # Create a progress tracker with multiple steps to show animation
     with ProgressTracker(
-        total=1,
+        total=100,  # Use 100 steps for smooth animation
         title=f"Calculating betweenness centrality on {graph_size} nodes",
         logger=logger,
-    ) as sub_tracker:
+    ) as tracker:
+        
+        # Start a background thread to animate progress
+        stop_animation = threading.Event()
+        
+        def animate_progress():
+            step = 0
+            while not stop_animation.is_set() and step < 99:
+                step += 1
+                tracker.update(step)
+                time_module.sleep(0.2)  # Update every 200ms
+        
+        animation_thread = threading.Thread(target=animate_progress, daemon=True)
+        animation_thread.start()
+        
         try:
             if config.get("use_approximate_betweenness", False):
                 # OPTIMIZATION: Use more efficient sampling strategy
@@ -85,15 +104,17 @@ def calculate_betweenness_centrality(
                 f"Could not calculate betweenness centrality ({e}). Defaulting to 0."
             )
             betweenness_dict = dict.fromkeys(graph.nodes(), 0)
-
-        # Update progress to completion
-        sub_tracker.update(1)
+        finally:
+            # Stop animation and complete progress
+            stop_animation.set()
+            animation_thread.join(timeout=0.5)  # Wait briefly for thread to finish
+            tracker.update(100)  # Complete the progress
 
     return betweenness_dict
 
 
 def calculate_eigenvector_centrality(
-    graph: nx.Graph, config: Dict[str, Any], cache_manager, logger: logging.Logger, tracker: ProgressTracker
+    graph: nx.Graph, config: Dict[str, Any], cache_manager, logger: logging.Logger
 ) -> Dict[str, float]:
     """Calculate eigenvector centrality with centralized caching and optimization."""
     # Create params for caching
@@ -108,11 +129,29 @@ def calculate_eigenvector_centrality(
         return cached_results
 
     # Eigenvector centrality calculation (parallel config already logged at analysis level)
+    import threading
+    import time as time_module
+    
+    # Use a simulated progress tracker that shows animation during computation
     with ProgressTracker(
-        total=1,
+        total=100,  # Use 100 steps for smooth animation
         title="Calculating eigenvector centrality",
         logger=logger,
-    ) as sub_tracker:
+    ) as tracker:
+        
+        # Start a background thread to animate progress
+        stop_animation = threading.Event()
+        
+        def animate_progress():
+            step = 0
+            while not stop_animation.is_set() and step < 99:
+                step += 1
+                tracker.update(step)
+                time_module.sleep(0.1)  # Update every 100ms (faster for eigenvector)
+        
+        animation_thread = threading.Thread(target=animate_progress, daemon=True)
+        animation_thread.start()
+        
         try:
             # OPTIMIZATION: Adaptive iteration count based on graph size
             graph_size = graph.number_of_nodes()
@@ -136,14 +175,17 @@ def calculate_eigenvector_centrality(
                 f"Could not calculate eigenvector centrality ({e}). Defaulting to 0."
             )
             eigenvector_dict = dict.fromkeys(graph.nodes(), 0)
-
-        # Cache the results using centralized cache
-        cache_manager.cache_centrality_results(
-            graph, "eigenvector", eigenvector_dict, params
-        )
-
-        # Update progress to completion
-        sub_tracker.update(1)
+        finally:
+            # Stop animation and complete progress
+            stop_animation.set()
+            animation_thread.join(timeout=0.5)  # Wait briefly for thread to finish
+            
+            # Cache the results using centralized cache
+            cache_manager.cache_centrality_results(
+                graph, "eigenvector", eigenvector_dict, params
+            )
+            
+            tracker.update(100)  # Complete the progress
 
     return eigenvector_dict
 

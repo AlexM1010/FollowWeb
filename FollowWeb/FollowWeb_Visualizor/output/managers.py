@@ -451,6 +451,27 @@ class OutputManager:
 
         return "\n".join(log_lines)
 
+    @staticmethod
+    def get_emoji_config_from_dict(config_dict: Dict[str, Any]) -> str:
+        """
+        Extract emoji configuration from config dictionary.
+
+        Args:
+            config_dict: Configuration dictionary
+
+        Returns:
+            Emoji fallback level string
+        """
+        try:
+            return (
+                config_dict.get("output_control", {})
+                .get("output_formatting", {})
+                .get("emoji", {})
+                .get("fallback_level", "full")
+            )
+        except (KeyError, AttributeError):
+            return "full"
+
 
 class MetricsReporter:
     """

@@ -16,7 +16,7 @@ import time
 from typing import Optional
 
 from .validation import validate_positive_integer
-
+from ..output.formatters import EmojiFormatter
 
 class ProgressTracker:
     """
@@ -225,7 +225,6 @@ class ProgressTracker:
 
         # Store completion message
         try:
-            from ..output.formatters import EmojiFormatter
             self.completion_message = EmojiFormatter.format(
                 "timer", f"{self.title} completed in {elapsed_str}"
             )

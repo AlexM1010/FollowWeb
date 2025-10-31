@@ -116,132 +116,99 @@ class NetworkAnalyzer:
             "centrality_analysis", graph_size
         )
 
-        # Calculate total analysis steps
-        analysis_steps = 0
-        if execute_community:
-            analysis_steps += 1
-        if execute_centrality:
-            analysis_steps += (
-                1  # Degree centrality (always calculated when centrality is enabled)
-            )
-            analysis_steps += 1  # Betweenness centrality
-            if not centrality_config.get("skip_eigenvector", False):
-                analysis_steps += 1  # Eigenvector centrality
-
         mode_info = (
             f" ({centrality_config.get('mode', 'unknown')} mode)"
             if self.mode_manager
             else ""
         )
-        tracker_title = f"Analyzing network structure{mode_info}"
 
         # Log parallel processing configuration once for the entire network analysis
         self.logger.info("")  # Add spacing before parallel notification
         parallel_config = get_analysis_parallel_config(graph_size)
         log_parallel_usage(parallel_config, self.logger)
 
-        with ProgressTracker(
-            total=analysis_steps,
-            title=tracker_title,
-            logger=self.logger,
-        ) as tracker:
-            current_step = 0
+        # Execute community detection if enabled
+        if execute_community:
+            self._log_component_start("community_detection")
+            start_time = time.time()
 
-            # Execute community detection if enabled
-            if execute_community:
-                current_step += 1
-                self._log_component_start("community_detection")
-                start_time = time.time()
+            try:
+                self._perform_community_detection(graph, community_config)
+                duration = time.time() - start_time
+                self._log_component_completion("community_detection", True, duration)
+            except Exception as e:
+                duration = time.time() - start_time
+                self.logger.error(f"Community detection failed: {e}")
+                self._log_component_completion("community_detection", False, duration)
+                raise DataProcessingError(f"Community detection failed: {e}") from e
+        else:
+            self._log_component_skip("community_detection")
+            # Set default community values when skipped
+            nx.set_node_attributes(graph, 0, "community")
 
-                try:
-                    self._perform_community_detection(graph, community_config)
-                    duration = time.time() - start_time
-                    tracker.update(current_step)  # Update and clear before logging
-                    self._log_component_completion("community_detection", True, duration)
-                except Exception as e:
-                    duration = time.time() - start_time
-                    tracker.update(current_step)  # Update and clear before logging
-                    self.logger.error(f"Community detection failed: {e}")
-                    self._log_component_completion("community_detection", False, duration)
-                    raise DataProcessingError(f"Community detection failed: {e}") from e
-            else:
-                self._log_component_skip("community_detection")
-                # Set default community values when skipped
-                nx.set_node_attributes(graph, 0, "community")
+        # Execute centrality analysis if enabled
+        if execute_centrality:
+            self._log_component_start("centrality_analysis")
+            centrality_start_time = time.time()
 
-            # Execute centrality analysis if enabled
-            if execute_centrality:
-                self._log_component_start("centrality_analysis")
-                centrality_start_time = time.time()
+            try:
+                # Import centrality functions
+                from .centrality import (
+                    calculate_betweenness_centrality,
+                    calculate_eigenvector_centrality,
+                    display_centrality_results,
+                    set_default_centrality_values,
+                )
 
-                try:
-                    # Import centrality functions
-                    from .centrality import (
-                        calculate_betweenness_centrality,
-                        calculate_eigenvector_centrality,
-                        display_centrality_results,
-                        set_default_centrality_values,
+                # Degree centrality (always calculated when centrality is enabled)
+                degree_dict = dict(graph.degree())
+                nx.set_node_attributes(graph, degree_dict, "degree")
+
+                # Betweenness centrality
+                betweenness_dict = calculate_betweenness_centrality(
+                    graph, centrality_config, self.logger
+                )
+                nx.set_node_attributes(graph, betweenness_dict, "betweenness")
+
+                # Eigenvector centrality (optional)
+                if not centrality_config.get("skip_eigenvector", False):
+                    eigenvector_dict = calculate_eigenvector_centrality(
+                        graph, centrality_config, self.cache_manager, self.logger
                     )
-
-                    # Degree centrality (always calculated when centrality is enabled)
-                    current_step += 1
-                    degree_dict = dict(graph.degree())
-                    nx.set_node_attributes(graph, degree_dict, "degree")
-                    tracker.update(current_step)
-
-                    # Betweenness centrality
-                    current_step += 1
-                    betweenness_dict = calculate_betweenness_centrality(
-                        graph, centrality_config, self.logger, tracker
+                    nx.set_node_attributes(graph, eigenvector_dict, "eigenvector")
+                else:
+                    self.logger.info(
+                        "Skipping eigenvector centrality calculation (optimization)"
                     )
-                    nx.set_node_attributes(graph, betweenness_dict, "betweenness")
-                    tracker.update(current_step)
+                    eigenvector_dict = dict.fromkeys(graph.nodes(), 0)
+                    nx.set_node_attributes(graph, eigenvector_dict, "eigenvector")
 
-                    # Eigenvector centrality (optional)
-                    if not centrality_config.get("skip_eigenvector", False):
-                        current_step += 1
-                        eigenvector_dict = calculate_eigenvector_centrality(
-                            graph, centrality_config, self.cache_manager, self.logger, tracker
-                        )
-                        nx.set_node_attributes(graph, eigenvector_dict, "eigenvector")
-                        tracker.update(current_step)
-                    else:
-                        # Clear progress bar before logging skip message
-                        if hasattr(tracker, 'current_line_length') and tracker.current_line_length > 0:
-                            print("\r" + " " * tracker.current_line_length + "\r", end="", flush=True)
-                            tracker.current_line_length = 0
-                        self.logger.info(
-                            "Skipping eigenvector centrality calculation (optimization)"
-                        )
-                        eigenvector_dict = dict.fromkeys(graph.nodes(), 0)
-                        nx.set_node_attributes(graph, eigenvector_dict, "eigenvector")
+                centrality_duration = time.time() - centrality_start_time
+                self._log_component_completion(
+                    "centrality_analysis", True, centrality_duration
+                )
 
-                    centrality_duration = time.time() - centrality_start_time
-                    self._log_component_completion(
-                        "centrality_analysis", True, centrality_duration
-                    )
+                # Display results
+                display_centrality_results(
+                    degree_dict,
+                    betweenness_dict,
+                    eigenvector_dict,
+                    centrality_config,
+                    self.logger,
+                )
 
-                    # Display results
-                    display_centrality_results(
-                        degree_dict,
-                        betweenness_dict,
-                        eigenvector_dict,
-                        centrality_config,
-                        self.logger,
-                    )
-
-                except Exception as e:
-                    centrality_duration = time.time() - centrality_start_time
-                    self.logger.error(f"Centrality analysis failed: {e}")
-                    self._log_component_completion(
-                        "centrality_analysis", False, centrality_duration
-                    )
-                    raise DataProcessingError(f"Centrality analysis failed: {e}") from e
-            else:
-                self._log_component_skip("centrality_analysis")
-                # Set default centrality values when skipped
-                from .centrality import set_default_centrality_values
-                set_default_centrality_values(graph)
+            except Exception as e:
+                centrality_duration = time.time() - centrality_start_time
+                self.logger.error(f"Centrality analysis failed: {e}")
+                self._log_component_completion(
+                    "centrality_analysis", False, centrality_duration
+                )
+                raise DataProcessingError(f"Centrality analysis failed: {e}") from e
+        else:
+            self._log_component_skip("centrality_analysis")
+            # Set default centrality values when skipped
+            from .centrality import set_default_centrality_values
+            set_default_centrality_values(graph)
 
         return graph
 

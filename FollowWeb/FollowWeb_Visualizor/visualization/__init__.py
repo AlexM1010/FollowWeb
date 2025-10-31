@@ -8,7 +8,7 @@ It includes metric calculation, rendering, and legend generation functionality.
 from .metrics import MetricsCalculator, NodeMetric, EdgeMetric, ColorScheme, VisualizationMetrics
 from .renderers import InteractiveRenderer, StaticRenderer
 from .legends import LegendGenerator
-from .colors import get_community_colors
+from .colors import get_community_colors, get_scaled_size
 
 __all__ = [
     "MetricsCalculator",
@@ -20,4 +20,5 @@ __all__ = [
     "StaticRenderer", 
     "LegendGenerator",
     "get_community_colors",
+    "get_scaled_size",
 ]

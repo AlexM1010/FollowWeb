@@ -8,8 +8,10 @@ and error handling across module boundaries.
 import os
 from pathlib import Path
 from typing import Any, Dict
+from unittest.mock import patch
 
 import pytest
+import networkx as nx
 
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
