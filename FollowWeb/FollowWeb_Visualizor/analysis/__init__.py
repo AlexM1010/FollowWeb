@@ -1,18 +1,26 @@
 """
-Analysis layer components for FollowWeb Network Analysis.
+Analysis layer for FollowWeb social network analysis.
 
-This module provides network analysis algorithms and computations:
-- Community detection and network analysis coordination
-- Centrality calculations (degree, betweenness, eigenvector)
-- Shortest path calculations and contact path analysis
-- Influential account detection and fame metrics
-
-Modules:
-    network: NetworkAnalyzer class and community detection
-    centrality: Centrality calculation algorithms
-    paths: PathAnalyzer class and shortest path calculations
-    fame: FameAnalyzer class and influential account detection
+This module provides network analysis algorithms including community detection,
+centrality calculations, path analysis, and fame analysis.
 """
 
-# Analysis layer imports will be added as modules are implemented
-__all__ = []
+from .network import NetworkAnalyzer
+from .centrality import (
+    calculate_betweenness_centrality,
+    calculate_eigenvector_centrality,
+    set_default_centrality_values,
+    display_centrality_results,
+)
+from .paths import PathAnalyzer
+from .fame import FameAnalyzer
+
+__all__ = [
+    "NetworkAnalyzer",
+    "PathAnalyzer", 
+    "FameAnalyzer",
+    "calculate_betweenness_centrality",
+    "calculate_eigenvector_centrality",
+    "set_default_centrality_values",
+    "display_centrality_results",
+]
