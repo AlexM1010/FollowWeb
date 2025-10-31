@@ -1,0 +1,51 @@
+{
+  "_comment": "Ego-alter network analysis configuration",
+  "_description": "Personal network analysis centered on a specific user with path analysis to contacts",
+  
+  "input_file": "followers_following.json",
+  "output_file_prefix": "Output/EgoNetwork",
+  "strategy": "ego_alter_k-core",
+  "ego_username": "target_user",
+  "contact_path_target": "friend_user",
+  "find_paths_to_all_famous": false,
+  
+  "pipeline_stages": {
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": true
+  },
+  
+  "analysis_mode": {
+    "mode": "medium",
+    "sampling_threshold": 3000,
+    "max_layout_iterations": 800
+  },
+  
+  "output_control": {
+    "generate_html": true,
+    "generate_png": true,
+    "generate_reports": true,
+    "enable_timing_logs": false
+  },
+  
+  "k_values": {
+    "strategy_k_values": {
+      "ego_alter_k-core": 3
+    },
+    "default_k_value": 3
+  },
+  
+  "visualization": {
+    "node_size_metric": "degree",
+    "base_node_size": 15.0,
+    "node_size_multiplier": 2.5,
+    "static_image": {
+      "layout": "kamada_kawai",
+      "width": 1600,
+      "height": 1200
+    }
+  }
+}

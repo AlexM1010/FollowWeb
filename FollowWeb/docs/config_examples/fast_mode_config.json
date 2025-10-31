@@ -1,0 +1,54 @@
+{
+  "_comment": "Fast mode configuration for large networks (>10K nodes)",
+  "_description": "Optimized for speed with reduced precision. Uses aggressive sampling and approximate algorithms.",
+  
+  "input_file": "large_network.json",
+  "output_file_prefix": "Output/FastAnalysis",
+  "strategy": "k-core",
+  
+  "pipeline_stages": {
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": false
+  },
+  
+  "analysis_mode": {
+    "mode": "fast",
+    "sampling_threshold": 1000,
+    "max_layout_iterations": 100,
+    "enable_fast_algorithms": true
+  },
+  
+  "output_control": {
+    "generate_html": true,
+    "generate_png": false,
+    "generate_reports": true,
+    "enable_timing_logs": true
+  },
+  
+  "k_values": {
+    "strategy_k_values": {
+      "k-core": 5,
+      "reciprocal_k-core": 5,
+      "ego_alter_k-core": 3
+    },
+    "default_k_value": 5
+  },
+  
+  "visualization": {
+    "node_size_metric": "degree",
+    "base_node_size": 8.0,
+    "node_size_multiplier": 1.5,
+    "scaling_algorithm": "linear",
+    "static_image": {
+      "generate": false
+    },
+    "pyvis_interactive": {
+      "height": "500px",
+      "width": "100%"
+    }
+  }
+}

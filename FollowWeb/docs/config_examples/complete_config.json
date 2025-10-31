@@ -1,0 +1,149 @@
+{
+  "_comment": "Complete configuration showing ALL available parameters",
+  "_description": "Comprehensive configuration file demonstrating every available setting with explanations. Use as reference for understanding all options.",
+  
+  "input_file": "followers_following.json",
+  "output_file_prefix": "Output/FollowWeb",
+  "strategy": "k-core",
+  "ego_username": null,
+  "contact_path_target": null,
+  "find_paths_to_all_famous": true,
+  "min_followers_in_network": 5,
+  "min_fame_ratio": 5.0,
+  
+  "pipeline_stages": {
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": true
+  },
+  
+  "analysis_mode": {
+    "mode": "full",
+    "sampling_threshold": 5000,
+    "max_layout_iterations": null,
+    "enable_fast_algorithms": false
+  },
+  
+  "output_control": {
+    "generate_html": true,
+    "generate_png": true,
+    "generate_reports": true,
+    "enable_timing_logs": false,
+    "output_formatting": {
+      "indent_size": 2,
+      "group_related_settings": true,
+      "highlight_key_values": true,
+      "use_human_readable_labels": true,
+      "emoji": {
+        "fallback_level": "full"
+      }
+    }
+  },
+  
+  "k_values": {
+    "strategy_k_values": {
+      "k-core": 10,
+      "reciprocal_k-core": 10,
+      "ego_alter_k-core": 10
+    },
+    "default_k_value": 10,
+    "allow_cli_override": true
+  },
+  
+  "visualization": {
+    "node_size_metric": "degree",
+    "base_node_size": 10.0,
+    "node_size_multiplier": 2.0,
+    "scaling_algorithm": "logarithmic",
+    "edge_thickness_metric": "weight",
+    "base_edge_thickness": 1.0,
+    "base_edge_width": 0.5,
+    "edge_width_multiplier": 1.5,
+    "edge_width_scaling": "logarithmic",
+    "bridge_color": "#6e6e6e",
+    "intra_community_color": "#c0c0c0",
+    
+    "static_image": {
+      "generate": true,
+      "layout": "spring",
+      "width": 1200,
+      "height": 800,
+      "dpi": 300,
+      "with_labels": false,
+      "font_size": 8,
+      "show_legend": true,
+      "node_alpha": 0.8,
+      "edge_alpha": 0.3,
+      "edge_arrow_size": 8
+    },
+    
+    "pyvis_interactive": {
+      "height": "600px",
+      "width": "100%",
+      "bgcolor": "#ffffff",
+      "font_color": "#000000"
+    },
+    
+    "png_layout": {
+      "force_spring_layout": false,
+      "align_with_html": true,
+      "spring_iterations": 50,
+      "spring_k": 0.15,
+      
+      "spring": {
+        "k": 0.15,
+        "iterations": 50,
+        "spring_length": 1.0,
+        "spring_constant": 1.0,
+        "repulsion_strength": 1.0,
+        "attraction_strength": 1.0,
+        "center_gravity": 0.01,
+        "gravity_x": 0.0,
+        "gravity_y": 0.0,
+        "damping": 0.9,
+        "min_velocity": 0.01,
+        "max_displacement": 10.0,
+        "enable_multistage": true,
+        "initial_k_multiplier": 1.5,
+        "final_k_multiplier": 0.8
+      },
+      
+      "kamada_kawai": {
+        "max_iterations": 1000,
+        "tolerance": 1e-6,
+        "distance_scale": 1.0,
+        "spring_strength": 1.0,
+        "pos_tolerance": 1e-4,
+        "weight_function": "path"
+      },
+      
+      "circular": {
+        "radius": null,
+        "center": null,
+        "start_angle": 0.0,
+        "angular_spacing": "uniform",
+        "group_by_community": true,
+        "community_separation": 0.2
+      },
+      
+      "shell": {
+        "shell_spacing": 1.0,
+        "center_shell_radius": 0.5,
+        "arrange_by_community": true,
+        "arrange_by_centrality": false,
+        "centrality_metric": "degree",
+        "max_shells": 10,
+        "nodes_per_shell": null
+      }
+    }
+  },
+  
+  "output": {
+    "custom_output_directory": null,
+    "create_directories": true,
+    "enable_time_logging": false
+  }
+}

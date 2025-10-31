@@ -1,0 +1,71 @@
+{
+  "_comment": "Research-grade configuration for publication-quality results",
+  "_description": "Full mode with comprehensive analysis and maximum precision. Suitable for academic research.",
+  
+  "input_file": "research_dataset.json",
+  "output_file_prefix": "Results/Research/FollowWeb",
+  "strategy": "reciprocal_k-core",
+  "contact_path_target": "target_user",
+  "find_paths_to_all_famous": true,
+  "min_followers_in_network": 10,
+  "min_fame_ratio": 8.0,
+  
+  "pipeline_stages": {
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": true
+  },
+  
+  "analysis_mode": {
+    "mode": "full",
+    "sampling_threshold": 15000,
+    "max_layout_iterations": 2000,
+    "enable_fast_algorithms": false
+  },
+  
+  "output_control": {
+    "generate_html": true,
+    "generate_png": true,
+    "generate_reports": true,
+    "enable_timing_logs": true,
+    "output_formatting": {
+      "indent_size": 4,
+      "group_related_settings": true,
+      "highlight_key_values": true,
+      "use_human_readable_labels": true
+    }
+  },
+  
+  "k_values": {
+    "strategy_k_values": {
+      "k-core": 15,
+      "reciprocal_k-core": 12,
+      "ego_alter_k-core": 8
+    },
+    "default_k_value": 15
+  },
+  
+  "visualization": {
+    "node_size_metric": "betweenness",
+    "base_node_size": 12.0,
+    "node_size_multiplier": 3.0,
+    "scaling_algorithm": "logarithmic",
+    "edge_thickness_metric": "betweenness",
+    "static_image": {
+      "generate": true,
+      "layout": "spring",
+      "width": 2400,
+      "height": 1800,
+      "dpi": 600
+    },
+    "pyvis_interactive": {
+      "height": "800px",
+      "width": "100%",
+      "bgcolor": "#f8f9fa",
+      "font_color": "#212529"
+    }
+  }
+}

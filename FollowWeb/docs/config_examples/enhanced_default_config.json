@@ -1,0 +1,79 @@
+{
+  "_comment": "Complete default configuration showing all available parameters",
+  "_description": "Comprehensive configuration with all options and their default values. Use as a starting point for custom configurations.",
+  
+  "input_file": "followers_following.json",
+  "output_file_prefix": "Output/FollowWeb",
+  "strategy": "k-core",
+  "ego_username": null,
+  "contact_path_target": null,
+  "find_paths_to_all_famous": true,
+  "min_followers_in_network": 5,
+  "min_fame_ratio": 5.0,
+  
+  "pipeline_stages": {
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": true
+  },
+  
+  "analysis_mode": {
+    "mode": "full",
+    "sampling_threshold": 5000,
+    "max_layout_iterations": null,
+    "enable_fast_algorithms": false
+  },
+  
+  "output_control": {
+    "generate_html": true,
+    "generate_png": true,
+    "generate_reports": true,
+    "enable_timing_logs": false,
+    "output_formatting": {
+      "indent_size": 2,
+      "group_related_settings": true,
+      "highlight_key_values": true,
+      "use_human_readable_labels": true
+    }
+  },
+  
+  "k_values": {
+    "strategy_k_values": {
+      "k-core": 10,
+      "reciprocal_k-core": 10,
+      "ego_alter_k-core": 10
+    },
+    "default_k_value": 10,
+    "allow_cli_override": true
+  },
+  
+  "visualization": {
+    "node_size_metric": "degree",
+    "base_node_size": 10.0,
+    "node_size_multiplier": 2.0,
+    "scaling_algorithm": "logarithmic",
+    "edge_thickness_metric": "weight",
+    "base_edge_thickness": 1.0,
+    "base_edge_width": 0.5,
+    "edge_width_multiplier": 1.5,
+    "edge_width_scaling": "logarithmic",
+    "bridge_color": "#6e6e6e",
+    "intra_community_color": "#c0c0c0",
+    "static_image": {
+      "generate": true,
+      "layout": "spring",
+      "width": 1200,
+      "height": 800,
+      "dpi": 300
+    },
+    "pyvis_interactive": {
+      "height": "600px",
+      "width": "100%",
+      "bgcolor": "#ffffff",
+      "font_color": "#000000"
+    }
+  }
+}

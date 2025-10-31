@@ -1,0 +1,69 @@
+{
+  "input_file": "examples/followers_following.json",
+  "output_file_prefix": "Output/FollowWeb",
+  "pipeline": {
+    "strategy": "k-core",
+    "skip_analysis": false,
+    "ego_username": null
+  },
+  "analysis": {
+    "contact_path_target": null
+  },
+  "fame_analysis": {
+    "find_paths_to_all_famous": false,
+    "min_followers_in_network": 5,
+    "min_fame_ratio": 5.0
+  },
+  "pruning": {
+    "k_values": {
+      "k-core": 1,
+      "reciprocal_k-core": 1,
+      "ego_alter_k-core": 1
+    },
+    "default_k_value": 1
+  },
+  "visualization": {
+    "node_size_metric": "degree",
+    "base_node_size": 6.0,
+    "node_size_multiplier": 5.0,
+    "scaling_algorithm": "logarithmic",
+    "base_edge_width": 0.5,
+    "edge_width_multiplier": 2.0,
+    "edge_width_scaling": "logarithmic",
+    "intra_community_color": "#c0c0c0",
+    "bridge_color": "#6e6e6e",
+    "pyvis_interactive": {
+      "width": "100%",
+      "height": "90vh",
+      "notebook": false,
+      "show_labels": true,
+      "show_tooltips": true,
+      "physics_solver": "forceAtlas2Based"
+    },
+    "static_image": {
+      "generate": true,
+      "layout": "spring",
+      "with_labels": false,
+      "font_size": 8,
+      "image_size_inches": [25, 25],
+      "dpi": 300,
+      "spring_k": 0.15,
+      "spring_iterations": 50,
+      "edge_alpha": 0.3,
+      "node_alpha": 0.8,
+      "edge_arrow_size": 8,
+      "show_legend": true
+    },
+    "performance": {
+      "fast_mode": true,
+      "skip_path_analysis": false,
+      "max_layout_iterations": 5,
+      "use_sampling_threshold": 5000
+    }
+  },
+  "output": {
+    "enable_time_logging": true,
+    "custom_output_directory": null,
+    "create_directories": true
+  }
+}

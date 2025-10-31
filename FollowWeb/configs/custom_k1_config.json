@@ -1,0 +1,32 @@
+{
+  "input_file": "examples/followers_following.json",
+  "output_file_prefix": "Output/FollowWeb",
+  "strategy": "k-core",
+  "k_values": {
+    "strategy_k_values": {
+      "k-core": 1
+    },
+    "default_k_value": 1
+  },
+  "analysis_mode": {
+    "mode": "full",
+    "max_layout_iterations": 50,
+    "sampling_threshold": 25000,
+    "enable_fast_algorithms": false
+  },
+  "output_control": {
+    "generate_html": true,
+    "generate_png": true,
+    "generate_reports": true,
+    "enable_timing_logs": true
+  },
+  "visualization": {
+    "performance": {
+      "max_layout_iterations": 50,
+      "fast_mode": false
+    },
+    "static_image": {
+      "spring_iterations": 50
+    }
+  }
+}
