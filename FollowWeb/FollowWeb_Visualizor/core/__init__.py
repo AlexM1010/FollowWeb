@@ -12,5 +12,78 @@ Modules:
     config: Configuration management (FollowWebConfig and related classes)
 """
 
-# Core imports will be added as modules are implemented
-__all__ = []
+# Import all core components for easy access
+from .exceptions import (
+    FollowWebError,
+    ConfigurationError,
+    DataProcessingError,
+    VisualizationError,
+)
+
+from .types import (
+    NodeMetric,
+    EdgeMetric,
+    ColorScheme,
+    VisualizationMetrics,
+)
+
+from .config import (
+    AnalysisMode,
+    PipelineStagesConfig,
+    AnalysisModeConfig,
+    EmojiConfig,
+    OutputFormattingConfig,
+    OutputControlConfig,
+    KValueConfig,
+    SpringLayoutConfig,
+    KamadaKawaiLayoutConfig,
+    CircularLayoutConfig,
+    ShellLayoutConfig,
+    PngLayoutConfig,
+    StaticImageConfig,
+    PyvisInteractiveConfig,
+    PipelineConfig,
+    AnalysisConfig,
+    FameAnalysisConfig,
+    PruningConfig,
+    OutputConfig,
+    VisualizationConfig,
+    FollowWebConfig,
+    load_config_from_dict,
+)
+
+__all__ = [
+    # Exceptions
+    "FollowWebError",
+    "ConfigurationError", 
+    "DataProcessingError",
+    "VisualizationError",
+    # Types
+    "NodeMetric",
+    "EdgeMetric", 
+    "ColorScheme",
+    "VisualizationMetrics",
+    # Config classes
+    "AnalysisMode",
+    "PipelineStagesConfig",
+    "AnalysisModeConfig",
+    "EmojiConfig",
+    "OutputFormattingConfig",
+    "OutputControlConfig",
+    "KValueConfig",
+    "SpringLayoutConfig",
+    "KamadaKawaiLayoutConfig",
+    "CircularLayoutConfig",
+    "ShellLayoutConfig",
+    "PngLayoutConfig",
+    "StaticImageConfig",
+    "PyvisInteractiveConfig",
+    "PipelineConfig",
+    "AnalysisConfig",
+    "FameAnalysisConfig",
+    "PruningConfig",
+    "OutputConfig",
+    "VisualizationConfig",
+    "FollowWebConfig",
+    "load_config_from_dict",
+]
