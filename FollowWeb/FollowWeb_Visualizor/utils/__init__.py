@@ -14,5 +14,12 @@ Modules:
     files: File system operations and path handling utilities
 """
 
-# Utilities imports will be added as modules are implemented
-__all__ = []
+from .validation import ProgressTracker
+from .parallel import ParallelConfig, get_analysis_parallel_config, log_parallel_usage
+
+__all__ = [
+    "ProgressTracker",
+    "ParallelConfig", 
+    "get_analysis_parallel_config",
+    "log_parallel_usage",
+]

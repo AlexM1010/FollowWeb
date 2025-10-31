@@ -12,5 +12,8 @@ Modules:
     formatters: EmojiFormatter and text formatting utilities
 """
 
-# Output system imports will be added as modules are implemented
-__all__ = []
+from .formatters import EmojiFormatter
+
+__all__ = [
+    "EmojiFormatter",
+]

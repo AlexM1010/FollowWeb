@@ -12,5 +12,27 @@ Modules:
     cache: CentralizedCache class and caching utilities
 """
 
-# Data layer imports will be added as modules are implemented
-__all__ = []
+from .cache import (
+    CentralizedCache,
+    get_cache_manager,
+    calculate_graph_hash,
+    get_cached_undirected_graph,
+    get_cached_node_attributes,
+    clear_all_caches,
+)
+from .loaders import GraphLoader
+from .processors import GraphProcessor
+
+__all__ = [
+    # Cache functionality
+    "CentralizedCache",
+    "get_cache_manager", 
+    "calculate_graph_hash",
+    "get_cached_undirected_graph",
+    "get_cached_node_attributes",
+    "clear_all_caches",
+    # Data loading
+    "GraphLoader",
+    # Graph processing
+    "GraphProcessor",
+]
