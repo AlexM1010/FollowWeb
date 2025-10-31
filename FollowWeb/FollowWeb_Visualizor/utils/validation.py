@@ -1,58 +1,139 @@
 """
-Validation utilities and progress tracking for FollowWeb.
+Input validation utilities for FollowWeb network analysis.
 
-This module contains validation functions and progress tracking utilities.
+This module provides comprehensive validation functions for parameters,
+file paths, and configuration values used throughout the FollowWeb package.
 """
 
+# Standard library imports
 import logging
-import time
-from typing import Any, List, Optional, Union
+import os
+from typing import Any, Dict, List, Optional, Union
+
+# Local imports
+from ..core.exceptions import FollowWebError
 
 
-class ProgressTracker:
-    """
-    Simple progress tracker for long-running operations.
-    """
+class ValidationErrorHandler:
+    """Handles validation error patterns consistently."""
 
-    def __init__(self, total: int, title: str = "Processing", logger: Optional[logging.Logger] = None):
-        """
-        Initialize the progress tracker.
-
-        Args:
-            total: Total number of items to process
-            title: Title for the progress display
-            logger: Logger instance for output
-        """
-        self.total = total
-        self.title = title
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """Initialize validation error handler."""
         self.logger = logger or logging.getLogger(__name__)
-        self.current = 0
-        self.start_time = None
 
-    def __enter__(self):
-        """Enter context manager."""
-        self.start_time = time.time()
-        self.logger.info(f"Starting {self.title}...")
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit context manager."""
-        if self.start_time:
-            duration = time.time() - self.start_time
-            self.logger.info(f"Completed {self.title} in {duration:.2f} seconds")
-
-    def update(self, current: int):
+    def collect_validation_errors(self, validators: List[callable]) -> List[str]:
         """
-        Update the progress.
+        Collect all validation errors.
 
         Args:
-            current: Current progress value
+            validators: List of validation functions to execute
+
+        Returns:
+            List of validation error messages
         """
-        self.current = current
-        if self.total > 0:
-            percentage = (current / self.total) * 100
-            if current % max(1, self.total // 10) == 0:  # Log every 10%
-                self.logger.debug(f"{self.title}: {percentage:.1f}% ({current}/{self.total})")
+        errors = []
+
+        for validator in validators:
+            try:
+                validator()
+            except ValueError as e:
+                errors.append(str(e))
+            except Exception as e:
+                errors.append(f"Validation error: {e}")
+
+        return errors
+
+    def validate_with_context(
+        self, validation_func: callable, context: str
+    ) -> Optional[str]:
+        """
+        Execute validation with context information.
+
+        Args:
+            validation_func: Validation function to execute
+            context: Context description for error messages
+
+        Returns:
+            Error message if validation fails, None if successful
+        """
+        try:
+            validation_func()
+            return None
+        except ValueError as e:
+            error_msg = f"{context}: {e}"
+            self.logger.error(error_msg)
+            return error_msg
+        except Exception as e:
+            error_msg = f"{context} - unexpected error: {e}"
+            self.logger.error(error_msg)
+            return error_msg
+
+
+class ConfigurationErrorHandler:
+    """Handles configuration-related error patterns."""
+
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        """Initialize configuration error handler."""
+        self.logger = logger or logging.getLogger(__name__)
+
+    def validate_configuration_section(
+        self, config_dict: Dict, required_keys: List[str], section_name: str
+    ) -> List[str]:
+        """
+        Validate that a configuration section has all required keys.
+
+        Args:
+            config_dict: Configuration dictionary to validate
+            required_keys: List of required key names
+            section_name: Name of the configuration section
+
+        Returns:
+            List of validation error messages
+        """
+        errors = []
+
+        for key in required_keys:
+            if key not in config_dict:
+                errors.append(f"Missing required key '{key}' in {section_name} section")
+            elif config_dict[key] is None:
+                errors.append(f"Key '{key}' in {section_name} section cannot be None")
+
+        return errors
+
+    def handle_configuration_error(
+        self, error: Exception, config_file: Optional[str] = None
+    ) -> str:
+        """
+        Handle configuration errors with helpful error messages.
+
+        Args:
+            error: The configuration error
+            config_file: Optional configuration file path
+
+        Returns:
+            Formatted error message with suggestions
+        """
+        error_msg = str(error)
+
+        if config_file:
+            base_msg = f"Configuration error in {config_file}: {error_msg}"
+        else:
+            base_msg = f"Configuration error: {error_msg}"
+
+        # Add helpful suggestions based on error type
+        if "JSON" in error_msg or "json" in error_msg:
+            base_msg += (
+                "\nSuggestion: Check JSON syntax, ensure proper quotes and commas"
+            )
+        elif "required" in error_msg.lower():
+            base_msg += (
+                "\nSuggestion: Check that all required configuration parameters are set"
+            )
+        elif "invalid" in error_msg.lower():
+            base_msg += "\nSuggestion: Check parameter values against documentation"
+
+        self.logger.error(base_msg)
+        return base_msg
 
 
 def validate_non_empty_string(value: Any, param_name: str) -> str:
@@ -199,19 +280,31 @@ def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> An
     return value
 
 
-def validate_multiple_non_negative(*values_and_names) -> None:
+def validate_string_format(
+    value: Any, param_name: str, allowed_suffixes: Optional[List[str]] = None
+) -> str:
     """
-    Validate that multiple values are non-negative.
+    Validate string format with optional suffix requirements.
 
     Args:
-        *values_and_names: Pairs of (value, name) tuples
+        value: Value to validate
+        param_name: Name of the parameter for error messages
+        allowed_suffixes: Optional list of allowed suffixes (e.g., ['px', '%'])
+
+    Returns:
+        str: The validated string value
 
     Raises:
-        ValueError: If any value is negative
+        ValueError: If value doesn't meet format requirements
     """
-    for value, name in values_and_names:
-        if value < 0:
-            raise ValueError(f"{name} cannot be negative")
+    if not isinstance(value, str):
+        raise ValueError(f"{param_name} must be a string")
+
+    if allowed_suffixes:
+        if not any(value.endswith(suffix) for suffix in allowed_suffixes):
+            raise ValueError(f"{param_name} must end with one of: {allowed_suffixes}")
+
+    return value
 
 
 def validate_path_string(value: Any, param_name: str) -> str:
@@ -235,3 +328,157 @@ def validate_path_string(value: Any, param_name: str) -> str:
         raise ValueError(f"{param_name} must be a string")
 
     return value
+
+
+def validate_filesystem_safe_string(value: Any, param_name: str) -> str:
+    """
+    Validate that a string is safe for filesystem usage.
+
+    Args:
+        value: Value to validate
+        param_name: Name of the parameter for error messages
+
+    Returns:
+        str: The validated string value
+
+    Raises:
+        ValueError: If value contains invalid filesystem characters
+    """
+    validate_non_empty_string(value, param_name)
+
+    # Invalid characters for most filesystems
+    invalid_chars = '<>"|?*'
+    if any(char in value for char in invalid_chars):
+        raise ValueError(f"{param_name} contains invalid filesystem characters")
+
+    return value
+
+
+def validate_at_least_one_enabled(options: dict, param_name: str) -> dict:
+    """
+    Validate that at least one option in a dictionary is enabled (True).
+
+    Args:
+        options: Dictionary of option_name -> boolean values
+        param_name: Name of the parameter group for error messages
+
+    Returns:
+        dict: The validated options dictionary
+
+    Raises:
+        ValueError: If no options are enabled
+    """
+    if not any(options.values()):
+        enabled_options = list(options.keys())
+        raise ValueError(
+            f"At least one {param_name} must be enabled: {enabled_options}"
+        )
+
+    return options
+
+
+def validate_k_value_dict(
+    k_values: dict, param_name: str, valid_strategies: List[str]
+) -> dict:
+    """
+    Validate a dictionary of k-values for different strategies.
+
+    Args:
+        k_values: Dictionary mapping strategy names to k-values
+        param_name: Name of the parameter for error messages
+        valid_strategies: List of valid strategy names
+
+    Returns:
+        dict: The validated k-values dictionary
+
+    Raises:
+        ValueError: If k-values are invalid or strategies are unknown
+    """
+    for strategy, k_val in k_values.items():
+        if strategy not in valid_strategies:
+            raise ValueError(
+                f"Invalid strategy '{strategy}' in {param_name}. "
+                f"Must be one of: {valid_strategies}"
+            )
+
+        validate_non_negative_integer(k_val, f"k-value for '{strategy}'")
+
+    return k_values
+
+
+def validate_ego_strategy_requirements(
+    strategy: str, ego_username: Optional[str]
+) -> None:
+    """
+    Validate requirements specific to ego-alter strategy.
+
+    Args:
+        strategy: The analysis strategy
+        ego_username: The ego username (may be None)
+
+    Raises:
+        ValueError: If ego-alter strategy is used without ego_username
+    """
+    if strategy == "ego_alter_k-core" and not ego_username:
+        raise ValueError(
+            "'ego_username' must be set for 'ego_alter_k-core' strategy. "
+            "Set ego_username in configuration file or use --ego-username CLI parameter"
+        )
+
+
+def validate_multiple_non_negative(*values_and_names) -> None:
+    """
+    Validate that multiple values are non-negative.
+
+    Args:
+        *values_and_names: Pairs of (value, name) tuples
+
+    Raises:
+        ValueError: If any value is negative
+    """
+    for value, name in values_and_names:
+        if value < 0:
+            raise ValueError(f"{name} cannot be negative")
+
+
+def validate_image_dimensions(width: int, height: int) -> tuple:
+    """
+    Validate image dimensions are positive integers.
+
+    Args:
+        width: Image width
+        height: Image height
+
+    Returns:
+        tuple: (width, height) validated values
+
+    Raises:
+        ValueError: If dimensions are not positive
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError("image dimensions must be positive")
+
+    return width, height
+
+
+def validate_file_path(filepath: str, must_exist: bool = True) -> bool:
+    """
+    Validates file path and optionally checks if file exists.
+
+    Args:
+        filepath: Path to validate
+        must_exist: If True, checks that file exists
+
+    Returns:
+        bool: True if valid, False otherwise
+
+    Raises:
+        ValueError: If filepath is empty
+        FileNotFoundError: If must_exist=True and file doesn't exist
+    """
+    validate_path_string(filepath, "filepath")
+
+    if must_exist and not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    return True
