@@ -454,7 +454,6 @@ class PipelineConfig:
 class AnalysisConfig:
     """Configuration for analysis parameters."""
 
-    contact_path_target: Optional[str] = None
     min_followers_in_network: int = 50
     min_fame_ratio: float = 5.0
 
@@ -471,6 +470,7 @@ class FameAnalysisConfig:
     """Configuration for fame analysis parameters."""
 
     find_paths_to_all_famous: bool = True
+    contact_path_target: Optional[str] = None
     min_followers_in_network: int = 5
     min_fame_ratio: float = 5.0
 
@@ -482,25 +482,7 @@ class FameAnalysisConfig:
         validate_positive_number(self.min_fame_ratio, "min_fame_ratio")
 
 
-@dataclass
-class PruningConfig:
-    """Configuration for graph pruning parameters."""
 
-    k_values: Dict[str, int] = field(
-        default_factory=lambda: {
-            "k-core": 10,
-            "reciprocal_k-core": 10,
-            "ego_alter_k-core": 10,
-        }
-    )
-    default_k_value: int = 10
-
-    def __post_init__(self):
-        """Validate pruning configuration after initialization."""
-        # Validate all k-values and strategy names
-        valid_strategies = ["k-core", "reciprocal_k-core", "ego_alter_k-core"]
-        validate_k_value_dict(self.k_values, "k_values", valid_strategies)
-        validate_non_negative_integer(self.default_k_value, "default_k_value")
 
 
 @dataclass
@@ -508,7 +490,6 @@ class OutputConfig:
     """Configuration for output generation."""
 
     custom_output_directory: Optional[str] = None
-    create_directories: bool = True
     enable_time_logging: bool = False
 
     def __post_init__(self):
@@ -578,15 +559,12 @@ class FollowWebConfig:
     output_control: OutputControlConfig = field(default_factory=OutputControlConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     k_values: KValueConfig = field(default_factory=KValueConfig)
+    fame_analysis: FameAnalysisConfig = field(default_factory=FameAnalysisConfig)
     visualization: VisualizationConfig = field(default_factory=VisualizationConfig)
 
     # Essential analysis settings
     strategy: str = "k-core"
     ego_username: Optional[str] = None
-    contact_path_target: Optional[str] = None
-    find_paths_to_all_famous: bool = True
-    min_followers_in_network: int = 5
-    min_fame_ratio: float = 5.0
 
     def __post_init__(self):
         """Validate main configuration after initialization."""
@@ -595,11 +573,7 @@ class FollowWebConfig:
         validate_choice(self.strategy, "strategy", valid_strategies)
         validate_ego_strategy_requirements(self.strategy, self.ego_username)
 
-        # Validate fame analysis parameters
-        validate_non_negative_integer(
-            self.min_followers_in_network, "min_followers_in_network"
-        )
-        validate_positive_number(self.min_fame_ratio, "min_fame_ratio")
+
 
 
 def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
@@ -695,7 +669,6 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
         # Create output config
         output_config = OutputConfig(
             custom_output_directory=output_dict.get("custom_output_directory"),
-            create_directories=output_dict.get("create_directories", True),
             enable_time_logging=output_dict.get("enable_time_logging", False),
         )
 
@@ -831,6 +804,15 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
             png_layout=png_layout_config,
         )
 
+        # Create fame analysis config
+        fame_analysis_dict = config_dict.get("fame_analysis", {})
+        fame_analysis_config = FameAnalysisConfig(
+            find_paths_to_all_famous=fame_analysis_dict.get("find_paths_to_all_famous", True),
+            contact_path_target=fame_analysis_dict.get("contact_path_target"),
+            min_followers_in_network=fame_analysis_dict.get("min_followers_in_network", 5),
+            min_fame_ratio=fame_analysis_dict.get("min_fame_ratio", 5.0),
+        )
+
         # Create main config
         config = FollowWebConfig(
             input_file=config_dict.get(
@@ -844,13 +826,10 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
             output_control=output_control_config,
             output=output_config,
             k_values=k_values_config,
+            fame_analysis=fame_analysis_config,
             visualization=visualization_config,
             strategy=config_dict.get("strategy", "k-core"),
             ego_username=config_dict.get("ego_username"),
-            contact_path_target=config_dict.get("contact_path_target"),
-            find_paths_to_all_famous=config_dict.get("find_paths_to_all_famous", True),
-            min_followers_in_network=config_dict.get("min_followers_in_network", 5),
-            min_fame_ratio=config_dict.get("min_fame_ratio", 5.0),
         )
 
         return config
@@ -1177,19 +1156,11 @@ class ConfigurationManager:
                 "ego_username": config.ego_username,
                 "skip_analysis": not config.pipeline_stages.enable_analysis,
             },
-            "analysis": {
-                "contact_path_target": config.contact_path_target,
-                "min_followers_in_network": config.min_followers_in_network,
-                "min_fame_ratio": config.min_fame_ratio,
-            },
             "fame_analysis": {
-                "find_paths_to_all_famous": config.find_paths_to_all_famous,
-                "min_followers_in_network": config.min_followers_in_network,
-                "min_fame_ratio": config.min_fame_ratio,
-            },
-            "pruning": {
-                "k_values": config.k_values.strategy_k_values.copy(),
-                "default_k_value": config.k_values.default_k_value,
+                "find_paths_to_all_famous": config.fame_analysis.find_paths_to_all_famous,
+                "contact_path_target": config.fame_analysis.contact_path_target,
+                "min_followers_in_network": config.fame_analysis.min_followers_in_network,
+                "min_fame_ratio": config.fame_analysis.min_fame_ratio,
             },
             "pipeline_stages": {
                 "enable_strategy": config.pipeline_stages.enable_strategy,
@@ -1650,10 +1621,10 @@ class PipelineStagesController:
                 "enable_community_detection": self.config.pipeline_stages.enable_community_detection,
                 "enable_centrality_analysis": self.config.pipeline_stages.enable_centrality_analysis,
                 "enable_path_analysis": self.config.pipeline_stages.enable_path_analysis,
-                "contact_path_target": self.config.contact_path_target,
-                "min_followers_in_network": self.config.min_followers_in_network,
-                "min_fame_ratio": self.config.min_fame_ratio,
-                "find_paths_to_all_famous": self.config.find_paths_to_all_famous,
+                "contact_path_target": self.config.fame_analysis.contact_path_target,
+                "min_followers_in_network": self.config.fame_analysis.min_followers_in_network,
+                "min_fame_ratio": self.config.fame_analysis.min_fame_ratio,
+                "find_paths_to_all_famous": self.config.fame_analysis.find_paths_to_all_famous,
             }
         elif stage_name == "visualization":
             return {

@@ -9,8 +9,8 @@ pip install -e .
 # 2. Test the installation
 followweb --help
 
-# 3. Run with improved spacing configuration
-followweb improved_spacing_config.json
+# 3. Run with fast configuration
+followweb fast_config.json
 ```
 
 ## Alternative Installation Methods
@@ -44,13 +44,13 @@ After installation, you can use any of these methods:
 ### Console Script (Easiest)
 ```bash
 followweb config.json
-followweb improved_spacing_config.json
+followweb fast_config.json
 ```
 
 ### Python Module
 ```bash
 python -m FollowWeb.FollowWeb_Visualizor config.json
-python -m FollowWeb.FollowWeb_Visualizor improved_spacing_config.json
+python -m FollowWeb.FollowWeb_Visualizor fast_config.json
 ```
 
 ### Direct Script
@@ -64,7 +64,7 @@ python FollowWeb/FollowWeb_Visualizor/main.py config.json
 ```bash
 # Install and test
 pip install -e .
-followweb improved_spacing_config.json
+followweb fast_config.json
 ```
 
 ### Verification Test
@@ -112,7 +112,7 @@ Test that everything works:
 followweb --help
 
 # Test with sample config
-followweb improved_spacing_config.json
+followweb fast_config.json
 ```
 
 The improved spacing configuration will generate PNG files with much better node separation and reduced overlap.

@@ -42,17 +42,15 @@ pip install -e ".[dev]"
 python -m FollowWeb_Visualizor.main --input examples/followers_following.json
 
 # Use a configuration file
-python -m FollowWeb_Visualizor.main --config configs/custom_k1_config.json
+python -m FollowWeb_Visualizor.main --config configs/fast_config.json
 
 # Print default configuration
 python -m FollowWeb_Visualizor.main --print-default-config
 ```
 
 ### Example Configuration Files
-- **[fast_config_k1.json](fast_config_k1.json)** - Quick analysis for small networks
-- **[custom_k1_config.json](custom_k1_config.json)** - Balanced settings for most use cases  
-- **[large_network_config.json](large_network_config.json)** - Optimized for large networks
-- **[full_network_k1_config.json](full_network_k1_config.json)** - Comprehensive analysis
+- **[fast_config.json](configs/fast_config.json)** - Quick analysis optimized for development and testing
+- **[comprehensive_layout_config.json](configs/comprehensive_layout_config.json)** - Complete configuration with all available features
 
 ### Development Setup
 For development, see **[docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md)** for detailed setup instructions including dependency installation and code quality tools.

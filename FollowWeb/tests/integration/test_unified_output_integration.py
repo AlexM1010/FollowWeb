@@ -123,7 +123,7 @@ class TestUnifiedOutputIntegration:
                 "enable_timing_logs": True,
                 "output_formatting": {"emoji": {"fallback_level": emoji_level}},
             },
-            "output": {"create_directories": True},
+            "output": {},
             "k_values": {
                 "strategy_k_values": {
                     "k-core": 2,

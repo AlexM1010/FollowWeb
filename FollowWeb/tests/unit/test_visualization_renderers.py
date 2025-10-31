@@ -347,28 +347,21 @@ class TestVisualizationConsistency:
         """Test that color schemes are applied consistently."""
         G = self.create_test_graph()
 
-        with patch(
-            "FollowWeb_Visualizor.visualization.get_community_colors"
-        ) as mock_colors:
-            mock_colors.return_value = {
-                "hex": {0: "#ff0000", 1: "#00ff00"},
-                "rgba": {0: (1.0, 0.0, 0.0, 1.0), 1: (0.0, 1.0, 0.0, 1.0)},
-            }
+        # Calculate color schemes using actual implementation
+        color_schemes = self.metrics_calculator._calculate_color_schemes(G)
 
-            # Calculate color schemes
-            color_schemes = self.metrics_calculator._calculate_color_schemes(G)
-
-            # Verify consistent color scheme
-            assert color_schemes.hex_colors == {0: "#ff0000", 1: "#00ff00"}
-            assert color_schemes.rgba_colors == {
-                0: (1.0, 0.0, 0.0, 1.0),
-                1: (0.0, 1.0, 0.0, 1.0),
-            }
-            assert color_schemes.bridge_color == "#6e6e6e"
-            assert color_schemes.intra_community_color == "#c0c0c0"
-
-            # Verify get_community_colors was called with correct number of communities
-            mock_colors.assert_called_once_with(2)
+        # Verify consistent color scheme (using actual viridis colors)
+        assert color_schemes.hex_colors == {0: "#440154", 1: "#fde724"}
+        # Check RGBA colors with approximate comparison due to numpy float precision
+        assert len(color_schemes.rgba_colors) == 2
+        assert abs(color_schemes.rgba_colors[0][0] - 0.267004) < 0.001
+        assert abs(color_schemes.rgba_colors[0][1] - 0.004874) < 0.001
+        assert abs(color_schemes.rgba_colors[0][2] - 0.329415) < 0.001
+        assert abs(color_schemes.rgba_colors[1][0] - 0.993248) < 0.001
+        assert abs(color_schemes.rgba_colors[1][1] - 0.906157) < 0.001
+        assert abs(color_schemes.rgba_colors[1][2] - 0.143936) < 0.001
+        assert color_schemes.bridge_color == "#6e6e6e"
+        assert color_schemes.intra_community_color == "#c0c0c0"
 
     def test_convenience_functions_use_shared_metrics(self):
         """Test that convenience functions can use shared metrics."""

@@ -1568,15 +1568,11 @@ def main() -> int:
         output_prefix = config.output_file_prefix
         output_dir = os.path.dirname(output_prefix)
         if output_dir and not os.path.exists(output_dir):
-            if config.output.create_directories:
-                logger.info(f"Creating default output directory: {output_dir}")
-                try:
-                    os.makedirs(output_dir, exist_ok=True)
-                except OSError:
-                    logger.error("failed to create Output directory")
-                    return 1
-            else:
-                logger.error("Output directory does not exist")
+            logger.info(f"Creating default output directory: {output_dir}")
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+            except OSError:
+                logger.error("failed to create Output directory")
                 return 1
 
         # Create and execute pipeline

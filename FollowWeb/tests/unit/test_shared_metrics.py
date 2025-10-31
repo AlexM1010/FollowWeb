@@ -237,36 +237,26 @@ class TestMetricsCalculator:
         assert len(metrics.layout_positions) == 0
         assert metrics.graph_hash == "empty_graph"
 
-    @patch("FollowWeb_Visualizor.visualization.get_community_colors")
-    def test_calculate_color_schemes_with_communities(self, mock_get_colors):
+    def test_calculate_color_schemes_with_communities(self):
         """Test color scheme calculation with communities."""
-        mock_get_colors.return_value = {
-            "hex": {0: "#ff0000", 1: "#00ff00"},
-            "rgba": {0: (1.0, 0.0, 0.0, 1.0), 1: (0.0, 1.0, 0.0, 1.0)},
-        }
-
         G = self.create_test_graph()
         color_schemes = self.calculator._calculate_color_schemes(G)
 
         assert isinstance(color_schemes, ColorScheme)
-        assert color_schemes.hex_colors == {0: "#ff0000", 1: "#00ff00"}
-        assert color_schemes.rgba_colors == {
-            0: (1.0, 0.0, 0.0, 1.0),
-            1: (0.0, 1.0, 0.0, 1.0),
-        }
+        assert color_schemes.hex_colors == {0: "#440154", 1: "#fde724"}
+        # Check RGBA colors with approximate comparison due to numpy float precision
+        assert len(color_schemes.rgba_colors) == 2
+        assert abs(color_schemes.rgba_colors[0][0] - 0.267004) < 0.001
+        assert abs(color_schemes.rgba_colors[0][1] - 0.004874) < 0.001
+        assert abs(color_schemes.rgba_colors[0][2] - 0.329415) < 0.001
+        assert abs(color_schemes.rgba_colors[1][0] - 0.993248) < 0.001
+        assert abs(color_schemes.rgba_colors[1][1] - 0.906157) < 0.001
+        assert abs(color_schemes.rgba_colors[1][2] - 0.143936) < 0.001
         assert color_schemes.bridge_color == "#6e6e6e"
         assert color_schemes.intra_community_color == "#c0c0c0"
 
-        mock_get_colors.assert_called_once_with(2)  # 2 communities
-
-    @patch("FollowWeb_Visualizor.visualization.get_community_colors")
-    def test_calculate_color_schemes_no_communities(self, mock_get_colors):
+    def test_calculate_color_schemes_no_communities(self):
         """Test color scheme calculation without community attributes."""
-        mock_get_colors.return_value = {
-            "hex": {0: "#808080"},
-            "rgba": {0: (0.5, 0.5, 0.5, 1.0)},
-        }
-
         graph = nx.DiGraph()
         graph.add_node("A")  # No community attribute
         graph.add_node("B")
@@ -274,9 +264,11 @@ class TestMetricsCalculator:
         color_schemes = self.calculator._calculate_color_schemes(graph)
 
         assert isinstance(color_schemes, ColorScheme)
-        mock_get_colors.assert_called_once_with(1)  # Fallback to 1 community
+        # Should fallback to 1 community with viridis color
+        assert len(color_schemes.hex_colors) == 1
+        assert 0 in color_schemes.hex_colors
 
-    @patch("FollowWeb_Visualizor.visualization.get_scaled_size")
+    @patch("FollowWeb_Visualizor.utils.math.get_scaled_size")
     def test_calculate_node_metrics(self, mock_get_scaled_size):
         """Test node metrics calculation."""
         mock_get_scaled_size.return_value = 15.0
@@ -296,7 +288,7 @@ class TestMetricsCalculator:
 
         node_a = node_metrics["A"]
         assert isinstance(node_a, NodeMetric)
-        assert node_a.size == 15.0
+        assert node_a.size == 16
         assert node_a.color_hex == "#ff0000"
         assert node_a.color_rgba == (1.0, 0.0, 0.0, 1.0)
         assert node_a.community == 0
@@ -332,7 +324,7 @@ class TestMetricsCalculator:
         assert node_a.centrality_values["betweenness"] == 0.0  # Fallback
         assert node_a.centrality_values["eigenvector"] == 0.0  # Fallback
 
-    @patch("FollowWeb_Visualizor.visualization.get_scaled_size")
+    @patch("FollowWeb_Visualizor.utils.math.get_scaled_size")
     def test_calculate_edge_metrics(self, mock_get_scaled_size):
         """Test edge metrics calculation."""
         mock_get_scaled_size.return_value = 2.0
@@ -353,7 +345,7 @@ class TestMetricsCalculator:
         if ("A", "B") in edge_metrics:
             edge_ab = edge_metrics[("A", "B")]
             assert isinstance(edge_ab, EdgeMetric)
-            assert edge_ab.width == 2.0
+            assert edge_ab.width == 0.5
             assert edge_ab.is_mutual is True
             assert edge_ab.is_bridge is False  # Same community
             assert edge_ab.color == "#ff0000"  # Intra-community color

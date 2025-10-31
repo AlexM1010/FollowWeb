@@ -518,13 +518,13 @@ class TestCustomOutputDirectoryIntegration:
             os.chdir(original_cwd)
 
     @pytest.mark.integration
-    def test_create_directories_false(
+    def test_automatic_directory_creation(
         self,
         fast_config: Dict[str, Any],
         sample_data_exists: bool,
         temp_output_dir: str,
     ):
-        """Test pipeline with create_directories=False - now creates directories automatically."""
+        """Test pipeline with automatic directory creation (create_directories is now hardcoded as True)."""
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
@@ -535,7 +535,7 @@ class TestCustomOutputDirectoryIntegration:
         config = fast_config.copy()
         config["output_file_prefix"] = os.path.join(non_existent_dir, "FollowWeb")
         config["output"] = config.get("output", {})
-        config["output"]["create_directories"] = False
+        # create_directories is now hardcoded as True, so directories are created automatically
 
         # Pipeline now handles directory creation gracefully
         config_obj = load_config_from_dict(config)
@@ -684,7 +684,7 @@ class TestPipelineSuccessValidation:
             / "FollowWeb"
         )
         config["output_file_prefix"] = str(test_path)
-        config["output"] = {"create_directories": False}
+        config["output"] = {}
 
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)

@@ -101,7 +101,7 @@ class OutputManager:
             include_emojis_in_text=True,
             preserve_timing_info=True,
             text_file_path=text_file_path,
-            create_directories=True,
+
         )
 
         self.unified_logger = Logger(config)
@@ -183,10 +183,9 @@ class OutputManager:
         )
 
         # Ensure output directories exist
-        create_dirs = self.config.get("output", {}).get("create_directories", True)
         try:
             for filename in [html_filename, png_filename, txt_filename]:
-                ensure_output_directory(filename, create_if_missing=create_dirs)
+                ensure_output_directory(filename, create_if_missing=True)
         except (ValueError, OSError) as e:
             # Directory creation failed - return failure for all outputs
             if self.unified_logger:
@@ -260,7 +259,7 @@ class OutputManager:
             )
 
             results["report"] = self.metrics_reporter.save_metrics_file(
-                report_content, txt_filename, create_dirs
+                report_content, txt_filename
             )
         else:
             if self.unified_logger:
@@ -359,8 +358,7 @@ class OutputManager:
             # Ensure output directory exists
             from ..utils.files import ensure_output_directory
 
-            create_dirs = self.config.get("output", {}).get("create_directories", True)
-            ensure_output_directory(timing_filename, create_if_missing=create_dirs)
+            ensure_output_directory(timing_filename, create_if_missing=True)
 
             # Generate detailed timing report
             timing_report = self._generate_detailed_timing_report(timing_data)
@@ -1016,7 +1014,7 @@ class MetricsReporter:
         return lines
 
     def save_metrics_file(
-        self, report_content: str, output_path: str, create_directories: bool = True
+        self, report_content: str, output_path: str
     ) -> bool:
         """
         Saves the metrics report to a text file.
@@ -1024,7 +1022,6 @@ class MetricsReporter:
         Args:
             report_content: The formatted report content to save
             output_path: Path where the text file should be saved (should end with .txt)
-            create_directories: Whether to create directories if they don't exist
 
         Returns:
             True if successful, False otherwise
@@ -1033,7 +1030,7 @@ class MetricsReporter:
             # Ensure output directory exists
             from ..utils.files import ensure_output_directory
 
-            ensure_output_directory(output_path, create_if_missing=create_directories)
+            ensure_output_directory(output_path, create_if_missing=True)
 
             # Write the report content to file
             with open(output_path, "w", encoding="utf-8") as f:

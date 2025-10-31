@@ -1,37 +1,91 @@
-# Configuration Files
+# FollowWeb Configuration Files
 
-This directory contains various configuration files for different analysis scenarios:
+This directory contains essential configuration files for FollowWeb network analysis. The configurations follow standard JSON format with comprehensive documentation provided separately.
 
-## Configuration Files
+## Available Configurations
 
-- `comprehensive_layout_config.json` - Complete layout configuration with all options
-- `custom_k1_config.json` - Custom k-core analysis with k=1
-- `fast_config_k1.json` - Fast execution configuration for k=1 analysis
-- `full_network_k1_config.json` - Full network analysis configuration
-- `improved_spacing_config.json` - Configuration with improved node spacing
-- `k6_config.json` - K-core analysis with k=6
-- `large_network_config.json` - Configuration optimized for large networks
-- `ultra_fast_config_k1.json` - Ultra-fast execution configuration
+### Core Configuration Files
 
-## Performance Optimization
+- **`comprehensive_layout_config.json`** - Complete configuration with all available options enabled
+  - Full feature set demonstration
+  - High-quality visualization settings
+  - All layout algorithms configured
+  - Suitable for production use and as a reference
 
-All configurations automatically benefit from FollowWeb's centralized caching system:
+- **`fast_config.json`** - Optimized configuration for quick analysis
+  - Fast mode enabled with performance optimizations
+  - Lower k-values for faster processing
+  - Reduced image resolution for speed
+  - Ideal for development and testing
 
-- **Graph Hash Caching**: Eliminates duplicate hash calculations (90% reduction)
-- **Graph Conversion Caching**: Reduces undirected graph conversion overhead (95% reduction)
-- **Attribute Access Caching**: Reduces graph traversal time (80% reduction)
-- **Layout Position Caching**: Shares layout calculations between HTML and PNG outputs
-- **Community Color Caching**: Avoids regenerating color schemes (99% reduction)
+### Documentation
 
-The caching system automatically manages memory with size limits and timeout management.
+- **`CONFIG_REFERENCE.md`** - Comprehensive documentation for all configuration options
+  - Detailed parameter explanations
+  - Configuration examples
+  - Best practices and usage guidelines
+  - Complete reference for all available settings
 
-## Usage
+## Configuration Documentation Approach
 
-These configuration files can be used with the FollowWeb package to customize analysis parameters, visualization settings, and performance options.
+Since JSON doesn't support comments, we use a separate documentation approach:
 
+1. **Clean JSON files** - Valid JSON without comments for actual use
+2. **Comprehensive documentation** - Detailed explanations in `CONFIG_REFERENCE.md`
+3. **Inline examples** - Configuration snippets with explanations in documentation
+4. **Template approach** - Well-documented example configurations
+
+## Usage Examples
+
+### Basic Usage
 ```bash
-# Example usage
-python -m FollowWeb_Visualizor --config configs/fast_config_k1.json
+# Use fast configuration for development
+python -m FollowWeb_Visualizor --config configs/fast_config.json
+
+# Use comprehensive configuration for production
+python -m FollowWeb_Visualizor --config configs/comprehensive_layout_config.json
 ```
 
-See the main documentation for detailed configuration options and parameter descriptions.
+### Custom Configuration
+```bash
+# Override specific parameters
+python -m FollowWeb_Visualizor --config configs/fast_config.json --k-value 5
+```
+
+## Configuration Features
+
+### Performance Optimization
+All configurations benefit from FollowWeb's caching system:
+- **Graph Hash Caching**: Eliminates duplicate calculations (90% reduction)
+- **Layout Position Caching**: Shares calculations between outputs
+- **Community Color Caching**: Avoids regenerating color schemes
+- **Memory Management**: Automatic cache size limits and cleanup
+
+### Validation
+- **Schema Validation**: All configurations are validated against the config schema
+- **Error Reporting**: Clear error messages for invalid configurations
+- **Default Fallbacks**: Sensible defaults for missing parameters
+
+### Flexibility
+- **CLI Overrides**: Command-line arguments can override config file settings
+- **Environment Variables**: Support for environment-based configuration
+- **Modular Structure**: Configurations can be partially specified
+
+## Best Practices
+
+1. **Start with Templates** - Use provided configurations as starting points
+2. **Refer to Documentation** - Check `CONFIG_REFERENCE.md` for parameter details
+3. **Test Performance** - Use fast config for development, comprehensive for production
+4. **Validate Settings** - Use built-in validation to catch configuration errors
+5. **Document Changes** - Keep notes on custom modifications for reproducibility
+
+## Configuration Structure
+
+The configuration files follow a hierarchical structure:
+- **Input/Output**: File paths and output settings
+- **Pipeline**: Analysis strategy and execution control
+- **Analysis**: Network analysis parameters
+- **Visualization**: Graph rendering and styling options
+- **Performance**: Optimization and caching settings
+
+For detailed information about each configuration section, see `CONFIG_REFERENCE.md`.

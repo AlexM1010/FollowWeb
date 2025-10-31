@@ -39,7 +39,6 @@ class OutputConfig:
 
     # File handling
     text_file_path: Optional[str] = None
-    create_directories: bool = True
     append_mode: bool = False
 
 
@@ -75,14 +74,8 @@ class Logger:
             return
 
         try:
-            # Create directory if needed
-            if self.config.create_directories:
-                os.makedirs(os.path.dirname(self.config.text_file_path), exist_ok=True)
-            else:
-                # Check if directory exists when not creating directories
-                dir_path = os.path.dirname(self.config.text_file_path)
-                if dir_path and not os.path.exists(dir_path):
-                    raise FileNotFoundError(f"Directory does not exist: {dir_path}")
+            # Create directory if needed (always create directories)
+            os.makedirs(os.path.dirname(self.config.text_file_path), exist_ok=True)
 
             # Open file in appropriate mode
             mode = "a" if self.config.append_mode else "w"

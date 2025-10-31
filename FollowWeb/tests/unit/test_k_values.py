@@ -16,7 +16,7 @@ from typing import Any, Dict
 
 import pytest
 
-from FollowWeb_Visualizor.core.config import PruningConfig, get_configuration_manager
+from FollowWeb_Visualizor.core.config import KValueConfig, get_configuration_manager
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 
@@ -144,17 +144,17 @@ class TestKValueValidation:
             k_values_config = calculate_appropriate_k_values(dataset_name)
             k_values = k_values_config["strategy_k_values"]
 
-            config = PruningConfig(
-                k_values=k_values, default_k_value=k_values_config["default_k_value"]
+            config = KValueConfig(
+                strategy_k_values=k_values, default_k_value=k_values_config["default_k_value"]
             )
             assert config.default_k_value >= 0
-            for _strategy, k_value in config.k_values.items():
+            for _strategy, k_value in config.strategy_k_values.items():
                 assert k_value >= 0
 
     def test_k_value_edge_cases(self):
         """Test k-value edge cases."""
         # Test minimum valid k-value (0)
-        min_config = PruningConfig(k_values={"k-core": 0}, default_k_value=0)
+        min_config = KValueConfig(strategy_k_values={"k-core": 0}, default_k_value=0)
         assert min_config.default_k_value == 0
 
         # Test high k-values (but realistic for scalability testing)
@@ -163,18 +163,18 @@ class TestKValueValidation:
         scalability_k_values = get_scalability_k_values("full_anonymized")
         high_k = scalability_k_values["strategy_k_values"]["k-core"]
 
-        high_config = PruningConfig(k_values={"k-core": high_k}, default_k_value=high_k)
+        high_config = KValueConfig(strategy_k_values={"k-core": high_k}, default_k_value=high_k)
         assert high_config.default_k_value == high_k
 
     def test_invalid_k_values_rejected(self):
         """Test that invalid k-values are rejected."""
         # Test negative k-values in dictionary
-        with pytest.raises(ValueError, match="k-value.*cannot be negative"):
-            PruningConfig(k_values={"k-core": -1})
+        with pytest.raises(ValueError, match="K-value must be non-negative"):
+            KValueConfig(strategy_k_values={"k-core": -1})
 
         # Test negative default k-value
-        with pytest.raises(ValueError, match="default_k_value cannot be negative"):
-            PruningConfig(default_k_value=-1)
+        with pytest.raises(ValueError, match="default_k_value must be non-negative"):
+            KValueConfig(default_k_value=-1)
 
 
 class TestKValuePipelineIntegration:

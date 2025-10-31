@@ -20,7 +20,7 @@ from FollowWeb_Visualizor.core.config import (
     OutputControlConfig,
     PipelineConfig,
     PipelineStagesConfig,
-    PruningConfig,
+    KValueConfig,
     PyvisInteractiveConfig,
     StaticImageConfig,
     ValidationResult,
@@ -44,12 +44,12 @@ class TestPipelineConfig:
 
     def test_invalid_strategy_rejection(self):
         """Test rejection of invalid strategy."""
-        with pytest.raises(ValueError, match="Invalid strategy"):
+        with pytest.raises(ValueError, match="strategy must be one of"):
             PipelineConfig(strategy="invalid_strategy")
 
     def test_missing_ego_username_for_ego_alter(self):
         """Test rejection when ego_username is missing for ego_alter_k-core."""
-        with pytest.raises(ValueError, match="ego_username.*must be set"):
+        with pytest.raises(ValueError, match="ego_username is required"):
             PipelineConfig(strategy="ego_alter_k-core", ego_username=None)
 
     def test_valid_ego_username_for_ego_alter(self):
@@ -59,24 +59,24 @@ class TestPipelineConfig:
         assert config.ego_username == "test_user"
 
 
-class TestPruningConfig:
-    """Test PruningConfig dataclass validation."""
+class TestKValueConfig:
+    """Test KValueConfig dataclass validation."""
 
-    def test_valid_pruning_config(self):
-        """Test creation of valid PruningConfig."""
-        config = PruningConfig()
-        assert isinstance(config.k_values, dict)
+    def test_valid_k_value_config(self):
+        """Test creation of valid KValueConfig."""
+        config = KValueConfig()
+        assert isinstance(config.strategy_k_values, dict)
         assert config.default_k_value >= 0
 
     def test_negative_k_value_rejection(self):
         """Test rejection of negative k-values."""
-        with pytest.raises(ValueError, match="k-value.*cannot be negative"):
-            PruningConfig(k_values={"k-core": -1})
+        with pytest.raises(ValueError, match="K-value must be non-negative"):
+            KValueConfig(strategy_k_values={"k-core": -1})
 
     def test_negative_default_k_value_rejection(self):
         """Test rejection of negative default k-value."""
-        with pytest.raises(ValueError, match="default_k_value cannot be negative"):
-            PruningConfig(default_k_value=-1)
+        with pytest.raises(ValueError, match="default_k_value must be non-negative"):
+            KValueConfig(default_k_value=-1)
 
 
 class TestFameAnalysisConfig:
@@ -91,7 +91,7 @@ class TestFameAnalysisConfig:
     def test_negative_min_followers_rejection(self):
         """Test rejection of negative min_followers_in_network."""
         with pytest.raises(
-            ValueError, match="min_followers_in_network cannot be negative"
+            ValueError, match="min_followers_in_network must be non-negative"
         ):
             FameAnalysisConfig(min_followers_in_network=-1)
 
@@ -112,12 +112,12 @@ class TestVisualizationConfig:
 
     def test_invalid_node_size_metric_rejection(self):
         """Test rejection of invalid node size metric."""
-        with pytest.raises(ValueError, match="Invalid node_size_metric"):
+        with pytest.raises(ValueError, match="node_size_metric must be one of"):
             VisualizationConfig(node_size_metric="invalid_metric")
 
     def test_invalid_scaling_algorithm_rejection(self):
         """Test rejection of invalid scaling algorithm."""
-        with pytest.raises(ValueError, match="Invalid scaling_algorithm"):
+        with pytest.raises(ValueError, match="scaling_algorithm must be one of"):
             VisualizationConfig(scaling_algorithm="invalid_scaling")
 
     def test_negative_base_node_size_rejection(self):
@@ -180,7 +180,7 @@ class TestStaticImageConfig:
 
     def test_invalid_layout_rejection(self):
         """Test rejection of invalid layout."""
-        with pytest.raises(ValueError, match="Invalid layout"):
+        with pytest.raises(ValueError, match="layout must be one of"):
             StaticImageConfig(layout="invalid_layout")
 
     def test_image_dimensions_configuration(self):
@@ -217,21 +217,21 @@ class TestConfigurationValidation:
         config["ego_username"] = None
 
         # Should raise validation error
-        with pytest.raises(ValueError, match="ego_username.*must be set"):
+        with pytest.raises(ValueError, match="ego_username is required"):
             load_config_from_dict(config)
 
     def test_empty_k_values_handling(self, default_config: Dict[str, Any]):
         """Test handling of empty k_values dictionary."""
         config = default_config.copy()
-        config["pruning"]["k_values"] = {}
+        config["k_values"]["strategy_k_values"] = {}
 
         load_config_from_dict(config)  # Should not raise
 
     def test_basic_k_value_handling(self, default_config: Dict[str, Any]):
         """Test basic k-value configuration handling (comprehensive k-value testing in test_k_values.py)."""
         config = default_config.copy()
-        config["pruning"]["k_values"]["k-core"] = 5  # Appropriate for test datasets
-        config["pruning"]["default_k_value"] = 5
+        config["k_values"]["strategy_k_values"]["k-core"] = 5  # Appropriate for test datasets
+        config["k_values"]["default_k_value"] = 5
 
         load_config_from_dict(config)  # Should not raise
 
@@ -254,7 +254,7 @@ class TestOutputConfig:
         config = OutputConfig()
         assert config.enable_time_logging is False  # Default
         assert config.custom_output_directory is None  # Default
-        assert config.create_directories is True  # Default
+        # create_directories is now hardcoded as True
 
     def test_enable_time_logging_option(self):
         """Test time logging configuration option."""
@@ -289,13 +289,12 @@ class TestOutputConfig:
         config2 = OutputConfig(custom_output_directory=None)
         assert config2.custom_output_directory is None
 
-    def test_create_directories_option(self):
-        """Test create directories configuration option."""
-        config = OutputConfig(create_directories=True)
-        assert config.create_directories is True
-
-        config = OutputConfig(create_directories=False)
-        assert config.create_directories is False
+    def test_create_directories_removed(self):
+        """Test that create_directories is no longer a configuration option."""
+        # create_directories is now hardcoded as True in the application logic
+        config = OutputConfig()
+        # Should not have create_directories attribute
+        assert not hasattr(config, 'create_directories')
 
 
 class TestConfigurationRoundTrip:
@@ -310,7 +309,7 @@ class TestConfigurationRoundTrip:
         """Test round-trip of modified configuration."""
         config = default_config.copy()
         config["pipeline"]["strategy"] = "reciprocal_k-core"
-        config["pruning"]["k_values"]["reciprocal_k-core"] = (
+        config["k_values"]["strategy_k_values"]["reciprocal_k-core"] = (
             3  # Appropriate for test datasets
         )
         config["visualization"]["node_size_metric"] = "betweenness"
@@ -484,7 +483,7 @@ class TestAnalysisModeConfig:
     def test_invalid_max_layout_iterations(self):
         """Test rejection of invalid max layout iterations."""
         with pytest.raises(
-            ValueError, match="max_layout_iterations must be a positive integer"
+            ValueError, match="max_layout_iterations must be positive integer"
         ):
             AnalysisModeConfig(max_layout_iterations=0)
 
