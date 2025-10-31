@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple, Union
 import networkx as nx
 
 # Local imports
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 
 
 class FameAnalyzer:

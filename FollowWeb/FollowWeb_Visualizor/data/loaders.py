@@ -17,7 +17,7 @@ import networkx as nx
 # Local imports
 from ..core.exceptions import DataProcessingError
 from ..output.formatters import EmojiFormatter
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 from ..utils.parallel import get_analysis_parallel_config, log_parallel_usage
 
 

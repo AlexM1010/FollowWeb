@@ -15,7 +15,7 @@ import networkx as nx
 from ..core.types import NodeMetric, EdgeMetric, ColorScheme, VisualizationMetrics
 from ..data.cache import get_cache_manager, calculate_graph_hash, get_cached_node_attributes, get_cached_undirected_graph
 from ..output.formatters import EmojiFormatter
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 from .colors import get_community_colors, get_scaled_size
 
 

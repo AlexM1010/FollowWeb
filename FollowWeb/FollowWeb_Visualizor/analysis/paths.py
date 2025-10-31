@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import networkx as nx
 
 # Local imports
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 
 
 class PathAnalyzer:

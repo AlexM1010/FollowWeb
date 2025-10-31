@@ -16,7 +16,7 @@ import pandas as pd
 
 # Local imports
 from ..utils.parallel import get_analysis_parallel_config
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 
 
 def calculate_betweenness_centrality(

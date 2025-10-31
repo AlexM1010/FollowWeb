@@ -23,7 +23,7 @@ from ..utils.parallel import (
     get_nx_parallel_status_message,
     log_parallel_usage,
 )
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 from ..utils.math import format_time_duration
 from ..data.cache import get_cache_manager, get_cached_undirected_graph
 

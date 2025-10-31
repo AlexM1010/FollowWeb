@@ -21,7 +21,7 @@ from pyvis.network import Network
 from ..core.types import VisualizationMetrics
 from ..data.cache import get_cached_undirected_graph
 from ..output.formatters import EmojiFormatter
-from ..utils.validation import ProgressTracker
+from ..utils import ProgressTracker
 from .colors import get_community_colors
 from .legends import LegendGenerator
 from .metrics import MetricsCalculator
