@@ -1,0 +1,302 @@
+{
+  "generation_info": {
+    "source_file": "followers_following.json",
+    "generation_date": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\Package",
+    "random_seed": 42,
+    "preserve_structure": false
+  },
+  "datasets": {
+    "tiny_real": {
+      "file": "tiny_real.json",
+      "description": "Anonymized sample of 1 users (5% of original)",
+      "users": 1,
+      "percentage": 5,
+      "stats": {
+        "basic_stats": {
+          "total_users": 1,
+          "total_follower_relationships": 30,
+          "total_following_relationships": 30,
+          "avg_followers_per_user": 30.0,
+          "avg_following_per_user": 30.0,
+          "max_followers": 30,
+          "max_following": 30,
+          "min_followers": 30,
+          "min_following": 30,
+          "std_followers": 0.0,
+          "std_following": 0.0,
+          "median_followers": 30.0,
+          "median_following": 30.0
+        },
+        "graph_analysis": {
+          "graph_structure": {
+            "nodes": 1,
+            "directed_edges": 0,
+            "mutual_connections": 0,
+            "density": 0.0,
+            "reciprocity": 0.0
+          },
+          "connectivity": {
+            "connected_components": 1,
+            "largest_component_size": 1,
+            "largest_component_percentage": 100.0
+          },
+          "degree_distribution": {
+            "avg_in_degree": 0.0,
+            "avg_out_degree": 0.0,
+            "max_in_degree": 0,
+            "max_out_degree": 0,
+            "min_in_degree": 0,
+            "min_out_degree": 0,
+            "std_in_degree": 0.0,
+            "std_out_degree": 0.0,
+            "median_in_degree": 0.0,
+            "median_out_degree": 0.0
+          }
+        },
+        "unique_usernames": 31
+      }
+    },
+    "small_real": {
+      "file": "small_real.json",
+      "description": "Anonymized sample of 4 users (15% of original)",
+      "users": 4,
+      "percentage": 15,
+      "stats": {
+        "basic_stats": {
+          "total_users": 4,
+          "total_follower_relationships": 2021,
+          "total_following_relationships": 2447,
+          "avg_followers_per_user": 505.25,
+          "avg_following_per_user": 611.75,
+          "max_followers": 928,
+          "max_following": 1028,
+          "min_followers": 30,
+          "min_following": 30,
+          "std_followers": 318.64508077169495,
+          "std_following": 363.2880227863286,
+          "median_followers": 531.5,
+          "median_following": 694.5
+        },
+        "graph_analysis": {
+          "graph_structure": {
+            "nodes": 4,
+            "directed_edges": 8,
+            "mutual_connections": 4,
+            "density": 0.6666666666666666,
+            "reciprocity": 1.0
+          },
+          "connectivity": {
+            "connected_components": 1,
+            "largest_component_size": 4,
+            "largest_component_percentage": 100.0
+          },
+          "degree_distribution": {
+            "avg_in_degree": 2.0,
+            "avg_out_degree": 2.0,
+            "max_in_degree": 3,
+            "max_out_degree": 3,
+            "min_in_degree": 1,
+            "min_out_degree": 1,
+            "std_in_degree": 0.7071067811865476,
+            "std_out_degree": 0.7071067811865476,
+            "median_in_degree": 2.0,
+            "median_out_degree": 2.0
+          }
+        },
+        "unique_usernames": 2634
+      }
+    },
+    "medium_real": {
+      "file": "medium_real.json",
+      "description": "Anonymized sample of 10 users (33% of original)",
+      "users": 10,
+      "percentage": 33,
+      "stats": {
+        "basic_stats": {
+          "total_users": 10,
+          "total_follower_relationships": 4968,
+          "total_following_relationships": 5557,
+          "avg_followers_per_user": 496.8,
+          "avg_following_per_user": 555.7,
+          "max_followers": 955,
+          "max_following": 1028,
+          "min_followers": 30,
+          "min_following": 30,
+          "std_followers": 294.48252919315945,
+          "std_following": 298.7781953222156,
+          "median_followers": 515.5,
+          "median_following": 654.5
+        },
+        "graph_analysis": {
+          "graph_structure": {
+            "nodes": 10,
+            "directed_edges": 40,
+            "mutual_connections": 18,
+            "density": 0.4444444444444444,
+            "reciprocity": 0.9
+          },
+          "connectivity": {
+            "connected_components": 1,
+            "largest_component_size": 10,
+            "largest_component_percentage": 100.0
+          },
+          "degree_distribution": {
+            "avg_in_degree": 4.0,
+            "avg_out_degree": 4.0,
+            "max_in_degree": 9,
+            "max_out_degree": 9,
+            "min_in_degree": 2,
+            "min_out_degree": 1,
+            "std_in_degree": 2.23606797749979,
+            "std_out_degree": 2.0976176963403033,
+            "median_in_degree": 3.0,
+            "median_out_degree": 4.0
+          }
+        },
+        "unique_usernames": 5524
+      }
+    },
+    "large_real": {
+      "file": "large_real.json",
+      "description": "Anonymized sample of 21 users (66% of original)",
+      "users": 21,
+      "percentage": 66,
+      "stats": {
+        "basic_stats": {
+          "total_users": 21,
+          "total_follower_relationships": 11484,
+          "total_following_relationships": 12260,
+          "avg_followers_per_user": 546.8571428571429,
+          "avg_following_per_user": 583.8095238095239,
+          "max_followers": 1263,
+          "max_following": 1316,
+          "min_followers": 30,
+          "min_following": 30,
+          "std_followers": 336.9726971721237,
+          "std_following": 345.07040262305884,
+          "median_followers": 522.0,
+          "median_following": 631.0
+        },
+        "graph_analysis": {
+          "graph_structure": {
+            "nodes": 21,
+            "directed_edges": 148,
+            "mutual_connections": 71,
+            "density": 0.3523809523809524,
+            "reciprocity": 0.9594594594594594
+          },
+          "connectivity": {
+            "connected_components": 1,
+            "largest_component_size": 21,
+            "largest_component_percentage": 100.0
+          },
+          "degree_distribution": {
+            "avg_in_degree": 7.0476190476190474,
+            "avg_out_degree": 7.0476190476190474,
+            "max_in_degree": 20,
+            "max_out_degree": 20,
+            "min_in_degree": 2,
+            "min_out_degree": 3,
+            "std_in_degree": 3.897205231544785,
+            "std_out_degree": 3.696538799061972,
+            "median_in_degree": 7.0,
+            "median_out_degree": 7.0
+          }
+        },
+        "unique_usernames": 12378
+      }
+    },
+    "full_anonymized": {
+      "file": "full_anonymized.json",
+      "description": "Complete dataset with anonymized usernames (100%)",
+      "users": 32,
+      "percentage": 100,
+      "stats": {
+        "basic_stats": {
+          "total_users": 32,
+          "total_follower_relationships": 17439,
+          "total_following_relationships": 23604,
+          "avg_followers_per_user": 544.96875,
+          "avg_following_per_user": 737.625,
+          "max_followers": 1471,
+          "max_following": 3687,
+          "min_followers": 30,
+          "min_following": 30,
+          "std_followers": 346.8256482347254,
+          "std_following": 666.2316953395417,
+          "median_followers": 520.5,
+          "median_following": 635.5
+        },
+        "graph_analysis": {
+          "graph_structure": {
+            "nodes": 32,
+            "directed_edges": 456,
+            "mutual_connections": 213,
+            "density": 0.4596774193548387,
+            "reciprocity": 0.9342105263157895
+          },
+          "connectivity": {
+            "connected_components": 1,
+            "largest_component_size": 32,
+            "largest_component_percentage": 100.0
+          },
+          "degree_distribution": {
+            "avg_in_degree": 14.25,
+            "avg_out_degree": 14.25,
+            "max_in_degree": 30,
+            "max_out_degree": 30,
+            "min_in_degree": 0,
+            "min_out_degree": 5,
+            "std_in_degree": 6.96419413859206,
+            "std_out_degree": 6.284902544988268,
+            "median_in_degree": 15.5,
+            "median_out_degree": 14.5
+          }
+        },
+        "unique_usernames": 19923
+      }
+    }
+  },
+  "original_stats": {
+    "total_users": 32,
+    "total_follower_relationships": 17439,
+    "total_following_relationships": 23604,
+    "avg_followers_per_user": 544.96875,
+    "avg_following_per_user": 737.625,
+    "max_followers": 1471,
+    "max_following": 3687,
+    "min_followers": 30,
+    "min_following": 30,
+    "std_followers": 346.8256482347254,
+    "std_following": 666.2316953395417,
+    "median_followers": 520.5,
+    "median_following": 635.5,
+    "unique_usernames": 19923
+  },
+  "original_graph_analysis": {
+    "graph_structure": {
+      "nodes": 32,
+      "directed_edges": 456,
+      "mutual_connections": 213,
+      "density": 0.4596774193548387,
+      "reciprocity": 0.9342105263157895
+    },
+    "connectivity": {
+      "connected_components": 1,
+      "largest_component_size": 32,
+      "largest_component_percentage": 100.0
+    },
+    "degree_distribution": {
+      "avg_in_degree": 14.25,
+      "avg_out_degree": 14.25,
+      "max_in_degree": 30,
+      "max_out_degree": 30,
+      "min_in_degree": 0,
+      "min_out_degree": 5,
+      "std_in_degree": 6.96419413859206,
+      "std_out_degree": 6.284902544988268,
+      "median_in_degree": 15.5,
+      "median_out_degree": 14.5
+    }
+  }
+}
