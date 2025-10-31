@@ -1,18 +1,23 @@
 """
-Visualization layer components for FollowWeb Network Analysis.
+Visualization layer for FollowWeb network analysis.
 
-This module handles graph rendering and visual output generation:
-- Shared visualization metrics calculation
-- HTML and PNG generation with layout algorithms
-- Legend creation and formatting
-- Color scheme generation and management
-
-Modules:
-    metrics: MetricsCalculator class and shared metrics calculation
-    renderers: InteractiveRenderer and StaticRenderer classes
-    legends: LegendGenerator class and legend creation
-    colors: Color scheme generation and community color assignment
+This module provides visualization components for both interactive HTML and static PNG outputs.
+It includes metric calculation, rendering, and legend generation functionality.
 """
 
-# Visualization layer imports will be added as modules are implemented
-__all__ = []
+from .metrics import MetricsCalculator, NodeMetric, EdgeMetric, ColorScheme, VisualizationMetrics
+from .renderers import InteractiveRenderer, StaticRenderer
+from .legends import LegendGenerator
+from .colors import get_community_colors
+
+__all__ = [
+    "MetricsCalculator",
+    "NodeMetric", 
+    "EdgeMetric",
+    "ColorScheme",
+    "VisualizationMetrics",
+    "InteractiveRenderer",
+    "StaticRenderer", 
+    "LegendGenerator",
+    "get_community_colors",
+]
