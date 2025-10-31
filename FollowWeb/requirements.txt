@@ -1,0 +1,12 @@
+# Core dependencies for FollowWeb Network Analysis package
+
+# Network analysis and graph algorithms
+networkx>=2.8.0
+nx-parallel>=0.3.0  # Parallel processing backend for NetworkX performance optimization
+
+# Data manipulation and analysis
+pandas>=1.5.0
+
+# Visualization libraries
+matplotlib>=3.5.0
+pyvis>=0.3.0

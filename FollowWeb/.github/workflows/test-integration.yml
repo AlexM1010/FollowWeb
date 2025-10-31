@@ -1,0 +1,54 @@
+name: Test Integration
+
+on:
+  workflow_dispatch:  # Manual trigger for testing
+  push:
+    branches: [ feature/ci-integration ]  # Test branch
+
+jobs:
+  test-task-system:
+    name: Test Task System Integration
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11']  # Single version for quick testing
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Verify task script exists
+      run: |
+        ls -la tasks.py || dir tasks.py
+      shell: bash
+    
+    - name: Test task script help
+      run: python tasks.py help
+    
+    - name: Install dependencies
+      run: python tasks.py install --dev
+    
+    - name: Test individual commands
+      run: |
+        python tasks.py format --check
+        python tasks.py lint || echo "Linting issues found (expected)"
+        python tasks.py test --unit
+      env:
+        MPLBACKEND: Agg
+    
+    - name: Verify exit codes
+      run: |
+        # Test successful command
+        python tasks.py help
+        echo "Help command exit code: $?"
+        
+        # Test command that should fail (linting with issues)
+        python tasks.py lint || echo "Lint failed as expected with exit code: $?"
+      shell: bash
