@@ -12,7 +12,6 @@ import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-import matplotlib
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -35,7 +34,7 @@ class InteractiveRenderer:
     def __init__(
         self,
         vis_config: Dict[str, Any],
-        metrics_calculator: Optional[MetricsCalculator] = None,
+        metrics_calculator: Optional[Optional[MetricsCalculator] ] = None,
     ) -> None:
         """
         Initialize the interactive renderer with visualization configuration.
@@ -57,7 +56,7 @@ class InteractiveRenderer:
         self,
         graph: nx.DiGraph,
         output_filename: str,
-        shared_metrics: Optional[VisualizationMetrics] = None,
+        shared_metrics: Optional[Optional[VisualizationMetrics] ] = None,
     ) -> bool:
         """
         Generates an interactive HTML file to visualize the network graph.
@@ -84,7 +83,7 @@ class InteractiveRenderer:
 
         # Extract metrics from VisualizationMetrics object
         node_metrics = {}
-        edge_metrics = {}
+        edge_metrics: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
         for node, node_metric in shared_metrics.node_metrics.items():
             node_metrics[node] = {
@@ -384,7 +383,7 @@ class StaticRenderer:
     def __init__(
         self,
         vis_config: Dict[str, Any],
-        performance_config: Optional[Dict[str, Any]] = None,
+        performance_config: Optional[Optional[Dict[str, Any]] ] = None,
     ) -> None:
         """
         Initialize the static renderer with visualization configuration.
@@ -408,7 +407,7 @@ class StaticRenderer:
         output_filename: str,
         node_metrics: Dict[str, Dict[str, Any]],
         edge_metrics: Dict[Tuple[str, str], Dict[str, Any]],
-        shared_metrics: Optional[VisualizationMetrics] = None,
+        shared_metrics: Optional[Optional[VisualizationMetrics] ] = None,
     ) -> bool:
         """
         Generates a static PNG image of the network graph using matplotlib.
@@ -1112,7 +1111,7 @@ class StaticRenderer:
     ) -> Dict[str, Tuple[float, float]]:
         """Create circular layout with communities grouped together."""
         # Group nodes by community
-        communities = {}
+        communities: Dict[str, int] = {}
         for node, comm in communities_dict.items():
             if comm not in communities:
                 communities[comm] = []
@@ -1153,7 +1152,7 @@ class StaticRenderer:
         self, communities_dict: Dict[str, int], max_shells: int
     ) -> List[List[str]]:
         """Create shell node lists based on communities."""
-        communities = {}
+        communities: Dict[str, int] = {}
         for node, comm in communities_dict.items():
             if comm not in communities:
                 communities[comm] = []

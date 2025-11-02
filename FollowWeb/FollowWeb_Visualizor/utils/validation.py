@@ -8,20 +8,19 @@ file paths, and configuration values used throughout the FollowWeb package.
 # Standard library imports
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 # Local imports
-from ..core.exceptions import FollowWebError
 
 
 class ValidationErrorHandler:
     """Handles validation error patterns consistently."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize validation error handler."""
         self.logger = logger or logging.getLogger(__name__)
 
-    def collect_validation_errors(self, validators: List[callable]) -> List[str]:
+    def collect_validation_errors(self, validators: List[Callable[[], str]]) -> List[str]:
         """
         Collect all validation errors.
 
@@ -44,7 +43,7 @@ class ValidationErrorHandler:
         return errors
 
     def validate_with_context(
-        self, validation_func: callable, context: str
+        self, validation_func: Callable[[], str], context: str
     ) -> Optional[str]:
         """
         Execute validation with context information.
@@ -72,7 +71,7 @@ class ValidationErrorHandler:
 class ConfigurationErrorHandler:
     """Handles configuration-related error patterns."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize configuration error handler."""
         self.logger = logger or logging.getLogger(__name__)
 
@@ -101,7 +100,7 @@ class ConfigurationErrorHandler:
         return errors
 
     def handle_configuration_error(
-        self, error: Exception, config_file: Optional[str] = None
+        self, error: Exception, config_file: Optional[Optional[str] ] = None
     ) -> str:
         """
         Handle configuration errors with helpful error messages.
@@ -281,7 +280,7 @@ def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> An
 
 
 def validate_string_format(
-    value: Any, param_name: str, allowed_suffixes: Optional[List[str]] = None
+    value: Any, param_name: str, allowed_suffixes: Optional[Optional[List[str]] ] = None
 ) -> str:
     """
     Validate string format with optional suffix requirements.

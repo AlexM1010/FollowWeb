@@ -14,9 +14,10 @@ from typing import Any, Dict
 import networkx as nx
 import pandas as pd
 
+from ..utils import ProgressTracker
+
 # Local imports
 from ..utils.parallel import get_analysis_parallel_config
-from ..utils import ProgressTracker
 
 
 def calculate_betweenness_centrality(
@@ -31,27 +32,26 @@ def calculate_betweenness_centrality(
     # Use a simulated progress tracker that shows animation during computation
     import threading
     import time as time_module
-    
+
     # Create a progress tracker with multiple steps to show animation
     with ProgressTracker(
         total=100,  # Use 100 steps for smooth animation
         title=f"Calculating betweenness centrality on {graph_size} nodes",
         logger=logger,
     ) as tracker:
-        
         # Start a background thread to animate progress
         stop_animation = threading.Event()
-        
-        def animate_progress():
+
+        def animate_progress() -> None:
             step = 0
             while not stop_animation.is_set() and step < 99:
                 step += 1
                 tracker.update(step)
                 time_module.sleep(0.2)  # Update every 200ms
-        
+
         animation_thread = threading.Thread(target=animate_progress, daemon=True)
         animation_thread.start()
-        
+
         try:
             if config.get("use_approximate_betweenness", False):
                 # OPTIMIZATION: Use more efficient sampling strategy
@@ -131,27 +131,26 @@ def calculate_eigenvector_centrality(
     # Eigenvector centrality calculation (parallel config already logged at analysis level)
     import threading
     import time as time_module
-    
+
     # Use a simulated progress tracker that shows animation during computation
     with ProgressTracker(
         total=100,  # Use 100 steps for smooth animation
         title="Calculating eigenvector centrality",
         logger=logger,
     ) as tracker:
-        
         # Start a background thread to animate progress
         stop_animation = threading.Event()
-        
-        def animate_progress():
+
+        def animate_progress() -> None:
             step = 0
             while not stop_animation.is_set() and step < 99:
                 step += 1
                 tracker.update(step)
                 time_module.sleep(0.1)  # Update every 100ms (faster for eigenvector)
-        
+
         animation_thread = threading.Thread(target=animate_progress, daemon=True)
         animation_thread.start()
-        
+
         try:
             # OPTIMIZATION: Adaptive iteration count based on graph size
             graph_size = graph.number_of_nodes()
@@ -179,12 +178,12 @@ def calculate_eigenvector_centrality(
             # Stop animation and complete progress
             stop_animation.set()
             animation_thread.join(timeout=0.5)  # Wait briefly for thread to finish
-            
+
             # Cache the results using centralized cache
             cache_manager.cache_centrality_results(
                 graph, "eigenvector", eigenvector_dict, params
             )
-            
+
             tracker.update(100)  # Complete the progress
 
     return eigenvector_dict
@@ -221,16 +220,12 @@ def display_centrality_results(
         logger.info("# By Degree (Connections):")
         logger.info(f"{df.sort_values('degree', ascending=False).head(10)}")
         logger.info("# By Betweenness (Bridge-builder):")
-        logger.info(
-            f"{df.sort_values('betweenness', ascending=False).head(10)}"
-        )
+        logger.info(f"{df.sort_values('betweenness', ascending=False).head(10)}")
 
         # Only show eigenvector results if they were calculated
         if not config.get("skip_eigenvector", False):
             logger.info("# By Eigenvector (Influence):")
-            logger.info(
-                f"{df.sort_values('eigenvector', ascending=False).head(10)}"
-            )
+            logger.info(f"{df.sort_values('eigenvector', ascending=False).head(10)}")
         else:
             logger.info("# Eigenvector centrality: Skipped (optimization)")
     else:

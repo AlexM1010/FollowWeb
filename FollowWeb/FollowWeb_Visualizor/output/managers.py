@@ -10,11 +10,10 @@ This module provides unified control over all output generation including:
 import logging
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import networkx as nx
 
-from ..core.types import VisualizationMetrics
 from .formatters import EmojiFormatter
 from .logging import Logger, OutputConfig
 
@@ -101,7 +100,6 @@ class OutputManager:
             include_emojis_in_text=True,
             preserve_timing_info=True,
             text_file_path=text_file_path,
-
         )
 
         self.unified_logger = Logger(config)
@@ -145,7 +143,7 @@ class OutputManager:
 
         # Extract metrics for PNG renderer (which still needs dict format)
         node_metrics = {}
-        edge_metrics = {}
+        edge_metrics: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
         for node, node_metric in shared_metrics.node_metrics.items():
             node_metrics[node] = {
@@ -243,19 +241,15 @@ class OutputManager:
         # Generate metrics report if enabled
         if self.should_generate_reports():
             if self.unified_logger:
-                self.unified_logger.log_progress(
-                    "Generating metrics report..."
-                )
+                self.unified_logger.log_progress("Generating metrics report...")
             else:
                 progress_msg = EmojiFormatter.format(
                     "progress", "Generating metrics report..."
                 )
                 self.logger.info(progress_msg)
 
-            report_content = (
-                self.metrics_reporter.generate_analysis_report(
-                    graph, self.config, strategy, k_value, timing_data
-                )
+            report_content = self.metrics_reporter.generate_analysis_report(
+                graph, self.config, strategy, k_value, timing_data
             )
 
             results["report"] = self.metrics_reporter.save_metrics_file(
@@ -480,7 +474,7 @@ class MetricsReporter:
     only available in console output.
     """
 
-    def __init__(self, vis_config: Dict[str, Any], logger: Logger = None):
+    def __init__(self, vis_config: Dict[str, Any], logger: Optional[Logger ] = None) -> None:
         """
         Initialize metrics reporter.
 
@@ -498,7 +492,7 @@ class MetricsReporter:
         strategy: str,
         k_value: int,
         timing_data: Dict[str, float],
-        initial_graph_stats: Dict[str, int] = None,
+        initial_graph_stats: Optional[Dict[str, int] ] = None,
     ) -> str:
         """
         Generate analysis report with all console information.
@@ -572,7 +566,7 @@ class MetricsReporter:
         self, config: Dict[str, Any], strategy: str, k_value: int
     ) -> List[str]:
         """Generate pipeline configuration section."""
-        lines = []
+        lines: List[str] = []
 
         config_msg = EmojiFormatter.format("progress", "PIPELINE CONFIGURATION")
         lines.append(config_msg)
@@ -663,7 +657,7 @@ class MetricsReporter:
         k_value: int,
     ) -> List[str]:
         """Generate graph processing summary section."""
-        lines = []
+        lines: List[str] = []
 
         processing_msg = EmojiFormatter.format("progress", "GRAPH PROCESSING SUMMARY")
         lines.append(processing_msg)
@@ -709,7 +703,7 @@ class MetricsReporter:
 
     def _generate_detailed_analysis_section(self, graph: nx.DiGraph) -> List[str]:
         """Generate detailed analysis results section."""
-        lines = []
+        lines: List[str] = []
 
         # Check if detailed results are stored in graph attributes
         if not hasattr(graph, "graph") or "detailed_results" not in graph.graph:
@@ -751,7 +745,7 @@ class MetricsReporter:
 
     def _generate_path_analysis_section(self, graph: nx.DiGraph) -> List[str]:
         """Generate path analysis results section."""
-        lines = []
+        lines: List[str] = []
 
         # Check if path analysis results are stored
         if not hasattr(graph, "graph") or "path_analysis" not in graph.graph:
@@ -799,7 +793,7 @@ class MetricsReporter:
 
     def _generate_famous_accounts_section(self, graph: nx.DiGraph) -> List[str]:
         """Generate famous accounts analysis section."""
-        lines = []
+        lines: List[str] = []
 
         # Check if famous accounts data is stored
         if not hasattr(graph, "graph") or "famous_accounts" not in graph.graph:
@@ -852,7 +846,7 @@ class MetricsReporter:
 
     def _generate_community_analysis_section(self, graph: nx.DiGraph) -> List[str]:
         """Generate detailed community analysis section."""
-        lines = []
+        lines: List[str] = []
 
         communities_attr = nx.get_node_attributes(graph, "community")
         if not communities_attr:
@@ -896,7 +890,7 @@ class MetricsReporter:
 
     def _generate_centrality_analysis_section(self, graph: nx.DiGraph) -> List[str]:
         """Generate detailed centrality analysis section."""
-        lines = []
+        lines: List[str] = []
 
         centrality_msg = EmojiFormatter.format("chart", "CENTRALITY ANALYSIS DETAILS")
         lines.append(centrality_msg)
@@ -948,7 +942,7 @@ class MetricsReporter:
         self, timing_data: Dict[str, float]
     ) -> List[str]:
         """Generate complete timing information section."""
-        lines = []
+        lines: List[str] = []
 
         if not timing_data:
             return lines
@@ -980,7 +974,7 @@ class MetricsReporter:
 
     def _generate_output_summary_section(self, config: Dict[str, Any]) -> List[str]:
         """Generate output generation summary section."""
-        lines = []
+        lines: List[str] = []
 
         output_control = config.get("output_control", {})
 
@@ -1013,9 +1007,7 @@ class MetricsReporter:
 
         return lines
 
-    def save_metrics_file(
-        self, report_content: str, output_path: str
-    ) -> bool:
+    def save_metrics_file(self, report_content: str, output_path: str) -> bool:
         """
         Saves the metrics report to a text file.
 

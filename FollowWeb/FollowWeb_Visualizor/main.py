@@ -23,7 +23,6 @@ import networkx as nx
 from .analysis.fame import FameAnalyzer
 from .analysis.network import NetworkAnalyzer
 from .analysis.paths import PathAnalyzer
-from .data.loaders import GraphLoader
 from .core.config import (
     FollowWebConfig,
     PipelineStagesController,
@@ -31,11 +30,12 @@ from .core.config import (
     get_configuration_manager,
     load_config_from_dict,
 )
-from .output.managers import OutputManager
+from .data.cache import get_cache_manager
+from .data.loaders import GraphLoader
 from .output.formatters import EmojiFormatter
+from .output.managers import OutputManager
 from .utils.math import format_time_duration
 from .utils.parallel import get_analysis_parallel_config, get_nx_parallel_status_message
-from .data.cache import get_cache_manager
 
 
 class PipelineOrchestrator:
@@ -112,21 +112,21 @@ class PipelineOrchestrator:
         # Get cache manager for performance optimization
         self.cache_manager = get_cache_manager()
 
-    def _log_timer(self, message: str, section: Optional[str] = None) -> None:
+    def _log_timer(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log timing information with standardized format."""
         # Only log timing information if timing logs are enabled
         if self.config.output_control.enable_timing_logs:
             self.logger.log_timer(message, section)
 
-    def _log_success(self, message: str, section: Optional[str] = None) -> None:
+    def _log_success(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log success information with standardized format."""
         self.logger.log_success(message, section)
 
-    def _log_progress(self, message: str, section: Optional[str] = None) -> None:
+    def _log_progress(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log progress information with standardized format."""
         self.logger.log_progress(message, section)
 
-    def _log_completion(self, message: str, section: Optional[str] = None) -> None:
+    def _log_completion(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log completion information with standardized format."""
         self.logger.log_completion(message, section)
 
@@ -480,9 +480,7 @@ class PipelineOrchestrator:
                     self.logger.info(
                         "  → Calculating shortest paths and connectivity metrics..."
                     )
-                    self.path_analyzer.analyze_path_lengths(
-                        analyzed_graph
-                    )
+                    self.path_analyzer.analyze_path_lengths(analyzed_graph)
                     self.stages_controller.log_analysis_component_completion(
                         "path_analysis", True
                     )
@@ -573,9 +571,7 @@ class PipelineOrchestrator:
                 )
                 component_results["contact_path"] = "skipped"
             elif contact_target and component_results.get("path_analysis") is False:
-                self.logger.info(
-                    "Contact path analysis skipped - path analysis failed"
-                )
+                self.logger.info("Contact path analysis skipped - path analysis failed")
                 component_results["contact_path"] = "skipped"
             else:
                 component_results["contact_path"] = "skipped"

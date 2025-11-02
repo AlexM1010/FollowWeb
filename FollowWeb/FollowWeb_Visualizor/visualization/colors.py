@@ -5,14 +5,17 @@ This module handles community color generation and scaling utilities for visuali
 """
 
 import math
-import time
 from typing import Dict, Tuple, Union
 
 import matplotlib.pyplot as plt
 
 from ..core.exceptions import VisualizationError
 from ..data.cache import get_cache_manager
-from ..utils.validation import validate_range, validate_multiple_non_negative, validate_choice
+from ..utils.validation import (
+    validate_choice,
+    validate_multiple_non_negative,
+    validate_range,
+)
 
 
 def get_community_colors(
@@ -98,7 +101,9 @@ def get_community_colors(
     except Exception as e:
         if isinstance(e, (ValueError, VisualizationError)):
             raise
-        raise VisualizationError(f"Unexpected error generating community colors: {e}") from e
+        raise VisualizationError(
+            f"Unexpected error generating community colors: {e}"
+        ) from e
 
 
 def get_scaled_size(
@@ -122,7 +127,7 @@ def get_scaled_size(
     validate_multiple_non_negative(
         (value, "value"), (base_size, "base_size"), (multiplier, "multiplier")
     )
-    
+
     if algorithm == "logarithmic":
         # Use log1p (log(1+x)) to handle 0 values gracefully
         return base_size + math.log1p(value) * multiplier

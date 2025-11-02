@@ -9,7 +9,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import List, Dict, Optional, TextIO
+from typing import Dict, List, Optional, TextIO
 
 from .formatters import EmojiFormatter
 
@@ -38,7 +38,7 @@ class OutputConfig:
     preserve_progress_updates: bool = True
 
     # File handling
-    text_file_path: Optional[str] = None
+    text_file_path: Optional[Optional[str] ] = None
     append_mode: bool = False
 
 
@@ -50,7 +50,7 @@ class Logger:
     user-configurable emoji fallback levels for both console and .txt output.
     """
 
-    def __init__(self, config: OutputConfig):
+    def __init__(self, config: OutputConfig) -> None:
         """
         Initialize unified logger with configuration.
 
@@ -59,10 +59,10 @@ class Logger:
         """
         self.config = config
         self.console_logger = logging.getLogger(__name__)
-        self.text_file_handle: Optional[TextIO] = None
+        self.text_file_handle: Optional[Optional[TextIO] ] = None
         self.content_buffer: List[str] = []
         self.section_data: Dict[str, List[str]] = {}
-        self.current_section: Optional[str] = None
+        self.current_section: Optional[Optional[str] ] = None
 
         # Initialize text file if enabled
         if self.config.text_file_output and self.config.text_file_path:
@@ -137,7 +137,7 @@ class Logger:
 
         return formatted
 
-    def info(self, message: str, section: Optional[str] = None) -> None:
+    def info(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """
         Log info message to both console and text file.
 
@@ -147,7 +147,7 @@ class Logger:
         """
         self._log_unified(message, logging.INFO, section)
 
-    def error(self, message: str, section: Optional[str] = None) -> None:
+    def error(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """
         Log error message to both console and text file.
 
@@ -157,7 +157,7 @@ class Logger:
         """
         self._log_unified(message, logging.ERROR, section)
 
-    def warning(self, message: str, section: Optional[str] = None) -> None:
+    def warning(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """
         Log warning message to both console and text file.
 
@@ -167,7 +167,7 @@ class Logger:
         """
         self._log_unified(message, logging.WARNING, section)
 
-    def debug(self, message: str, section: Optional[str] = None) -> None:
+    def debug(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """
         Log debug message to both console and text file.
 
@@ -178,7 +178,7 @@ class Logger:
         self._log_unified(message, logging.DEBUG, section)
 
     def _log_unified(
-        self, message: str, level: int, section: Optional[str] = None
+        self, message: str, level: int, section: Optional[Optional[str] ] = None
     ) -> None:
         """
         Internal method to log to both console and text file.
@@ -199,7 +199,7 @@ class Logger:
             elif self.config.chunk_logging or self.config.end_logging:
                 self._buffer_message(message, section)
 
-    def _write_to_text_file(self, message: str, section: Optional[str] = None) -> None:
+    def _write_to_text_file(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """
         Write message directly to text file.
 
@@ -226,7 +226,7 @@ class Logger:
         except Exception as e:
             self.console_logger.error(f"Failed to write to text file: {e}")
 
-    def _buffer_message(self, message: str, section: Optional[str] = None) -> None:
+    def _buffer_message(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """
         Buffer message for later writing.
 
@@ -292,7 +292,7 @@ class Logger:
         emoji_key: str,
         message: str,
         level: int = logging.INFO,
-        section: Optional[str] = None,
+        section: Optional[Optional[str] ] = None,
     ) -> None:
         """
         Log message with emoji formatting using existing emoji_utils.
@@ -306,23 +306,23 @@ class Logger:
         formatted_message = EmojiFormatter.format(emoji_key, message)
         self._log_unified(formatted_message, level, section)
 
-    def log_success(self, message: str, section: Optional[str] = None) -> None:
+    def log_success(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log success message with emoji formatting."""
         self.log_emoji_formatted("success", message, logging.INFO, section)
 
-    def log_error(self, message: str, section: Optional[str] = None) -> None:
+    def log_error(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log error message with emoji formatting."""
         self.log_emoji_formatted("error", message, logging.ERROR, section)
 
-    def log_progress(self, message: str, section: Optional[str] = None) -> None:
+    def log_progress(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log progress message with emoji formatting."""
         self.log_emoji_formatted("progress", message, logging.INFO, section)
 
-    def log_timer(self, message: str, section: Optional[str] = None) -> None:
+    def log_timer(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log timer message with emoji formatting."""
         self.log_emoji_formatted("timer", message, logging.INFO, section)
 
-    def log_completion(self, message: str, section: Optional[str] = None) -> None:
+    def log_completion(self, message: str, section: Optional[Optional[str] ] = None) -> None:
         """Log completion message with emoji formatting."""
         self.log_emoji_formatted("completion", message, logging.INFO, section)
 
@@ -344,7 +344,7 @@ class Logger:
             finally:
                 self.text_file_handle = None
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Destructor to ensure resources are cleaned up."""
         if hasattr(self, "text_file_handle") and self.text_file_handle:
             try:
@@ -352,11 +352,11 @@ class Logger:
             except BaseException:
                 pass
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit."""
         self.close()
         return False

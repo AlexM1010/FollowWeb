@@ -7,7 +7,7 @@ name = "followweb-visualizor"
 version = "1.0.0"
 description = "Social network analysis and visualization tool for Instagram follower/following relationships with community detection and influence metrics"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "FollowWeb Development Team", email = "followweb.dev@example.com"},
 ]
@@ -37,16 +37,16 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Sociology",
-    "License :: OSI Approved :: MIT License",
+
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
+
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "networkx>=2.8.0",
     "pandas>=1.5.0",
@@ -147,7 +147,7 @@ line-ending = "auto"
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

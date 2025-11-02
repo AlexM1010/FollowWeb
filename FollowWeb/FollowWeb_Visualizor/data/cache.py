@@ -30,7 +30,7 @@ class CentralizedCache:
     community detection, centrality calculations, and layout positions.
     """
 
-    def __init__(self, max_cache_size: int = 50, cache_timeout: float = 3600):
+    def __init__(self, max_cache_size: int = 50, cache_timeout: float = 3600) -> None:
         """
         Initialize the centralized cache.
 
@@ -255,7 +255,7 @@ class CentralizedCache:
         graph: nx.Graph,
         layout_type: str,
         positions: Dict[str, Tuple[float, float]],
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any] ] = None,
     ) -> None:
         """
         Cache layout positions for reuse across different output formats.
@@ -279,7 +279,7 @@ class CentralizedCache:
         self._limit_cache_size(self._layout_positions, "layout")
 
     def get_cached_layout_positions(
-        self, graph: nx.Graph, layout_type: str, params: Dict[str, Any] = None
+        self, graph: nx.Graph, layout_type: str, params: Optional[Dict[str, Any] ] = None
     ) -> Optional[Dict[str, Tuple[float, float]]]:
         """
         Get cached layout positions if available.
@@ -307,7 +307,7 @@ class CentralizedCache:
         graph: nx.Graph,
         centrality_type: str,
         results: Dict[str, float],
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any] ] = None,
     ) -> None:
         """
         Cache centrality calculation results.
@@ -331,7 +331,7 @@ class CentralizedCache:
         self._limit_cache_size(self._centrality_results, "centrality")
 
     def get_cached_centrality_results(
-        self, graph: nx.Graph, centrality_type: str, params: Dict[str, Any] = None
+        self, graph: nx.Graph, centrality_type: str, params: Optional[Dict[str, Any] ] = None
     ) -> Optional[Dict[str, float]]:
         """
         Get cached centrality results if available.
@@ -360,7 +360,7 @@ class CentralizedCache:
         self,
         graph: nx.Graph,
         communities: Dict[str, int],
-        params: Dict[str, Any] = None,
+        params: Optional[Dict[str, Any] ] = None,
     ) -> None:
         """
         Cache community detection results.
@@ -381,7 +381,7 @@ class CentralizedCache:
         self._limit_cache_size(self._community_results, "community")
 
     def get_cached_community_results(
-        self, graph: nx.Graph, params: Dict[str, Any] = None
+        self, graph: nx.Graph, params: Optional[Dict[str, Any] ] = None
     ) -> Optional[Dict[str, int]]:
         """
         Get cached community detection results if available.

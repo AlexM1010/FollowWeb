@@ -7,13 +7,17 @@ It includes unified metrics calculation, node and edge metrics, and color scheme
 
 import logging
 import time
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 import networkx as nx
 
-from ..core.types import NodeMetric, EdgeMetric, ColorScheme, VisualizationMetrics
-from ..data.cache import get_cache_manager, calculate_graph_hash, get_cached_node_attributes, get_cached_undirected_graph
+from ..core.types import ColorScheme, EdgeMetric, NodeMetric, VisualizationMetrics
+from ..data.cache import (
+    calculate_graph_hash,
+    get_cache_manager,
+    get_cached_node_attributes,
+    get_cached_undirected_graph,
+)
 from ..output.formatters import EmojiFormatter
 from ..utils import ProgressTracker
 from .colors import get_community_colors, get_scaled_size
@@ -304,7 +308,7 @@ class MetricsCalculator:
         if not communities_attr:
             communities_attr = dict.fromkeys(graph.nodes(), 0)
 
-        edge_metrics = {}
+        edge_metrics: Dict[Tuple[str, str], Dict[str, Any]] = {}
         edges_list = list(graph_undirected.edges())
         total_edges = len(edges_list)
 

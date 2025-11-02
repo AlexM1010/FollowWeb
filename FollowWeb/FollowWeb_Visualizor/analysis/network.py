@@ -8,7 +8,7 @@ operations including community detection and centrality calculations.
 # Standard library imports
 import logging
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 # Third-party imports
 import networkx as nx
@@ -349,7 +349,7 @@ class NetworkAnalyzer:
             self.logger.debug(f"Starting {component_name}")
 
     def _log_component_completion(
-        self, component_name: str, success: bool, duration: float = None
+        self, component_name: str, success: bool, duration: Optional[float ] = None
     ) -> None:
         """Log the completion of an analysis component."""
         if self.stages_controller:
@@ -364,7 +364,7 @@ class NetworkAnalyzer:
         elif not success:
             self.logger.error(f"{component_name} failed")
 
-    def _log_component_skip(self, component_name: str, reason: str = None) -> None:
+    def _log_component_skip(self, component_name: str, reason: Optional[str ] = None) -> None:
         """Log that an analysis component was skipped."""
         if self.stages_controller:
             self.stages_controller.log_analysis_component_skip(component_name, reason)

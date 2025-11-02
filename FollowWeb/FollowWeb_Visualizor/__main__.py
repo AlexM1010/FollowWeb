@@ -8,7 +8,7 @@ This allows the package to be executed with:
 import os
 import sys
 
-from FollowWeb.FollowWeb_Visualizor.main import main
+from FollowWeb_Visualizor.main import main
 
 # Add the parent directory to the path so we can import the package
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
