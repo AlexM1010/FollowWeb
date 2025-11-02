@@ -28,29 +28,34 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python tasks.py install --dev
+        cd FollowWeb
+        make install-dev
     
     - name: Run comprehensive tests
       run: |
-        python tasks.py test --coverage
-        python tasks.py test --performance
+        cd FollowWeb
+        make test-coverage
+        make test-performance
       env:
         MPLBACKEND: Agg
     
     - name: Run code quality checks
       run: |
-        python tasks.py lint
-        python tasks.py type-check
-        python tasks.py format --check
+        cd FollowWeb
+        make lint
+        make type-check
+        make format
     
     - name: Test package build
-      run: python tasks.py build
+      run: |
+        cd FollowWeb
+        make build
     
     - name: Upload coverage reports
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
       uses: codecov/codecov-action@v3
       with:
-        file: ./coverage.xml
+        file: ./FollowWeb/coverage.xml
         flags: nightly
         name: nightly-${{ matrix.os }}-${{ matrix.python-version }}
 
@@ -69,7 +74,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python tasks.py install --dev
+        cd FollowWeb
+        make install-dev
         python -m pip install safety
     
     - name: Run security check

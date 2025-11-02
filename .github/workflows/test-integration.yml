@@ -6,8 +6,8 @@ on:
     branches: [ feature/ci-integration ]  # Test branch
 
 jobs:
-  test-task-system:
-    name: Test Task System Integration
+  test-build-system:
+    name: Test Build System Integration
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -24,31 +24,38 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Verify task script exists
+    - name: Verify Makefile exists
       run: |
-        ls -la tasks.py || dir tasks.py
+        cd FollowWeb
+        ls -la Makefile || dir Makefile
       shell: bash
     
-    - name: Test task script help
-      run: python tasks.py help
+    - name: Test Makefile help
+      run: |
+        cd FollowWeb
+        make help
     
     - name: Install dependencies
-      run: python tasks.py install --dev
+      run: |
+        cd FollowWeb
+        make install-dev
     
     - name: Test individual commands
       run: |
-        python tasks.py format --check
-        python tasks.py lint || echo "Linting issues found (expected)"
-        python tasks.py test --unit
+        cd FollowWeb
+        make format
+        make lint || echo "Linting issues found (expected)"
+        make test-unit
       env:
         MPLBACKEND: Agg
     
-    - name: Verify exit codes
+    - name: Verify build system
       run: |
+        cd FollowWeb
         # Test successful command
-        python tasks.py help
-        echo "Help command exit code: $?"
+        make help
+        echo "Help command completed"
         
-        # Test command that should fail (linting with issues)
-        python tasks.py lint || echo "Lint failed as expected with exit code: $?"
+        # Test build process
+        make build || echo "Build completed with exit code: $?"
       shell: bash

@@ -26,24 +26,30 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements*.txt'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python tasks.py install --dev
+        cd FollowWeb
+        make install-dev
     
     - name: Run full test suite
-      run: python tasks.py test --coverage
+      run: |
+        cd FollowWeb
+        make test-coverage
       env:
         MPLBACKEND: Agg
     
     - name: Run linting and type checking
       run: |
-        python tasks.py lint
-        python tasks.py type-check
+        cd FollowWeb
+        make lint
+        make type-check
 
   build-and-publish:
     name: Build and Publish Package
@@ -64,21 +70,23 @@ jobs:
         python -m pip install build twine
     
     - name: Build package
-      run: python tasks.py build
+      run: |
+        cd FollowWeb
+        make build
     
     - name: Check package
-      run: python -m twine check dist/*
+      run: python -m twine check FollowWeb/dist/*
     
     - name: Publish to Test PyPI
       if: github.event.inputs.test_pypi == 'true'
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-      run: python -m twine upload --repository testpypi dist/*
+      run: python -m twine upload --repository testpypi FollowWeb/dist/*
     
     - name: Publish to PyPI
       if: github.event_name == 'release' && github.event.inputs.test_pypi != 'true'
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: python -m twine upload dist/*
+      run: python -m twine upload FollowWeb/dist/*

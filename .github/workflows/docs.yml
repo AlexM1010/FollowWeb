@@ -4,15 +4,15 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'docs/**'
+      - 'FollowWeb/docs/**'
       - '*.md'
-      - 'FollowWeb_Visualizor/**/*.py'
+      - 'FollowWeb/FollowWeb_Visualizor/**/*.py'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'docs/**'
+      - 'FollowWeb/docs/**'
       - '*.md'
-      - 'FollowWeb_Visualizor/**/*.py'
+      - 'FollowWeb/FollowWeb_Visualizor/**/*.py'
 
 jobs:
   docs-check:
@@ -30,11 +30,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python tasks.py install --dev
+        cd FollowWeb
+        make install-dev
     
     - name: Check docstring coverage
       run: |
         python -m pip install docstring-coverage
+        cd FollowWeb
         docstring-coverage FollowWeb_Visualizor/ --badge=docs/docstring-coverage.svg
     
     - name: Validate README links
@@ -44,4 +46,5 @@ jobs:
     - name: Check for TODO/FIXME comments
       run: |
         echo "Checking for TODO/FIXME comments in code..."
+        cd FollowWeb
         grep -r "TODO\|FIXME" FollowWeb_Visualizor/ || echo "No TODO/FIXME comments found"
