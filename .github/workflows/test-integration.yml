@@ -24,28 +24,24 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Verify Makefile exists
+    - name: Verify test runner exists
       run: |
         cd FollowWeb
-        ls -la Makefile || dir Makefile
-      shell: bash
-    
-    - name: Test Makefile help
-      run: |
-        cd FollowWeb
-        make help
+        python tests/run_tests.py system-info
     
     - name: Install dependencies
       run: |
         cd FollowWeb
-        make install-dev
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
     
     - name: Test individual commands
       run: |
         cd FollowWeb
-        make format
-        make lint || echo "Linting issues found (expected)"
-        make test-unit
+        ruff format --check FollowWeb_Visualizor tests || echo "Formatting issues found (expected)"
+        ruff check FollowWeb_Visualizor tests || echo "Linting issues found (expected)"
+        python tests/run_tests.py unit
       env:
         MPLBACKEND: Agg
     
@@ -53,9 +49,8 @@ jobs:
       run: |
         cd FollowWeb
         # Test successful command
-        make help
-        echo "Help command completed"
+        python tests/run_tests.py system-info
+        echo "System info command completed"
         
         # Test build process
-        make build || echo "Build completed with exit code: $?"
-      shell: bash
+        python -m build || echo "Build completed with exit code: $?"

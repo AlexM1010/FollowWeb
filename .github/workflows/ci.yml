@@ -33,18 +33,24 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        make install-dev
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
     
     - name: Run linting
-      run: make lint
+      run: |
+        ruff check FollowWeb_Visualizor tests
       continue-on-error: false
     
     - name: Run type checking
-      run: make type-check
+      run: |
+        mypy FollowWeb_Visualizor
       continue-on-error: false
     
     - name: Run tests with coverage
-      run: make test-coverage-xml
+      run: |
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
+        python -m coverage combine
+        python -m coverage xml
       continue-on-error: false
       env:
         MPLBACKEND: Agg
@@ -75,10 +81,13 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        make install-dev
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
     
     - name: Check code formatting
-      run: make format
+      run: |
+        ruff format --check FollowWeb_Visualizor tests
+        ruff check FollowWeb_Visualizor tests
 
   build:
     name: Build Package
@@ -102,7 +111,7 @@ jobs:
         python -m pip install build
     
     - name: Build package
-      run: make build
+      run: python -m build
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -129,9 +138,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        make install-dev
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
     
     - name: Run performance tests
-      run: make test-performance
+      run: python tests/run_tests.py performance
       env:
         MPLBACKEND: Agg

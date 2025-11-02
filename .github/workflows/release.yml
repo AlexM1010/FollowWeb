@@ -36,20 +36,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         cd FollowWeb
-        make install-dev
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
     
     - name: Run full test suite
       run: |
         cd FollowWeb
-        make test-coverage
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
+        python -m coverage combine
       env:
         MPLBACKEND: Agg
     
     - name: Run linting and type checking
       run: |
         cd FollowWeb
-        make lint
-        make type-check
+        ruff check FollowWeb_Visualizor tests
+        mypy FollowWeb_Visualizor
 
   build-and-publish:
     name: Build and Publish Package
@@ -72,7 +74,7 @@ jobs:
     - name: Build package
       run: |
         cd FollowWeb
-        make build
+        python -m build
     
     - name: Check package
       run: python -m twine check FollowWeb/dist/*

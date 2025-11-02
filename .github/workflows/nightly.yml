@@ -29,27 +29,30 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         cd FollowWeb
-        make install-dev
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
     
     - name: Run comprehensive tests
       run: |
         cd FollowWeb
-        make test-coverage
-        make test-performance
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
+        python -m coverage combine
+        python -m coverage xml
+        python tests/run_tests.py performance
       env:
         MPLBACKEND: Agg
     
     - name: Run code quality checks
       run: |
         cd FollowWeb
-        make lint
-        make type-check
-        make format
+        ruff check FollowWeb_Visualizor tests
+        mypy FollowWeb_Visualizor
+        ruff format --check FollowWeb_Visualizor tests
     
     - name: Test package build
       run: |
         cd FollowWeb
-        make build
+        python -m build
     
     - name: Upload coverage reports
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
@@ -75,7 +78,8 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         cd FollowWeb
-        make install-dev
+        python -m pip install -r requirements.txt
+        python -m pip install -r requirements-test.txt
         python -m pip install safety
     
     - name: Run security check
