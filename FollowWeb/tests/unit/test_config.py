@@ -12,15 +12,14 @@ import pytest
 from FollowWeb_Visualizor.core.config import (
     AnalysisMode,
     AnalysisModeConfig,
-    DuplicateParameter,
     ConfigurationManager,
+    DuplicateParameter,
     FameAnalysisConfig,
     KValueConfig,
     OutputConfig,
     OutputControlConfig,
     PipelineConfig,
     PipelineStagesConfig,
-    KValueConfig,
     PyvisInteractiveConfig,
     StaticImageConfig,
     ValidationResult,
@@ -230,7 +229,9 @@ class TestConfigurationValidation:
     def test_basic_k_value_handling(self, default_config: Dict[str, Any]):
         """Test basic k-value configuration handling (comprehensive k-value testing in test_k_values.py)."""
         config = default_config.copy()
-        config["k_values"]["strategy_k_values"]["k-core"] = 5  # Appropriate for test datasets
+        config["k_values"]["strategy_k_values"]["k-core"] = (
+            5  # Appropriate for test datasets
+        )
         config["k_values"]["default_k_value"] = 5
 
         load_config_from_dict(config)  # Should not raise
@@ -294,7 +295,7 @@ class TestOutputConfig:
         # create_directories is now hardcoded as True in the application logic
         config = OutputConfig()
         # Should not have create_directories attribute
-        assert not hasattr(config, 'create_directories')
+        assert not hasattr(config, "create_directories")
 
 
 class TestConfigurationRoundTrip:
@@ -519,8 +520,8 @@ class TestOutputControlConfig:
         assert config.enable_timing_logs is True
 
 
-class TestKValueConfig:
-    """Test KValueConfig dataclass."""
+class TestKValueConfigDefaults:
+    """Test KValueConfig dataclass defaults."""
 
     def test_default_k_value_config(self):
         """Test default k-value configuration."""

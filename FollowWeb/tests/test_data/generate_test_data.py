@@ -767,7 +767,7 @@ def main():
     print("\nUsername Uniqueness Verification:")
     print("=" * 40)
 
-    for dataset_name, dataset_info in summary["datasets"].items():
+    for _dataset_name, dataset_info in summary["datasets"].items():
         filepath = output_dir / dataset_info["file"]
         try:
             with open(filepath, encoding="utf-8") as f:
@@ -803,7 +803,7 @@ def main():
     print("\nDetailed Graph Structure Analysis:")
     print("=" * 50)
 
-    for dataset_name, dataset_info in summary["datasets"].items():
+    for _dataset_name, dataset_info in summary["datasets"].items():
         stats = dataset_info.get("stats", {})
         graph_analysis = stats.get("graph_analysis", {})
 

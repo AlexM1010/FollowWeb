@@ -17,6 +17,9 @@ from typing import Any, Dict, Optional, Tuple, Union
 # Third-party imports
 import networkx as nx
 
+# Local imports
+from ..utils.parallel import ParallelConfig
+
 
 class CentralizedCache:
     """
@@ -603,15 +606,16 @@ def get_cached_community_colors(
     """
     cache_manager = get_cache_manager()
     cached_colors = cache_manager.get_cached_community_colors(num_communities)
-    
+
     if cached_colors is not None:
         return cached_colors
-    
+
     # Generate new colors if not cached
     from ..visualization.colors import get_community_colors
+
     colors = get_community_colors(num_communities)
-    
+
     # Cache the generated colors
     cache_manager.cache_community_colors(num_communities, colors)
-    
+
     return colors

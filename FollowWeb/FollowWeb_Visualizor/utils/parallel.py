@@ -13,8 +13,9 @@ from typing import Any, Dict, Optional, Tuple
 
 # Third-party imports for parallel processing
 try:
-    import nx_parallel
-    NX_PARALLEL_AVAILABLE = True
+    import importlib.util
+
+    NX_PARALLEL_AVAILABLE = importlib.util.find_spec("nx_parallel") is not None
 except ImportError:
     NX_PARALLEL_AVAILABLE = False
 
@@ -144,7 +145,7 @@ class ParallelProcessingManager:
         """
         # Import here to avoid circular imports
         from ..data.cache import get_cache_manager
-        
+
         # Check cache first (except for overrides)
         if override_cores is None:
             cache_manager = get_cache_manager()
@@ -153,7 +154,7 @@ class ParallelProcessingManager:
             )
             if cached_config is not None:
                 return cached_config
-        
+
         # Handle explicit override
         if override_cores is not None:
             if override_cores < 1:

@@ -2,7 +2,7 @@
 
 # Network analysis and graph algorithms
 networkx>=2.8.0
-nx-parallel>=0.3.0  # Parallel processing backend for NetworkX performance optimization
+nx-parallel>=0.3.0; python_version>="3.9"  # Parallel processing backend for NetworkX performance optimization (Python 3.9+)
 
 # Data manipulation and analysis
 pandas>=1.5.0

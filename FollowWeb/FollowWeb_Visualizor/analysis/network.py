@@ -7,25 +7,22 @@ operations including community detection and centrality calculations.
 
 # Standard library imports
 import logging
-import math
 import time
 from typing import Any, Dict
 
 # Third-party imports
 import networkx as nx
-import pandas as pd
 from networkx.algorithms import community
 
 # Local imports
 from ..core.exceptions import DataProcessingError
+from ..data.cache import get_cache_manager, get_cached_undirected_graph
+from ..utils.math import format_time_duration
 from ..utils.parallel import (
     get_analysis_parallel_config,
     get_nx_parallel_status_message,
     log_parallel_usage,
 )
-from ..utils import ProgressTracker
-from ..utils.math import format_time_duration
-from ..data.cache import get_cache_manager, get_cached_undirected_graph
 
 
 class NetworkAnalyzer:
@@ -116,11 +113,11 @@ class NetworkAnalyzer:
             "centrality_analysis", graph_size
         )
 
-        mode_info = (
-            f" ({centrality_config.get('mode', 'unknown')} mode)"
-            if self.mode_manager
-            else ""
-        )
+        # mode_info = (
+        #     f" ({centrality_config.get('mode', 'unknown')} mode)"
+        #     if self.mode_manager
+        #     else ""
+        # )
 
         # Log parallel processing configuration once for the entire network analysis
         self.logger.info("")  # Add spacing before parallel notification
@@ -208,6 +205,7 @@ class NetworkAnalyzer:
             self._log_component_skip("centrality_analysis")
             # Set default centrality values when skipped
             from .centrality import set_default_centrality_values
+
             set_default_centrality_values(graph)
 
         return graph

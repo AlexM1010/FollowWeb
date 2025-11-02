@@ -15,8 +15,8 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-from FollowWeb_Visualizor.output.managers import OutputManager
 from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+from FollowWeb_Visualizor.output.managers import OutputManager
 
 
 class TestUnifiedOutputIntegration:
@@ -417,7 +417,7 @@ class TestUnifiedOutputIntegration:
                 file_content = f.read()
 
                 # Verify all messages appear in both console and file
-                for msg_type, message in test_messages:
+                for _msg_type, message in test_messages:
                     # Check file content
                     assert message in file_content
 

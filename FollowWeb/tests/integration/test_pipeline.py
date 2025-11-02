@@ -11,7 +11,6 @@ from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
-import networkx as nx
 
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
@@ -239,7 +238,9 @@ class TestPipelineErrorHandling:
         config = fast_config.copy()
         config["pipeline"]["strategy"] = "invalid_strategy"
 
-        with pytest.raises(Exception):  # Should fail during initialization
+        with pytest.raises(
+            (ValueError, KeyError, TypeError)
+        ):  # Should fail during initialization
             PipelineOrchestrator(config)
 
 
@@ -731,8 +732,6 @@ class TestPipelineSuccessValidation:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from unittest.mock import patch
-
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
@@ -757,8 +756,6 @@ class TestPipelineSuccessValidation:
         """Test that visualization phase fails if any output format fails."""
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
-
-        from unittest.mock import patch
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
