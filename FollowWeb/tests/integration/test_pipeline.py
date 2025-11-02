@@ -235,13 +235,15 @@ class TestPipelineErrorHandling:
     @pytest.mark.integration
     def test_invalid_configuration_handling(self, fast_config: Dict[str, Any]):
         """Test handling of invalid configuration."""
+        from FollowWeb_Visualizor.core.config import load_config_from_dict
+
         config = fast_config.copy()
-        config["pipeline"]["strategy"] = "invalid_strategy"
+        config["strategy"] = "invalid_strategy"  # Strategy is at top level, not under pipeline
 
         with pytest.raises(
             (ValueError, KeyError, TypeError)
-        ):  # Should fail during initialization
-            PipelineOrchestrator(config)
+        ):  # Should fail during configuration loading
+            load_config_from_dict(config)
 
 
 class TestPipelineConfiguration:
