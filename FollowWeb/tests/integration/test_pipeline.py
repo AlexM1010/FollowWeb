@@ -238,7 +238,9 @@ class TestPipelineErrorHandling:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        config["strategy"] = "invalid_strategy"  # Strategy is at top level, not under pipeline
+        config["strategy"] = (
+            "invalid_strategy"  # Strategy is at top level, not under pipeline
+        )
 
         with pytest.raises(
             (ValueError, KeyError, TypeError)
