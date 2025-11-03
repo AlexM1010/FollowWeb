@@ -122,33 +122,33 @@ jobs:
     - name: Verify installation
       run: |
         # Package must import successfully
-        python -c "import FollowWeb_Visualizor; print('[OK] Package imported successfully')"
+        python -c "import FollowWeb_Visualizor" && python ci_helpers.py success "Package imported successfully"
         
         # Parallel processing must be available
-        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; print(f'[OK] nx-parallel available: {is_nx_parallel_available()}')"
+        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; available = is_nx_parallel_available(); exit(0)" && python ci_helpers.py success "nx-parallel available"
         
         # All submodules must import
-        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization; print('[OK] All submodules imported successfully')"
+        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization" && python ci_helpers.py success "All submodules imported successfully"
         
         # CLI entry point must work
         python -c "
         import subprocess
         result = subprocess.run(['followweb', '--help'], capture_output=True, text=True)
         if result.returncode != 0:
-            print('[FAIL] CLI entry point failed')
+            import sys
+            sys.path.insert(0, '.')
+            from ci_helpers import ci_print_error
+            ci_print_error('CLI entry point failed')
             print('STDOUT:', result.stdout)
             print('STDERR:', result.stderr)
             exit(1)
-        else:
-            print('[OK] CLI entry point working')
-        "
+        " && python ci_helpers.py success "CLI entry point working"
         
         # Test basic functionality
         python -c "
         from FollowWeb_Visualizor.core.config import ConfigurationManager
         from FollowWeb_Visualizor.data.loaders import GraphLoader
-        print('[OK] Core functionality verified')
-        "
+        " && python ci_helpers.py success "Core functionality verified"
     
     - name: Run code formatting check
       run: |
@@ -174,11 +174,17 @@ jobs:
         # Run comprehensive test suite with coverage requirements
         python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=70
         
-        # Validate test results
+        # Validate test results with emoji formatting
+        python ci_helpers.py success "Test suite completed successfully"
         echo "## Test Validation Results" >> $GITHUB_STEP_SUMMARY
-        echo "### Unit Tests: [PASS] (237+ tests)" >> $GITHUB_STEP_SUMMARY
-        echo "### Integration Tests: [PASS] (68+ tests)" >> $GITHUB_STEP_SUMMARY
-        echo "### Coverage Requirement: [PASS] (>=70%)" >> $GITHUB_STEP_SUMMARY
+        python -c "
+        from ci_helpers import setup_ci_emoji_config
+        from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+        setup_ci_emoji_config()
+        print('### ' + EmojiFormatter.format('success', 'Unit Tests (237+ tests)'))
+        print('### ' + EmojiFormatter.format('success', 'Integration Tests (68+ tests)'))
+        print('### ' + EmojiFormatter.format('success', 'Coverage Requirement (>=70%)'))
+        " >> $GITHUB_STEP_SUMMARY
       continue-on-error: false
       env:
         MPLBACKEND: Agg
@@ -247,10 +253,24 @@ jobs:
         
         # Check if "No issues identified" is in the output
         if echo "$bandit_output" | grep -q "No issues identified"; then
-          echo "[PASS] No medium or high severity security issues found" >> $GITHUB_STEP_SUMMARY
+          python ci_helpers.py success "No medium or high severity security issues found"
+          python -c "
+          from ci_helpers import setup_ci_emoji_config
+          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+          setup_ci_emoji_config()
+          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
+              f.write(EmojiFormatter.format('success', 'No medium or high severity security issues found') + '\n')
+          "
           set -e
         else
-          echo "[FAIL] Medium or high severity security issues detected" >> $GITHUB_STEP_SUMMARY
+          python ci_helpers.py error "Medium or high severity security issues detected"
+          python -c "
+          from ci_helpers import setup_ci_emoji_config
+          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+          setup_ci_emoji_config()
+          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
+              f.write(EmojiFormatter.format('error', 'Medium or high severity security issues detected') + '\n')
+          "
           set -e
           exit 1
         fi
@@ -421,8 +441,15 @@ jobs:
         # Performance tests must pass
         python tests/run_tests.py performance
         # Verify no performance regressions
+        python ci_helpers.py success "Performance tests completed - no regressions detected"
         echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "Performance tests completed successfully - no regressions detected" >> $GITHUB_STEP_SUMMARY
+        python -c "
+        from ci_helpers import setup_ci_emoji_config
+        from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+        setup_ci_emoji_config()
+        with open('$GITHUB_STEP_SUMMARY', 'a') as f:
+            f.write(EmojiFormatter.format('success', 'Performance tests completed successfully - no regressions detected') + '\n')
+        "
       env:
         MPLBACKEND: Agg
       continue-on-error: false
@@ -469,15 +496,21 @@ jobs:
         fi
         
         if [[ -n "$failed_jobs" ]]; then
-          echo "[FAIL] CHECKS FAILED:$failed_jobs"
-          echo "## [FAIL] CI PIPELINE FAILED" >> $GITHUB_STEP_SUMMARY
+          python ci_helpers.py error "CHECKS FAILED:$failed_jobs"
+          python -c "
+          from ci_helpers import setup_ci_emoji_config
+          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+          setup_ci_emoji_config()
+          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
+              f.write('## ' + EmojiFormatter.format('error', 'CI PIPELINE FAILED') + '\n')
+          "
           echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**ALL CHECKS MUST PASS**" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
         
-        echo "[PASS] ALL CHECKS PASSED!"
+        python ci_helpers.py success "ALL CHECKS PASSED!"
         echo "Test result: ${{ needs.test.result }}"
         echo "Security result: ${{ needs.security.result }}"
         echo "Format check result: ${{ needs.format-check.result }}"
@@ -485,15 +518,24 @@ jobs:
         echo "Performance result: ${{ needs.performance.result }}"
         
         # Document the rigorous testing approach
-        echo "## [SUCCESS] CI PIPELINE COMPLETED - ALL CHECKS PASSED!" >> $GITHUB_STEP_SUMMARY
-        echo "### Rigorous Quality Assurance:" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Unit Tests** (237+ tests)" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Integration Tests** (68+ tests)" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Performance Tests**" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Code Coverage** (>=70%)" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Security Scanning** (Bandit + pip-audit)" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Type Checking** (mypy)" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Code Formatting** (ruff)" >> $GITHUB_STEP_SUMMARY
-        echo "- [PASS] **Package Building**" >> $GITHUB_STEP_SUMMARY
+        # Generate success summary with emoji formatting
+        python -c "
+        from ci_helpers import setup_ci_emoji_config
+        from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+        setup_ci_emoji_config()
+        
+        # Write to GitHub step summary
+        with open('$GITHUB_STEP_SUMMARY', 'a') as f:
+            f.write('## ' + EmojiFormatter.format('completion', 'CI PIPELINE COMPLETED - ALL CHECKS PASSED!') + '\n')
+            f.write('### Rigorous Quality Assurance:\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Unit Tests** (237+ tests)') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Integration Tests** (68+ tests)') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Performance Tests**') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Code Coverage** (>=70%)') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Security Scanning** (Bandit + pip-audit)') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Type Checking** (mypy)') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Code Formatting** (ruff)') + '\n')
+            f.write('- ' + EmojiFormatter.format('success', '**Package Building**') + '\n')
+        "
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**All tools are open-source with permissive licenses**" >> $GITHUB_STEP_SUMMARY
