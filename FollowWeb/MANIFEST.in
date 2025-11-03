@@ -2,7 +2,9 @@
 include README.md
 include LICENSE*
 include CHANGELOG*
-include CONTRIBUTING*
+# include CONTRIBUTING* (file doesn't exist)
+include *.md
+include *.template
 
 # Include configuration files
 include pyproject.toml
@@ -27,20 +29,18 @@ recursive-include examples *
 recursive-include docs *
 
 # Exclude development and build artifacts
-exclude .gitignore
-exclude .pre-commit-config.yaml
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
-recursive-exclude * *.so
-recursive-exclude * .DS_Store
-recursive-exclude .git *
-recursive-exclude .github *
-recursive-exclude .pytest_cache *
-recursive-exclude .mypy_cache *
-recursive-exclude .ruff_cache *
-recursive-exclude dist *
-recursive-exclude build *
-recursive-exclude *.egg-info *
-recursive-exclude Output *
-recursive-exclude tests/Output *
-recursive-exclude .benchmarks *
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude *.so
+global-exclude .DS_Store
+prune .git
+prune .github
+prune .pytest_cache
+prune .mypy_cache
+prune .ruff_cache
+prune dist
+prune build
+prune *.egg-info
+prune Output
+prune tests/Output
+prune .benchmarks
