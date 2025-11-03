@@ -35,10 +35,14 @@ jobs:
     - name: Run comprehensive tests
       run: |
         cd FollowWeb
-        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
+        # Run all tests with strict coverage requirements
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report= --cov-fail-under=70
         python -m coverage combine
         python -m coverage xml
+        # Run performance tests (mandatory)
         python tests/run_tests.py performance
+        # Verify coverage meets requirements
+        python -m coverage report --fail-under=70
       env:
         MPLBACKEND: Agg
     
@@ -98,11 +102,13 @@ jobs:
         echo "## Nightly Security Scan" >> $GITHUB_STEP_SUMMARY
         echo "### pip-audit Results" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        pip-audit --desc >> $GITHUB_STEP_SUMMARY || echo "No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+        # FAIL on any vulnerabilities in nightly builds
+        pip-audit --desc >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         echo "### Bandit Results" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        bandit -r FollowWeb_Visualizor --severity-level low >> $GITHUB_STEP_SUMMARY || echo "No security issues found" >> $GITHUB_STEP_SUMMARY
+        # FAIL on medium/high severity issues in nightly builds
+        bandit -r FollowWeb_Visualizor --severity-level medium >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
     
     - name: Check for outdated dependencies
