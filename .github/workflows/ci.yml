@@ -49,9 +49,7 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
-        python -m coverage combine
-        python -m coverage xml
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term
       continue-on-error: false
       env:
         MPLBACKEND: Agg

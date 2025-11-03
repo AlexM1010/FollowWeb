@@ -232,5 +232,5 @@ skip_empty = false
 directory = "tests/Output/htmlcov"
 
 [tool.coverage.xml]
-output = "tests/Output/coverage.xml"
+output = "coverage.xml"
 

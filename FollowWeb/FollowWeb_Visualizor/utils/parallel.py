@@ -541,6 +541,3 @@ def get_optimal_worker_count(
     # Get configuration from centralized parallel processing system
     config = get_parallel_manager().get_parallel_config("testing")
     return config.cores_used
-
-
-
