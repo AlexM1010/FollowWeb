@@ -11,6 +11,7 @@ from typing import Dict, List, Tuple, Union
 
 # Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 
 # Local imports
 from ..utils import ProgressTracker

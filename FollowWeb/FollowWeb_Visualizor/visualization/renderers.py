@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
+import nx_parallel  # noqa: F401
 from pyvis.network import Network
 
 from ..core.types import VisualizationMetrics

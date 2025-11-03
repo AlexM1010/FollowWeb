@@ -15,7 +15,14 @@ import weakref
 from typing import Any, Dict, Optional, Tuple, Union
 
 # Third-party imports
+try:
+    import networkx as nx
+except ImportError:
+    nx = None
+
+# Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 
 # Local imports
 from ..utils.parallel import ParallelConfig
@@ -43,21 +50,21 @@ class CentralizedCache:
         self.logger = logging.getLogger(__name__)
 
         # Separate caches for different types of data
-        self._graph_hashes = {}  # graph_id -> hash_string
-        self._undirected_graphs = {}  # graph_hash -> undirected_graph
-        self._node_attributes = {}  # (graph_hash, attr_name) -> attributes_dict
-        self._edge_attributes = {}  # (graph_hash, attr_name) -> attributes_dict
-        self._community_colors = {}  # num_communities -> color_dict
-        self._layout_positions = {}  # (graph_hash, layout_type, params_hash) -> positions
-        self._centrality_results = {}  # (graph_hash, centrality_type, params_hash) -> results
-        self._community_results = {}  # (graph_hash, params_hash) -> community_dict
-        self._parallel_configs = {}  # (operation_type, graph_size) -> ParallelConfig
+        self._graph_hashes: Dict[str, str] = {}  # graph_id -> hash_string
+        self._undirected_graphs: Dict[str, Any] = {}  # graph_hash -> undirected_graph
+        self._node_attributes: Dict[Tuple[str, str], Dict[str, Any]] = {}  # (graph_hash, attr_name) -> attributes_dict
+        self._edge_attributes: Dict[Tuple[str, str], Dict[Tuple[str, str], Any]] = {}  # (graph_hash, attr_name) -> attributes_dict
+        self._community_colors: Dict[str, Dict[int, Union[str, Tuple[float, ...]]]] = {}  # num_communities -> color_dict
+        self._layout_positions: Dict[Tuple[str, str, str], Dict[str, Tuple[float, float]]] = {}  # (graph_hash, layout_type, params_hash) -> positions
+        self._centrality_results: Dict[Tuple[str, str, str], Dict[str, float]] = {}  # (graph_hash, centrality_type, params_hash) -> results
+        self._community_results: Dict[Tuple[str, str], Dict[str, int]] = {}  # (graph_hash, params_hash) -> community_dict
+        self._parallel_configs: Dict[Tuple[str, Optional[int]], Any] = {}  # (operation_type, graph_size) -> ParallelConfig
 
         # Timestamps for cache expiration
-        self._timestamps = {}
+        self._timestamps: Dict[str, float] = {}
 
         # Weak references to graphs to avoid memory leaks
-        self._graph_refs = weakref.WeakValueDictionary()
+        self._graph_refs: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
     def calculate_graph_hash(self, graph: nx.Graph) -> str:
         """

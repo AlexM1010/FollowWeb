@@ -12,6 +12,7 @@ import os
 
 # Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 
 # Local imports
 from ..core.exceptions import DataProcessingError

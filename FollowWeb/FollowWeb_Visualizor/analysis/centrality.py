@@ -12,6 +12,7 @@ from typing import Any, Dict
 
 # Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 import pandas as pd
 
 from ..utils import ProgressTracker

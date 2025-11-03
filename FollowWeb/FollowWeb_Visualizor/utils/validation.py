@@ -345,7 +345,12 @@ def validate_filesystem_safe_string(value: Any, param_name: str) -> str:
     Raises:
         ValueError: If value contains invalid filesystem characters
     """
-    validate_non_empty_string(value, param_name)
+    # Ensure value is a string
+    if not isinstance(value, str):
+        raise ValueError(f"{param_name} must be a string, got {type(value).__name__}")
+    
+    if not value.strip():
+        raise ValueError(f"{param_name} cannot be empty or whitespace-only")
 
     # Invalid characters for most filesystems
     invalid_chars = '<>"|?*'
