@@ -148,9 +148,9 @@ def run_all_tests_optimally(extra_args: List[str]) -> int:
 
         if regular_result != 0:
             total_failures += regular_result
-            print(f"❌ Regular tests failed with exit code: {regular_result}")
+            print(f"[FAIL] Regular tests failed with exit code: {regular_result}")
         else:
-            print("✅ Regular tests passed!")
+            print("[PASS] Regular tests passed!")
 
         print("\n" + "=" * 60)
 
@@ -162,28 +162,28 @@ def run_all_tests_optimally(extra_args: List[str]) -> int:
 
         if benchmark_result != 0:
             total_failures += benchmark_result
-            print(f"❌ Benchmark tests failed with exit code: {benchmark_result}")
+            print(f"[FAIL] Benchmark tests failed with exit code: {benchmark_result}")
         else:
-            print("✅ Benchmark tests passed!")
+            print("[PASS] Benchmark tests passed!")
 
         print("\n" + "=" * 60)
 
         # Final summary
         if total_failures == 0:
             print(
-                "🎉 All tests passed! (Regular tests: parallel, Benchmark tests: sequential)"
+                "[SUCCESS] All tests passed! (Regular tests: parallel, Benchmark tests: sequential)"
             )
         else:
-            print(f"❌ Some tests failed (Total failure codes: {total_failures})")
+            print(f"[FAIL] Some tests failed (Total failure codes: {total_failures})")
 
         return total_failures
 
     except KeyboardInterrupt:
-        print("\n⚠️ Tests interrupted by user")
+        print("\n[WARN] Tests interrupted by user")
 
         return 130
     except Exception as e:
-        print(f"❌ Error running tests: {e}")
+        print(f"[ERROR] Error running tests: {e}")
 
         return 1
 

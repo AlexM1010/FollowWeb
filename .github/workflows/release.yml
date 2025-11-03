@@ -20,7 +20,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.8', '3.12']  # Test oldest and newest supported versions
+        python-version: ['3.9', '3.12']  # Test oldest and newest supported versions
     
     steps:
     - uses: actions/checkout@v4
@@ -36,7 +36,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         cd FollowWeb
-        python -m pip install -r requirements.txt
+        # Install core dependencies first
+        python -m pip install networkx>=2.8.0 pandas>=1.5.0 matplotlib>=3.5.0 pyvis>=0.3.0
+        # Try to install nx-parallel for Python 3.11+, ignore if not available
+        python -m pip install "nx-parallel>=0.3.0" || echo "nx-parallel not available for this Python version"
         python -m pip install -r requirements-test.txt
     
     - name: Run full test suite
