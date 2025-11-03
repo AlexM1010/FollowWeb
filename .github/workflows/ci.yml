@@ -112,8 +112,8 @@ jobs:
         python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; print(f'nx-parallel available: {is_nx_parallel_available()}')"
         # Verify all submodules can be imported
         python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization; print('All submodules imported successfully')"
-        # Test CLI entry point
-        followweb --help > /dev/null && echo "CLI entry point working" || echo "CLI entry point test skipped"
+        # Test CLI entry point (cross-platform compatible)
+        python -c "import subprocess; subprocess.run(['followweb', '--help'], capture_output=True, check=True); print('CLI entry point working')" || echo "CLI entry point test skipped"
     
     - name: Run code formatting check
       run: |
