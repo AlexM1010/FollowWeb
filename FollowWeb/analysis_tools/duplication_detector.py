@@ -14,7 +14,6 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 from .ast_utils import extract_all_exports, is_init_file
 from .similarity_utils import SimilarityCalculator
@@ -26,7 +25,7 @@ class DuplicateCodeBlock:
 
     content: str
     content_hash: str
-    locations: List[Tuple[str, int, int]]  # (file_path, start_line, end_line)
+    locations: list[tuple[str, int, int]]  # (file_path, start_line, end_line)
     similarity_score: float
     block_type: (
         str  # 'validation', 'error_handling', 'file_operation', 'import', 'function'
@@ -50,10 +49,10 @@ class ImportAnalysis:
     """Analysis of import statements in a file."""
 
     file_path: str
-    used_imports: Set[str]
-    unused_imports: Set[str]
-    duplicate_imports: List[Tuple[str, List[int]]]  # (import_name, line_numbers)
-    redundant_imports: List[str]
+    used_imports: set[str]
+    unused_imports: set[str]
+    duplicate_imports: list[tuple[str, list[int]]]  # (import_name, line_numbers)
+    redundant_imports: list[str]
 
 
 @dataclass
@@ -61,11 +60,11 @@ class DuplicationReport:
     """Comprehensive report of code duplication in a file or project."""
 
     file_path: str
-    duplicate_blocks: List[DuplicateCodeBlock]
-    validation_duplicates: List[ValidationPattern]
+    duplicate_blocks: list[DuplicateCodeBlock]
+    validation_duplicates: list[ValidationPattern]
     import_analysis: ImportAnalysis
-    error_handling_duplicates: List[DuplicateCodeBlock]
-    file_operation_duplicates: List[DuplicateCodeBlock]
+    error_handling_duplicates: list[DuplicateCodeBlock]
+    file_operation_duplicates: list[DuplicateCodeBlock]
     summary: str
 
 
@@ -78,7 +77,7 @@ class DuplicationDetector:
         self.error_handling_patterns = self._initialize_error_handling_patterns()
         self.file_operation_patterns = self._initialize_file_operation_patterns()
 
-    def _initialize_validation_patterns(self) -> List[str]:
+    def _initialize_validation_patterns(self) -> list[str]:
         """Initialize patterns for common validation logic (non-overlapping)."""
         return [
             # None checks (prioritize 'is None' over '== None')
@@ -103,7 +102,7 @@ class DuplicationDetector:
             r"assert\s+(\w+)(?!\s+is)",  # Assert without 'is' to avoid overlap
         ]
 
-    def _initialize_error_handling_patterns(self) -> List[str]:
+    def _initialize_error_handling_patterns(self) -> list[str]:
         """Initialize patterns for error handling code."""
         return [
             r"try:\s*\n.*?except.*?:",
@@ -115,7 +114,7 @@ class DuplicationDetector:
             r"return\s+None",
         ]
 
-    def _initialize_file_operation_patterns(self) -> List[str]:
+    def _initialize_file_operation_patterns(self) -> list[str]:
         """Initialize patterns for file operations."""
         return [
             r"os\.path\.exists\(",
@@ -184,7 +183,7 @@ class DuplicationDetector:
 
     def _analyze_validation_patterns(
         self, content: str, file_path: str
-    ) -> List[ValidationPattern]:
+    ) -> list[ValidationPattern]:
         """Analyze validation patterns in the code."""
         patterns = []
         lines = content.split("\n")
@@ -235,7 +234,7 @@ class DuplicationDetector:
             return ImportAnalysis(file_path, set(), set(), [], [])
 
         # Collect all imports with location context
-        imports = {}  # name -> line numbers
+        imports: dict[str, list[int]] = {}  # name -> line numbers
         import_aliases = {}  # alias -> original name
         nested_import_names = []  # imports inside functions/classes (just names)
 
@@ -338,7 +337,7 @@ class DuplicationDetector:
 
     def _analyze_error_handling(
         self, content: str, file_path: str
-    ) -> List[DuplicateCodeBlock]:
+    ) -> list[DuplicateCodeBlock]:
         """Analyze error handling patterns for duplication."""
         blocks = []
         lines = content.split("\n")
@@ -377,7 +376,7 @@ class DuplicationDetector:
                 )
                 if similarity > 0.7:  # 70% similarity threshold
                     content_str = "\n".join(block1["lines"])
-                    content_hash = hashlib.md5(content_str.encode()).hexdigest()
+                    content_hash = hashlib.md5(content_str.encode(), usedforsecurity=False).hexdigest()
 
                     blocks.append(
                         DuplicateCodeBlock(
@@ -396,7 +395,7 @@ class DuplicationDetector:
 
     def _analyze_file_operations(
         self, content: str, file_path: str
-    ) -> List[DuplicateCodeBlock]:
+    ) -> list[DuplicateCodeBlock]:
         """Analyze file operation patterns for duplication."""
         blocks = []
         lines = content.split("\n")
@@ -434,7 +433,7 @@ class DuplicationDetector:
                         content_str = f"Pattern: {pattern}\nOccurrences:\n" + "\n".join(
                             [content for _, content in group]
                         )
-                        content_hash = hashlib.md5(content_str.encode()).hexdigest()
+                        content_hash = hashlib.md5(content_str.encode(), usedforsecurity=False).hexdigest()
 
                         blocks.append(
                             DuplicateCodeBlock(
@@ -453,7 +452,7 @@ class DuplicationDetector:
 
     def _find_duplicate_blocks(
         self, content: str, file_path: str
-    ) -> List[DuplicateCodeBlock]:
+    ) -> list[DuplicateCodeBlock]:
         """Find general duplicate code blocks using AST analysis."""
         try:
             tree = ast.parse(content)
@@ -485,7 +484,7 @@ class DuplicationDetector:
                 )
 
                 if similarity > 0.8:  # 80% similarity threshold
-                    content_hash = hashlib.md5(func1["source"].encode()).hexdigest()
+                    content_hash = hashlib.md5(func1["source"].encode(), usedforsecurity=False).hexdigest()
 
                     blocks.append(
                         DuplicateCodeBlock(
@@ -502,18 +501,18 @@ class DuplicationDetector:
 
         return blocks
 
-    def _calculate_similarity(self, lines1: List[str], lines2: List[str]) -> float:
+    def _calculate_similarity(self, lines1: list[str], lines2: list[str]) -> float:
         """Calculate similarity between two sets of code lines."""
         return SimilarityCalculator.calculate_line_similarity(lines1, lines2)
 
     def _generate_summary(
         self,
         file_path: str,
-        validation_duplicates: List[ValidationPattern],
+        validation_duplicates: list[ValidationPattern],
         import_analysis: ImportAnalysis,
-        error_handling_duplicates: List[DuplicateCodeBlock],
-        file_operation_duplicates: List[DuplicateCodeBlock],
-        duplicate_blocks: List[DuplicateCodeBlock],
+        error_handling_duplicates: list[DuplicateCodeBlock],
+        file_operation_duplicates: list[DuplicateCodeBlock],
+        duplicate_blocks: list[DuplicateCodeBlock],
     ) -> str:
         """Generate a summary of duplication analysis."""
         issues = []
@@ -546,8 +545,8 @@ class DuplicationDetector:
         )
 
     def analyze_cross_file_duplication(
-        self, file_reports: List[DuplicationReport]
-    ) -> List[DuplicateCodeBlock]:
+        self, file_reports: list[DuplicationReport]
+    ) -> list[DuplicateCodeBlock]:
         """Analyze duplication across multiple files."""
         cross_file_duplicates = []
 
@@ -562,7 +561,7 @@ class DuplicationDetector:
         for key, patterns in validation_groups.items():
             if len(patterns) > 1:
                 content = f"Validation pattern: {key}"
-                content_hash = hashlib.md5(content.encode()).hexdigest()
+                content_hash = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
                 locations = [
                     (file_path, pattern.line_number, pattern.line_number)
@@ -581,7 +580,7 @@ class DuplicationDetector:
 
         return cross_file_duplicates
 
-    def generate_aggregate_report(self, file_reports: List[DuplicationReport]) -> Dict:
+    def generate_aggregate_report(self, file_reports: list[DuplicationReport]) -> dict:
         """Generate an aggregate duplication report across all files."""
         total_files = len(file_reports)
         files_with_duplicates = len(
@@ -627,8 +626,8 @@ class DuplicationDetector:
         validation_count: int,
         unused_imports: int,
         duplicate_blocks: int,
-        cross_file_duplicates: List,
-    ) -> List[str]:
+        cross_file_duplicates: list,
+    ) -> list[str]:
         """Generate prioritized recommendations for addressing duplication."""
         recommendations = []
 

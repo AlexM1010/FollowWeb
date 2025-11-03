@@ -6,7 +6,7 @@ Main analysis orchestrator that coordinates all analysis tools.
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Local imports
 from .ai_language_scanner import AILanguageScanner
@@ -37,7 +37,7 @@ class AnalysisOrchestrator:
         self.reports_dir = self.project_root / "analysis_reports"
         self.reports_dir.mkdir(exist_ok=True)
 
-    def run_full_analysis(self) -> Dict:
+    def run_full_analysis(self) -> dict:
         """Run complete analysis of the codebase."""
         print("Starting comprehensive code quality analysis...")
 
@@ -59,7 +59,7 @@ class AnalysisOrchestrator:
 
         return report
 
-    def _analyze_source_code(self) -> List[AnalysisResult]:
+    def _analyze_source_code(self) -> list[AnalysisResult]:
         """Analyze all source code files."""
         results = []
 
@@ -90,7 +90,7 @@ class AnalysisOrchestrator:
 
         return results
 
-    def _analyze_test_code(self) -> List[DuplicateTestAnalysisResult]:
+    def _analyze_test_code(self) -> list[DuplicateTestAnalysisResult]:
         """Analyze all test files."""
         results = []
 
@@ -129,9 +129,9 @@ class AnalysisOrchestrator:
 
     def _generate_comprehensive_report(
         self,
-        source_results: List[AnalysisResult],
-        test_results: List[DuplicateTestAnalysisResult],
-    ) -> Dict:
+        source_results: list[AnalysisResult],
+        test_results: list[DuplicateTestAnalysisResult],
+    ) -> dict:
         """Generate a comprehensive analysis report."""
         # Collect file operation lists
         file_operations = self._collect_file_operations()
@@ -158,9 +158,9 @@ class AnalysisOrchestrator:
 
     def _generate_summary(
         self,
-        source_results: List[AnalysisResult],
-        test_results: List[DuplicateTestAnalysisResult],
-    ) -> Dict:
+        source_results: list[AnalysisResult],
+        test_results: list[DuplicateTestAnalysisResult],
+    ) -> dict:
         """Generate high-level summary statistics."""
         total_files = len(source_results)
         total_test_files = len(test_results)
@@ -183,7 +183,7 @@ class AnalysisOrchestrator:
             ),
         }
 
-    def _summarize_source_analysis(self, results: List[AnalysisResult]) -> Dict:
+    def _summarize_source_analysis(self, results: list[AnalysisResult]) -> dict:
         """Summarize source code analysis results."""
         issue_counts = {}
         for result in results:
@@ -203,8 +203,8 @@ class AnalysisOrchestrator:
         }
 
     def _summarize_test_analysis(
-        self, results: List[DuplicateTestAnalysisResult]
-    ) -> Dict:
+        self, results: list[DuplicateTestAnalysisResult]
+    ) -> dict:
         """Summarize test analysis results."""
         return {
             "files_with_duplicates": len([r for r in results if r.duplicate_tests]),
@@ -214,7 +214,7 @@ class AnalysisOrchestrator:
         }
 
     def _calculate_test_efficiency_score(
-        self, results: List[DuplicateTestAnalysisResult]
+        self, results: list[DuplicateTestAnalysisResult]
     ) -> float:
         """Calculate a test efficiency score (0-100)."""
         if not results:
@@ -234,9 +234,9 @@ class AnalysisOrchestrator:
 
     def _generate_optimization_recommendations(
         self,
-        source_results: List[AnalysisResult],
-        test_results: List[DuplicateTestAnalysisResult],
-    ) -> List[Dict]:
+        source_results: list[AnalysisResult],
+        test_results: list[DuplicateTestAnalysisResult],
+    ) -> list[dict]:
         """Generate prioritized optimization recommendations."""
         recommendations = []
 
@@ -287,7 +287,7 @@ class AnalysisOrchestrator:
 
         return recommendations
 
-    def _serialize_analysis_result(self, result: AnalysisResult) -> Dict:
+    def _serialize_analysis_result(self, result: AnalysisResult) -> dict:
         """Convert AnalysisResult to serializable dictionary."""
         return {
             "file_path": result.file_path,
@@ -302,7 +302,7 @@ class AnalysisOrchestrator:
             },
         }
 
-    def _serialize_test_result(self, result: DuplicateTestAnalysisResult) -> Dict:
+    def _serialize_test_result(self, result: DuplicateTestAnalysisResult) -> dict:
         """Convert DuplicateTestAnalysisResult to serializable dictionary."""
         return {
             "test_file": result.test_file,
@@ -312,7 +312,7 @@ class AnalysisOrchestrator:
             "redundant_imports": len(result.redundant_imports),
         }
 
-    def _save_report(self, report: Dict) -> str:
+    def _save_report(self, report: dict) -> str:
         """Save analysis report to file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_file = self.reports_dir / f"analysis_report_{timestamp}.json"
@@ -322,7 +322,7 @@ class AnalysisOrchestrator:
 
         return str(report_file)
 
-    def run_optimization_analysis(self) -> Dict:
+    def run_optimization_analysis(self) -> dict:
         """
         Run optimization analysis: Analyze current codebase for optimization opportunities.
 
@@ -356,7 +356,7 @@ class AnalysisOrchestrator:
 
         return optimization_report
 
-    def _run_ai_language_analysis(self) -> Dict:
+    def _run_ai_language_analysis(self) -> dict:
         """Run AI language pattern analysis on all Python source files."""
         print("  Scanning Python files for AI language artifacts...")
 
@@ -411,7 +411,7 @@ class AnalysisOrchestrator:
 
         return {"file_reports": file_reports, "aggregate_report": aggregate_report}
 
-    def _run_duplication_analysis(self) -> Dict:
+    def _run_duplication_analysis(self) -> dict:
         """Run code duplication analysis on all Python source files."""
         print("  Analyzing code duplication and redundancies...")
 
@@ -474,7 +474,7 @@ class AnalysisOrchestrator:
 
         return {"file_reports": file_reports, "aggregate_report": aggregate_report}
 
-    def _run_cross_platform_analysis(self) -> Dict:
+    def _run_cross_platform_analysis(self) -> dict:
         """Run cross-platform compatibility analysis on test files."""
         print("  Analyzing test suite for cross-platform compatibility...")
 
@@ -531,8 +531,8 @@ class AnalysisOrchestrator:
         return {"file_reports": file_reports, "aggregate_report": aggregate_report}
 
     def _generate_optimization_report(
-        self, ai_results: Dict, duplication_results: Dict, cross_platform_results: Dict
-    ) -> Dict:
+        self, ai_results: dict, duplication_results: dict, cross_platform_results: dict
+    ) -> dict:
         """Generate comprehensive optimization analysis report."""
         # Collect file operation lists
         file_operations = self._collect_file_operations()
@@ -608,8 +608,8 @@ class AnalysisOrchestrator:
         }
 
     def _generate_overall_optimization_recommendations(
-        self, ai_results: Dict, duplication_results: Dict, cross_platform_results: Dict
-    ) -> List[str]:
+        self, ai_results: dict, duplication_results: dict, cross_platform_results: dict
+    ) -> list[str]:
         """Generate overall prioritized optimization recommendations."""
         recommendations = []
 
@@ -669,7 +669,7 @@ class AnalysisOrchestrator:
 
         return recommendations
 
-    def _save_optimization_report(self, report: Dict) -> str:
+    def _save_optimization_report(self, report: dict) -> str:
         """Save optimization analysis report to file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_file = self.reports_dir / f"optimization_analysis_{timestamp}.json"
@@ -687,7 +687,7 @@ class AnalysisOrchestrator:
 
         return str(report_file)
 
-    def validate_cleanup_environment(self) -> Dict:
+    def validate_cleanup_environment(self) -> dict:
         """Validate environment setup for documentation cleanup process."""
         print("🔍 Validating cleanup environment...")
 
@@ -722,7 +722,7 @@ class AnalysisOrchestrator:
 
         return results
 
-    def validate_cleanup_phase(self, phase: str) -> Dict:
+    def validate_cleanup_phase(self, phase: str) -> dict:
         """Validate specific cleanup phase readiness."""
         print(f"🔍 Validating cleanup phase: {phase}")
 
@@ -740,7 +740,7 @@ class AnalysisOrchestrator:
 
         return results
 
-    def _check_test_suite_baseline(self) -> Dict:
+    def _check_test_suite_baseline(self) -> dict:
         """Check test suite baseline for cleanup validation."""
         try:
             import subprocess
@@ -778,7 +778,7 @@ class AnalysisOrchestrator:
                 "total_test_files": 0,
             }
 
-    def _check_analysis_tools_ready(self) -> Dict:
+    def _check_analysis_tools_ready(self) -> dict:
         """Check if analysis tools are ready for cleanup validation."""
         tools_status = {
             "ai_language_scanner": False,
@@ -812,7 +812,7 @@ class AnalysisOrchestrator:
         except Exception as e:
             return {"status": "fail", "error": str(e), "tools_ready": tools_status}
 
-    def _check_critical_files_exist(self) -> Dict:
+    def _check_critical_files_exist(self) -> dict:
         """Check if critical files exist for cleanup process."""
         critical_files = [
             "pyproject.toml",
@@ -839,7 +839,7 @@ class AnalysisOrchestrator:
             "all_critical_present": len(missing_files) == 0,
         }
 
-    def _check_cleanup_blocking_issues(self) -> Dict:
+    def _check_cleanup_blocking_issues(self) -> dict:
         """Check for issues that would block cleanup process."""
         issues = []
 
@@ -867,7 +867,7 @@ class AnalysisOrchestrator:
             "blocking_issues_count": len(issues),
         }
 
-    def _validate_dependency_migration_phase(self) -> Dict:
+    def _validate_dependency_migration_phase(self) -> dict:
         """Validate dependency migration phase readiness."""
         results = {
             "phase": "dependency_migration",
@@ -883,7 +883,7 @@ class AnalysisOrchestrator:
 
         return results
 
-    def _validate_ai_artifacts_phase(self) -> Dict:
+    def _validate_ai_artifacts_phase(self) -> dict:
         """Validate AI artifacts detection phase readiness."""
         results = {
             "phase": "ai_artifacts_detection",
@@ -901,7 +901,7 @@ class AnalysisOrchestrator:
 
         return results
 
-    def _validate_test_optimization_phase(self) -> Dict:
+    def _validate_test_optimization_phase(self) -> dict:
         """Validate test optimization phase readiness."""
         results = {
             "phase": "test_optimization",
@@ -917,7 +917,7 @@ class AnalysisOrchestrator:
 
         return results
 
-    def _find_autopep8_references(self) -> Dict:
+    def _find_autopep8_references(self) -> dict:
         """Find autopep8 references in configuration files."""
         config_files = [
             "setup.cfg",
@@ -941,7 +941,7 @@ class AnalysisOrchestrator:
 
         return {"files_with_autopep8": autopep8_refs, "count": len(autopep8_refs)}
 
-    def _check_ruff_configuration(self) -> Dict:
+    def _check_ruff_configuration(self) -> dict:
         """Check existing ruff configuration."""
         ruff_configs = []
 
@@ -960,7 +960,7 @@ class AnalysisOrchestrator:
             "has_ruff_config": len(ruff_configs) > 0,
         }
 
-    def _scan_ai_artifacts_for_cleanup(self) -> Dict:
+    def _scan_ai_artifacts_for_cleanup(self) -> dict:
         """Scan for AI artifacts using existing scanner."""
         try:
             # Get all Python files
@@ -995,7 +995,7 @@ class AnalysisOrchestrator:
         except Exception as e:
             return {"error": str(e), "total_artifacts_found": 0}
 
-    def _check_specific_ai_artifact(self) -> Dict:
+    def _check_specific_ai_artifact(self) -> dict:
         """Check for specific AI artifacts in test files."""
         target_file = self.project_root / "test_ui_ux_performance_validation.py"
         target_pattern = (
@@ -1023,7 +1023,7 @@ class AnalysisOrchestrator:
             "pattern": target_pattern,
         }
 
-    def _find_pytest_skip_patterns(self) -> Dict:
+    def _find_pytest_skip_patterns(self) -> dict:
         """Find pytest skip patterns in test files."""
         skip_patterns = ["pytest.skip", "@pytest.mark.skip", "skipif"]
         found_skips = []
@@ -1045,7 +1045,7 @@ class AnalysisOrchestrator:
 
         return {"files_with_skips": found_skips, "count": len(found_skips)}
 
-    def _check_specific_skip_patterns(self) -> Dict:
+    def _check_specific_skip_patterns(self) -> dict:
         """Check for specific skip patterns in test files."""
         specific_patterns = [
             "format_number_clean function not yet implemented",
@@ -1071,7 +1071,7 @@ class AnalysisOrchestrator:
         return {"specific_patterns_found": found_patterns, "count": len(found_patterns)}
 
     def _save_cleanup_validation_results(
-        self, validation_type: str, results: Dict
+        self, validation_type: str, results: dict
     ) -> None:
         """Save cleanup validation results."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1082,7 +1082,7 @@ class AnalysisOrchestrator:
 
         print(f"  💾 Validation results saved to: {results_file}")
 
-    def _collect_file_operations(self) -> Dict:
+    def _collect_file_operations(self) -> dict:
         """Collect lists of files that would be operated on by various tools."""
         file_operations = {
             "cleanup_operations": {},

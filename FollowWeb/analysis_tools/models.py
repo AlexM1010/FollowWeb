@@ -5,7 +5,7 @@ Data models for analysis results and reporting.
 # Standard library imports
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 
 class IssueType(Enum):
@@ -76,8 +76,8 @@ class OptimizationOpportunity:
     impact_level: str
     effort_required: str
     description: str
-    implementation_plan: List[str]
-    affected_files: List[str]
+    implementation_plan: list[str]
+    affected_files: list[str]
 
 
 @dataclass
@@ -97,26 +97,22 @@ class AnalysisResult:
     """Complete analysis result for a file."""
 
     file_path: str
-    issues: List[CodeIssue]
-    refactoring_opportunities: List[OptimizationOpportunity]
+    issues: list[CodeIssue]
+    refactoring_opportunities: list[OptimizationOpportunity]
     metrics: CodeMetrics
     ai_language_count: int = 0
-    duplicate_code_blocks: List[str] = None
-
-    def __post_init__(self):
-        if self.duplicate_code_blocks is None:
-            self.duplicate_code_blocks = []
+    duplicate_code_blocks: list[str] = field(default_factory=list)
 
 
 @dataclass
 class DuplicateTestGroup:
     """Group of duplicate or similar tests."""
 
-    test_names: List[str]
+    test_names: list[str]
     similarity_score: float
     recommended_action: DuplicateTestAction
     primary_test: str
-    file_paths: List[str]
+    file_paths: list[str]
 
 
 @dataclass
@@ -124,15 +120,11 @@ class DuplicateTestAnalysisResult:
     """Analysis result for test files."""
 
     test_file: str
-    duplicate_tests: List[DuplicateTestGroup]
-    unused_fixtures: List[str]
-    redundant_imports: List[str]
+    duplicate_tests: list[DuplicateTestGroup]
+    unused_fixtures: list[str]
+    redundant_imports: list[str]
     test_count: int
-    coverage_gaps: List[str] = None
-
-    def __post_init__(self):
-        if self.coverage_gaps is None:
-            self.coverage_gaps = []
+    coverage_gaps: list[str] = field(default_factory=list)
 
 
 # Removed BackupInfo class

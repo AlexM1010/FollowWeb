@@ -7,7 +7,7 @@ import ast
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 # Local imports
 from .ast_utils import extract_all_exports, is_init_file
@@ -33,7 +33,7 @@ class CodeAnalyzer:
             r"^(from\s+\S+\s+)?import\s+(.+)$", re.MULTILINE
         )
 
-    def _load_ai_language_patterns(self) -> List[str]:
+    def _load_ai_language_patterns(self) -> list[str]:
         """Load patterns that indicate AI-generated language."""
         return [
             r"\bcomprehensive\b",
@@ -131,8 +131,8 @@ class CodeAnalyzer:
         )
 
     def scan_directory(
-        self, directory: str, exclude_patterns: Optional[List[str]] = None
-    ) -> List[AnalysisResult]:
+        self, directory: str, exclude_patterns: Optional[list[str]] = None
+    ) -> list[AnalysisResult]:
         """Scan all Python files in a directory."""
         if exclude_patterns is None:
             exclude_patterns = ["__pycache__", ".git", ".pytest_cache", "venv", "env"]
@@ -154,7 +154,7 @@ class CodeAnalyzer:
 
         return results
 
-    def _detect_ai_language(self, content: str, file_path: str) -> List[CodeIssue]:
+    def _detect_ai_language(self, content: str, file_path: str) -> list[CodeIssue]:
         """Detect AI-generated language patterns in code."""
         issues = []
         lines = content.split("\n")
@@ -183,7 +183,7 @@ class CodeAnalyzer:
 
     def _analyze_imports(
         self, tree: ast.AST, content: str, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Analyze import statements for issues."""
         issues = []
         imports = []
@@ -246,7 +246,7 @@ class CodeAnalyzer:
 
         return issues
 
-    def _check_import_locations(self, tree: ast.AST, file_path: str) -> List[CodeIssue]:
+    def _check_import_locations(self, tree: ast.AST, file_path: str) -> list[CodeIssue]:
         """Check for imports that are not at the top of the file."""
         issues = []
 
@@ -260,7 +260,7 @@ class CodeAnalyzer:
 
         return issues
 
-    def _detect_nested_imports(self, tree: ast.AST, file_path: str) -> List[CodeIssue]:
+    def _detect_nested_imports(self, tree: ast.AST, file_path: str) -> list[CodeIssue]:
         """Detect imports that are nested inside functions, classes, or other blocks."""
         issues = []
 
@@ -344,7 +344,7 @@ class CodeAnalyzer:
 
     def _check_top_level_import_order(
         self, tree: ast.AST, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Check the ordering of top-level imports."""
         issues = []
 
@@ -396,7 +396,7 @@ class CodeAnalyzer:
 
     def _detect_internal_duplication(
         self, tree: ast.AST, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect code duplication within a single file."""
         issues = []
         function_bodies = []
@@ -483,8 +483,8 @@ class CodeAnalyzer:
         )
 
     def _identify_refactoring_opportunities(
-        self, tree: ast.AST, issues: List[CodeIssue], file_path: str
-    ) -> List[OptimizationOpportunity]:
+        self, tree: ast.AST, issues: list[CodeIssue], file_path: str
+    ) -> list[OptimizationOpportunity]:
         """Identify refactoring opportunities based on detected issues."""
         opportunities = []
 
@@ -531,7 +531,7 @@ class CodeAnalyzer:
 
     def _detect_complex_functions(
         self, tree: ast.AST, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect functions with high cyclomatic complexity."""
         issues = []
 
@@ -579,7 +579,7 @@ class CodeAnalyzer:
 
     def _detect_missing_docstrings(
         self, tree: ast.AST, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect functions and classes missing docstrings."""
         issues = []
 
@@ -615,7 +615,7 @@ class CodeAnalyzer:
 
     def _detect_security_issues(
         self, tree: ast.AST, content: str, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect potential security issues in code."""
         issues = []
 
@@ -675,7 +675,7 @@ class CodeAnalyzer:
 
     def _detect_parameter_issues(
         self, tree: ast.AST, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect unnecessary parameter passing and default value inconsistencies."""
         issues = []
 

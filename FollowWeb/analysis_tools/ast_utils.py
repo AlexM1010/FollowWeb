@@ -5,10 +5,9 @@ This module provides shared utilities for parsing and analyzing Python AST nodes
 """
 
 import ast
-from typing import Set
 
 
-def extract_all_exports(tree: ast.AST) -> Set[str]:
+def extract_all_exports(tree: ast.AST) -> set[str]:
     """
     Extract names from __all__ list in __init__.py files.
 
@@ -32,7 +31,7 @@ def extract_all_exports(tree: ast.AST) -> Set[str]:
             if isinstance(node.value, ast.List):
                 for item in node.value.elts:
                     if isinstance(item, ast.Constant) and isinstance(item.value, str):
-                        all_exports.add(item.value)
+                        all_exports.add(str(item.value))
                     elif isinstance(item, ast.Str):  # For older Python versions
                         all_exports.add(item.s)
 
@@ -77,7 +76,7 @@ def extract_import_names(tree: ast.AST) -> list:
     return imports
 
 
-def extract_used_names(tree: ast.AST) -> Set[str]:
+def extract_used_names(tree: ast.AST) -> set[str]:
     """
     Extract all names that are used in the code.
 
