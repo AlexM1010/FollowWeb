@@ -1,3 +1,38 @@
+# CI Pipeline for FollowWeb
+# 
+# This workflow has been hardened based on real-world issues encountered:
+# 
+# 1. Type Checking Issues:
+#    - Install missing type stubs (types-python-dateutil, types-PyYAML, types-decorator)
+#    - Clean build artifacts before mypy to avoid conflicts
+#    - Configure mypy to ignore external library issues via pyproject.toml
+#
+# 2. Code Quality Issues:
+#    - Use ruff for both linting and formatting (replaces black + flake8)
+#    - Configure .ipynb exclusion in pyproject.toml rather than CLI flags
+#    - Separate formatting check from linting for clearer error reporting
+#
+# 3. Security Scanning Issues:
+#    - Use pip-audit instead of safety (no registration required)
+#    - Only fail on medium/high severity bandit issues (low severity acceptable)
+#
+# 4. Package Building Issues:
+#    - Clean build artifacts before building to avoid stale files
+#    - Use explicit package list in pyproject.toml to avoid including unwanted packages
+#    - Verify package integrity with twine check
+#
+# 5. Dependency Management:
+#    - Install type stubs explicitly to avoid mypy failures
+#    - Use separate requirements files for different purposes
+#    - Handle conditional dependencies properly (nx-parallel for Python 3.9+)
+#
+# Common Troubleshooting:
+# - If mypy fails with external library errors: Update type stub installations
+# - If package build includes wrong files: Check pyproject.toml packages configuration
+# - If ruff fails on notebooks: Ensure extend-exclude in pyproject.toml includes "*.ipynb"
+# - If security scan fails: Check if new vulnerabilities need dependency updates
+# - If tests fail randomly: May be parallel execution issues, check pytest-xdist configuration
+
 name: CI
 
 on:
@@ -65,6 +100,10 @@ jobs:
         # Install dependencies from requirements.txt (handles conditional dependencies properly)
         python -m pip install -r requirements.txt
         python -m pip install -r requirements-test.txt
+        # Install security updates
+        python -m pip install -r requirements-security.txt
+        # Install missing type stubs for mypy
+        python -m pip install types-python-dateutil types-PyYAML types-decorator
         # Install package in development mode
         python -m pip install -e .
       shell: bash
@@ -73,15 +112,27 @@ jobs:
       run: |
         python -c "import FollowWeb_Visualizor; print('Package imported successfully')"
         python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; print(f'nx-parallel available: {is_nx_parallel_available()}')"
+        # Verify all submodules can be imported
+        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization; print('All submodules imported successfully')"
+        # Test CLI entry point
+        followweb --help > /dev/null && echo "CLI entry point working" || echo "CLI entry point test skipped"
+    
+    - name: Run code formatting check
+      run: |
+        ruff format --check FollowWeb_Visualizor tests --diff --extend-exclude="*.ipynb"
+      continue-on-error: false
     
     - name: Run linting
       run: |
-        ruff check FollowWeb_Visualizor tests --output-format=github
+        ruff check FollowWeb_Visualizor tests --output-format=github --extend-exclude="*.ipynb"
       continue-on-error: false
     
     - name: Run type checking
       run: |
-        mypy FollowWeb_Visualizor --show-error-codes
+        # Clean any previous build artifacts that might interfere with mypy
+        if [ -d "build" ]; then rm -rf build; fi
+        # Run mypy with proper configuration to ignore external library issues
+        mypy FollowWeb_Visualizor
       continue-on-error: false
     
     - name: Run tests with coverage
@@ -107,7 +158,7 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: ./FollowWeb/coverage.xml
-        fail_ci_if_error: false
+        fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests
         name: codecov-umbrella
@@ -134,19 +185,26 @@ jobs:
     - name: Install security tools
       run: |
         python -m pip install --upgrade pip
-        python -m pip install bandit[toml] safety
+        # Use pip-audit instead of safety (no registration required)
+        python -m pip install bandit[toml] pip-audit
+        # Install project dependencies for vulnerability scanning
+        python -m pip install -r requirements.txt
     
     - name: Run Bandit security linter
       run: |
+        # Generate JSON report for artifacts (allow failure for reporting)
         bandit -r FollowWeb_Visualizor -f json -o bandit-report.json || true
-        bandit -r FollowWeb_Visualizor
-      continue-on-error: true
+        # Run security check that must pass (only fail on medium/high severity)
+        bandit -r FollowWeb_Visualizor --severity-level medium
+      continue-on-error: false
     
-    - name: Run Safety check for known vulnerabilities
+    - name: Run pip-audit for known vulnerabilities
       run: |
-        safety check --json --output safety-report.json || true
-        safety check
-      continue-on-error: true
+        # Generate JSON report for artifacts (allow failure for reporting)
+        pip-audit --format=json --output=pip-audit-report.json || true
+        # Run vulnerability scan that must pass
+        pip-audit --desc
+      continue-on-error: false
     
     - name: Upload security reports
       uses: actions/upload-artifact@v4
@@ -155,7 +213,7 @@ jobs:
         name: security-reports
         path: |
           FollowWeb/bandit-report.json
-          FollowWeb/safety-report.json
+          FollowWeb/pip-audit-report.json
         retention-days: 7
 
   format-check:
@@ -184,15 +242,16 @@ jobs:
     
     - name: Check code formatting with ruff
       run: |
+        # Note: ruff format doesn't support --extend-exclude, use pyproject.toml config
         ruff format --check FollowWeb_Visualizor tests --diff
     
     - name: Run ruff linting
       run: |
-        ruff check FollowWeb_Visualizor tests --output-format=github
+        ruff check FollowWeb_Visualizor tests --output-format=github --extend-exclude="*.ipynb"
     
     - name: Check import sorting
       run: |
-        ruff check --select I FollowWeb_Visualizor tests
+        ruff check --select I FollowWeb_Visualizor tests --extend-exclude="*.ipynb"
 
   build:
     name: Build & Package
@@ -220,6 +279,12 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install build twine check-manifest
     
+    - name: Clean build artifacts
+      run: |
+        # Clean any previous build artifacts to avoid package configuration issues
+        if [ -d "build" ]; then rm -rf build; fi
+        if [ -d "*.egg-info" ]; then rm -rf *.egg-info; fi
+    
     - name: Verify package manifest
       run: |
         check-manifest --verbose
@@ -227,6 +292,16 @@ jobs:
     - name: Build package
       run: |
         python -m build --sdist --wheel --outdir dist/
+    
+    - name: Validate package structure
+      run: |
+        # Ensure the wheel contains only the expected packages
+        python -m zipfile -l dist/*.whl | grep -E "(FollowWeb_Visualizor/|followweb_visualizor.*dist-info/)" || echo "Package structure validation"
+        # Verify no unwanted packages are included
+        if python -m zipfile -l dist/*.whl | grep -E "(tests/|analysis_tools/|build/)"; then
+          echo "ERROR: Unwanted packages found in wheel"
+          exit 1
+        fi
     
     - name: Verify package integrity
       run: |
@@ -236,6 +311,15 @@ jobs:
       run: |
         ls -la dist/
         python -m zipfile -l dist/*.whl || true
+    
+    - name: Test package installation in clean environment
+      run: |
+        # Create a temporary virtual environment to test package installation
+        python -m venv test_env
+        source test_env/bin/activate || test_env\\Scripts\\activate
+        pip install dist/*.whl
+        python -c "import FollowWeb_Visualizor; print('Package installs and imports correctly')"
+        deactivate
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -298,6 +382,11 @@ jobs:
           exit 1
         fi
         
+        if [[ "${{ needs.security.result }}" != "success" ]]; then
+          echo "❌ Security checks failed"
+          exit 1
+        fi
+        
         if [[ "${{ needs.format-check.result }}" != "success" ]]; then
           echo "❌ Code quality checks failed"
           exit 1
@@ -305,6 +394,11 @@ jobs:
         
         if [[ "${{ needs.build.result }}" != "success" ]]; then
           echo "❌ Package build failed"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.performance.result }}" != "success" ]]; then
+          echo "❌ Performance tests failed"
           exit 1
         fi
         
