@@ -896,6 +896,8 @@ class ConfigurationManager:
 
     def __init__(self) -> None:
         """Initialize the configuration manager."""
+        from typing import Dict, Any
+        # Will be initialized in _initialize_mode_configurations
         self._parameter_aliases = {
             # Map of canonical parameter names to their aliases
             "k_values.default_k_value": ["pruning.default_k_value", "default_k"],
@@ -1843,7 +1845,7 @@ class AnalysisModeManager:
         self.logger = logging.getLogger(__name__)
 
         # Define mode-specific parameter mappings
-        self._mode_configurations = {
+        self._mode_configurations: Dict[AnalysisMode, Dict[str, Any]] = {
             AnalysisMode.FAST: {
                 "sampling_threshold": 1000,
                 "max_layout_iterations": 100,

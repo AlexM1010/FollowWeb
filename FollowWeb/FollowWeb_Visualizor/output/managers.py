@@ -527,11 +527,12 @@ class MetricsReporter:
         )
 
         # Graph Processing Summary
-        report_lines.extend(
-            self._generate_graph_processing_section(
-                graph, initial_graph_stats, strategy, k_value
+        if initial_graph_stats is not None:
+            report_lines.extend(
+                self._generate_graph_processing_section(
+                    graph, initial_graph_stats, strategy, k_value
+                )
             )
-        )
 
         # Detailed Analysis Results
         report_lines.extend(self._generate_detailed_analysis_section(graph))
@@ -859,7 +860,7 @@ class MetricsReporter:
         lines.append("-" * 40)
 
         # Community statistics
-        community_counts = {}
+        community_counts: dict[int, int] = {}
         for _node, community in communities_attr.items():
             community_counts[community] = community_counts.get(community, 0) + 1
 

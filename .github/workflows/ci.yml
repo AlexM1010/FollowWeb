@@ -82,7 +82,7 @@ jobs:
     - name: Run type checking
       run: |
         mypy FollowWeb_Visualizor --show-error-codes
-      continue-on-error: true
+      continue-on-error: false
     
     - name: Run tests with coverage
       run: |

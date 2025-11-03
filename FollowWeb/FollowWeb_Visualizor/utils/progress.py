@@ -117,10 +117,9 @@ class ProgressTracker:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit with cleanup."""
         self.complete()
-        return False
 
     def _render_animation(self) -> None:
         """Render the animated progress bar."""

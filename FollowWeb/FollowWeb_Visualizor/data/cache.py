@@ -66,7 +66,7 @@ class CentralizedCache:
             Tuple[str, str], Dict[Tuple[str, str], Any]
         ] = {}  # (graph_hash, attr_name) -> attributes_dict
         self._community_colors: Dict[
-            str, Dict[int, Union[str, Tuple[float, ...]]]
+            int, Dict[str, Dict[int, Union[str, Tuple[float, ...]]]]
         ] = {}  # num_communities -> color_dict
         self._layout_positions: Dict[
             Tuple[str, str, str], Dict[str, Tuple[float, float]]

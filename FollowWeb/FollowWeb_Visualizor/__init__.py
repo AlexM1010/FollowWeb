@@ -52,10 +52,10 @@ try:
     from .data.loaders import GraphLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
-    FameAnalyzer = None
-    GraphLoader = None
-    NetworkAnalyzer = None
-    PathAnalyzer = None
+    FameAnalyzer = None  # type: ignore
+    GraphLoader = None  # type: ignore
+    NetworkAnalyzer = None  # type: ignore
+    PathAnalyzer = None  # type: ignore
 
 # Visualization components
 try:
@@ -65,28 +65,21 @@ try:
         NodeMetric,
         VisualizationMetrics,
     )
-    from .visualization.colors import get_shared_color_schemes
-    from .visualization.metrics import (
-        MetricsCalculator,
-        calculate_shared_metrics,
-        get_shared_layout_positions,
-    )
+    from .visualization.metrics import MetricsCalculator
     from .visualization.renderers import (
         InteractiveRenderer,
         StaticRenderer,
     )
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
-    ColorScheme = None
-    EdgeMetric = None
-    InteractiveRenderer = None
-    MetricsCalculator = None
-    NodeMetric = None
-    StaticRenderer = None
-    VisualizationMetrics = None
-    calculate_shared_metrics = None
-    get_shared_color_schemes = None
-    get_shared_layout_positions = None
+    ColorScheme = None  # type: ignore
+    EdgeMetric = None  # type: ignore
+    InteractiveRenderer = None  # type: ignore
+    MetricsCalculator = None  # type: ignore
+    NodeMetric = None  # type: ignore
+    StaticRenderer = None  # type: ignore
+    VisualizationMetrics = None  # type: ignore
+
 
 # Error handling utilities
 # Unified output system
@@ -120,7 +113,7 @@ from .utils.validation import (
 try:
     from .output.managers import MetricsReporter
 except ImportError:
-    MetricsReporter = None
+    MetricsReporter = None  # type: ignore
 
 # Utility functions and exceptions
 # Validation functions
@@ -202,10 +195,7 @@ __all__ = [
     "NodeMetric",
     "EdgeMetric",
     "ColorScheme",
-    # Shared metrics functions
-    "calculate_shared_metrics",
-    "get_shared_layout_positions",
-    "get_shared_color_schemes",
+
     # Unified output system
     "Logger",
     "OutputConfig",

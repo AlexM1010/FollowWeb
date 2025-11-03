@@ -250,7 +250,8 @@ class ParallelProcessingManager:
         }
 
         # Operation-specific adjustments
-        operation_adjustments = {
+        from typing import Union, Dict, Any
+        operation_adjustments: Dict[str, Union[float, Dict[str, float]]] = {
             "analysis": 1.0,  # Full allocation for analysis
             "testing": {
                 "unit": 1.0,  # Full allocation for unit tests
@@ -265,9 +266,17 @@ class ParallelProcessingManager:
         if operation_type == "testing":
             # For testing, we need to determine the test category
             test_category = os.getenv("PYTEST_TEST_CATEGORY", "unit")
-            adjustment = operation_adjustments["testing"].get(test_category, 1.0)
+            testing_adjustments = operation_adjustments["testing"]
+            if isinstance(testing_adjustments, dict):
+                adjustment = testing_adjustments.get(test_category, 1.0)
+            else:
+                adjustment = 1.0
         else:
-            adjustment = operation_adjustments.get(operation_type, 1.0)
+            op_adjustment = operation_adjustments.get(operation_type, 1.0)
+            if isinstance(op_adjustment, (int, float)):
+                adjustment = float(op_adjustment)
+            else:
+                adjustment = 1.0
 
         if adjustment == 0.0:
             return 1  # Sequential execution

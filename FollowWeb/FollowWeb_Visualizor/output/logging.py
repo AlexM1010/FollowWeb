@@ -362,11 +362,10 @@ class Logger:
             except BaseException:
                 pass
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> "Logger":
         """Context manager entry."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit."""
         self.close()
-        return False

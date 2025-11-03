@@ -50,7 +50,7 @@ class PathAnalyzer:
         self.mode_manager = mode_manager
         self.stages_controller = stages_controller
 
-    def analyze_path_lengths(self, graph: nx.DiGraph) -> Dict[str, float]:
+    def analyze_path_lengths(self, graph: nx.DiGraph) -> Dict[str, Any]:
         """
         Calculates and prints "6 degrees of separation" metrics with progress tracking.
 
@@ -247,7 +247,7 @@ class PathAnalyzer:
                 "average_path_length": avg_path_len,
                 "diameter": diameter,
                 "total_pairs": total_pairs,
-                "path_distribution": dict(all_path_lengths_dist),
+                "path_distribution": {str(k): float(v) for k, v in all_path_lengths_dist.items()},
             }
 
         except nx.NetworkXError as e:

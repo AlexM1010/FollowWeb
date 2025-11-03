@@ -47,7 +47,7 @@ class ErrorRecoveryManager:
         Raises:
             Last exception if all attempts fail
         """
-        last_exception = None
+        last_exception: Optional[Exception] = None
 
         for attempt in range(max_attempts):
             try:
@@ -65,7 +65,11 @@ class ErrorRecoveryManager:
                         f"All {max_attempts} attempts failed. Last error: {e}"
                     )
 
-        raise last_exception
+        # This should never happen since we always set last_exception in the except block
+        if last_exception is not None:
+            raise last_exception
+        else:
+            raise RuntimeError("Function failed but no exception was captured")
 
     def safe_execute(
         self,

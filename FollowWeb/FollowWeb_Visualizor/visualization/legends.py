@@ -144,21 +144,25 @@ class LegendGenerator:
             return '<div style="color: #666; font-style: italic;">No node data available</div>'
 
         # Extract sizes and centrality values from calculated metrics
-        sizes = [metrics["size"] for metrics in node_metrics.values()]
+        sizes: list[float] = [float(metrics["size"]) for metrics in node_metrics.values()]
         node_size_metric = self.vis_config.get("node_size_metric", "degree")
 
         # Get centrality values based on the metric being used
-        centrality_values = []
+        centrality_values: list[float] = []
         for node in graph.nodes():
             attrs = graph.nodes[node]
             metric_value = attrs.get(node_size_metric, attrs.get("degree", 1))
-            centrality_values.append(metric_value)
+            # Ensure we have a numeric value
+            if isinstance(metric_value, (int, float)):
+                centrality_values.append(float(metric_value))
+            else:
+                centrality_values.append(1.0)
 
         # Calculate ranges directly
         min_size, max_size = min(sizes), max(sizes)
-        (min_size + max_size) / 2
+        mid_size = (min_size + max_size) / 2
         min_centrality, max_centrality = min(centrality_values), max(centrality_values)
-        (min_centrality + max_centrality) / 2
+        mid_centrality = (min_centrality + max_centrality) / 2
 
         # Get the metric name for display
         metric_display_name = node_size_metric.replace("_", " ").title()

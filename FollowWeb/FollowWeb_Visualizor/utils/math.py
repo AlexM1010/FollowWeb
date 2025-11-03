@@ -42,6 +42,8 @@ def scale_value(
         return base_size + value * multiplier
     else:
         validate_choice(algorithm, "scaling algorithm", ["logarithmic", "linear"])
+        # This line should never be reached due to validate_choice raising an exception
+        raise ValueError(f"Invalid algorithm: {algorithm}")
 
 
 def get_scaled_size(

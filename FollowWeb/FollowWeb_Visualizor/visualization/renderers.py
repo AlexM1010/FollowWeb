@@ -1119,14 +1119,14 @@ class StaticRenderer:
     ) -> Dict[str, Tuple[float, float]]:
         """Create circular layout with communities grouped together."""
         # Group nodes by community
-        communities: Dict[str, int] = {}
+        communities: Dict[int, list[str]] = {}
         for node, comm in communities_dict.items():
             if comm not in communities:
                 communities[comm] = []
             communities[comm].append(node)
 
         # Calculate positions
-        pos = {}
+        pos: dict[str, tuple[float, float]] = {}
         total_nodes = len(G.nodes())
         current_angle = start_angle
 
@@ -1160,14 +1160,14 @@ class StaticRenderer:
         self, communities_dict: Dict[str, int], max_shells: int
     ) -> List[List[str]]:
         """Create shell node lists based on communities."""
-        communities: Dict[str, int] = {}
+        communities: Dict[int, list[str]] = {}
         for node, comm in communities_dict.items():
             if comm not in communities:
                 communities[comm] = []
             communities[comm].append(node)
 
         # Distribute communities across shells
-        nodelist = [[] for _ in range(min(max_shells, len(communities)))]
+        nodelist: list[list[str]] = [[] for _ in range(min(max_shells, len(communities)))]
         for i, (_comm_id, nodes) in enumerate(communities.items()):
             shell_idx = i % len(nodelist)
             nodelist[shell_idx].extend(nodes)
@@ -1192,7 +1192,7 @@ class StaticRenderer:
         sorted_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)
 
         # Distribute into shells (highest centrality in center)
-        nodelist = [[] for _ in range(max_shells)]
+        nodelist: list[list[str]] = [[] for _ in range(max_shells)]
         nodes_per_shell = len(sorted_nodes) // max_shells + 1
 
         for i, (node, _) in enumerate(sorted_nodes):

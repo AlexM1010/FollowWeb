@@ -107,7 +107,7 @@ class PipelineOrchestrator:
 
         # Pipeline state
         self.pipeline_start_time = None
-        self.phase_times = {}
+        self.phase_times: dict[str, float] = {}
 
         # Get cache manager for performance optimization
         self.cache_manager = get_cache_manager()
@@ -605,12 +605,12 @@ class PipelineOrchestrator:
                 name for name, result in component_results.items() if result is False
             ]
             successful_components = [
-                name for name, result in component_results.items() if result
+                name for name, result in component_results.items() if result is True
             ]
             skipped_components = [
                 name
                 for name, result in component_results.items()
-                if result == "skipped"
+                if isinstance(result, str) and result == "skipped"
             ]
 
             phase_time = time.perf_counter() - phase_start
@@ -718,7 +718,7 @@ class PipelineOrchestrator:
                 1 for success in output_results.values() if success
             )
             len(output_results)
-            failed_outputs = sum(
+            failed_count = sum(
                 1 for success in output_results.values() if not success
             )
 
@@ -730,8 +730,8 @@ class PipelineOrchestrator:
             self.logger.info("OUTPUT GENERATION SUMMARY")
             self.logger.info("-" * 25)
             self.logger.info(f"Generated: {successful_outputs} format(s)")
-            if failed_outputs > 0:
-                self.logger.info(f"Failed: {failed_outputs} format(s)")
+            if failed_count > 0:
+                self.logger.info(f"Failed: {failed_count} format(s)")
 
             for format_name, success in output_results.items():
                 if success:
@@ -838,7 +838,7 @@ class PipelineOrchestrator:
 
         paths_found = 0
         for account in reachable_famous[:10]:  # Limit to top 10 to avoid spam
-            username = account["username"]
+            username = str(account["username"])
             path_found = self.path_analyzer.print_detailed_contact_path(
                 graph, ego_username, username
             )
