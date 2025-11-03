@@ -141,9 +141,8 @@ class CentralizedCache:
         except Exception as e:
             self.logger.warning(f"Failed to calculate graph hash: {e}")
             # Fallback to simple hash
-            return hashlib.md5(
-                f"{graph.number_of_nodes()}_{graph.number_of_edges()}".encode(),
-                usedforsecurity=False,
+            return hashlib.sha256(
+                f"{graph.number_of_nodes()}_{graph.number_of_edges()}".encode()
             ).hexdigest()
 
     def get_cached_undirected_graph(self, graph: nx.DiGraph) -> nx.Graph:
@@ -514,7 +513,7 @@ class CentralizedCache:
         """Create a hash of parameters for cache keys."""
         try:
             params_str = json.dumps(params, sort_keys=True, default=str)
-            return hashlib.md5(params_str.encode(), usedforsecurity=False).hexdigest()[
+            return hashlib.sha256(params_str.encode()).hexdigest()[
                 :8
             ]
         except Exception:

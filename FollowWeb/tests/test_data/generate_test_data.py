@@ -116,7 +116,7 @@ def create_username_mapping(all_usernames: list[str]) -> dict[str, str]:
     for username in sorted_usernames:
         # Generate hash for this username
         hash_input = f"followweb_test_{username}".encode()
-        hash_hex = hashlib.md5(hash_input, usedforsecurity=False).hexdigest()
+        hash_hex = hashlib.sha256(hash_input).hexdigest()
 
         # Use hash to select first and last name
         hash_int = int(hash_hex, 16)

@@ -376,7 +376,7 @@ class DuplicationDetector:
                 )
                 if similarity > 0.7:  # 70% similarity threshold
                     content_str = "\n".join(block1["lines"])
-                    content_hash = hashlib.md5(content_str.encode(), usedforsecurity=False).hexdigest()
+                    content_hash = hashlib.sha256(content_str.encode()).hexdigest()
 
                     blocks.append(
                         DuplicateCodeBlock(
@@ -433,7 +433,7 @@ class DuplicationDetector:
                         content_str = f"Pattern: {pattern}\nOccurrences:\n" + "\n".join(
                             [content for _, content in group]
                         )
-                        content_hash = hashlib.md5(content_str.encode(), usedforsecurity=False).hexdigest()
+                        content_hash = hashlib.sha256(content_str.encode()).hexdigest()
 
                         blocks.append(
                             DuplicateCodeBlock(
@@ -484,7 +484,7 @@ class DuplicationDetector:
                 )
 
                 if similarity > 0.8:  # 80% similarity threshold
-                    content_hash = hashlib.md5(func1["source"].encode(), usedforsecurity=False).hexdigest()
+                    content_hash = hashlib.sha256(func1["source"].encode()).hexdigest()
 
                     blocks.append(
                         DuplicateCodeBlock(
@@ -561,7 +561,7 @@ class DuplicationDetector:
         for key, patterns in validation_groups.items():
             if len(patterns) > 1:
                 content = f"Validation pattern: {key}"
-                content_hash = hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
+                content_hash = hashlib.sha256(content.encode()).hexdigest()
 
                 locations = [
                     (file_path, pattern.line_number, pattern.line_number)
