@@ -23,7 +23,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
@@ -40,9 +40,18 @@ jobs:
         cd FollowWeb
         interrogate -v FollowWeb_Visualizor/ || echo "Docstring coverage check completed"
     
-    - name: Validate README links
+    - name: Validate documentation structure
       run: |
-        python -m pip install markdown-link-check || echo "markdown-link-check not available, skipping"
+        echo "## Documentation Structure Check" >> $GITHUB_STEP_SUMMARY
+        echo "Checking for required documentation files..." >> $GITHUB_STEP_SUMMARY
+        cd FollowWeb
+        for file in README.md docs/USER_GUIDE.md docs/CONFIGURATION_GUIDE.md; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ $file missing" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
     
     - name: Check for TODO/FIXME comments
       run: |
