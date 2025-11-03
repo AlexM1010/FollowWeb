@@ -8,7 +8,7 @@ It includes unified metrics calculation, node and edge metrics, and color scheme
 import logging
 import sys
 import time
-from typing import Any, Dict, Tuple
+from typing import Any, Optional
 
 import networkx as nx
 
@@ -19,7 +19,13 @@ try:
 except ImportError:
     pass  # nx_parallel not available, use standard NetworkX
 
-from ..core.types import ColorScheme, EdgeMetric, NodeMetric, VisualizationMetrics
+from ..core.types import (
+    ColorScheme,
+    EdgeMetric,
+    NodeMetric,
+    PositionDict,
+    VisualizationMetrics,
+)
 from ..data.cache import (
     calculate_graph_hash,
     get_cache_manager,
@@ -40,18 +46,21 @@ class MetricsCalculator:
     functionality to avoid recalculating metrics for the same graph.
     """
 
-    def __init__(self, vis_config: Dict[str, Any]) -> None:
+    def __init__(self, vis_config: dict[str, Any], performance_config: Optional[dict[str, Any]] = None) -> None:
         """
         Initialize the shared metrics calculator with visualization configuration.
 
         Args:
             vis_config: Visualization configuration dictionary containing node size metrics,
                        scaling algorithms, colors, and other visual parameters
+            performance_config: Performance configuration dictionary containing max_layout_iterations
+                              and other performance-related settings
 
         Raises:
             KeyError: If required configuration keys are missing
         """
         self.vis_config = vis_config
+        self.performance_config = performance_config or {}
         self.logger = logging.getLogger(__name__)
 
         # Use centralized cache manager instead of local caches
@@ -227,7 +236,7 @@ class MetricsCalculator:
 
     def _calculate_node_metrics(
         self, graph: nx.DiGraph, color_schemes: ColorScheme
-    ) -> Dict[str, NodeMetric]:
+    ) -> dict[str, NodeMetric]:
         """
         Calculate node visualization metrics.
 
@@ -247,9 +256,8 @@ class MetricsCalculator:
 
             # Set all centrality/degree to 0 or 1 for visualization fallback
             for n in graph.nodes():
-                graph.nodes[n]["degree"] = graph.degree(
-                    n
-                )  # Use actual degree for sizing fallback
+                node_degree = int(graph.degree(n))  # type: ignore[operator]
+                graph.nodes[n]["degree"] = node_degree  # Use actual degree for sizing fallback
                 graph.nodes[n]["betweenness"] = 0.0
                 graph.nodes[n]["eigenvector"] = 0.0
 
@@ -289,7 +297,7 @@ class MetricsCalculator:
 
     def _calculate_edge_metrics(
         self, graph: nx.DiGraph, color_schemes: ColorScheme
-    ) -> Dict[Tuple[str, str], EdgeMetric]:
+    ) -> dict[tuple[str, str], EdgeMetric]:
         """
         Calculate edge visualization metrics with memory optimization.
 
@@ -316,7 +324,7 @@ class MetricsCalculator:
         if not communities_attr:
             communities_attr = dict.fromkeys(graph.nodes(), 0)
 
-        edge_metrics: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        edge_metrics: dict[tuple[str, str], EdgeMetric] = {}
         edges_list = list(graph_undirected.edges())
         total_edges = len(edges_list)
 
@@ -417,8 +425,8 @@ class MetricsCalculator:
         return edge_metrics
 
     def _calculate_spring_layout(
-        self, graph: nx.DiGraph, edge_metrics: Dict[Tuple[str, str], EdgeMetric]
-    ) -> Dict[str, Tuple[float, float]]:
+        self, graph: nx.DiGraph, edge_metrics: dict[tuple[str, str], EdgeMetric]
+    ) -> PositionDict:
         """
         Calculate spring layout positions using edge weights with centralized caching.
 
@@ -430,9 +438,15 @@ class MetricsCalculator:
             Dictionary mapping node names to (x, y) position tuples
         """
         spring_config = self.vis_config.get("static_image", {}).get("spring", {})
-        iterations = spring_config.get(
-            "iterations", 200
-        )  # Increased for better physics
+
+        # Check for performance configuration override (same logic as StaticRenderer)
+        max_iterations_override = self.performance_config.get("max_layout_iterations")
+        if max_iterations_override:
+            iterations = max_iterations_override
+        else:
+            iterations = spring_config.get(
+                "iterations", 200
+            )  # Increased for better physics
         k_value = spring_config.get("k", 0.15)
 
         # Create params for caching
@@ -482,7 +496,7 @@ class MetricsCalculator:
         iterations: int,
         seed: int,
         tracker: ProgressTracker,
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """
         Run spring layout in chunks to provide progress updates.
 

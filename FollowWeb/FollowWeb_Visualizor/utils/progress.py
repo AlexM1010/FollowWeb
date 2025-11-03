@@ -94,15 +94,15 @@ class ProgressTracker:
         self.update_every_n = max(1, min(self.total // 10, 500))
         self.start_time = time.perf_counter()
         self.last_printed_item = -1
-        self.last_animation_update = 0
+        self.last_animation_update: float = 0
 
         # Time estimation attributes
-        self.estimated_total = None
+        self.estimated_total: Optional[float] = None
 
         # Animation attributes
-        self.bar_width = 30
-        self.current_line_length = 0
-        self.completion_message = None
+        self.bar_width: int = 30
+        self.current_line_length: int = 0
+        self.completion_message: Optional[str] = None
 
         # Initialize random bar state
         import random

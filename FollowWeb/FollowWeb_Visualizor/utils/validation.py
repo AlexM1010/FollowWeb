@@ -8,7 +8,7 @@ file paths, and configuration values used throughout the FollowWeb package.
 # Standard library imports
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 # Local imports
 
@@ -21,8 +21,8 @@ class ValidationErrorHandler:
         self.logger = logger or logging.getLogger(__name__)
 
     def collect_validation_errors(
-        self, validators: List[Callable[[], str]]
-    ) -> List[str]:
+        self, validators: list[Callable[[], str]]
+    ) -> list[str]:
         """
         Collect all validation errors.
 
@@ -78,8 +78,8 @@ class ConfigurationErrorHandler:
         self.logger = logger or logging.getLogger(__name__)
 
     def validate_configuration_section(
-        self, config_dict: Dict, required_keys: List[str], section_name: str
-    ) -> List[str]:
+        self, config_dict: dict, required_keys: list[str], section_name: str
+    ) -> list[str]:
         """
         Validate that a configuration section has all required keys.
 
@@ -259,7 +259,7 @@ def validate_range(
     return value
 
 
-def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> Any:
+def validate_choice(value: Any, param_name: str, valid_choices: list[Any]) -> Any:
     """
     Validate that a parameter is one of the allowed choices.
 
@@ -282,7 +282,7 @@ def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> An
 
 
 def validate_string_format(
-    value: Any, param_name: str, allowed_suffixes: Optional[Optional[List[str]]] = None
+    value: Any, param_name: str, allowed_suffixes: Optional[Optional[list[str]]] = None
 ) -> str:
     """
     Validate string format with optional suffix requirements.
@@ -387,7 +387,7 @@ def validate_at_least_one_enabled(options: dict, param_name: str) -> dict:
 
 
 def validate_k_value_dict(
-    k_values: dict, param_name: str, valid_strategies: List[str]
+    k_values: dict, param_name: str, valid_strategies: list[str]
 ) -> dict:
     """
     Validate a dictionary of k-values for different strategies.

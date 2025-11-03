@@ -11,7 +11,7 @@ import logging
 import os
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 # Note: These imports will be updated when the respective modules are created
 # For now, we'll comment them out to avoid import errors
@@ -34,12 +34,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 # Temporary placeholder functions to avoid import errors
-def validate_at_least_one_enabled(options: Dict[str, bool], name: str) -> None:
+def validate_at_least_one_enabled(options: dict[str, bool], name: str) -> None:
     if not any(options.values()):
         raise ValueError(f"At least one {name} must be enabled")
 
 
-def validate_choice(value: Any, name: str, choices: List[Any]) -> None:
+def validate_choice(value: Any, name: str, choices: list[Any]) -> None:
     if value not in choices:
         raise ValueError(f"{name} must be one of {choices}, got {value}")
 
@@ -57,7 +57,7 @@ def validate_image_dimensions(width: int, height: int) -> None:
 
 
 def validate_k_value_dict(
-    k_values: Dict[str, int], name: str, valid_strategies: List[str]
+    k_values: dict[str, int], name: str, valid_strategies: list[str]
 ) -> None:
     for strategy, k_val in k_values.items():
         if strategy not in valid_strategies:
@@ -91,7 +91,7 @@ def validate_range(
         raise ValueError(f"{name} must be between {min_val} and {max_val}, got {value}")
 
 
-def validate_string_format(value: str, name: str, valid_suffixes: List[str]) -> None:
+def validate_string_format(value: str, name: str, valid_suffixes: list[str]) -> None:
     if not any(value.endswith(suffix) for suffix in valid_suffixes):
         raise ValueError(f"{name} must end with one of {valid_suffixes}, got {value}")
 
@@ -250,7 +250,7 @@ class OutputControlConfig:
 class KValueConfig:
     """Configuration for k-core analysis parameters."""
 
-    strategy_k_values: Dict[str, int] = field(
+    strategy_k_values: dict[str, int] = field(
         default_factory=lambda: {
             "k-core": 10,
             "reciprocal_k-core": 10,
@@ -345,7 +345,7 @@ class CircularLayoutConfig:
 
     # Basic parameters
     radius: Optional[Optional[float]] = None  # Circle radius (None = auto)
-    center: Optional[Optional[Tuple[float, float]]] = (
+    center: Optional[Optional[tuple[float, float]]] = (
         None  # Center position (None = origin)
     )
 
@@ -595,7 +595,7 @@ class FollowWebConfig:
         validate_ego_strategy_requirements(self.strategy, self.ego_username)
 
 
-def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
+def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
     """
     Creates a FollowWebConfig instance from a dictionary.
 
@@ -869,8 +869,8 @@ class ValidationResult:
     """Result of configuration validation with errors and warnings."""
 
     is_valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -878,8 +878,8 @@ class DuplicateParameter:
     """Information about a duplicate parameter found during validation."""
 
     parameter_name: str
-    locations: List[str]
-    values: List[Any]
+    locations: list[str]
+    values: list[Any]
 
 
 class ConfigurationManager:
@@ -896,7 +896,6 @@ class ConfigurationManager:
 
     def __init__(self) -> None:
         """Initialize the configuration manager."""
-        from typing import Dict, Any
         # Will be initialized in _initialize_mode_configurations
         self._parameter_aliases = {
             # Map of canonical parameter names to their aliases
@@ -921,7 +920,7 @@ class ConfigurationManager:
     def load_configuration(
         self,
         config_file: Optional[Optional[str]] = None,
-        cli_args: Optional[Optional[Dict]] = None,
+        cli_args: Optional[Optional[dict]] = None,
     ) -> FollowWebConfig:
         """
         Load configuration from file and CLI arguments with validation.
@@ -1016,7 +1015,7 @@ class ConfigurationManager:
             is_valid=len(errors) == 0, errors=errors, warnings=warnings
         )
 
-    def merge_configurations(self, base_config: Dict, overrides: Dict) -> Dict:
+    def merge_configurations(self, base_config: dict, overrides: dict) -> dict:
         """
         Merge configuration dictionaries with proper precedence.
 
@@ -1056,7 +1055,7 @@ class ConfigurationManager:
         formatting_config = config.output_control.output_formatting
         indent = " " * formatting_config.indent_size
 
-        lines: List[str] = []
+        lines: list[str] = []
         lines.append("=" * 60)
         lines.append("FOLLOWWEB CONFIGURATION")
         lines.append("=" * 60)
@@ -1076,7 +1075,7 @@ class ConfigurationManager:
         lines.append("=" * 60)
         return "\n".join(lines)
 
-    def detect_duplicate_parameters(self, config: Dict) -> List[DuplicateParameter]:
+    def detect_duplicate_parameters(self, config: dict) -> list[DuplicateParameter]:
         """
         Detect duplicate parameters across configuration sections.
 
@@ -1120,7 +1119,7 @@ class ConfigurationManager:
 
         return duplicates
 
-    def consolidate_duplicates(self, config: Dict) -> Dict:
+    def consolidate_duplicates(self, config: dict) -> dict:
         """
         Consolidate duplicate parameters into canonical locations.
 
@@ -1155,7 +1154,7 @@ class ConfigurationManager:
 
         return consolidated
 
-    def get_parameter_aliases(self) -> Dict[str, List[str]]:
+    def get_parameter_aliases(self) -> dict[str, list[str]]:
         """
         Get the parameter alias registry.
 
@@ -1164,7 +1163,7 @@ class ConfigurationManager:
         """
         return self._parameter_aliases.copy()
 
-    def serialize_configuration(self, config: FollowWebConfig) -> Dict[str, Any]:
+    def serialize_configuration(self, config: FollowWebConfig) -> dict[str, Any]:
         """
         Serialize configuration to JSON-compatible dictionary.
 
@@ -1252,7 +1251,7 @@ class ConfigurationManager:
         }
 
     def _validate_analysis_mode_config(
-        self, config: FollowWebConfig, errors: List[str], warnings: List[str]
+        self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate analysis mode configuration."""
         mode_config = config.analysis_mode
@@ -1276,7 +1275,7 @@ class ConfigurationManager:
             )
 
     def _validate_output_control_config(
-        self, config: FollowWebConfig, errors: List[str], warnings: List[str]
+        self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate output control configuration."""
         output_config = config.output_control
@@ -1301,7 +1300,7 @@ class ConfigurationManager:
                 pass
 
     def _validate_k_value_config(
-        self, config: FollowWebConfig, errors: List[str], warnings: List[str]
+        self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate k-value configuration."""
         k_config = config.k_values
@@ -1313,7 +1312,7 @@ class ConfigurationManager:
                     f"High k-value for {strategy} ({k_value}) may result in empty graphs"
                 )
 
-    def _validate_stage_dependencies(self, config: FollowWebConfig) -> List[str]:
+    def _validate_stage_dependencies(self, config: FollowWebConfig) -> list[str]:
         """
         Validate pipeline stage dependencies and return any validation errors.
 
@@ -1370,7 +1369,7 @@ class ConfigurationManager:
 
         return errors
 
-    def _validate_parameter_consistency(self, config: FollowWebConfig) -> List[str]:
+    def _validate_parameter_consistency(self, config: FollowWebConfig) -> list[str]:
         """
         Validate consistency between different configuration parameters.
 
@@ -1401,7 +1400,7 @@ class ConfigurationManager:
     def _add_input_output_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1418,7 +1417,7 @@ class ConfigurationManager:
     def _add_pipeline_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1444,7 +1443,7 @@ class ConfigurationManager:
     def _add_analysis_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1471,7 +1470,7 @@ class ConfigurationManager:
     def _add_output_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1493,7 +1492,7 @@ class ConfigurationManager:
             return f"'{value}'"
         return str(value)
 
-    def _get_nested_value(self, config: Dict, path: List[str]) -> Any:
+    def _get_nested_value(self, config: dict, path: list[str]) -> Any:
         """Get a nested value from configuration dictionary."""
         current = config
         for part in path:
@@ -1503,7 +1502,7 @@ class ConfigurationManager:
                 return None
         return current
 
-    def _set_nested_value(self, config: Dict, path: List[str], value: Any) -> None:
+    def _set_nested_value(self, config: dict, path: list[str], value: Any) -> None:
         """Set a nested value in configuration dictionary."""
         current = config
         for part in path[:-1]:
@@ -1512,7 +1511,7 @@ class ConfigurationManager:
             current = current[part]
         current[path[-1]] = value
 
-    def _remove_nested_value(self, config: Dict, path: List[str]) -> None:
+    def _remove_nested_value(self, config: dict, path: list[str]) -> None:
         """Remove a nested value from configuration dictionary."""
         current = config
         for part in path[:-1]:
@@ -1625,7 +1624,7 @@ class PipelineStagesController:
 
         return enabled
 
-    def get_stage_configuration(self, stage_name: str) -> Dict[str, Any]:
+    def get_stage_configuration(self, stage_name: str) -> dict[str, Any]:
         """
         Get configuration specific to a pipeline stage.
 
@@ -1663,7 +1662,7 @@ class PipelineStagesController:
             self.logger.warning(f"Unknown stage name: {stage_name}")
             return {}
 
-    def validate_stage_dependencies(self) -> List[str]:
+    def validate_stage_dependencies(self) -> list[str]:
         """
         Validate stage dependencies and return validation errors.
 
@@ -1805,7 +1804,7 @@ class PipelineStagesController:
             skip_msg += f" - {reason}"
         self.logger.debug(skip_msg)
 
-    def get_execution_summary(self) -> Dict[str, Any]:
+    def get_execution_summary(self) -> dict[str, Any]:
         """
         Get a summary of stage execution status.
 
@@ -1845,7 +1844,7 @@ class AnalysisModeManager:
         self.logger = logging.getLogger(__name__)
 
         # Define mode-specific parameter mappings
-        self._mode_configurations: Dict[AnalysisMode, Dict[str, Any]] = {
+        self._mode_configurations: dict[AnalysisMode, dict[str, Any]] = {
             AnalysisMode.FAST: {
                 "sampling_threshold": 1000,
                 "max_layout_iterations": 100,
@@ -1880,7 +1879,7 @@ class AnalysisModeManager:
 
     def get_mode_configuration(
         self, mode: Optional[AnalysisMode] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get mode-specific configuration parameters.
 
@@ -1921,8 +1920,8 @@ class AnalysisModeManager:
         return mode_config
 
     def apply_performance_optimizations(
-        self, config: Dict, mode: Optional[AnalysisMode] = None
-    ) -> Dict:
+        self, config: dict, mode: Optional[AnalysisMode] = None
+    ) -> dict:
         """
         Apply performance optimizations based on analysis mode.
 
@@ -1948,7 +1947,7 @@ class AnalysisModeManager:
 
     def get_sampling_parameters(
         self, graph_size: int, mode: Optional[AnalysisMode] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Calculate sampling parameters based on graph size and analysis mode.
 
@@ -2004,7 +2003,7 @@ class AnalysisModeManager:
 
     def get_performance_config_for_component(
         self, component_name: str, graph_size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get performance configuration for a specific analysis component.
 

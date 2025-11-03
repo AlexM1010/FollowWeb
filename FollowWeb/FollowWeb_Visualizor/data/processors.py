@@ -47,7 +47,7 @@ class GraphProcessor:
         Returns:
             nx.DiGraph: New graph with only mutual connections, or empty graph if none exist
         """
-        reciprocal_graph = nx.DiGraph()
+        reciprocal_graph: nx.DiGraph = nx.DiGraph()
 
         # Keep only edges where the reverse edge also exists
         reciprocal_edges = [
@@ -103,7 +103,8 @@ class GraphProcessor:
             return nx.DiGraph()
 
         # 2. Create a new graph containing only connections between alters
-        alter_graph = graph.subgraph(alters).copy()
+        alter_subgraph = graph.subgraph(alters)
+        alter_graph = nx.DiGraph(alter_subgraph)
 
         # Remove isolates (alters who don't connect to any other alters)
         alter_graph.remove_nodes_from(list(nx.isolates(alter_graph)))

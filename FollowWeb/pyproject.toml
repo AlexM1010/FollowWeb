@@ -163,7 +163,6 @@ module = [
     "FollowWeb_Visualizor.data.*"
 ]
 disable_error_code = ["no-untyped-def", "assignment", "no-any-return", "comparison-overlap", "index"]
-
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --strict-config"

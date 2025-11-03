@@ -13,7 +13,7 @@ import os
 # Third-party imports for parallel processing
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 try:
     # Check both availability and Python version requirement
@@ -74,7 +74,7 @@ class ParallelProcessingManager:
             self.logger.warning(f"Failed to detect CPU count: {e}, using fallback of 2")
             return 2
 
-    def _detect_ci_environment(self) -> Dict[str, Any]:
+    def _detect_ci_environment(self) -> dict[str, Any]:
         """Detect CI environment and determine appropriate resource allocation."""
         ci_indicators = {
             "GITHUB_ACTIONS": "github",
@@ -108,7 +108,7 @@ class ParallelProcessingManager:
             "strategy": strategy,
         }
 
-    def _check_nx_parallel_availability(self) -> Dict[str, Any]:
+    def _check_nx_parallel_availability(self) -> dict[str, Any]:
         """Check nx-parallel availability and working status."""
         info = {"available": NX_PARALLEL_AVAILABLE, "working": False, "backends": []}
 
@@ -250,8 +250,8 @@ class ParallelProcessingManager:
         }
 
         # Operation-specific adjustments
-        from typing import Union, Dict, Any
-        operation_adjustments: Dict[str, Union[float, Dict[str, float]]] = {
+        from typing import Union
+        operation_adjustments: dict[str, Union[float, dict[str, float]]] = {
             "analysis": 1.0,  # Full allocation for analysis
             "testing": {
                 "unit": 1.0,  # Full allocation for unit tests
@@ -349,7 +349,7 @@ class ParallelProcessingManager:
 
     def should_use_parallel(
         self, operation_type: str, data_size: int, threshold: int = 100
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Determine if parallel processing should be used for an operation.
 
@@ -423,7 +423,7 @@ def get_nx_parallel_status_message() -> str:
     return get_parallel_manager().get_nx_parallel_status()
 
 
-def detect_ci_environment() -> Dict[str, Any]:
+def detect_ci_environment() -> dict[str, Any]:
     """
     Detects if running in a CI environment and identifies the CI provider.
 

@@ -36,6 +36,8 @@ __license__ = "MIT"  # Update as appropriate
 __url__ = ""  # Add repository URL if available
 
 # Core imports for public API
+
+# Core components
 from .core.config import (
     FollowWebConfig,
     get_configuration_manager,
@@ -124,6 +126,8 @@ from .core.exceptions import (
     DataProcessingError,
     VisualizationError,
 )
+
+# Data processing components
 from .data.cache import (
     CentralizedCache,
     calculate_graph_hash,
@@ -134,7 +138,7 @@ from .data.cache import (
     get_cached_undirected_graph,
 )
 
-# Emoji formatting functions
+# Output and logging
 from .output.formatters import (
     EmojiFormatter,
     format_completion,
@@ -145,6 +149,8 @@ from .output.formatters import (
     safe_print_error,
     safe_print_success,
 )
+
+# Utilities
 from .utils.files import (
     ensure_output_directory,
     generate_output_filename,
@@ -170,7 +176,55 @@ from .utils.validation import (
     validate_range,
     validate_string_format,
 )
+
+# Visualization components
 from .visualization.colors import get_community_colors
+
+# Analysis components - conditionally imported
+try:
+    from .analysis.fame import FameAnalyzer
+    from .analysis.network import NetworkAnalyzer
+    from .analysis.paths import PathAnalyzer
+    from .data.loaders import GraphLoader
+except ImportError:
+    # Graceful handling if analysis module is not fully implemented
+    # Setting to None for graceful degradation - mypy cannot infer conditional class/None types
+    FameAnalyzer = None  # type: ignore[assignment,misc]
+    GraphLoader = None  # type: ignore[assignment,misc]
+    NetworkAnalyzer = None  # type: ignore[assignment,misc]
+    PathAnalyzer = None  # type: ignore[assignment,misc]
+
+# Visualization components - conditionally imported
+try:
+    from .core.types import (
+        ColorScheme,
+        EdgeMetric,
+        NodeMetric,
+        VisualizationMetrics,
+    )
+    from .visualization.metrics import MetricsCalculator
+    from .visualization.renderers import (
+        InteractiveRenderer,
+        StaticRenderer,
+    )
+except ImportError:
+    # Graceful handling if visualization module is not fully implemented
+    # Setting to None for graceful degradation - mypy expects type objects, not None
+    ColorScheme = None  # type: ignore[assignment,misc]
+    EdgeMetric = None  # type: ignore[assignment,misc]
+    InteractiveRenderer = None  # type: ignore[assignment,misc]
+    MetricsCalculator = None  # type: ignore[assignment,misc]
+    NodeMetric = None  # type: ignore[assignment,misc]
+    StaticRenderer = None  # type: ignore[assignment,misc]
+    VisualizationMetrics = None  # type: ignore[assignment,misc]
+
+# Output components - conditionally imported
+try:
+    from .output.managers import MetricsReporter
+except ImportError:
+    # Graceful handling if output module is not fully implemented
+    # Setting to None for graceful degradation - mypy expects class, not None
+    MetricsReporter = None  # type: ignore[assignment,misc]
 
 # Public API
 __all__ = [

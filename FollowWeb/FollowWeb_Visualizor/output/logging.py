@@ -9,7 +9,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, TextIO
+from typing import Optional, TextIO, cast
 
 from .formatters import EmojiFormatter
 
@@ -59,9 +59,9 @@ class Logger:
         """
         self.config = config
         self.console_logger = logging.getLogger(__name__)
-        self.text_file_handle: Optional[Optional[TextIO]] = None
-        self.content_buffer: List[str] = []
-        self.section_data: Dict[str, List[str]] = {}
+        self.text_file_handle: Optional[TextIO] = None
+        self.content_buffer: list[str] = []
+        self.section_data: dict[str, list[str]] = {}
         self.current_section: Optional[Optional[str]] = None
 
         # Initialize text file if enabled
@@ -79,9 +79,9 @@ class Logger:
 
             # Open file in appropriate mode
             mode = "a" if self.config.append_mode else "w"
-            self.text_file_handle = open(
+            self.text_file_handle = cast(TextIO, open(
                 self.config.text_file_path, mode, encoding="utf-8"
-            )
+            ))
 
             # Write header if not appending
             if not self.config.append_mode:

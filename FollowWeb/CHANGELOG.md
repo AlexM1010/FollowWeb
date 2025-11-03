@@ -5,6 +5,55 @@ All notable changes to FollowWeb Network Analysis Package will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **BREAKING CHANGE**: CI/CD pipelines now strictly enforce type checking
+  - `mypy` type checking failures will now fail the entire pipeline
+  - Previously, type errors were allowed with `continue-on-error: true`
+  - This ensures type safety is maintained across all releases
+
+### Fixed
+- **Type Safety**: Significantly improved type safety across the codebase
+  - Fixed critical type errors in core modules (utils, analysis foundations)
+  - Added proper type annotations for Optional, Union, and container types
+  - Fixed missing return statements and exception handling
+  - Eliminated `# type: ignore` usage in favor of proper Optional typing for imports
+  - Added targeted mypy overrides for complex architectural issues requiring future refactoring
+  - Reduced mypy errors from 308+ to manageable levels with documented technical debt
+- **CI/CD Pipeline**: Improved release workflow reliability
+  - Split monolithic build-and-publish into focused stages (build → test-pypi → production-pypi)
+  - Fixed artifact path inconsistencies that could cause silent failures
+  - Added retry logic with exponential backoff for package verification
+  - Improved post-publication verification with version-specific installation checks
+- **Exception Handling**: Improved error handling patterns in utility modules
+  - Replaced defensive programming patterns with proper assertions
+  - Enhanced retry logic in file operations
+
+### Removed
+- **Development Dependencies**: Removed unused test dependencies to streamline development setup
+  - `faker>=18.0.0` - Not used in current test suite
+  - `factory-boy>=3.2.0` - Not used in current test suite  
+  - `pytest-doctestplus>=0.12.0` - Doctest functionality not currently utilized
+  - `pytest-timeout>=2.1.0` - Timeout handling managed by CI/CD instead
+  - `pytest-mock>=3.10.0` - Mocking not extensively used in current tests
+  - `numpy>=1.21.0` - Not a direct dependency (pulled in by other packages as needed)
+  - `scipy>=1.9.0` - Not currently used in the codebase
+- **Documentation Dependencies**: Removed unused documentation build tools
+  - `sphinx>=5.0.0` - Documentation not currently using Sphinx
+  - `sphinx-rtd-theme>=1.0.0` - Not needed without Sphinx
+  - `myst-parser>=0.18.0` - Not needed without Sphinx
+
+### Migration Guide
+If your development workflow depends on type checking being non-blocking:
+1. Ensure your code passes `mypy FollowWeb_Visualizor --show-error-codes` before pushing
+2. Use local development tools to catch type errors early
+3. Consider using `mypy --ignore-missing-imports` for rapid prototyping (not recommended for production)
+
+If you need any of the removed dependencies for your specific use case:
+1. Install them manually: `pip install faker factory-boy pytest-doctestplus`
+2. Or add them back to your local `requirements-dev.txt` file
+
 ## [1.0.1] - 2024-11-03
 
 ### Fixed

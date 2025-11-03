@@ -5,7 +5,6 @@ This module provides centralized emoji formatting with configurable fallback lev
 for consistent emoji usage throughout the application.
 """
 
-from typing import Dict
 
 
 class EmojiFormatter:
@@ -26,7 +25,7 @@ class EmojiFormatter:
     _fallback_level: str = "full"
 
     # Centralized emoji definitions with multiple fallback levels
-    EMOJIS: Dict[str, Dict[str, str]] = {
+    EMOJIS: dict[str, dict[str, str]] = {
         # Status and completion emojis
         "success": {"full": "✅", "simple": "[✓]", "text": "SUCCESS", "none": ""},
         "error": {"full": "❌", "simple": "[✗]", "text": "ERROR", "none": ""},

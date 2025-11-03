@@ -5,7 +5,7 @@ This module handles community color generation and scaling utilities for visuali
 """
 
 import math
-from typing import Dict, Tuple, Union
+from typing import TypedDict
 
 import matplotlib.pyplot as plt
 
@@ -18,9 +18,14 @@ from ..utils.validation import (
 )
 
 
+class CommunityColors(TypedDict):
+    hex: dict[int, str]
+    rgba: dict[int, tuple[float, float, float, float]]
+
+
 def get_community_colors(
     num_communities: int,
-) -> Dict[str, Dict[int, Union[str, Tuple[float, ...]]]]:
+) -> CommunityColors:
     """
     Generates a color map for communities with caching.
 
@@ -81,14 +86,18 @@ def get_community_colors(
                         f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
                     )
                     hex_colors[i] = hex_color
-                    rgba_colors[i] = color
+                    # Ensure RGBA tuple has exactly 4 components
+                    if len(color) >= 4:
+                        rgba_colors[i] = (color[0], color[1], color[2], color[3])
+                    else:
+                        rgba_colors[i] = (color[0], color[1], color[2], 1.0)
 
                 except Exception as e:
                     raise VisualizationError(
                         f"Failed to process color for community {i}: {e}"
                     ) from e
 
-            result = {"hex": hex_colors, "rgba": rgba_colors}
+            result: CommunityColors = {"hex": hex_colors, "rgba": rgba_colors}
         else:
             # Default case for zero communities
             result = {"hex": {0: "#808080"}, "rgba": {0: (0.5, 0.5, 0.5, 1.0)}}
@@ -135,6 +144,8 @@ def get_scaled_size(
         return base_size + value * multiplier
     else:
         validate_choice(algorithm, "scaling algorithm", ["logarithmic", "linear"])
+        # This line should never be reached due to validate_choice raising an exception
+        raise ValueError(f"Invalid algorithm: {algorithm}")
 
 
 def scale_value(

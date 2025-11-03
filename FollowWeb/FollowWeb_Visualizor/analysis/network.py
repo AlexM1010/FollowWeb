@@ -9,7 +9,7 @@ operations including community detection and centrality calculations.
 import logging
 import sys
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Third-party imports
 import networkx as nx
@@ -74,7 +74,7 @@ class NetworkAnalyzer:
         self.cache_manager.clear_all_caches()
         self.logger.debug("NetworkAnalyzer caches cleared")
 
-    def analyze_network(self, graph: nx.Graph) -> nx.Graph:
+    def analyze_network(self, graph: nx.DiGraph) -> nx.DiGraph:
         """
         Perform network analysis with selective algorithm execution.
 
@@ -83,10 +83,10 @@ class NetworkAnalyzer:
         independently enabled/disabled through the stages controller.
 
         Args:
-            graph: Input graph to analyze (directed or undirected NetworkX graph)
+            graph: Input directed graph to analyze (NetworkX DiGraph)
 
         Returns:
-            nx.Graph: Graph with added node attributes based on enabled components
+            nx.DiGraph: Directed graph with added node attributes based on enabled components
 
         Note:
             For graphs with fewer than 2 nodes, analysis is skipped and the original
@@ -149,7 +149,7 @@ class NetworkAnalyzer:
         else:
             self._log_component_skip("community_detection")
             # Set default community values when skipped
-            nx.set_node_attributes(graph, 0, "community")
+            nx.set_node_attributes(graph, dict.fromkeys(graph.nodes(), 0), "community")
 
         # Execute centrality analysis if enabled
         if execute_centrality:
@@ -166,7 +166,7 @@ class NetworkAnalyzer:
                 )
 
                 # Degree centrality (always calculated when centrality is enabled)
-                degree_dict = dict(graph.degree())
+                degree_dict = dict(graph.degree())  # type: ignore[operator]
                 nx.set_node_attributes(graph, degree_dict, "degree")
 
                 # Betweenness centrality
@@ -230,7 +230,7 @@ class NetworkAnalyzer:
 
     def _get_component_config(
         self, component_name: str, graph_size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get performance configuration for a component."""
         if self.mode_manager:
             return self.mode_manager.get_performance_config_for_component(
@@ -301,7 +301,7 @@ class NetworkAnalyzer:
                 )
 
     def _perform_community_detection(
-        self, graph: nx.Graph, config: Dict[str, Any]
+        self, graph: nx.DiGraph, config: dict[str, Any]
     ) -> None:
         """Perform community detection with parallel processing optimization."""
         resolution = config.get("resolution", 1.0)

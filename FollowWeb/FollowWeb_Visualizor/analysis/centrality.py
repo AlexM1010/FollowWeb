@@ -9,7 +9,7 @@ including degree, betweenness, and eigenvector centrality.
 import logging
 import math
 import sys
-from typing import Any, Dict
+from typing import Any
 
 # Third-party imports
 import networkx as nx
@@ -28,8 +28,8 @@ from ..utils.parallel import get_analysis_parallel_config
 
 
 def calculate_betweenness_centrality(
-    graph: nx.Graph, config: Dict[str, Any], logger: logging.Logger
-) -> Dict[str, float]:
+    graph: nx.Graph, config: dict[str, Any], logger: logging.Logger
+) -> dict[str, float]:
     """Calculate betweenness centrality with performance optimization."""
     graph_size = graph.number_of_nodes()
 
@@ -121,8 +121,8 @@ def calculate_betweenness_centrality(
 
 
 def calculate_eigenvector_centrality(
-    graph: nx.Graph, config: Dict[str, Any], cache_manager, logger: logging.Logger
-) -> Dict[str, float]:
+    graph: nx.Graph, config: dict[str, Any], cache_manager, logger: logging.Logger
+) -> dict[str, float]:
     """Calculate eigenvector centrality with centralized caching and optimization."""
     # Create params for caching
     params = {"max_iter": config.get("max_iter", 1000)}
@@ -169,7 +169,7 @@ def calculate_eigenvector_centrality(
                 max_iter = 1000  # Full iterations for small graphs
 
             # OPTIMIZATION: Use degree centrality as better starting point
-            degree_dict = dict(graph.degree())
+            degree_dict = dict(graph.degree())  # type: ignore[operator]
             max_degree = max(degree_dict.values()) if degree_dict else 1
             nstart = {n: degree_dict.get(n, 0) / max_degree for n in graph.nodes()}
 
@@ -200,17 +200,17 @@ def set_default_centrality_values(graph: nx.Graph) -> None:
     """Set default centrality values when centrality analysis is skipped."""
     default_values = dict.fromkeys(graph.nodes(), 0)
     nx.set_node_attributes(
-        graph, dict(graph.degree()), "degree"
+        graph, dict(graph.degree()), "degree"  # type: ignore[operator]
     )  # Use actual degree even when skipped
     nx.set_node_attributes(graph, default_values, "betweenness")
     nx.set_node_attributes(graph, default_values, "eigenvector")
 
 
 def display_centrality_results(
-    degree_dict: Dict[str, int],
-    betweenness_dict: Dict[str, float],
-    eigenvector_dict: Dict[str, float],
-    config: Dict[str, Any],
+    degree_dict: dict[str, int],
+    betweenness_dict: dict[str, float],
+    eigenvector_dict: dict[str, float],
+    config: dict[str, Any],
     logger: logging.Logger,
 ) -> None:
     """Display centrality analysis results."""

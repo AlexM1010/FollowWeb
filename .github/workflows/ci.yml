@@ -241,7 +241,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: FollowWeb/dist/
+        path: dist/
         retention-days: 30
 
   performance:

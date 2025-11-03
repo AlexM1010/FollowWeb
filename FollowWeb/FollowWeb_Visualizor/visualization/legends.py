@@ -5,7 +5,7 @@ This module creates visualization legends for both HTML and PNG outputs,
 including community colors, edge types, and scaling information.
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 import networkx as nx
 
@@ -20,7 +20,7 @@ class LegendGenerator:
     Creates visualization legends for both HTML and PNG outputs.
     """
 
-    def __init__(self, vis_config: Dict[str, Any]) -> None:
+    def __init__(self, vis_config: dict[str, Any]) -> None:
         """
         Initialize the legend generator with visualization configuration.
 
@@ -60,7 +60,7 @@ class LegendGenerator:
                 return "0"
 
     def _format_edge_thickness_legend(
-        self, edge_metrics: Dict[Tuple[str, str], Dict[str, Any]]
+        self, edge_metrics: dict[tuple[str, str], dict[str, Any]]
     ) -> str:
         """
         Create formatted edge thickness legend with actual weight ranges and thickness values for HTML files only.
@@ -144,7 +144,13 @@ class LegendGenerator:
             return '<div style="color: #666; font-style: italic;">No node data available</div>'
 
         # Extract sizes and centrality values from calculated metrics
-        sizes: list[float] = [float(metrics["size"]) for metrics in node_metrics.values()]
+        sizes: list[float] = []
+        for metrics in node_metrics.values():
+            size_val = metrics["size"]
+            if isinstance(size_val, (int, float)):
+                sizes.append(float(size_val))
+            else:
+                sizes.append(1.0)
         node_size_metric = self.vis_config.get("node_size_metric", "degree")
 
         # Get centrality values based on the metric being used
@@ -153,6 +159,8 @@ class LegendGenerator:
             attrs = graph.nodes[node]
             metric_value = attrs.get(node_size_metric, attrs.get("degree", 1))
             # Ensure we have a numeric value
+            if not isinstance(metric_value, (int, float)):
+                metric_value = 1
             if isinstance(metric_value, (int, float)):
                 centrality_values.append(float(metric_value))
             else:
@@ -160,9 +168,7 @@ class LegendGenerator:
 
         # Calculate ranges directly
         min_size, max_size = min(sizes), max(sizes)
-        mid_size = (min_size + max_size) / 2
         min_centrality, max_centrality = min(centrality_values), max(centrality_values)
-        mid_centrality = (min_centrality + max_centrality) / 2
 
         # Get the metric name for display
         metric_display_name = node_size_metric.replace("_", " ").title()
@@ -185,7 +191,7 @@ class LegendGenerator:
     def create_html_legend(
         self,
         graph: nx.DiGraph,
-        edge_metrics: Optional[Dict[Tuple[str, str], Dict[str, Any]]] = None,
+        edge_metrics: Optional[dict[tuple[str, str], dict[str, Any]]] = None,
         shared_metrics: Optional[Optional[VisualizationMetrics]] = None,
     ) -> str:
         """

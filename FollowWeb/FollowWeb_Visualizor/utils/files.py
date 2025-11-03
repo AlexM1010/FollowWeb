@@ -65,11 +65,9 @@ class ErrorRecoveryManager:
                         f"All {max_attempts} attempts failed. Last error: {e}"
                     )
 
-        # This should never happen since we always set last_exception in the except block
-        if last_exception is not None:
-            raise last_exception
-        else:
-            raise RuntimeError("Function failed but no exception was captured")
+        # If we reach here, all attempts failed and we have the last exception
+        assert last_exception is not None, "Expected exception to be set in retry loop"
+        raise last_exception
 
     def safe_execute(
         self,

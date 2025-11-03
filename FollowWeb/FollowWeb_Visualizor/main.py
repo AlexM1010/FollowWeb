@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 # Third-party imports
 import networkx as nx
@@ -30,9 +30,10 @@ from .core.config import (
     get_configuration_manager,
     load_config_from_dict,
 )
-from .data.cache import get_cache_manager
+from .data.cache import CentralizedCache, get_cache_manager
 from .data.loaders import GraphLoader
 from .output.formatters import EmojiFormatter
+from .output.logging import Logger
 from .output.managers import OutputManager
 from .utils.math import format_time_duration
 from .utils.parallel import get_analysis_parallel_config, get_nx_parallel_status_message
@@ -103,14 +104,19 @@ class PipelineOrchestrator:
             ),
             emoji_level,
         )
-        self.logger = self.output_manager.unified_logger
+
+        # Ensure logger is properly initialized
+        if self.output_manager.unified_logger is None:
+            raise RuntimeError("Failed to initialize unified logger")
+
+        self.logger: Logger = self.output_manager.unified_logger
 
         # Pipeline state
         self.pipeline_start_time = None
         self.phase_times: dict[str, float] = {}
 
         # Get cache manager for performance optimization
-        self.cache_manager = get_cache_manager()
+        self.cache_manager: CentralizedCache = get_cache_manager()
 
     def _log_timer(self, message: str, section: Optional[str] = None) -> None:
         """Log timing information with standardized format."""
@@ -140,7 +146,7 @@ class PipelineOrchestrator:
             bool: True if pipeline completed successfully, False otherwise
         """
         self.pipeline_start_time = time.perf_counter()
-        phase_results = {}
+        phase_results: dict[str, Union[bool, str]] = {}
 
         try:
             # Start pipeline section
@@ -218,7 +224,7 @@ class PipelineOrchestrator:
                 phase for phase in enabled_phases if phase_results.get(phase) is False
             ]
             successful_phases = [
-                phase for phase in enabled_phases if phase_results.get(phase)
+                phase for phase in enabled_phases if phase_results.get(phase) is True
             ]
 
             # Pipeline succeeds only if ALL enabled phases succeeded
@@ -441,7 +447,7 @@ class PipelineOrchestrator:
             stage_config = self.stages_controller.get_stage_configuration("analysis")
 
             analyzed_graph = graph
-            component_results = {}
+            component_results: dict[str, Union[bool, str]] = {}
 
             # Perform network analysis (communities and centrality) if enabled
             if self.stages_controller.should_execute_analysis_component(
@@ -704,6 +710,7 @@ class PipelineOrchestrator:
 
             # Add total time to phase times for complete timing data
             complete_timing_data = self.phase_times.copy()
+            assert self.pipeline_start_time is not None, "Pipeline start time should be set"
             complete_timing_data["total"] = (
                 time.perf_counter() - self.pipeline_start_time
             )
@@ -770,8 +777,8 @@ class PipelineOrchestrator:
 
     def _report_fame_analysis(
         self,
-        unreachable_famous: List[Dict[str, Union[str, int, float]]],
-        reachable_famous: List[Dict[str, Union[str, int, float]]],
+        unreachable_famous: list[dict[str, Union[str, int, float]]],
+        reachable_famous: list[dict[str, Union[str, int, float]]],
     ) -> None:
         """
         Report fame analysis results.
@@ -813,7 +820,7 @@ class PipelineOrchestrator:
     def _analyze_famous_paths(
         self,
         graph: nx.DiGraph,
-        reachable_famous: List[Dict[str, Union[str, int, float]]],
+        reachable_famous: list[dict[str, Union[str, int, float]]],
     ) -> None:
         """
         Analyze paths to famous accounts if requested.
@@ -937,6 +944,7 @@ class PipelineOrchestrator:
 
     def _report_pipeline_completion(self) -> None:
         """Report overall pipeline completion statistics."""
+        assert self.pipeline_start_time is not None, "Pipeline start time should be set"
         total_time = time.perf_counter() - self.pipeline_start_time
 
         self.logger.info("\n" + "=" * 70)
@@ -1016,7 +1024,7 @@ class PipelineOrchestrator:
         self.logger.info("=" * 70)
 
 
-def load_config_from_file(config_path: str) -> Dict[str, Any]:
+def load_config_from_file(config_path: str) -> dict[str, Any]:
     """
     Load configuration from a JSON file using the configuration manager.
 

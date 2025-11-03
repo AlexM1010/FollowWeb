@@ -11,7 +11,7 @@ import random
 import sys
 import traceback
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 # Third-party imports
 import networkx as nx
@@ -50,7 +50,7 @@ class PathAnalyzer:
         self.mode_manager = mode_manager
         self.stages_controller = stages_controller
 
-    def analyze_path_lengths(self, graph: nx.DiGraph) -> Dict[str, Any]:
+    def analyze_path_lengths(self, graph: nx.DiGraph) -> dict[str, Any]:
         """
         Calculates and prints "6 degrees of separation" metrics with progress tracking.
 
@@ -129,7 +129,7 @@ class PathAnalyzer:
             return {}
 
         try:
-            all_path_lengths_dist = defaultdict(int)
+            all_path_lengths_dist: defaultdict[int, int] = defaultdict(int)
             total_pairs = 0
             sum_of_lengths = 0
             max_dist = 0
@@ -260,7 +260,7 @@ class PathAnalyzer:
 
     def get_contact_path(
         self, graph: nx.DiGraph, ego_username: str, target_username: str
-    ) -> Optional[List[str]]:
+    ) -> Optional[list[str]]:
         """
         Finds the shortest path from target to ego.
 
@@ -345,7 +345,7 @@ class PathAnalyzer:
             return False
 
     def _validate_path_analysis_constraints(
-        self, graph_size: int, config: Dict[str, Any]
+        self, graph_size: int, config: dict[str, Any]
     ) -> None:
         """
         Validate performance constraints for path analysis and provide timing feedback.
@@ -379,7 +379,7 @@ class PathAnalyzer:
                 )
 
     def _estimate_path_analysis_time(
-        self, graph_size: int, config: Dict[str, Any]
+        self, graph_size: int, config: dict[str, Any]
     ) -> float:
         """
         Estimate path analysis execution time based on graph size and configuration.
