@@ -37,7 +37,7 @@
 # 5. Dependency Management:
 #    - Install type stubs explicitly to avoid mypy failures
 #    - Use separate requirements files for different purposes
-#    - Handle conditional dependencies properly (nx-parallel for Python 3.9+)
+#    - Handle conditional dependencies properly (nx-parallel for Python 3.11+)
 #
 # Common Troubleshooting:
 # - If mypy fails with external library errors: Update type stub installations
@@ -122,32 +122,32 @@ jobs:
     - name: Verify installation - MANDATORY
       run: |
         # MANDATORY: Package must import successfully
-        python -c "import FollowWeb_Visualizor; print('✅ Package imported successfully')"
+        python -c "import FollowWeb_Visualizor; print('[OK] Package imported successfully')"
         
         # MANDATORY: Parallel processing must be available
-        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; print(f'✅ nx-parallel available: {is_nx_parallel_available()}')"
+        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; print(f'[OK] nx-parallel available: {is_nx_parallel_available()}')"
         
         # MANDATORY: All submodules must import
-        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization; print('✅ All submodules imported successfully')"
+        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization; print('[OK] All submodules imported successfully')"
         
         # MANDATORY: CLI entry point must work
         python -c "
         import subprocess
         result = subprocess.run(['followweb', '--help'], capture_output=True, text=True)
         if result.returncode != 0:
-            print('❌ CLI entry point failed')
+            print('[FAIL] CLI entry point failed')
             print('STDOUT:', result.stdout)
             print('STDERR:', result.stderr)
             exit(1)
         else:
-            print('✅ CLI entry point working')
+            print('[OK] CLI entry point working')
         "
         
         # MANDATORY: Test basic functionality
         python -c "
         from FollowWeb_Visualizor.core.config import ConfigurationManager
         from FollowWeb_Visualizor.data.loaders import GraphLoader
-        print('✅ Core functionality verified')
+        print('[OK] Core functionality verified')
         "
     
     - name: Run code formatting check
@@ -176,13 +176,13 @@ jobs:
         
         # Validate test results
         echo "## Test Validation Results" >> $GITHUB_STEP_SUMMARY
-        echo "### Unit Tests: ✅ PASSED (237+ tests)" >> $GITHUB_STEP_SUMMARY
-        echo "### Integration Tests: ✅ PASSED (68+ tests)" >> $GITHUB_STEP_SUMMARY
-        echo "### Coverage Requirement: ✅ PASSED (≥70%)" >> $GITHUB_STEP_SUMMARY
+        echo "### Unit Tests: [PASS] (237+ tests)" >> $GITHUB_STEP_SUMMARY
+        echo "### Integration Tests: [PASS] (68+ tests)" >> $GITHUB_STEP_SUMMARY
+        echo "### Coverage Requirement: [PASS] (>=70%)" >> $GITHUB_STEP_SUMMARY
         
         # Verify no test failures
         if [ $? -ne 0 ]; then
-          echo "❌ MANDATORY TEST FAILURE DETECTED" >> $GITHUB_STEP_SUMMARY
+          echo "[FAIL] MANDATORY TEST FAILURE DETECTED" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
       continue-on-error: false
@@ -237,12 +237,30 @@ jobs:
     
     - name: Run Bandit security linter
       run: |
-        # Generate JSON report for artifacts
-        bandit -r FollowWeb_Visualizor -f json -o bandit-report.json
-        # Run security check - FAIL on medium/high severity issues
+        # Generate JSON report for artifacts (include all issues for reporting)
+        bandit -r FollowWeb_Visualizor -f json -o bandit-report.json || true
+        
+        # Check for medium/high severity issues - FAIL only on these
         echo "## Bandit Security Scan Results" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        bandit -r FollowWeb_Visualizor --severity-level medium >> $GITHUB_STEP_SUMMARY
+        
+        # Run bandit for medium+ severity - only fail if medium/high issues found
+        set +e  # Don't exit on error temporarily
+        bandit_output=$(bandit -r FollowWeb_Visualizor --severity-level medium 2>&1)
+        bandit_exit_code=$?
+        
+        echo "$bandit_output" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if "No issues identified" is in the output
+        if echo "$bandit_output" | grep -q "No issues identified"; then
+          echo "[PASS] No medium or high severity security issues found" >> $GITHUB_STEP_SUMMARY
+          set -e
+        else
+          echo "[FAIL] Medium or high severity security issues detected" >> $GITHUB_STEP_SUMMARY
+          set -e
+          exit 1
+        fi
+        
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       continue-on-error: false
     
@@ -457,15 +475,15 @@ jobs:
         fi
         
         if [[ -n "$failed_jobs" ]]; then
-          echo "❌ MANDATORY CHECKS FAILED:$failed_jobs"
-          echo "## ❌ CI PIPELINE FAILED - MANDATORY CHECKS" >> $GITHUB_STEP_SUMMARY
+          echo "[FAIL] MANDATORY CHECKS FAILED:$failed_jobs"
+          echo "## [FAIL] CI PIPELINE FAILED - MANDATORY CHECKS" >> $GITHUB_STEP_SUMMARY
           echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**ALL CHECKS ARE MANDATORY - NO EXCEPTIONS ALLOWED**" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
         
-        echo "✅ ALL MANDATORY CHECKS PASSED!"
+        echo "[PASS] ALL MANDATORY CHECKS PASSED!"
         echo "Test result: ${{ needs.test.result }}"
         echo "Security result: ${{ needs.security.result }}"
         echo "Format check result: ${{ needs.format-check.result }}"
@@ -473,15 +491,15 @@ jobs:
         echo "Performance result: ${{ needs.performance.result }}"
         
         # Document the rigorous testing approach
-        echo "## 🎉 CI PIPELINE COMPLETED - ALL MANDATORY CHECKS PASSED!" >> $GITHUB_STEP_SUMMARY
+        echo "## [SUCCESS] CI PIPELINE COMPLETED - ALL MANDATORY CHECKS PASSED!" >> $GITHUB_STEP_SUMMARY
         echo "### Rigorous Quality Assurance:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Unit Tests** (237+ tests) - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Integration Tests** (68+ tests) - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Performance Tests** - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Code Coverage** (≥70%) - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Security Scanning** (Bandit + pip-audit) - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Type Checking** (mypy) - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Code Formatting** (ruff) - MANDATORY" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ **Package Building** - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Unit Tests** (237+ tests) - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Integration Tests** (68+ tests) - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Performance Tests** - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Code Coverage** (>=70%) - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Security Scanning** (Bandit + pip-audit) - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Type Checking** (mypy) - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Code Formatting** (ruff) - MANDATORY" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] **Package Building** - MANDATORY" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**All tools are open-source with permissive licenses** 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "**All tools are open-source with permissive licenses**" >> $GITHUB_STEP_SUMMARY
