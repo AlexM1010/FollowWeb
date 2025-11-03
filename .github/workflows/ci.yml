@@ -117,12 +117,12 @@ jobs:
     
     - name: Run code formatting check
       run: |
-        ruff format --check FollowWeb_Visualizor tests --diff --extend-exclude="*.ipynb"
+        ruff format --check FollowWeb_Visualizor tests --diff
       continue-on-error: false
     
     - name: Run linting
       run: |
-        ruff check FollowWeb_Visualizor tests --output-format=github --extend-exclude="*.ipynb"
+        ruff check FollowWeb_Visualizor tests --output-format=github
       continue-on-error: false
     
     - name: Run type checking
