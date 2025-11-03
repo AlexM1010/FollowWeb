@@ -5,11 +5,22 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  schedule:
+    # Run tests weekly on Sundays at 2 AM UTC to catch dependency issues
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    # Allow manual triggering of the workflow
+
+# Cancel in-progress runs for the same workflow on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: FollowWeb
@@ -19,9 +30,24 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9', '3.10', '3.11', '3.12']
+        include:
+          # Test with development versions on latest OS
+          - os: ubuntu-latest
+            python-version: '3.13-dev'
+            experimental: true
+        # exclude:
+          # Exclude problematic combinations if any arise
+          # - os: windows-latest
+          #   python-version: '3.13-dev'
+    
+    continue-on-error: ${{ matrix.experimental == true }}
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # Fetch full history for better coverage analysis
+        fetch-depth: 0
     
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -30,29 +56,55 @@ jobs:
         cache: 'pip'
         cache-dependency-path: 'FollowWeb/requirements*.txt'
     
+    - name: Display Python version and environment info
+      run: |
+        python --version
+        python -c "import sys; print(f'Python executable: {sys.executable}')"
+        python -c "import platform; print(f'Platform: {platform.platform()}')"
+        pip --version
+    
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip setuptools wheel
         # Install dependencies from requirements.txt (handles conditional dependencies properly)
         python -m pip install -r requirements.txt
         python -m pip install -r requirements-test.txt
+        # Install package in development mode
+        python -m pip install -e .
+      shell: bash
+    
+    - name: Verify installation
+      run: |
+        python -c "import FollowWeb_Visualizor; print('Package imported successfully')"
+        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; print(f'nx-parallel available: {is_nx_parallel_available()}')"
     
     - name: Run linting
       run: |
-        ruff check FollowWeb_Visualizor tests
+        ruff check FollowWeb_Visualizor tests --output-format=github
       continue-on-error: false
     
     - name: Run type checking
       run: |
-        mypy FollowWeb_Visualizor
+        mypy FollowWeb_Visualizor --show-error-codes
       continue-on-error: true
     
     - name: Run tests with coverage
       run: |
-        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html
       continue-on-error: false
       env:
         MPLBACKEND: Agg
+        PYTHONPATH: ${{ github.workspace }}/FollowWeb
+    
+    - name: Upload coverage reports
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-reports
+        path: |
+          FollowWeb/coverage.xml
+          FollowWeb/htmlcov/
+        retention-days: 7
     
     - name: Upload coverage to Codecov
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
@@ -61,21 +113,72 @@ jobs:
         file: ./FollowWeb/coverage.xml
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
+        flags: unittests
+        name: codecov-umbrella
+        verbose: true
 
-  format-check:
-    name: Format Check
+  security:
+    name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: FollowWeb
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install bandit[toml] safety
+    
+    - name: Run Bandit security linter
+      run: |
+        bandit -r FollowWeb_Visualizor -f json -o bandit-report.json || true
+        bandit -r FollowWeb_Visualizor
+      continue-on-error: true
+    
+    - name: Run Safety check for known vulnerabilities
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+      continue-on-error: true
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          FollowWeb/bandit-report.json
+          FollowWeb/safety-report.json
+        retention-days: 7
+
+  format-check:
+    name: Code Quality & Format Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: FollowWeb
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
@@ -83,64 +186,130 @@ jobs:
         python -m pip install -r requirements.txt
         python -m pip install -r requirements-test.txt
     
-    - name: Check code formatting
+    - name: Check code formatting with ruff
       run: |
-        ruff format --check FollowWeb_Visualizor tests
-        ruff check FollowWeb_Visualizor tests
+        ruff format --check FollowWeb_Visualizor tests --diff
+    
+    - name: Run ruff linting
+      run: |
+        ruff check FollowWeb_Visualizor tests --output-format=github
+    
+    - name: Check import sorting
+      run: |
+        ruff check --select I FollowWeb_Visualizor tests
 
   build:
-    name: Build Package
+    name: Build & Package
     runs-on: ubuntu-latest
-    needs: [test, format-check]
+    needs: [test, format-check, security]
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: FollowWeb
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for proper versioning
     
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install build dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install build
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install build twine check-manifest
+    
+    - name: Verify package manifest
+      run: |
+        check-manifest --verbose
     
     - name: Build package
-      run: python -m build
+      run: |
+        python -m build --sdist --wheel --outdir dist/
+    
+    - name: Verify package integrity
+      run: |
+        twine check dist/*
+        
+    - name: Display package info
+      run: |
+        ls -la dist/
+        python -m zipfile -l dist/*.whl || true
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: dist
+        name: python-package-distributions
         path: FollowWeb/dist/
         retention-days: 30
 
   performance:
-    name: Performance Tests
+    name: Performance & Benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: FollowWeb
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
     - name: Set up Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
         python -m pip install -r requirements-test.txt
+        python -m pip install -e .
     
     - name: Run performance tests
-      run: python tests/run_tests.py performance
+      run: |
+        python tests/run_tests.py performance
       env:
         MPLBACKEND: Agg
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results
+        path: FollowWeb/.benchmarks/
+        retention-days: 30
+  
+  # Summary job that depends on all others
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [test, security, format-check, build, performance]
+    if: always()
+    
+    steps:
+    - name: Check all jobs status
+      run: |
+        if [[ "${{ needs.test.result }}" != "success" ]]; then
+          echo "❌ Tests failed"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.format-check.result }}" != "success" ]]; then
+          echo "❌ Code quality checks failed"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.build.result }}" != "success" ]]; then
+          echo "❌ Package build failed"
+          exit 1
+        fi
+        
+        echo "✅ All critical jobs passed successfully!"
