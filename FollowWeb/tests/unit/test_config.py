@@ -5,7 +5,7 @@ Tests configuration validation, ConfigurationManager functionality,
 and error handling for all configuration components.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -193,14 +193,14 @@ class TestStaticImageConfig:
 class TestConfigurationValidation:
     """Test high-level configuration validation functions."""
 
-    def test_default_config_validation(self, default_config: Dict[str, Any]):
+    def test_default_config_validation(self, default_config: dict[str, Any]):
         """Test that default configuration is valid."""
         config_manager = get_configuration_manager()
         config_obj = load_config_from_dict(default_config)
         result = config_manager.validate_configuration(config_obj)
         assert result.is_valid  # Should not raise
 
-    def test_invalid_strategy_in_dict_rejection(self, default_config: Dict[str, Any]):
+    def test_invalid_strategy_in_dict_rejection(self, default_config: dict[str, Any]):
         """Test handling of strategy in configuration dict."""
         config = default_config.copy()
         config["strategy"] = "reciprocal_k-core"
@@ -209,7 +209,7 @@ class TestConfigurationValidation:
         config_obj = load_config_from_dict(config)
         assert config_obj.strategy == "reciprocal_k-core"
 
-    def test_missing_ego_username_rejection(self, default_config: Dict[str, Any]):
+    def test_missing_ego_username_rejection(self, default_config: dict[str, Any]):
         """Test rejection when ego_username is missing for ego_alter_k-core."""
         config = default_config.copy()
         config["strategy"] = "ego_alter_k-core"
@@ -219,14 +219,14 @@ class TestConfigurationValidation:
         with pytest.raises(ValueError, match="ego_username is required"):
             load_config_from_dict(config)
 
-    def test_empty_k_values_handling(self, default_config: Dict[str, Any]):
+    def test_empty_k_values_handling(self, default_config: dict[str, Any]):
         """Test handling of empty k_values dictionary."""
         config = default_config.copy()
         config["k_values"]["strategy_k_values"] = {}
 
         load_config_from_dict(config)  # Should not raise
 
-    def test_basic_k_value_handling(self, default_config: Dict[str, Any]):
+    def test_basic_k_value_handling(self, default_config: dict[str, Any]):
         """Test basic k-value configuration handling (comprehensive k-value testing in test_k_values.py)."""
         config = default_config.copy()
         config["k_values"]["strategy_k_values"]["k-core"] = (
@@ -301,12 +301,12 @@ class TestOutputConfig:
 class TestConfigurationRoundTrip:
     """Test configuration serialization and deserialization."""
 
-    def test_default_config_round_trip(self, default_config: Dict[str, Any]):
+    def test_default_config_round_trip(self, default_config: dict[str, Any]):
         """Test round-trip of default configuration."""
         load_config_from_dict(default_config)
         # Configuration is already validated by load_config_from_dict
 
-    def test_modified_config_round_trip(self, default_config: Dict[str, Any]):
+    def test_modified_config_round_trip(self, default_config: dict[str, Any]):
         """Test round-trip of modified configuration."""
         config = default_config.copy()
         config["pipeline"]["strategy"] = "reciprocal_k-core"
@@ -318,7 +318,7 @@ class TestConfigurationRoundTrip:
         load_config_from_dict(config)
         # Configuration is already validated by load_config_from_dict
 
-    def test_output_config_round_trip(self, default_config: Dict[str, Any]):
+    def test_output_config_round_trip(self, default_config: dict[str, Any]):
         """Test round-trip of output configuration options."""
         config = default_config.copy()
         config["output_control"] = {
@@ -337,7 +337,7 @@ class TestConfigurationRoundTrip:
         assert config_obj.output_control.generate_png is False
         assert config_obj.output_control.generate_reports is True
 
-    def test_spring_layout_default_config(self, default_config: Dict[str, Any]):
+    def test_spring_layout_default_config(self, default_config: dict[str, Any]):
         """Test that spring layout is default in configuration."""
         config_obj = load_config_from_dict(default_config)
         assert config_obj.visualization.static_image.layout == "spring"

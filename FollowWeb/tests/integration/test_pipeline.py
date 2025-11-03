@@ -7,7 +7,7 @@ and error handling across module boundaries.
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -20,7 +20,7 @@ class TestPipelineExecution:
 
     @pytest.mark.integration
     def test_k_core_strategy_execution(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test k-core strategy pipeline execution with ConfigurationManager."""
         if not sample_data_exists:
@@ -43,7 +43,7 @@ class TestPipelineExecution:
 
     @pytest.mark.integration
     def test_reciprocal_k_core_strategy_execution(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test reciprocal k-core strategy pipeline execution with ConfigurationManager."""
         if not sample_data_exists:
@@ -64,7 +64,7 @@ class TestPipelineExecution:
     @pytest.mark.integration
     @pytest.mark.slow
     def test_ego_alter_strategy_execution(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test ego-alter strategy pipeline execution."""
         if not sample_data_exists:
@@ -99,7 +99,7 @@ class TestOutputGeneration:
 
     @pytest.mark.integration
     def test_html_output_generation(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test HTML output file generation."""
         if not sample_data_exists:
@@ -124,7 +124,7 @@ class TestOutputGeneration:
     @pytest.mark.integration
     @pytest.mark.slow
     def test_png_output_generation(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test PNG output file generation."""
         if not sample_data_exists:
@@ -152,7 +152,7 @@ class TestOutputGeneration:
     @pytest.mark.integration
     @pytest.mark.slow
     def test_metrics_report_generation(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test metrics report text file generation."""
         if not sample_data_exists:
@@ -187,7 +187,7 @@ class TestPipelineErrorHandling:
     """Test pipeline error handling."""
 
     @pytest.mark.integration
-    def test_nonexistent_input_file_handling(self, fast_config: Dict[str, Any]):
+    def test_nonexistent_input_file_handling(self, fast_config: dict[str, Any]):
         """Test handling of non-existent input file."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -202,7 +202,7 @@ class TestPipelineErrorHandling:
 
     @pytest.mark.integration
     def test_invalid_json_file_handling(
-        self, fast_config: Dict[str, Any], invalid_json_file: str
+        self, fast_config: dict[str, Any], invalid_json_file: str
     ):
         """Test handling of invalid JSON file."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
@@ -218,7 +218,7 @@ class TestPipelineErrorHandling:
 
     @pytest.mark.integration
     def test_empty_graph_handling(
-        self, fast_config: Dict[str, Any], empty_json_file: str
+        self, fast_config: dict[str, Any], empty_json_file: str
     ):
         """Test handling of empty graph."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
@@ -233,7 +233,7 @@ class TestPipelineErrorHandling:
         assert success is False
 
     @pytest.mark.integration
-    def test_invalid_configuration_handling(self, fast_config: Dict[str, Any]):
+    def test_invalid_configuration_handling(self, fast_config: dict[str, Any]):
         """Test handling of invalid configuration."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -253,7 +253,7 @@ class TestPipelineConfiguration:
 
     @pytest.mark.integration
     def test_skip_analysis_configuration(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test skip analysis configuration option."""
         if not sample_data_exists:
@@ -280,7 +280,7 @@ class TestPipelineConfiguration:
 
     @pytest.mark.integration
     def test_single_k_value_configuration(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test pipeline with single k-value configuration (comprehensive k-value testing in test_k_values.py)."""
         if not sample_data_exists:
@@ -308,7 +308,7 @@ class TestPipelineConfiguration:
 
     @pytest.mark.integration
     def test_visualization_configuration_options(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test different visualization configuration options."""
         if not sample_data_exists:
@@ -332,7 +332,7 @@ class TestPipelineConfiguration:
     @pytest.mark.integration
     @pytest.mark.slow
     def test_static_image_layout_options(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test different static image layout algorithms."""
         if not sample_data_exists:
@@ -356,7 +356,7 @@ class TestPipelineConfiguration:
 
     @pytest.mark.integration
     def test_scaling_algorithm_options(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test different scaling algorithms."""
         if not sample_data_exists:
@@ -383,7 +383,7 @@ class TestTimeLoggingIntegration:
 
     @pytest.mark.integration
     def test_time_logging_enabled(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test pipeline with time logging enabled."""
         if not sample_data_exists:
@@ -418,7 +418,7 @@ class TestTimeLoggingIntegration:
 
     @pytest.mark.integration
     def test_time_logging_disabled(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test pipeline with time logging disabled."""
         if not sample_data_exists:
@@ -458,7 +458,7 @@ class TestCustomOutputDirectoryIntegration:
     @pytest.mark.integration
     def test_custom_output_directory_absolute(
         self,
-        fast_config: Dict[str, Any],
+        fast_config: dict[str, Any],
         sample_data_exists: bool,
         temp_output_dir: str,
     ):
@@ -487,7 +487,7 @@ class TestCustomOutputDirectoryIntegration:
     @pytest.mark.integration
     def test_custom_output_directory_relative(
         self,
-        fast_config: Dict[str, Any],
+        fast_config: dict[str, Any],
         sample_data_exists: bool,
         temp_output_dir: str,
     ):
@@ -525,7 +525,7 @@ class TestCustomOutputDirectoryIntegration:
     @pytest.mark.integration
     def test_automatic_directory_creation(
         self,
-        fast_config: Dict[str, Any],
+        fast_config: dict[str, Any],
         sample_data_exists: bool,
         temp_output_dir: str,
     ):
@@ -562,7 +562,7 @@ class TestSpringLayoutIntegration:
         reason="PNG generation tests can be resource-intensive on Windows CI",
     )
     def test_spring_layout_default(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that spring layout is used by default for PNG generation."""
         if not sample_data_exists:
@@ -588,7 +588,7 @@ class TestSpringLayoutIntegration:
     @pytest.mark.integration
     @pytest.mark.slow
     def test_spring_layout_explicit(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test explicit spring layout configuration."""
         if not sample_data_exists:
@@ -617,7 +617,7 @@ class TestPipelineSuccessValidation:
 
     @pytest.mark.integration
     def test_pipeline_success_requires_all_enabled_phases(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that pipeline only succeeds if all enabled phases complete successfully."""
         if not sample_data_exists:
@@ -646,7 +646,7 @@ class TestPipelineSuccessValidation:
 
     @pytest.mark.integration
     def test_pipeline_fails_when_strategy_phase_fails(
-        self, fast_config: Dict[str, Any]
+        self, fast_config: dict[str, Any]
     ):
         """Test that pipeline fails when strategy phase fails."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
@@ -668,7 +668,7 @@ class TestPipelineSuccessValidation:
 
     @pytest.mark.integration
     def test_pipeline_handles_directory_creation_gracefully(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that pipeline handles directory creation gracefully."""
         if not sample_data_exists:
@@ -700,7 +700,7 @@ class TestPipelineSuccessValidation:
 
     @pytest.mark.integration
     def test_pipeline_succeeds_with_skipped_phases(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that pipeline succeeds when some phases are skipped but enabled phases succeed."""
         if not sample_data_exists:
@@ -730,7 +730,7 @@ class TestPipelineSuccessValidation:
 
     @pytest.mark.integration
     def test_analysis_phase_component_failure_handling(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that analysis phase properly handles individual component failures."""
         if not sample_data_exists:
@@ -755,7 +755,7 @@ class TestPipelineSuccessValidation:
 
     @pytest.mark.integration
     def test_visualization_phase_partial_output_failure(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that visualization phase fails if any output format fails."""
         if not sample_data_exists:
@@ -790,7 +790,7 @@ class TestEnhancedLegendIntegration:
 
     @pytest.mark.integration
     def test_enhanced_html_legend_generation(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that enhanced HTML legend is generated."""
         if not sample_data_exists:
@@ -825,7 +825,7 @@ class TestEnhancedLegendIntegration:
 
     @pytest.mark.integration
     def test_legend_with_edge_thickness_scale(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that HTML legend includes edge thickness information."""
         if not sample_data_exists:
@@ -865,7 +865,7 @@ class TestLoadingIndicatorIntegration:
     @pytest.mark.integration
     @pytest.mark.slow
     def test_loading_indicators_with_long_operations(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test that loading indicators work with operations that may take time."""
         if not sample_data_exists:
@@ -899,7 +899,7 @@ class TestLoadingIndicatorIntegration:
 
     @pytest.mark.integration
     def test_progress_tracking_accuracy(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test progress tracking accuracy during pipeline execution."""
         if not sample_data_exists:

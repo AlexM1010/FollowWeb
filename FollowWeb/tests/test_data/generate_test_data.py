@@ -12,14 +12,14 @@ import hashlib
 import json
 import random
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 
 
-def create_username_mapping(all_usernames: List[str]) -> Dict[str, str]:
+def create_username_mapping(all_usernames: list[str]) -> dict[str, str]:
     """
     Create a mapping from original usernames to unique fake names.
 
@@ -116,7 +116,7 @@ def create_username_mapping(all_usernames: List[str]) -> Dict[str, str]:
     for username in sorted_usernames:
         # Generate hash for this username
         hash_input = f"followweb_test_{username}".encode()
-        hash_hex = hashlib.md5(hash_input).hexdigest()
+        hash_hex = hashlib.md5(hash_input, usedforsecurity=False).hexdigest()
 
         # Use hash to select first and last name
         hash_int = int(hash_hex, 16)
@@ -134,7 +134,7 @@ def create_username_mapping(all_usernames: List[str]) -> Dict[str, str]:
     return username_mapping
 
 
-def load_original_data(filepath: str) -> List[Dict[str, Any]]:
+def load_original_data(filepath: str) -> list[dict[str, Any]]:
     """Load the original followers_following.json data."""
     try:
         with open(filepath, encoding="utf-8") as f:
@@ -149,7 +149,7 @@ def load_original_data(filepath: str) -> List[Dict[str, Any]]:
         return []
 
 
-def analyze_network_structure(data: List[Dict[str, Any]]) -> Dict[str, Any]:
+def analyze_network_structure(data: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze the structure of the network for statistics using pandas/numpy."""
     if not data:
         return {}
@@ -184,7 +184,7 @@ def analyze_network_structure(data: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def analyze_graph_structure(data: List[Dict[str, Any]]) -> Dict[str, Any]:
+def analyze_graph_structure(data: list[dict[str, Any]]) -> dict[str, Any]:
     """Analyze detailed graph structure including connectivity and components using NetworkX efficiently."""
     if not data:
         return {}
@@ -271,8 +271,8 @@ def analyze_graph_structure(data: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def create_anonymized_dataset(
-    data: List[Dict[str, Any]], max_users: int = None
-) -> List[Dict[str, Any]]:
+    data: list[dict[str, Any]], max_users: int = None
+) -> list[dict[str, Any]]:
     """
     Create an anonymized dataset with optional size limit.
 
@@ -332,7 +332,7 @@ def create_anonymized_dataset(
     return result
 
 
-def validate_dataset(data: List[Dict[str, Any]]) -> bool:
+def validate_dataset(data: list[dict[str, Any]]) -> bool:
     """Validate that the dataset has proper structure."""
     if not data:
         return False
@@ -350,7 +350,7 @@ def validate_dataset(data: List[Dict[str, Any]]) -> bool:
     return True
 
 
-def save_dataset(data: List[Dict[str, Any]], filepath: str, description: str):
+def save_dataset(data: list[dict[str, Any]], filepath: str, description: str):
     """Save dataset to file with validation."""
     if not validate_dataset(data):
         print(f"Error: Invalid dataset structure for {description}")
@@ -373,8 +373,8 @@ def save_dataset(data: List[Dict[str, Any]], filepath: str, description: str):
 
 
 def create_network_preserving_sample(
-    data: List[Dict[str, Any]], target_size: int
-) -> List[Dict[str, Any]]:
+    data: list[dict[str, Any]], target_size: int
+) -> list[dict[str, Any]]:
     """
     Create a sample that preserves network structure using advanced NetworkX sampling methods.
 

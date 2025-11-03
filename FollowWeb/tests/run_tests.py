@@ -11,7 +11,7 @@ import os
 import platform
 import subprocess
 import sys
-from typing import List, Optional
+from typing import Optional
 
 import psutil
 
@@ -130,7 +130,7 @@ def run_benchmarks() -> int:
         return 1
 
 
-def run_all_tests_optimally(extra_args: List[str]) -> int:
+def run_all_tests_optimally(extra_args: list[str]) -> int:
     """Run all tests with optimal execution: parallel tests first, then sequential benchmarks."""
 
     print("Running all tests with optimal execution strategy...")
@@ -188,7 +188,7 @@ def run_all_tests_optimally(extra_args: List[str]) -> int:
         return 1
 
 
-def run_tests_safely(test_args: List[str], test_type: Optional[str] = None) -> int:
+def run_tests_safely(test_args: list[str], test_type: Optional[str] = None) -> int:
     """Run tests with safe resource management."""
 
     # Detect test type from arguments if not specified

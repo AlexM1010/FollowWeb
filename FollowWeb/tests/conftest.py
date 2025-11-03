@@ -10,8 +10,9 @@ import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Dict, Generator
+from typing import Any
 
 import pytest
 
@@ -25,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _dataset_summary_cache = None
 
 
-def _load_dataset_summary() -> Dict[str, Any]:
+def _load_dataset_summary() -> dict[str, Any]:
     """Load and cache dataset summary for efficient access."""
     global _dataset_summary_cache
 
@@ -49,7 +50,7 @@ def _load_dataset_summary() -> Dict[str, Any]:
         return _dataset_summary_cache
 
 
-def calculate_appropriate_k_values(dataset_name: str = "small_real") -> Dict[str, Any]:
+def calculate_appropriate_k_values(dataset_name: str = "small_real") -> dict[str, Any]:
     """
     Calculate appropriate k-values based on dataset summary statistics.
 
@@ -124,7 +125,7 @@ def calculate_appropriate_k_values(dataset_name: str = "small_real") -> Dict[str
     }
 
 
-def get_scalability_k_values(dataset_name: str = "full_anonymized") -> Dict[str, Any]:
+def get_scalability_k_values(dataset_name: str = "full_anonymized") -> dict[str, Any]:
     """
     Get higher k-values for testing future scalability.
 
@@ -265,7 +266,7 @@ def test_data_exists(small_real_data: str) -> bool:
 
 
 @pytest.fixture
-def default_config() -> Dict[str, Any]:
+def default_config() -> dict[str, Any]:
     """Fixture providing default configuration using ConfigurationManager."""
     config_manager = get_configuration_manager()
     config = config_manager.load_configuration()
@@ -396,8 +397,8 @@ def ci_timeout(ci_environment):
 
 @pytest.fixture
 def ci_optimized_config(
-    default_config: Dict[str, Any], temp_output_dir: str, ci_environment: Dict[str, Any]
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str, ci_environment: dict[str, Any]
+) -> dict[str, Any]:
     """Fixture providing CI-optimized configuration with appropriate timeouts and resource limits."""
     from pathlib import Path
 
@@ -583,8 +584,8 @@ def ci_resource_manager(ci_environment):
 
 @pytest.fixture
 def fast_config(
-    default_config: Dict[str, Any], temp_output_dir: str, sample_data_file: str
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str, sample_data_file: str
+) -> dict[str, Any]:
     """Fixture providing configuration optimized for fast testing using tiny test dataset."""
     from pathlib import Path
 
@@ -793,7 +794,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
-def tiny_config(default_config: Dict[str, Any], temp_output_dir: str) -> Dict[str, Any]:
+def tiny_config(default_config: dict[str, Any], temp_output_dir: str) -> dict[str, Any]:
     """Fixture providing configuration for very fast testing using tiny test dataset."""
     from pathlib import Path
 
@@ -813,8 +814,8 @@ def tiny_config(default_config: Dict[str, Any], temp_output_dir: str) -> Dict[st
 
 @pytest.fixture
 def small_config(
-    default_config: Dict[str, Any], temp_output_dir: str
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str
+) -> dict[str, Any]:
     """Fixture providing configuration for fast testing using small test dataset."""
     from pathlib import Path
 
@@ -834,8 +835,8 @@ def small_config(
 
 @pytest.fixture
 def medium_config(
-    default_config: Dict[str, Any], temp_output_dir: str
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str
+) -> dict[str, Any]:
     """Fixture providing configuration for medium-scale testing using medium test dataset."""
     from pathlib import Path
 
@@ -855,8 +856,8 @@ def medium_config(
 
 @pytest.fixture
 def large_config(
-    default_config: Dict[str, Any], temp_output_dir: str
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str
+) -> dict[str, Any]:
     """Fixture providing configuration for large-scale testing using large test dataset."""
     from pathlib import Path
 
@@ -876,8 +877,8 @@ def large_config(
 
 @pytest.fixture
 def comprehensive_config(
-    default_config: Dict[str, Any], temp_output_dir: str
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str
+) -> dict[str, Any]:
     """Fixture providing configuration for comprehensive testing using full test dataset."""
     from pathlib import Path
 
@@ -897,8 +898,8 @@ def comprehensive_config(
 
 @pytest.fixture
 def scalability_config(
-    default_config: Dict[str, Any], temp_output_dir: str
-) -> Dict[str, Any]:
+    default_config: dict[str, Any], temp_output_dir: str
+) -> dict[str, Any]:
     """Fixture providing configuration for testing future scalability with higher k-values."""
     from pathlib import Path
 

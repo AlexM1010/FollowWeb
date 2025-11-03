@@ -357,9 +357,10 @@ class TestMetricsReporter:
         }
 
         timing_data = {"strategy": 1.5, "analysis": 2.3, "visualization": 0.8}
+        initial_graph_stats = {"nodes": 5, "edges": 8}
 
         report = reporter.generate_analysis_report(
-            graph, config, "k-core", 10, timing_data
+            graph, config, "k-core", 10, timing_data, initial_graph_stats
         )
 
         assert isinstance(report, str)
