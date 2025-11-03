@@ -100,8 +100,6 @@ jobs:
         # Install dependencies from requirements.txt (handles conditional dependencies properly)
         python -m pip install -r requirements.txt
         python -m pip install -r requirements-test.txt
-        # Install security updates
-        python -m pip install -r requirements-security.txt
         # Install missing type stubs for mypy
         python -m pip install types-python-dateutil types-PyYAML types-decorator
         # Install package in development mode
