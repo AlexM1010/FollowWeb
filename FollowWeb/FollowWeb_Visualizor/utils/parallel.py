@@ -18,8 +18,8 @@ from typing import Any, Dict, Optional, Tuple
 try:
     # Check both availability and Python version requirement
     NX_PARALLEL_AVAILABLE = (
-        sys.version_info >= (3, 11) and
-        importlib.util.find_spec("nx_parallel") is not None
+        sys.version_info >= (3, 11)
+        and importlib.util.find_spec("nx_parallel") is not None
     )
 
     # Actually import if available

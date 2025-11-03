@@ -323,7 +323,7 @@ def generate_output_filename(
     else:
         # On non-Windows systems, no colons allowed in prefix
         if ":" in prefix:
-            raise ValueError("prefix contains invalid filesystem character")
+            raise ValueError("prefix contains invalid filesystem character: :")
 
     # Additional validation for Windows reserved names and path separators
     if os.name == "nt":  # Windows
