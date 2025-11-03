@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "followweb-visualizor"
-version = "1.0.0"
+version = "1.0.1"
 description = "Social network analysis and visualization tool for Instagram follower/following relationships with community detection and influence metrics"
 readme = "README.md"
 license = "MIT"

@@ -5,6 +5,13 @@ All notable changes to FollowWeb Network Analysis Package will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-11-03
+
+### Fixed
+- **Update Package Command Line Arguments** - Updated documented python calls to followweb calls
+- **Package Publishing**: Resolved PyPI publishing issue by incrementing version number
+- **Release Workflow**: Fixed duplicate version conflict preventing successful package upload
+
 ## [1.0.0] - 2024-11-03
 
 ### Package Release - Complete Transformation from Script to Professional Package
