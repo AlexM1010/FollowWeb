@@ -3,7 +3,7 @@ Data models for analysis results and reporting.
 """
 
 # Standard library imports
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
