@@ -9,10 +9,17 @@ with error handling and batch processing optimization.
 import json
 import logging
 import os
+import sys
 
 # Third-party imports
 import networkx as nx
-import nx_parallel  # noqa: F401
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..core.exceptions import DataProcessingError

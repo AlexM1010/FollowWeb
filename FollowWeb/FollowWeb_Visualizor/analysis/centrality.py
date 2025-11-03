@@ -8,16 +8,22 @@ including degree, betweenness, and eigenvector centrality.
 # Standard library imports
 import logging
 import math
+import sys
 from typing import Any, Dict
 
 # Third-party imports
 import networkx as nx
-import nx_parallel  # noqa: F401
 import pandas as pd
 
-from ..utils import ProgressTracker
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
+from ..utils import ProgressTracker
 from ..utils.parallel import get_analysis_parallel_config
 
 

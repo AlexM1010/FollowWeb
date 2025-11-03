@@ -6,16 +6,26 @@ for NetworkX operations, testing, and visualization tasks.
 """
 
 # Standard library imports
+import importlib.util
 import logging
 import os
+
+# Third-party imports for parallel processing
+import sys
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
-# Third-party imports for parallel processing
 try:
-    import importlib.util
+    # Check both availability and Python version requirement
+    NX_PARALLEL_AVAILABLE = (
+        sys.version_info >= (3, 11) and
+        importlib.util.find_spec("nx_parallel") is not None
+    )
 
-    NX_PARALLEL_AVAILABLE = importlib.util.find_spec("nx_parallel") is not None
+    # Actually import if available
+    if NX_PARALLEL_AVAILABLE:
+        import nx_parallel  # noqa: F401
+
 except ImportError:
     NX_PARALLEL_AVAILABLE = False
 
@@ -531,3 +541,6 @@ def get_optimal_worker_count(
     # Get configuration from centralized parallel processing system
     config = get_parallel_manager().get_parallel_config("testing")
     return config.cores_used
+
+
+

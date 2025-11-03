@@ -8,13 +8,20 @@ connectivity metrics, and path-finding operations.
 # Standard library imports
 import logging
 import random
+import sys
 import traceback
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 # Third-party imports
 import networkx as nx
-import nx_parallel  # noqa: F401
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..utils import ProgressTracker

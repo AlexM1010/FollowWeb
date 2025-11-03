@@ -7,13 +7,20 @@ operations including community detection and centrality calculations.
 
 # Standard library imports
 import logging
+import sys
 import time
 from typing import Any, Dict, Optional
 
 # Third-party imports
 import networkx as nx
-import nx_parallel  # noqa: F401
 from networkx.algorithms import community
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..core.exceptions import DataProcessingError

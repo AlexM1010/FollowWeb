@@ -9,14 +9,21 @@ import json
 import logging
 import math
 import os
+import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
-import nx_parallel  # noqa: F401
 from pyvis.network import Network
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 from ..core.types import VisualizationMetrics
 from ..data.cache import get_cached_undirected_graph

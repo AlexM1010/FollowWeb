@@ -7,10 +7,17 @@ reciprocal filtering, ego-alter graph creation, and k-core pruning operations.
 
 # Standard library imports
 import logging
+import sys
 
 # Third-party imports
 import networkx as nx
-import nx_parallel  # noqa: F401
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..utils.parallel import get_analysis_parallel_config, log_parallel_usage
