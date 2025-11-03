@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 # Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 
 # Local imports
 from ..utils import ProgressTracker

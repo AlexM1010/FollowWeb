@@ -64,3 +64,4 @@ Output/
 TestOutput*.txt
 tests/Output/
 *.log
+*.cpython

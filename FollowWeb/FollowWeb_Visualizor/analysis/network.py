@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 
 # Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 from networkx.algorithms import community
 
 # Local imports

@@ -10,6 +10,7 @@ import time
 from typing import Any, Dict, Tuple
 
 import networkx as nx
+import nx_parallel  # noqa: F401
 
 from ..core.types import ColorScheme, EdgeMetric, NodeMetric, VisualizationMetrics
 from ..data.cache import (

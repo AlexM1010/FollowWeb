@@ -106,6 +106,7 @@ class ParallelProcessingManager:
             try:
                 # Test basic functionality
                 import networkx as nx
+                import nx_parallel  # noqa: F401
 
                 test_graph = nx.path_graph(10)
                 _ = nx.degree_centrality(test_graph)

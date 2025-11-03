@@ -10,6 +10,7 @@ import logging
 
 # Third-party imports
 import networkx as nx
+import nx_parallel  # noqa: F401
 
 # Local imports
 from ..utils.parallel import get_analysis_parallel_config, log_parallel_usage
