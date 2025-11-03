@@ -1,0 +1,62 @@
+# FollowWeb Network Analysis - Unified Output Log
+# Generated: 2025-11-02 17:17:50
+# Emoji Level: full
+
+[17:17:50] 
+==================================================
+FOLLOWWEB NETWORK ANALYSIS PIPELINE
+==================================================
+[17:17:50] 🚀 FOLLOWWEB NETWORK ANALYSIS PIPELINE
+[17:17:50] 
+==================================================
+PIPELINE CONFIGURATION
+==================================================
+[17:17:50] Strategy: k-core
+[17:17:50] Analysis mode: full
+[17:17:50] 
+[17:17:50] ENABLED STAGES
+[17:17:50] --------------
+[17:17:50] ✅ Graph Loading & Filtering: True
+[17:17:50] ✅ Network Analysis: True
+[17:17:50] ✅ Visualization: True
+[17:17:50] 
+[17:17:50] ANALYSIS COMPONENTS
+[17:17:50] -------------------
+[17:17:50] ✅ Community detection: True
+[17:17:50] ✅ Centrality analysis: True
+[17:17:50] ✅ Path analysis: True
+[17:17:50] 
+[17:17:50] OUTPUT FORMATS
+[17:17:50] --------------
+[17:17:50] ✅ Interactive HTML: True
+[17:17:50] ✅ Static PNG: True
+[17:17:50] ✅ Text Reports: True
+[17:17:50] ✅ Timing logs: False
+[17:17:50] 
+[17:17:50] PARALLEL PROCESSING
+[17:17:50] ------------------
+[17:17:50] NetworkX optimization: nx-parallel active with backends: parallel
+[17:17:50] Available cores: 16
+[17:17:50] Environment: local
+[17:17:50] Parallel processing: Enabled (strategy: aggressive)
+[17:17:50] 
+[17:17:50] 
+======================================================================
+[17:17:50] PIPELINE COMPLETION SUMMARY
+[17:17:50] ======================================================================
+[17:17:50] 
+[17:17:50] STAGE EXECUTION SUMMARY
+[17:17:50] -----------------------
+[17:17:50]   ○ Strategy: not_started
+[17:17:50]   ○ Analysis: not_started
+[17:17:50]   ○ Visualization: not_started
+[17:17:50] 
+[17:17:50] EXECUTION TIMING
+[17:17:50] ----------------
+[17:17:50] 
+[17:17:50] 
+[17:17:50] ⚠️  Pipeline completed with issues: strategy, analysis, visualization phases did not complete successfully
+[17:17:50] ======================================================================
+[17:17:50] Clearing 1 cached items
+
+# Log completed: 2025-11-02 17:17:50

@@ -15,8 +15,9 @@ import logging
 import time
 from typing import Optional
 
-from .validation import validate_positive_integer
 from ..output.formatters import EmojiFormatter
+from .validation import validate_positive_integer
+
 
 class ProgressTracker:
     """
@@ -105,6 +106,7 @@ class ProgressTracker:
 
         # Initialize random bar state
         import random
+
         self.random = random.Random()
         self.bar_state = [False] * self.bar_width
 
@@ -120,7 +122,7 @@ class ProgressTracker:
         self.complete()
         return False
 
-    def _render_animation(self):
+    def _render_animation(self) -> None:
         """Render the animated progress bar."""
         elapsed = time.perf_counter() - self.start_time
 
@@ -144,7 +146,9 @@ class ProgressTracker:
             progress_line = f"    Progress: [{percent_complete:.0f}%] [{bar_display}] - Est. {remaining_str} remaining"
         else:
             elapsed_str = self._format_time(elapsed)
-            progress_line = f"    Progress: [??%] [{bar_display}] - Running for {elapsed_str}"
+            progress_line = (
+                f"    Progress: [??%] [{bar_display}] - Running for {elapsed_str}"
+            )
 
         # Clear previous line and show new animation state
         if self.current_line_length > 0:
@@ -237,7 +241,7 @@ class ProgressTracker:
             # Add spacing after timer message for consistent formatting
             self.logger.info("")
 
-    def reset(self, total: Optional[int] = None) -> None:
+    def reset(self, total: Optional[Optional[int]] = None) -> None:
         """
         Reset the tracker to start a new task (useful for reuse).
 

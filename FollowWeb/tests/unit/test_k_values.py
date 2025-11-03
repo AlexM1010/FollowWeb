@@ -145,7 +145,8 @@ class TestKValueValidation:
             k_values = k_values_config["strategy_k_values"]
 
             config = KValueConfig(
-                strategy_k_values=k_values, default_k_value=k_values_config["default_k_value"]
+                strategy_k_values=k_values,
+                default_k_value=k_values_config["default_k_value"],
             )
             assert config.default_k_value >= 0
             for _strategy, k_value in config.strategy_k_values.items():
@@ -163,7 +164,9 @@ class TestKValueValidation:
         scalability_k_values = get_scalability_k_values("full_anonymized")
         high_k = scalability_k_values["strategy_k_values"]["k-core"]
 
-        high_config = KValueConfig(strategy_k_values={"k-core": high_k}, default_k_value=high_k)
+        high_config = KValueConfig(
+            strategy_k_values={"k-core": high_k}, default_k_value=high_k
+        )
         assert high_config.default_k_value == high_k
 
     def test_invalid_k_values_rejected(self):

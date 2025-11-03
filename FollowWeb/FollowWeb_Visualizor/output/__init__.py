@@ -7,17 +7,17 @@ This module provides unified output management including:
 - Emoji formatters for consistent message formatting
 """
 
-from .formatters import EmojiFormatter, format_success, format_error, format_progress
+from .formatters import EmojiFormatter, format_error, format_progress, format_success
 from .logging import Logger, OutputConfig
-from .managers import OutputManager, MetricsReporter
+from .managers import MetricsReporter, OutputManager
 
 __all__ = [
     "EmojiFormatter",
-    "format_success", 
+    "format_success",
     "format_error",
     "format_progress",
     "Logger",
-    "OutputConfig", 
+    "OutputConfig",
     "OutputManager",
     "MetricsReporter",
 ]

@@ -105,7 +105,9 @@ class LegendGenerator:
         return legend_html
 
     def _format_node_size_legend(
-        self, graph: nx.DiGraph, shared_metrics: Optional[Optional[VisualizationMetrics] ] = None
+        self,
+        graph: nx.DiGraph,
+        shared_metrics: Optional[Optional[VisualizationMetrics]] = None,
     ) -> str:
         """
         Create formatted node size legend with actual diameter measurements and centrality ranges for HTML files only.
@@ -179,8 +181,8 @@ class LegendGenerator:
     def create_html_legend(
         self,
         graph: nx.DiGraph,
-        edge_metrics: Optional[Dict[Tuple[str, str], Dict[str, Any]] ] = None,
-        shared_metrics: Optional[Optional[VisualizationMetrics] ] = None,
+        edge_metrics: Optional[Dict[Tuple[str, str], Dict[str, Any]]] = None,
+        shared_metrics: Optional[Optional[VisualizationMetrics]] = None,
     ) -> str:
         """
         Creates an HTML legend for the interactive visualization.

@@ -20,7 +20,9 @@ class ValidationErrorHandler:
         """Initialize validation error handler."""
         self.logger = logger or logging.getLogger(__name__)
 
-    def collect_validation_errors(self, validators: List[Callable[[], str]]) -> List[str]:
+    def collect_validation_errors(
+        self, validators: List[Callable[[], str]]
+    ) -> List[str]:
         """
         Collect all validation errors.
 
@@ -100,7 +102,7 @@ class ConfigurationErrorHandler:
         return errors
 
     def handle_configuration_error(
-        self, error: Exception, config_file: Optional[Optional[str] ] = None
+        self, error: Exception, config_file: Optional[Optional[str]] = None
     ) -> str:
         """
         Handle configuration errors with helpful error messages.
@@ -280,7 +282,7 @@ def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> An
 
 
 def validate_string_format(
-    value: Any, param_name: str, allowed_suffixes: Optional[Optional[List[str]] ] = None
+    value: Any, param_name: str, allowed_suffixes: Optional[Optional[List[str]]] = None
 ) -> str:
     """
     Validate string format with optional suffix requirements.

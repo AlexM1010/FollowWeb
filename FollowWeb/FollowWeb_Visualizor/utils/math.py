@@ -7,7 +7,6 @@ numerical utilities used throughout the FollowWeb package.
 
 # Standard library imports
 import math
-from typing import Union
 
 # Local imports
 from .validation import validate_choice, validate_multiple_non_negative
@@ -156,7 +155,7 @@ def format_time_duration(seconds: float) -> str:
         ValueError: If seconds is negative
     """
     from .validation import validate_non_negative_number
-    
+
     validate_non_negative_number(seconds, "duration")
 
     # For durations under 60 seconds, display in seconds with one decimal place

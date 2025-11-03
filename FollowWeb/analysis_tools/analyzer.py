@@ -51,9 +51,7 @@ class AnalysisOrchestrator:
 
         # Generate comprehensive report
         print("Generating analysis report...")
-        report = self._generate_comprehensive_report(
-            source_results, test_results
-        )
+        report = self._generate_comprehensive_report(source_results, test_results)
 
         # Save report
         report_file = self._save_report(report)
@@ -674,9 +672,7 @@ class AnalysisOrchestrator:
     def _save_optimization_report(self, report: Dict) -> str:
         """Save optimization analysis report to file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_file = (
-            self.reports_dir / f"optimization_analysis_{timestamp}.json"
-        )
+        report_file = self.reports_dir / f"optimization_analysis_{timestamp}.json"
 
         # Create a simplified report for JSON serialization (exclude detailed file reports)
         simplified_report = {
@@ -705,14 +701,14 @@ class AnalysisOrchestrator:
         results["environment_checks"]["test_suite"] = self._check_test_suite_baseline()
 
         # Check analysis tools functionality
-        results["environment_checks"][
-            "analysis_tools"
-        ] = self._check_analysis_tools_ready()
+        results["environment_checks"]["analysis_tools"] = (
+            self._check_analysis_tools_ready()
+        )
 
         # Check critical files
-        results["environment_checks"][
-            "critical_files"
-        ] = self._check_critical_files_exist()
+        results["environment_checks"]["critical_files"] = (
+            self._check_critical_files_exist()
+        )
 
         # Check for blocking issues
         blocking_issues = self._check_cleanup_blocking_issues()
@@ -861,7 +857,7 @@ class AnalysisOrchestrator:
 
         # Try importing main package
         try:
-            import FollowWeb_Visualizor
+            import FollowWeb_Visualizor  # noqa: F401
         except ImportError as e:
             issues.append(f"Cannot import main package: {e}")
 

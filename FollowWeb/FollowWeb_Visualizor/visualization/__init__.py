@@ -5,19 +5,25 @@ This module provides visualization components for both interactive HTML and stat
 It includes metric calculation, rendering, and legend generation functionality.
 """
 
-from .metrics import MetricsCalculator, NodeMetric, EdgeMetric, ColorScheme, VisualizationMetrics
-from .renderers import InteractiveRenderer, StaticRenderer
-from .legends import LegendGenerator
 from .colors import get_community_colors, get_scaled_size
+from .legends import LegendGenerator
+from .metrics import (
+    ColorScheme,
+    EdgeMetric,
+    MetricsCalculator,
+    NodeMetric,
+    VisualizationMetrics,
+)
+from .renderers import InteractiveRenderer, StaticRenderer
 
 __all__ = [
     "MetricsCalculator",
-    "NodeMetric", 
+    "NodeMetric",
     "EdgeMetric",
     "ColorScheme",
     "VisualizationMetrics",
     "InteractiveRenderer",
-    "StaticRenderer", 
+    "StaticRenderer",
     "LegendGenerator",
     "get_community_colors",
     "get_scaled_size",

@@ -474,7 +474,9 @@ class MetricsReporter:
     only available in console output.
     """
 
-    def __init__(self, vis_config: Dict[str, Any], logger: Optional[Logger ] = None) -> None:
+    def __init__(
+        self, vis_config: Dict[str, Any], logger: Optional[Logger] = None
+    ) -> None:
         """
         Initialize metrics reporter.
 
@@ -492,7 +494,7 @@ class MetricsReporter:
         strategy: str,
         k_value: int,
         timing_data: Dict[str, float],
-        initial_graph_stats: Optional[Dict[str, int] ] = None,
+        initial_graph_stats: Optional[Dict[str, int]] = None,
     ) -> str:
         """
         Generate analysis report with all console information.

@@ -28,7 +28,6 @@ def extract_all_exports(tree: ast.AST) -> Set[str]:
             and isinstance(node.targets[0], ast.Name)
             and node.targets[0].id == "__all__"
         ):
-
             # Extract string literals from the list
             if isinstance(node.value, ast.List):
                 for item in node.value.elts:

@@ -13,9 +13,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from FollowWeb_Visualizor.output.formatters import EmojiFormatter
 from FollowWeb_Visualizor.output.logging import Logger
 from FollowWeb_Visualizor.output.managers import OutputConfig, OutputManager
-from FollowWeb_Visualizor.output.formatters import EmojiFormatter
 
 
 class TestOutputConfig:
@@ -38,9 +38,9 @@ class TestOutputConfig:
 
     def test_custom_config(self):
         """Test custom configuration values."""
-        with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
             temp_path = tmp.name
-        
+
         config = OutputConfig(
             console_output=False,
             text_file_output=True,
@@ -49,7 +49,7 @@ class TestOutputConfig:
             text_file_path=temp_path,
             append_mode=True,
         )
-        
+
         # Cleanup
         Path(temp_path).unlink(missing_ok=True)
 
@@ -247,8 +247,10 @@ class TestLogger:
     def test_error_handling_invalid_path(self):
         """Test error handling for invalid file paths."""
         # Create a path in a non-existent directory using cross-platform approach
-        invalid_path = Path(tempfile.gettempdir()) / "non_existent_dir" / "subdir" / "test.txt"
-        
+        invalid_path = (
+            Path(tempfile.gettempdir()) / "non_existent_dir" / "subdir" / "test.txt"
+        )
+
         config = OutputConfig(
             console_output=True,
             text_file_output=True,
@@ -261,7 +263,7 @@ class TestLogger:
         # Directory creation is now automatic, so the file handle should be created
         assert logger.text_file_handle is not None
         assert logger.config.text_file_output is True  # Should remain enabled
-        
+
         # Clean up the created file
         logger.close()
         if invalid_path.exists():
@@ -500,9 +502,7 @@ class TestOutputManager:
             # Mock renderer returns
             mock_html.generate_html.return_value = True
             mock_png.generate_png.return_value = True
-            mock_reporter.generate_analysis_report.return_value = (
-                "Test report"
-            )
+            mock_reporter.generate_analysis_report.return_value = "Test report"
             mock_reporter.save_metrics_file.return_value = True
 
             # Test output generation

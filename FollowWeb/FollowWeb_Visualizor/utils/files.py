@@ -21,7 +21,7 @@ from .validation import validate_non_empty_string, validate_path_string
 class ErrorRecoveryManager:
     """Manages error recovery patterns and retry logic."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize error recovery manager."""
         self.logger = logger or logging.getLogger(__name__)
 
@@ -68,7 +68,10 @@ class ErrorRecoveryManager:
         raise last_exception
 
     def safe_execute(
-        self, func: Callable, default_return: Any = None, log_errors: bool = True
+        self,
+        func: Callable,
+        default_return: Optional[Any] = None,
+        log_errors: bool = True,
     ) -> Any:
         """
         Execute a function safely, returning default value on error.
@@ -92,7 +95,7 @@ class ErrorRecoveryManager:
 class FileOperationHandler:
     """Handles common file operation error patterns."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize file operation handler."""
         self.logger = logger or logging.getLogger(__name__)
 
@@ -243,7 +246,7 @@ def handle_common_exceptions(func: Callable) -> Callable:
         Decorated function that handles common exceptions
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> None:
         logger = logging.getLogger(func.__module__)
 
         try:
@@ -265,7 +268,11 @@ def handle_common_exceptions(func: Callable) -> Callable:
 
 
 def generate_output_filename(
-    prefix: str, strategy: str, k_value: int, extension: str, run_id: str = None
+    prefix: str,
+    strategy: str,
+    k_value: int,
+    extension: str,
+    run_id: Optional[str] = None,
 ) -> str:
     """
     Generates a descriptive and unique output filename based on config and time.
@@ -288,8 +295,9 @@ def generate_output_filename(
     validate_non_empty_string(prefix, "prefix")
     validate_non_empty_string(strategy, "strategy")
     validate_non_empty_string(extension, "extension")
-    
+
     from .validation import validate_non_negative_integer
+
     validate_non_negative_integer(k_value, "k_value")
 
     # Validate characters for filesystem compatibility
@@ -448,7 +456,9 @@ def ensure_output_directory(output_path: str, create_if_missing: bool = True) ->
         except FileExistsError:
             # This shouldn't happen with exist_ok=True, but handle it gracefully
             if not os.path.isdir(abs_directory):
-                raise OSError("cannot create directory, file exists with same name") from None
+                raise OSError(
+                    "cannot create directory, file exists with same name"
+                ) from None
         except OSError as e:
             # Provide more specific error messages based on common issues
             if "No space left on device" in str(e):

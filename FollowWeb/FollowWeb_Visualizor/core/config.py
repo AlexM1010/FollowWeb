@@ -44,7 +44,9 @@ def validate_choice(value: Any, name: str, choices: List[Any]) -> None:
         raise ValueError(f"{name} must be one of {choices}, got {value}")
 
 
-def validate_ego_strategy_requirements(strategy: str, ego_username: Optional[str]) -> None:
+def validate_ego_strategy_requirements(
+    strategy: str, ego_username: Optional[str]
+) -> None:
     if strategy == "ego_alter_k-core" and not ego_username:
         raise ValueError("ego_username is required for ego_alter_k-core strategy")
 
@@ -54,7 +56,9 @@ def validate_image_dimensions(width: int, height: int) -> None:
         raise ValueError("Image dimensions must be positive")
 
 
-def validate_k_value_dict(k_values: Dict[str, int], name: str, valid_strategies: List[str]) -> None:
+def validate_k_value_dict(
+    k_values: Dict[str, int], name: str, valid_strategies: List[str]
+) -> None:
     for strategy, k_val in k_values.items():
         if strategy not in valid_strategies:
             raise ValueError(f"Invalid strategy in {name}: {strategy}")
@@ -77,7 +81,12 @@ def validate_positive_number(value: Any, name: str) -> None:
         raise ValueError(f"{name} must be positive number, got {value}")
 
 
-def validate_range(value: Union[int, float], name: str, min_val: Union[int, float], max_val: Union[int, float]) -> None:
+def validate_range(
+    value: Union[int, float],
+    name: str,
+    min_val: Union[int, float],
+    max_val: Union[int, float],
+) -> None:
     if not (min_val <= value <= max_val):
         raise ValueError(f"{name} must be between {min_val} and {max_val}, got {value}")
 
@@ -155,7 +164,7 @@ class AnalysisModeConfig:
 
     mode: AnalysisMode = AnalysisMode.FULL
     sampling_threshold: int = 5000
-    max_layout_iterations: Optional[Optional[int] ] = None
+    max_layout_iterations: Optional[Optional[int]] = None
     enable_fast_algorithms: bool = False
 
     def __post_init__(self) -> None:
@@ -335,8 +344,10 @@ class CircularLayoutConfig:
     """Circular layout configuration."""
 
     # Basic parameters
-    radius: Optional[Optional[float] ] = None  # Circle radius (None = auto)
-    center: Optional[Optional[Tuple[float, float]] ] = None  # Center position (None = origin)
+    radius: Optional[Optional[float]] = None  # Circle radius (None = auto)
+    center: Optional[Optional[Tuple[float, float]]] = (
+        None  # Center position (None = origin)
+    )
 
     # Arrangement
     start_angle: float = 0.0  # Starting angle in radians
@@ -372,7 +383,7 @@ class ShellLayoutConfig:
 
     # Shell assignment
     max_shells: int = 10  # Maximum number of shells
-    nodes_per_shell: Optional[Optional[int] ] = None  # Max nodes per shell (None = auto)
+    nodes_per_shell: Optional[Optional[int]] = None  # Max nodes per shell (None = auto)
 
     def __post_init__(self) -> None:
         """Validate shell layout configuration."""
@@ -454,7 +465,7 @@ class PipelineConfig:
 
     strategy: str = "k-core"
     skip_analysis: bool = False
-    ego_username: Optional[Optional[str] ] = None
+    ego_username: Optional[Optional[str]] = None
 
     def __post_init__(self) -> None:
         """Validate pipeline configuration after initialization."""
@@ -483,7 +494,7 @@ class FameAnalysisConfig:
     """Configuration for fame analysis parameters."""
 
     find_paths_to_all_famous: bool = True
-    contact_path_target: Optional[Optional[str] ] = None
+    contact_path_target: Optional[Optional[str]] = None
     min_followers_in_network: int = 5
     min_fame_ratio: float = 5.0
 
@@ -499,7 +510,7 @@ class FameAnalysisConfig:
 class OutputConfig:
     """Configuration for output generation."""
 
-    custom_output_directory: Optional[Optional[str] ] = None
+    custom_output_directory: Optional[Optional[str]] = None
     enable_time_logging: bool = False
 
     def __post_init__(self) -> None:
@@ -574,7 +585,7 @@ class FollowWebConfig:
 
     # Essential analysis settings
     strategy: str = "k-core"
-    ego_username: Optional[Optional[str] ] = None
+    ego_username: Optional[Optional[str]] = None
 
     def __post_init__(self) -> None:
         """Validate main configuration after initialization."""
@@ -906,7 +917,9 @@ class ConfigurationManager:
         }
 
     def load_configuration(
-        self, config_file: Optional[Optional[str] ] = None, cli_args: Optional[Optional[Dict] ] = None
+        self,
+        config_file: Optional[Optional[str]] = None,
+        cli_args: Optional[Optional[Dict]] = None,
     ) -> FollowWebConfig:
         """
         Load configuration from file and CLI arguments with validation.
@@ -1709,7 +1722,7 @@ class PipelineStagesController:
         self.logger.info(f"STAGE START: {stage_name.upper()} phase beginning")
 
     def log_stage_completion(
-        self, stage_name: str, success: bool, duration: Optional[float ] = None
+        self, stage_name: str, success: bool, duration: Optional[float] = None
     ) -> None:
         """
         Log the completion of a pipeline stage.
@@ -1731,7 +1744,7 @@ class PipelineStagesController:
             self.stage_status[stage_name] = "failed"
             self.logger.error(f"STAGE FAILURE: {stage_name.upper()} phase failed")
 
-    def log_stage_skip(self, stage_name: str, reason: Optional[str ] = None) -> None:
+    def log_stage_skip(self, stage_name: str, reason: Optional[str] = None) -> None:
         """
         Log that a pipeline stage was skipped.
 
@@ -1775,7 +1788,7 @@ class PipelineStagesController:
             self.logger.warning(f"Analysis component '{component_name}' failed")
 
     def log_analysis_component_skip(
-        self, component_name: str, reason: Optional[str ] = None
+        self, component_name: str, reason: Optional[str] = None
     ) -> None:
         """
         Log that an analysis component was skipped.
@@ -1863,7 +1876,9 @@ class AnalysisModeManager:
             },
         }
 
-    def get_mode_configuration(self, mode: Optional[AnalysisMode ] = None) -> Dict[str, Any]:
+    def get_mode_configuration(
+        self, mode: Optional[AnalysisMode] = None
+    ) -> Dict[str, Any]:
         """
         Get mode-specific configuration parameters.
 
@@ -1904,7 +1919,7 @@ class AnalysisModeManager:
         return mode_config
 
     def apply_performance_optimizations(
-        self, config: Dict, mode: Optional[AnalysisMode ] = None
+        self, config: Dict, mode: Optional[AnalysisMode] = None
     ) -> Dict:
         """
         Apply performance optimizations based on analysis mode.
@@ -1930,7 +1945,7 @@ class AnalysisModeManager:
         return optimized_config
 
     def get_sampling_parameters(
-        self, graph_size: int, mode: Optional[AnalysisMode ] = None
+        self, graph_size: int, mode: Optional[AnalysisMode] = None
     ) -> Dict[str, Any]:
         """
         Calculate sampling parameters based on graph size and analysis mode.

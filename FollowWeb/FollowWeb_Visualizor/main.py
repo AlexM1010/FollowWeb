@@ -112,21 +112,27 @@ class PipelineOrchestrator:
         # Get cache manager for performance optimization
         self.cache_manager = get_cache_manager()
 
-    def _log_timer(self, message: str, section: Optional[Optional[str] ] = None) -> None:
+    def _log_timer(self, message: str, section: Optional[Optional[str]] = None) -> None:
         """Log timing information with standardized format."""
         # Only log timing information if timing logs are enabled
         if self.config.output_control.enable_timing_logs:
             self.logger.log_timer(message, section)
 
-    def _log_success(self, message: str, section: Optional[Optional[str] ] = None) -> None:
+    def _log_success(
+        self, message: str, section: Optional[Optional[str]] = None
+    ) -> None:
         """Log success information with standardized format."""
         self.logger.log_success(message, section)
 
-    def _log_progress(self, message: str, section: Optional[Optional[str] ] = None) -> None:
+    def _log_progress(
+        self, message: str, section: Optional[Optional[str]] = None
+    ) -> None:
         """Log progress information with standardized format."""
         self.logger.log_progress(message, section)
 
-    def _log_completion(self, message: str, section: Optional[Optional[str] ] = None) -> None:
+    def _log_completion(
+        self, message: str, section: Optional[Optional[str]] = None
+    ) -> None:
         """Log completion information with standardized format."""
         self.logger.log_completion(message, section)
 
