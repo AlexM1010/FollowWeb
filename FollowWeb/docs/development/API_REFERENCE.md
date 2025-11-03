@@ -33,8 +33,8 @@ Execute the complete analysis pipeline with error handling.
 
 **Example:**
 ```python
-from FollowWeb.FollowWeb_Visualizor.main import PipelineOrchestrator
-from FollowWeb.FollowWeb_Visualizor.config import get_configuration_manager, FollowWebConfig
+from FollowWeb_Visualizor.main import PipelineOrchestrator
+from FollowWeb_Visualizor.core.config import get_configuration_manager, FollowWebConfig
 
 # Create configuration
 config_dict = {
@@ -542,8 +542,8 @@ Raised when visualization generation fails.
 
 ### Complete Pipeline Example
 ```python
-from FollowWeb.FollowWeb_Visualizor.main import PipelineOrchestrator
-from FollowWeb.FollowWeb_Visualizor.config import get_configuration_manager
+from FollowWeb_Visualizor.main import PipelineOrchestrator
+from FollowWeb_Visualizor.core.config import get_configuration_manager
 
 # Create configuration dictionary
 config_dict = {
@@ -573,9 +573,9 @@ else:
 
 ### Custom Analysis Example
 ```python
-from FollowWeb.FollowWeb_Visualizor.data.loaders import GraphLoader
-from FollowWeb.FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
-from FollowWeb.FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
+from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
+from FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
 
 # Load graph
 loader = GraphLoader()
@@ -599,7 +599,7 @@ node_metrics = calculator.calculate_node_metrics(graph)
 
 ### Configuration Validation Example
 ```python
-from FollowWeb.FollowWeb_Visualizor.config import get_configuration_manager, ConfigurationError
+from FollowWeb_Visualizor.core.config import get_configuration_manager, ConfigurationError
 
 config_dict = {
     'input_file': 'data.json',

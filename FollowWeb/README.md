@@ -39,13 +39,13 @@ pip install -e ".[dev]"
 ### Basic Usage
 ```bash
 # Run analysis with sample data
-python -m FollowWeb_Visualizor.main --input examples/followers_following.json
+followweb --input examples/followers_following.json
 
 # Use a configuration file
-python -m FollowWeb_Visualizor.main --config configs/fast_config.json
+followweb --config configs/fast_config.json
 
 # Print default configuration
-python -m FollowWeb_Visualizor.main --print-default-config
+followweb --print-default-config
 ```
 
 ### Example Configuration Files

@@ -85,20 +85,27 @@ Key Features
 • Comprehensive Reporting: Detailed text reports with network statistics and parameters
 • Professional Architecture: Modular, maintainable codebase with comprehensive error handling
 
-Quick Start
------------
-1. Install: pip install followweb-visualizor
-2. Prepare JSON data with user, followers, and following lists
-3. Run analysis:
+Installation
+------------
+pip install followweb-visualizor
 
-   from FollowWeb_Visualizor.main import PipelineOrchestrator
-   from FollowWeb_Visualizor.config import get_configuration_manager
+Usage
+-----
+# Command line interface
+followweb --input data.json --strategy k-core
 
-   config_dict = {'input_file': 'your_data.json'}
-   config_manager = get_configuration_manager()
-   config = config_manager.load_configuration(config_dict=config_dict)
-   orchestrator = PipelineOrchestrator(config)
-   success = orchestrator.execute_pipeline()
+# Or use Python module
+python -m FollowWeb_Visualizor --input data.json --strategy k-core
+
+# Programmatic usage
+from FollowWeb_Visualizor.main import PipelineOrchestrator
+from FollowWeb_Visualizor.core.config import get_configuration_manager
+
+config_dict = {'input_file': 'your_data.json'}
+config_manager = get_configuration_manager()
+config = config_manager.load_configuration(config_dict=config_dict)
+orchestrator = PipelineOrchestrator(config)
+success = orchestrator.execute_pipeline()
 
 Analysis Strategies
 ------------------

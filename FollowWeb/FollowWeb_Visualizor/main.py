@@ -1047,11 +1047,11 @@ def create_argument_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m FollowWeb_Visualizor.main --input data.json
-  python -m FollowWeb_Visualizor.main --config my_config.json --fast-mode
-  python -m FollowWeb_Visualizor.main --strategy reciprocal_k-core --k-reciprocal 15
-  python -m FollowWeb_Visualizor.main --skip-analysis --no-png
-  python -m FollowWeb_Visualizor.main --print-default-config > config.json
+  followweb --input examples/followers_following.json
+  followweb --config my_config.json --fast-mode
+  followweb --strategy reciprocal_k-core --k-reciprocal 15
+  followweb --skip-analysis --no-png
+  followweb --print-default-config > config.json
         """,
     )
 
@@ -1609,14 +1609,14 @@ def main() -> int:
             error_msg = EmojiFormatter.format("error", f"Configuration error - {e}")
             logger.error(error_msg)
             logger.info("For configuration help:")
-            logger.info("  python -m FollowWeb_Visualizor.main --print-default-config")
-            logger.info("  python -m FollowWeb_Visualizor.main --help")
+            logger.info("  followweb --print-default-config")
+            logger.info("  followweb --help")
             logger.info("  See docs/CONFIGURATION_GUIDE.md for detailed examples")
         except NameError:
             print(f"ERROR: Configuration error - {e}")
             print("For configuration help:")
-            print("  python -m FollowWeb_Visualizor.main --print-default-config")
-            print("  python -m FollowWeb_Visualizor.main --help")
+            print("  followweb --print-default-config")
+            print("  followweb --help")
             print("  See docs/CONFIGURATION_GUIDE.md for detailed examples")
         return 1
     except PermissionError as e:

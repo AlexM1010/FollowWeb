@@ -110,6 +110,8 @@ package-dir = {"" = "."}
 include = ["FollowWeb_Visualizor*"]
 exclude = ["tests*"]
 
+
+
 [tool.setuptools.package-data]
 "FollowWeb_Visualizor" = ["*.py"]
 

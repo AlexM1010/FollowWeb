@@ -184,7 +184,7 @@ python -m pytest -m slow -n auto          # Performance tests
 python -m pytest -n 0
 
 # With coverage (parallel)
-python -m pytest --cov=FollowWeb.FollowWeb_Visualizor --cov-report=html -n auto
+python -m pytest --cov=FollowWeb_Visualizor --cov-report=html -n auto
 
 # Fast tests only (exclude slow)
 python -m pytest -m "not slow" -n auto
@@ -198,7 +198,7 @@ python -m pytest tests/unit/test_config.py -v
 **Unit Test Example:**
 ```python
 import pytest
-from FollowWeb.FollowWeb_Visualizor.utils import format_time_duration
+from FollowWeb_Visualizor.utils.math import format_time_duration
 
 class TestTimeFormatting:
     """Test time formatting utilities."""

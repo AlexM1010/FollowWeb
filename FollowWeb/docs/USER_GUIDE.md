@@ -23,10 +23,10 @@ Guide to using FollowWeb for social network analysis and visualization.
 
 3. **Verify Installation**
    ```bash
-   python -c "from FollowWeb.FollowWeb_Visualizor.main import PipelineOrchestrator; print('Installation successful!')"
+   python -c "from FollowWeb_Visualizor.main import PipelineOrchestrator; print('Installation successful!')"
    
    # Test the module entry point
-   python -m FollowWeb.FollowWeb_Visualizor.main --print-default-config
+   followweb --print-default-config
    ```
 
 ### Quick Start
@@ -34,8 +34,8 @@ Guide to using FollowWeb for social network analysis and visualization.
 The simplest way to get started is with the default configuration:
 
 ```python
-from FollowWeb.FollowWeb_Visualizor.main import PipelineOrchestrator
-from FollowWeb.FollowWeb_Visualizor.config import get_configuration_manager
+from FollowWeb_Visualizor.main import PipelineOrchestrator
+from FollowWeb_Visualizor.core.config import get_configuration_manager
 
 # Create configuration dictionary
 config_dict = {
@@ -87,7 +87,7 @@ FollowWeb expects JSON data with the following structure:
 Before analysis, validate your data:
 
 ```python
-from FollowWeb.FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import GraphLoader
 
 loader = GraphLoader()
 try:
@@ -360,10 +360,10 @@ Highest Eigenvector: user789 (eigenvector: 0.34)
 For more control, use individual components:
 
 ```python
-from FollowWeb.FollowWeb_Visualizor.data.loaders import GraphLoader
-from FollowWeb.FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
-from FollowWeb.FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
-from FollowWeb.FollowWeb_Visualizor.visualization.renderers import InteractiveRenderer
+from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
+from FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
+from FollowWeb_Visualizor.visualization.renderers import InteractiveRenderer
 
 # Load and analyze
 loader = GraphLoader()
@@ -393,8 +393,8 @@ Process multiple datasets:
 
 ```python
 import os
-from FollowWeb.FollowWeb_Visualizor.main import PipelineOrchestrator
-from FollowWeb.FollowWeb_Visualizor.config import get_configuration_manager
+from FollowWeb_Visualizor.main import PipelineOrchestrator
+from FollowWeb_Visualizor.core.config import get_configuration_manager
 
 data_files = ['network1.json', 'network2.json', 'network3.json']
 config_manager = get_configuration_manager()
@@ -452,7 +452,7 @@ The caching system automatically manages memory usage with:
 Export data for external analysis:
 
 ```python
-from FollowWeb.FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import GraphLoader
 import networkx as nx
 
 # Load graph

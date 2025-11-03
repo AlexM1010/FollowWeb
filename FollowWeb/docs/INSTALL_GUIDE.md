@@ -35,7 +35,7 @@ pip install .
 pip install -r requirements.txt
 ```
 - Install dependencies without installing the package
-- Run with `python FollowWeb/FollowWeb_Visualizor/main.py config.json`
+- Run with `python FollowWeb/FollowWeb_Visualizor/main.py --config config.json`
 
 ## Running the Package
 
@@ -43,19 +43,19 @@ After installation, you can use any of these methods:
 
 ### Console Script (Easiest)
 ```bash
-followweb config.json
-followweb fast_config.json
+followweb --config config.json
+followweb --config fast_config.json
 ```
 
 ### Python Module
 ```bash
-python -m FollowWeb.FollowWeb_Visualizor config.json
-python -m FollowWeb.FollowWeb_Visualizor fast_config.json
+python -m FollowWeb_Visualizor --config config.json
+python -m FollowWeb_Visualizor --config fast_config.json
 ```
 
 ### Direct Script
 ```bash
-python FollowWeb/FollowWeb_Visualizor/main.py config.json
+python FollowWeb/FollowWeb_Visualizor/main.py --config config.json
 ```
 
 ## Testing the Improved Spacing
