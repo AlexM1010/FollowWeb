@@ -132,6 +132,7 @@ jobs:
         # Run mypy with proper configuration to ignore external library issues
         mypy FollowWeb_Visualizor
       continue-on-error: false
+      shell: bash
     
     - name: Run tests with coverage
       run: |
@@ -245,11 +246,11 @@ jobs:
     
     - name: Run ruff linting
       run: |
-        ruff check FollowWeb_Visualizor tests --output-format=github --extend-exclude="*.ipynb"
+        ruff check FollowWeb_Visualizor tests --output-format=github
     
     - name: Check import sorting
       run: |
-        ruff check --select I FollowWeb_Visualizor tests --extend-exclude="*.ipynb"
+        ruff check --select I FollowWeb_Visualizor tests
 
   build:
     name: Build & Package
