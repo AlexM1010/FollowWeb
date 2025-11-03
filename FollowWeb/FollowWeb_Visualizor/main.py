@@ -118,11 +118,15 @@ class PipelineOrchestrator:
         if self.config.output_control.enable_timing_logs:
             self.logger.log_timer(message, section)
 
-    def _log_success(self, message: str, section: Optional[str] = None) -> None:
+    def _log_success(
+        self, message: str, section: Optional[str] = None
+    ) -> None:
         """Log success information with standardized format."""
         self.logger.log_success(message, section)
 
-    def _log_progress(self, message: str, section: Optional[str] = None) -> None:
+    def _log_progress(
+        self, message: str, section: Optional[str] = None
+    ) -> None:
         """Log progress information with standardized format."""
         self.logger.log_progress(message, section)
 
