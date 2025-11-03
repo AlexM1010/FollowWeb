@@ -1,0 +1,46 @@
+# Include the README and other documentation files
+include README.md
+include LICENSE*
+include CHANGELOG*
+include CONTRIBUTING*
+
+# Include configuration files
+include pyproject.toml
+include setup.py
+include pytest.ini
+include Makefile
+
+# Include requirements files
+include requirements*.txt
+
+# Include configuration directories
+recursive-include configs *.json *.md
+
+# Include analysis tools
+recursive-include analysis_tools *.py *.md
+
+# Include test suite
+recursive-include tests *.py *.json *.md *.bat
+
+# Include example data and documentation
+recursive-include examples *
+recursive-include docs *
+
+# Exclude development and build artifacts
+exclude .gitignore
+exclude .pre-commit-config.yaml
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.so
+recursive-exclude * .DS_Store
+recursive-exclude .git *
+recursive-exclude .github *
+recursive-exclude .pytest_cache *
+recursive-exclude .mypy_cache *
+recursive-exclude .ruff_cache *
+recursive-exclude dist *
+recursive-exclude build *
+recursive-exclude *.egg-info *
+recursive-exclude Output *
+recursive-exclude tests/Output *
+recursive-exclude .benchmarks *

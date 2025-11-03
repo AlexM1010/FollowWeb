@@ -24,10 +24,15 @@ pytest-doctestplus>=0.12.0 # Enhanced doctest support
 ruff>=0.1.0                # Linting and formatting
 mypy>=1.0.0                # Type checking
 
+# Security scanning tools
+bandit[toml]>=1.7.0        # Security linting
+safety>=2.0.0              # Vulnerability scanning
+
 # Build and distribution (optional for development)
 build>=0.10.0              # Modern Python build tool
 twine>=4.0.0               # Package uploading to PyPI
 wheel>=0.40.0              # Wheel building
+check-manifest>=0.49       # Verify package manifest completeness
 
 # Multi-environment testing
 tox>=4.0.0                 # Testing across multiple Python versions
