@@ -35,10 +35,6 @@ jobs:
           - os: ubuntu-latest
             python-version: '3.13-dev'
             experimental: true
-        # exclude:
-          # Exclude problematic combinations if any arise
-          # - os: windows-latest
-          #   python-version: '3.13-dev'
     
     continue-on-error: ${{ matrix.experimental == true }}
     
