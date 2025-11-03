@@ -53,6 +53,7 @@ dependencies = [
     "matplotlib>=3.5.0",
     "pyvis>=0.3.0",
     "nx-parallel>=0.3.0; python_version>='3.9'",
+    "typing_extensions>=4.0.0",
 ]
 
 [project.optional-dependencies]
@@ -78,7 +79,15 @@ Documentation = "https://github.com/AlexM1010/FollowWeb/blob/main/docs/"
 followweb = "FollowWeb_Visualizor.main:main"
 
 [tool.setuptools]
-packages = ["FollowWeb_Visualizor"]
+packages = [
+    "FollowWeb_Visualizor",
+    "FollowWeb_Visualizor.analysis",
+    "FollowWeb_Visualizor.core", 
+    "FollowWeb_Visualizor.data",
+    "FollowWeb_Visualizor.output",
+    "FollowWeb_Visualizor.utils",
+    "FollowWeb_Visualizor.visualization"
+]
 
 [tool.setuptools.package-data]
 FollowWeb_Visualizor = ["py.typed"]
@@ -86,6 +95,7 @@ FollowWeb_Visualizor = ["py.typed"]
 [tool.ruff]
 line-length = 88
 target-version = "py39"
+extend-exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = [
@@ -124,6 +134,17 @@ warn_no_return = false
 warn_unreachable = false
 strict_equality = true
 show_error_codes = true
+follow_imports = "skip"
+ignore_missing_imports = true
+exclude = [
+    "build/",
+    "dist/",
+    ".venv/",
+    "venv/",
+    ".git/",
+    "__pycache__/",
+    ".*\\.ipynb$"
+]
 
 # Allow missing imports for optional dependencies
 [[tool.mypy.overrides]]
