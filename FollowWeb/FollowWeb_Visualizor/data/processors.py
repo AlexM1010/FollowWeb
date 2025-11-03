@@ -7,7 +7,6 @@ reciprocal filtering, ego-alter graph creation, and k-core pruning operations.
 
 # Standard library imports
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Third-party imports
 import networkx as nx

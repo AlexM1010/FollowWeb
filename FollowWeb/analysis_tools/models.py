@@ -134,4 +134,5 @@ class DuplicateTestAnalysisResult:
         if self.coverage_gaps is None:
             self.coverage_gaps = []
 
+
 # Removed BackupInfo class

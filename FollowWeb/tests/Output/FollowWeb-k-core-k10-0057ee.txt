@@ -1,0 +1,43 @@
+# FollowWeb Network Analysis - Unified Output Log
+# Generated: 2025-11-02 17:06:48
+# Emoji Level: full
+
+[17:06:48] 
+==================================================
+FOLLOWWEB NETWORK ANALYSIS PIPELINE
+==================================================
+[17:06:48] 🚀 FOLLOWWEB NETWORK ANALYSIS PIPELINE
+[17:06:48] 
+==================================================
+PIPELINE CONFIGURATION
+==================================================
+[17:06:48] Strategy: k-core
+[17:06:48] Analysis mode: full
+[17:06:48] 
+[17:06:48] ENABLED STAGES
+[17:06:48] --------------
+[17:06:48] ✅ Graph Loading & Filtering: True
+[17:06:48] ✅ Network Analysis: True
+[17:06:48] ✅ Visualization: True
+[17:06:48] 
+[17:06:48] ANALYSIS COMPONENTS
+[17:06:48] -------------------
+[17:06:48] ✅ Community detection: True
+[17:06:48] ✅ Centrality analysis: True
+[17:06:48] ✅ Path analysis: True
+[17:06:48] 
+[17:06:48] OUTPUT FORMATS
+[17:06:48] --------------
+[17:06:48] ✅ Interactive HTML: True
+[17:06:48] ✅ Static PNG: True
+[17:06:48] ✅ Text Reports: True
+[17:06:48] ✅ Timing logs: False
+[17:06:48] 
+[17:06:48] PARALLEL PROCESSING
+[17:06:48] ------------------
+[17:06:48] NetworkX optimization: nx-parallel active with backends: parallel
+[17:06:48] Available cores: 16
+[17:06:48] Environment: local
+[17:06:48] Parallel processing: Enabled (strategy: aggressive)
+[17:06:48] 
+[17:06:48] Strategy phase failed or resulted in empty graph

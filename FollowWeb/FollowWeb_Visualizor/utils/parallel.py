@@ -128,8 +128,8 @@ class ParallelProcessingManager:
         self,
         operation_type: str,
         min_size_threshold: int = 100,
-        graph_size: Optional[Optional[int] ] = None,
-        override_cores: Optional[Optional[int] ] = None,
+        graph_size: Optional[Optional[int]] = None,
+        override_cores: Optional[Optional[int]] = None,
     ) -> ParallelConfig:
         """
         Get optimized parallel configuration for a specific operation.
@@ -365,7 +365,9 @@ def get_parallel_manager() -> ParallelProcessingManager:
     return _parallel_manager
 
 
-def get_analysis_parallel_config(graph_size: Optional[Optional[int] ] = None) -> ParallelConfig:
+def get_analysis_parallel_config(
+    graph_size: Optional[Optional[int]] = None,
+) -> ParallelConfig:
     """Get parallel configuration optimized for network analysis operations."""
     return get_parallel_manager().get_parallel_config("analysis", graph_size=graph_size)
 
@@ -378,7 +380,7 @@ def get_testing_parallel_config(test_category: str = "unit") -> ParallelConfig:
 
 
 def get_visualization_parallel_config(
-    data_size: Optional[Optional[int] ] = None,
+    data_size: Optional[Optional[int]] = None,
 ) -> ParallelConfig:
     """Get parallel configuration optimized for visualization operations."""
     return get_parallel_manager().get_parallel_config(
@@ -495,7 +497,7 @@ def detect_ci_environment() -> Dict[str, Any]:
 
 
 def get_optimal_worker_count(
-    test_category: str = "all", override: Optional[Optional[int] ] = None
+    test_category: str = "all", override: Optional[Optional[int]] = None
 ) -> int:
     """
     Determines optimal worker count for parallel test execution based on environment and test category.

@@ -192,7 +192,6 @@ class TestConsoleOutputFormattingIntegration:
             {"user": "C", "followers": ["A"], "following": ["A"]},
         ]
 
-
         input_file = os.path.join(temp_output_dir, "test_input.json")
         with open(input_file, "w") as f:
             json.dump(test_data, f)
@@ -248,7 +247,6 @@ class TestDuplicateMessagePreventionIntegration:
             test_data.append(
                 {"user": node_name, "followers": followers, "following": following}
             )
-
 
         input_file = Path(temp_output_dir) / "large_test_input.json"
         with input_file.open("w") as f:
@@ -317,7 +315,6 @@ class TestUIUXFixesEdgeCases:
         # Create empty graph data
         test_data = []
 
-
         input_file = Path(temp_output_dir) / "empty_input.json"
         with input_file.open("w") as f:
             json.dump(test_data, f)
@@ -346,7 +343,9 @@ class TestUIUXFixesEdgeCases:
 
             # Should use consistent emoji in any messages
             if "✓" in output:
-                raise AssertionError("Found old checkmark character instead of ✅ emoji")
+                raise AssertionError(
+                    "Found old checkmark character instead of ✅ emoji"
+                )
 
         finally:
             sys.stdout = old_stdout
@@ -366,7 +365,6 @@ class TestUIUXFixesEdgeCases:
             test_data.append(
                 {"user": node_name, "followers": connections, "following": connections}
             )
-
 
         input_file = Path(temp_output_dir) / "large_input.json"
         with input_file.open("w") as f:

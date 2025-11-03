@@ -6,7 +6,6 @@ mathematical scaling, and error handling.
 """
 
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -21,7 +20,6 @@ from FollowWeb_Visualizor.utils.files import (
     ensure_output_directory,
     generate_output_filename,
 )
-from FollowWeb_Visualizor.utils.validation import validate_file_path
 from FollowWeb_Visualizor.utils.math import (
     clamp_value,
     format_time_duration,
@@ -29,6 +27,7 @@ from FollowWeb_Visualizor.utils.math import (
     safe_divide,
     scale_value,
 )
+from FollowWeb_Visualizor.utils.validation import validate_file_path
 from FollowWeb_Visualizor.visualization.colors import get_community_colors
 
 
@@ -205,7 +204,9 @@ class TestDirectoryOperations:
 
     def test_nested_directory_creation(self, temp_output_dir: str):
         """Test creation of nested directories."""
-        nested_path = Path(temp_output_dir) / "level1" / "level2" / "level3" / "test.html"
+        nested_path = (
+            Path(temp_output_dir) / "level1" / "level2" / "level3" / "test.html"
+        )
 
         result_dir = ensure_output_directory(str(nested_path))
 

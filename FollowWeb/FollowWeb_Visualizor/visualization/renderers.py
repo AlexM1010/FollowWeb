@@ -34,7 +34,7 @@ class InteractiveRenderer:
     def __init__(
         self,
         vis_config: Dict[str, Any],
-        metrics_calculator: Optional[Optional[MetricsCalculator] ] = None,
+        metrics_calculator: Optional[Optional[MetricsCalculator]] = None,
     ) -> None:
         """
         Initialize the interactive renderer with visualization configuration.
@@ -56,7 +56,7 @@ class InteractiveRenderer:
         self,
         graph: nx.DiGraph,
         output_filename: str,
-        shared_metrics: Optional[Optional[VisualizationMetrics] ] = None,
+        shared_metrics: Optional[Optional[VisualizationMetrics]] = None,
     ) -> bool:
         """
         Generates an interactive HTML file to visualize the network graph.
@@ -383,7 +383,7 @@ class StaticRenderer:
     def __init__(
         self,
         vis_config: Dict[str, Any],
-        performance_config: Optional[Optional[Dict[str, Any]] ] = None,
+        performance_config: Optional[Optional[Dict[str, Any]]] = None,
     ) -> None:
         """
         Initialize the static renderer with visualization configuration.
@@ -407,7 +407,7 @@ class StaticRenderer:
         output_filename: str,
         node_metrics: Dict[str, Dict[str, Any]],
         edge_metrics: Dict[Tuple[str, str], Dict[str, Any]],
-        shared_metrics: Optional[Optional[VisualizationMetrics] ] = None,
+        shared_metrics: Optional[Optional[VisualizationMetrics]] = None,
     ) -> bool:
         """
         Generates a static PNG image of the network graph using matplotlib.

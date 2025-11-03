@@ -1,0 +1,92 @@
+# FollowWeb Network Analysis - Unified Output Log
+# Generated: 2025-11-02 17:06:48
+# Emoji Level: full
+
+[17:06:48] 
+==================================================
+FOLLOWWEB NETWORK ANALYSIS PIPELINE
+==================================================
+[17:06:48] 🚀 FOLLOWWEB NETWORK ANALYSIS PIPELINE
+[17:06:48] 
+==================================================
+PIPELINE CONFIGURATION
+==================================================
+[17:06:48] Strategy: k-core
+[17:06:48] Analysis mode: full
+[17:06:48] 
+[17:06:48] ENABLED STAGES
+[17:06:48] --------------
+[17:06:48] ✅ Graph Loading & Filtering: True
+[17:06:48] ✅ Network Analysis: True
+[17:06:48] ✅ Visualization: True
+[17:06:48] 
+[17:06:48] ANALYSIS COMPONENTS
+[17:06:48] -------------------
+[17:06:48] ✅ Community detection: True
+[17:06:48] ✅ Centrality analysis: True
+[17:06:48] ✅ Path analysis: True
+[17:06:48] 
+[17:06:48] OUTPUT FORMATS
+[17:06:48] --------------
+[17:06:48] ✅ Interactive HTML: True
+[17:06:48] ✅ Static PNG: True
+[17:06:48] ✅ Text Reports: True
+[17:06:48] ✅ Timing logs: False
+[17:06:48] 
+[17:06:48] PARALLEL PROCESSING
+[17:06:48] ------------------
+[17:06:48] NetworkX optimization: nx-parallel active with backends: parallel
+[17:06:48] Available cores: 16
+[17:06:48] Environment: local
+[17:06:48] Parallel processing: Enabled (strategy: aggressive)
+[17:06:48] 
+[17:06:48] 
+========================================
+[17:06:48] 🔄 PHASE 2: NETWORK ANALYSIS
+[17:06:48] ========================================
+[17:06:48] 
+🔄 Step 1: Network Structure Analysis
+[17:06:48] ----------------------------------
+[17:06:48]   → Detecting communities and calculating centrality metrics...
+[17:06:48] 
+[17:06:48] 
+🔄 Step 2: Path Length Analysis
+[17:06:48] --------------------------
+[17:06:48]   → Calculating shortest paths and connectivity metrics...
+[17:06:48] 
+[17:06:48] 
+🔄 Step 3: Influential Account Analysis
+[17:06:48] ----------------------------------
+[17:06:48]   → Identifying high-influence users and celebrities...
+[17:06:48] No famous accounts found matching criteria
+[17:06:48] 
+[17:06:48] 
+Analysis component results:
+[17:06:48] ✅ Successful: 5 (network_structure, path_analysis, fame_analysis, contact_path, famous_paths)
+[17:06:48] ⏭️ Skipped: 1 (contact_path)
+[17:06:48] 
+======================================================================
+[17:06:48] PIPELINE COMPLETION SUMMARY
+[17:06:48] ======================================================================
+[17:06:48] 
+[17:06:48] STAGE EXECUTION SUMMARY
+[17:06:48] -----------------------
+[17:06:48]   ○ Strategy: not_started
+[17:06:48]   ✅ Analysis: completed
+[17:06:48]   ○ Visualization: not_started
+[17:06:48] 
+[17:06:48] ANALYSIS COMPONENTS
+[17:06:48] -------------------
+[17:06:48]   ○ Community Detection: not_started
+[17:06:48]   ○ Centrality Analysis: not_started
+[17:06:48]   ✅ Path Analysis: completed
+[17:06:48] 
+[17:06:48] EXECUTION TIMING
+[17:06:48] ----------------
+[17:06:48] 
+[17:06:48] 
+[17:06:48] ⚠️  Pipeline completed with issues: strategy, visualization phases did not complete successfully
+[17:06:48] ======================================================================
+[17:06:48] Clearing 1 cached items
+
+# Log completed: 2025-11-02 17:06:48

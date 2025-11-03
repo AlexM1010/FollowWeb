@@ -5,19 +5,19 @@ This module provides network analysis algorithms including community detection,
 centrality calculations, path analysis, and fame analysis.
 """
 
-from .network import NetworkAnalyzer
 from .centrality import (
     calculate_betweenness_centrality,
     calculate_eigenvector_centrality,
-    set_default_centrality_values,
     display_centrality_results,
+    set_default_centrality_values,
 )
-from .paths import PathAnalyzer
 from .fame import FameAnalyzer
+from .network import NetworkAnalyzer
+from .paths import PathAnalyzer
 
 __all__ = [
     "NetworkAnalyzer",
-    "PathAnalyzer", 
+    "PathAnalyzer",
     "FameAnalyzer",
     "calculate_betweenness_centrality",
     "calculate_eigenvector_centrality",

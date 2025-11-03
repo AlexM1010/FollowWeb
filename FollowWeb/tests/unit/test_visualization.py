@@ -58,7 +58,6 @@ class TestInteractiveRenderer:
 
         # Create complete node metrics
 
-
         output_path = os.path.join(temp_output_dir, "test_output.html")
         # Create a MetricsCalculator to generate proper metrics
         calculator = MetricsCalculator(vis_config)

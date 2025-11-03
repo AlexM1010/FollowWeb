@@ -57,9 +57,9 @@ def some_function():
                 and "not at top of file" in issue.description
             ]
 
-            assert (
-                len(import_location_issues) == 0
-            ), "Should not flag imports at top of file"
+            assert len(import_location_issues) == 0, (
+                "Should not flag imports at top of file"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -93,18 +93,18 @@ class MyClass:
                 and "not at top of file" in issue.description
             ]
 
-            assert (
-                len(import_location_issues) == 2
-            ), f"Expected 2 import issues, got {len(import_location_issues)}"
+            assert len(import_location_issues) == 2, (
+                f"Expected 2 import issues, got {len(import_location_issues)}"
+            )
 
             # Check specific imports that were flagged
             flagged_imports = [issue.description for issue in import_location_issues]
-            assert any(
-                "sys" in desc for desc in flagged_imports
-            ), "Should flag sys import"
-            assert any(
-                "typing.Dict" in desc for desc in flagged_imports
-            ), "Should flag typing.Dict import"
+            assert any("sys" in desc for desc in flagged_imports), (
+                "Should flag sys import"
+            )
+            assert any("typing.Dict" in desc for desc in flagged_imports), (
+                "Should flag typing.Dict import"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -135,12 +135,12 @@ def function():
                 and "not at top of file" in issue.description
             ]
 
-            assert (
-                len(import_location_issues) == 1
-            ), f"Expected 1 import issue, got {len(import_location_issues)}"
-            assert (
-                "sys" in import_location_issues[0].description
-            ), "Should flag sys import"
+            assert len(import_location_issues) == 1, (
+                f"Expected 1 import issue, got {len(import_location_issues)}"
+            )
+            assert "sys" in import_location_issues[0].description, (
+                "Should flag sys import"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -173,15 +173,15 @@ def function():
                 and "not at top of file" in issue.description
             ]
 
-            assert (
-                len(import_location_issues) == 2
-            ), f"Expected 2 import issues, got {len(import_location_issues)}"
+            assert len(import_location_issues) == 2, (
+                f"Expected 2 import issues, got {len(import_location_issues)}"
+            )
 
             # Check that both types of imports are flagged
             flagged_imports = [issue.description for issue in import_location_issues]
-            assert any(
-                "sys" in desc for desc in flagged_imports
-            ), "Should flag sys import"
+            assert any("sys" in desc for desc in flagged_imports), (
+                "Should flag sys import"
+            )
             assert any(
                 "typing.Dict" in desc and "typing.List" in desc
                 for desc in flagged_imports
@@ -215,9 +215,9 @@ def function():
                 and "not at top of file" in issue.description
             ]
 
-            assert (
-                len(import_location_issues) == 0
-            ), "Should not flag __future__ imports at top"
+            assert len(import_location_issues) == 0, (
+                "Should not flag __future__ imports at top"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -245,9 +245,9 @@ import sys  # This should be flagged
             ]
 
             assert len(import_location_issues) == 1, "Should find one import issue"
-            assert (
-                import_location_issues[0].severity == Severity.MEDIUM
-            ), "Import location issues should have medium severity"
+            assert import_location_issues[0].severity == Severity.MEDIUM, (
+                "Import location issues should have medium severity"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -277,9 +277,9 @@ import sys  # This should be flagged
             assert len(import_location_issues) == 1, "Should find one import issue"
             issue = import_location_issues[0]
             assert issue.fix_suggestion is not None, "Should have a fix suggestion"
-            assert (
-                "Move import to top of file" in issue.fix_suggestion
-            ), "Should suggest moving import to top"
+            assert "Move import to top of file" in issue.fix_suggestion, (
+                "Should suggest moving import to top"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -316,9 +316,9 @@ def function():
                 and "not at top of file" in issue.description
             ]
 
-            assert (
-                len(import_location_issues) == 0
-            ), "Should not flag imports at top of file"
+            assert len(import_location_issues) == 0, (
+                "Should not flag imports at top of file"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -377,12 +377,12 @@ def function(
                 if "cyclomatic complexity" in issue.description
             ]
 
-            assert (
-                len(complexity_issues) >= 1
-            ), f"Should detect high complexity function, found {len(complexity_issues)} complexity issues"
-            assert (
-                "complex_function" in complexity_issues[0].description
-            ), "Should identify the complex function"
+            assert len(complexity_issues) >= 1, (
+                f"Should detect high complexity function, found {len(complexity_issues)} complexity issues"
+            )
+            assert "complex_function" in complexity_issues[0].description, (
+                "Should identify the complex function"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -415,23 +415,23 @@ def documented_function():
             ]
 
             # Should find issues for MyClass and public_function, but not _private_function
-            assert (
-                len(docstring_issues) >= 2
-            ), f"Should detect missing docstrings, found {len(docstring_issues)}"
+            assert len(docstring_issues) >= 2, (
+                f"Should detect missing docstrings, found {len(docstring_issues)}"
+            )
 
             descriptions = [issue.description for issue in docstring_issues]
-            assert any(
-                "MyClass" in desc for desc in descriptions
-            ), "Should flag class without docstring"
-            assert any(
-                "public_function" in desc for desc in descriptions
-            ), "Should flag public function without docstring"
-            assert not any(
-                "_private_function" in desc for desc in descriptions
-            ), "Should not flag private function"
-            assert not any(
-                "documented_function" in desc for desc in descriptions
-            ), "Should not flag documented function"
+            assert any("MyClass" in desc for desc in descriptions), (
+                "Should flag class without docstring"
+            )
+            assert any("public_function" in desc for desc in descriptions), (
+                "Should flag public function without docstring"
+            )
+            assert not any("_private_function" in desc for desc in descriptions), (
+                "Should not flag private function"
+            )
+            assert not any("documented_function" in desc for desc in descriptions), (
+                "Should not flag documented function"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
@@ -465,17 +465,17 @@ def another_risk():
                 )
             ]
 
-            assert (
-                len(security_issues) >= 2
-            ), f"Should detect security issues, found {len(security_issues)}"
+            assert len(security_issues) >= 2, (
+                f"Should detect security issues, found {len(security_issues)}"
+            )
 
             descriptions = [issue.description for issue in security_issues]
-            assert any(
-                "eval" in desc for desc in descriptions
-            ), "Should detect eval() usage"
-            assert any(
-                "password" in desc.lower() for desc in descriptions
-            ), "Should detect hardcoded password"
+            assert any("eval" in desc for desc in descriptions), (
+                "Should detect eval() usage"
+            )
+            assert any("password" in desc.lower() for desc in descriptions), (
+                "Should detect hardcoded password"
+            )
 
         finally:
             self.teardown_temp_file(test_file)
