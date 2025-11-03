@@ -142,7 +142,8 @@ class CentralizedCache:
             self.logger.warning(f"Failed to calculate graph hash: {e}")
             # Fallback to simple hash
             return hashlib.md5(
-                f"{graph.number_of_nodes()}_{graph.number_of_edges()}".encode()
+                f"{graph.number_of_nodes()}_{graph.number_of_edges()}".encode(),
+                usedforsecurity=False,
             ).hexdigest()
 
     def get_cached_undirected_graph(self, graph: nx.DiGraph) -> nx.Graph:
@@ -237,9 +238,7 @@ class CentralizedCache:
 
         return attributes
 
-    def get_cached_community_colors(
-        self, num_communities: int
-    ) -> Optional[Any]:
+    def get_cached_community_colors(self, num_communities: int) -> Optional[Any]:
         """
         Get cached community colors if available.
 
@@ -515,7 +514,9 @@ class CentralizedCache:
         """Create a hash of parameters for cache keys."""
         try:
             params_str = json.dumps(params, sort_keys=True, default=str)
-            return hashlib.md5(params_str.encode()).hexdigest()[:8]
+            return hashlib.md5(params_str.encode(), usedforsecurity=False).hexdigest()[
+                :8
+            ]
         except Exception:
             return "default"
 

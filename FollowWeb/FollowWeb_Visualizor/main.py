@@ -114,6 +114,7 @@ class PipelineOrchestrator:
         # Pipeline state
         self.pipeline_start_time = None
         self.phase_times: dict[str, float] = {}
+        self.initial_graph_stats: Optional[dict[str, int]] = None
 
         # Get cache manager for performance optimization
         self.cache_manager: CentralizedCache = get_cache_manager()
@@ -301,8 +302,15 @@ class PipelineOrchestrator:
                 "success", "Successfully loaded network data"
             )
             self.logger.info(success_msg)
+
+            # Capture initial graph stats for reporting
+            self.initial_graph_stats = {
+                "nodes": graph.number_of_nodes(),
+                "edges": graph.number_of_edges(),
+            }
+
             self.logger.info(
-                f"  Initial graph: {graph.number_of_nodes():,} nodes, {graph.number_of_edges():,} edges"
+                f"  Initial graph: {self.initial_graph_stats['nodes']:,} nodes, {self.initial_graph_stats['edges']:,} edges"
             )
             self.logger.info("")
 
@@ -710,14 +718,21 @@ class PipelineOrchestrator:
 
             # Add total time to phase times for complete timing data
             complete_timing_data = self.phase_times.copy()
-            assert self.pipeline_start_time is not None, "Pipeline start time should be set"
+            assert self.pipeline_start_time is not None, (
+                "Pipeline start time should be set"
+            )
             complete_timing_data["total"] = (
                 time.perf_counter() - self.pipeline_start_time
             )
 
             # Generate all outputs using OutputManager
             output_results = self.output_manager.generate_all_outputs(
-                graph, strategy, k_value, complete_timing_data, output_prefix
+                graph,
+                strategy,
+                k_value,
+                complete_timing_data,
+                output_prefix,
+                self.initial_graph_stats,
             )
 
             # Check results - only count actually attempted outputs
@@ -725,9 +740,7 @@ class PipelineOrchestrator:
                 1 for success in output_results.values() if success
             )
             len(output_results)
-            failed_count = sum(
-                1 for success in output_results.values() if not success
-            )
+            failed_count = sum(1 for success in output_results.values() if not success)
 
             phase_time = time.perf_counter() - phase_start
             self.phase_times["visualization"] = phase_time

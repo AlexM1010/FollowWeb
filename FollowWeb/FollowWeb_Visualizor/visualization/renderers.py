@@ -418,7 +418,9 @@ class StaticRenderer:
         graph: nx.DiGraph,
         output_filename: str,
         node_metrics: dict[str, dict[str, Any]],
-        edge_metrics: Union[dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], EdgeMetric]],
+        edge_metrics: Union[
+            dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], EdgeMetric]
+        ],
         shared_metrics: Optional[VisualizationMetrics] = None,
     ) -> bool:
         """
@@ -498,7 +500,9 @@ class StaticRenderer:
             alpha = self.static_config.get("edge_alpha", 0.7)
 
             # Use shared metrics for edge rendering
-            edge_source: Union[dict[tuple[str, str], EdgeMetric], dict[tuple[str, str], dict[str, Any]]]
+            edge_source: Union[
+                dict[tuple[str, str], EdgeMetric], dict[tuple[str, str], dict[str, Any]]
+            ]
             if shared_metrics:
                 edge_source = shared_metrics.edge_metrics
             else:
@@ -721,7 +725,9 @@ class StaticRenderer:
     def _add_edge_weights_for_layout(
         self,
         G_undirected: nx.Graph,
-        edge_metrics: Union[dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], EdgeMetric]],
+        edge_metrics: Union[
+            dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], EdgeMetric]
+        ],
     ) -> None:
         """
         Add edge weights to undirected graph for layout calculation.
@@ -976,9 +982,7 @@ class StaticRenderer:
 
         return pos
 
-    def _calculate_kamada_kawai_layout(
-        self, G_undirected: nx.Graph
-    ) -> PositionDict:
+    def _calculate_kamada_kawai_layout(self, G_undirected: nx.Graph) -> PositionDict:
         """Calculate Kamada-Kawai layout with comprehensive parameters."""
         png_config = self.vis_config.get("png_layout", {})
         kamada_config = (
@@ -1165,7 +1169,9 @@ class StaticRenderer:
             communities[comm].append(node)
 
         # Distribute communities across shells
-        nodelist: list[list[str]] = [[] for _ in range(min(max_shells, len(communities)))]
+        nodelist: list[list[str]] = [
+            [] for _ in range(min(max_shells, len(communities)))
+        ]
         for i, (_comm_id, nodes) in enumerate(communities.items()):
             shell_idx = i % len(nodelist)
             nodelist[shell_idx].extend(nodes)

@@ -350,7 +350,9 @@ def generate_output_filename(
                 run_id = str(int(time.time() * 1000))  # Millisecond precision
 
             config_str = f"{strategy}-{k_value}-{run_id}"
-            config_hash = hashlib.md5(config_str.encode()).hexdigest()[:6]
+            config_hash = hashlib.md5(
+                config_str.encode(), usedforsecurity=False
+            ).hexdigest()[:6]
 
             filename = f"{prefix}-{strategy}-k{k_value}-{config_hash}.{extension}"
 

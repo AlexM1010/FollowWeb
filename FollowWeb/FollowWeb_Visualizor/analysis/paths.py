@@ -247,7 +247,9 @@ class PathAnalyzer:
                 "average_path_length": avg_path_len,
                 "diameter": diameter,
                 "total_pairs": total_pairs,
-                "path_distribution": {str(k): float(v) for k, v in all_path_lengths_dist.items()},
+                "path_distribution": {
+                    str(k): float(v) for k, v in all_path_lengths_dist.items()
+                },
             }
 
         except nx.NetworkXError as e:

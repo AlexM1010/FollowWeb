@@ -46,7 +46,11 @@ class MetricsCalculator:
     functionality to avoid recalculating metrics for the same graph.
     """
 
-    def __init__(self, vis_config: dict[str, Any], performance_config: Optional[dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        vis_config: dict[str, Any],
+        performance_config: Optional[dict[str, Any]] = None,
+    ) -> None:
         """
         Initialize the shared metrics calculator with visualization configuration.
 
@@ -257,7 +261,9 @@ class MetricsCalculator:
             # Set all centrality/degree to 0 or 1 for visualization fallback
             for n in graph.nodes():
                 node_degree = int(graph.degree(n))  # type: ignore[operator]
-                graph.nodes[n]["degree"] = node_degree  # Use actual degree for sizing fallback
+                graph.nodes[n]["degree"] = (
+                    node_degree  # Use actual degree for sizing fallback
+                )
                 graph.nodes[n]["betweenness"] = 0.0
                 graph.nodes[n]["eigenvector"] = 0.0
 

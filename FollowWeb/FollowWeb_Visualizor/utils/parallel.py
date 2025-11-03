@@ -251,6 +251,7 @@ class ParallelProcessingManager:
 
         # Operation-specific adjustments
         from typing import Union
+
         operation_adjustments: dict[str, Union[float, dict[str, float]]] = {
             "analysis": 1.0,  # Full allocation for analysis
             "testing": {

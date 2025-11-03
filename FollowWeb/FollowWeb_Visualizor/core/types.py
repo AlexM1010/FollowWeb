@@ -11,10 +11,11 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from typing_extensions import TypeAlias
 
 # Type alias for position coordinates (NetworkX uses numpy arrays)
-PositionArray = NDArray[np.floating]
-PositionDict = dict[str, PositionArray]
+PositionArray: TypeAlias = NDArray[np.floating]
+PositionDict: TypeAlias = dict[str, PositionArray]
 
 
 @dataclass

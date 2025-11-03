@@ -249,7 +249,6 @@ __all__ = [
     "NodeMetric",
     "EdgeMetric",
     "ColorScheme",
-
     # Unified output system
     "Logger",
     "OutputConfig",

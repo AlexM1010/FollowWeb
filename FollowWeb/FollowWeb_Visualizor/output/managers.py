@@ -111,6 +111,7 @@ class OutputManager:
         k_value: int,
         timing_data: dict[str, float],
         output_prefix: str,
+        initial_graph_stats: Optional[dict[str, int]] = None,
     ) -> dict[str, bool]:
         """
         Generate all enabled output formats using unified system.
@@ -121,6 +122,7 @@ class OutputManager:
             k_value: K-value used for analysis
             timing_data: Timing information for different phases
             output_prefix: Base output file prefix
+            initial_graph_stats: Optional initial graph statistics before processing
 
         Returns:
             Dict[str, bool]: Success status for each output format
@@ -249,7 +251,7 @@ class OutputManager:
                 self.logger.info(progress_msg)
 
             report_content = self.metrics_reporter.generate_analysis_report(
-                graph, self.config, strategy, k_value, timing_data
+                graph, self.config, strategy, k_value, timing_data, initial_graph_stats
             )
 
             results["report"] = self.metrics_reporter.save_metrics_file(

@@ -786,7 +786,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             spring=spring_config,
             kamada_kawai=kamada_config,
             circular=circular_config,
-            shell=shell_config,
+            shell=shell_config,  # nosec B604 - This is a parameter name, not shell execution
         )
 
         # Create pyvis interactive config

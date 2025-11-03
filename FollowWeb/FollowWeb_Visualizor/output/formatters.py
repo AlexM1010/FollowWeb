@@ -6,7 +6,6 @@ for consistent emoji usage throughout the application.
 """
 
 
-
 class EmojiFormatter:
     """
     Centralized emoji formatter with configurable fallback levels.

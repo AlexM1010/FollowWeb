@@ -200,7 +200,9 @@ def set_default_centrality_values(graph: nx.Graph) -> None:
     """Set default centrality values when centrality analysis is skipped."""
     default_values = dict.fromkeys(graph.nodes(), 0)
     nx.set_node_attributes(
-        graph, dict(graph.degree()), "degree"  # type: ignore[operator]
+        graph,
+        dict(graph.degree()),  # type: ignore[operator]
+        "degree",
     )  # Use actual degree even when skipped
     nx.set_node_attributes(graph, default_values, "betweenness")
     nx.set_node_attributes(graph, default_values, "eigenvector")

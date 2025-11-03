@@ -79,9 +79,9 @@ class Logger:
 
             # Open file in appropriate mode
             mode = "a" if self.config.append_mode else "w"
-            self.text_file_handle = cast(TextIO, open(
-                self.config.text_file_path, mode, encoding="utf-8"
-            ))
+            self.text_file_handle = cast(
+                TextIO, open(self.config.text_file_path, mode, encoding="utf-8")
+            )
 
             # Write header if not appending
             if not self.config.append_mode:
