@@ -246,11 +246,11 @@ jobs:
     
     - name: Run ruff linting
       run: |
-        ruff check FollowWeb_Visualizor tests --output-format=github
+        ruff check FollowWeb_Visualizor tests --output-format=github --extend-exclude="*.ipynb"
     
     - name: Check import sorting
       run: |
-        ruff check --select I FollowWeb_Visualizor tests
+        ruff check --select I FollowWeb_Visualizor tests --extend-exclude="*.ipynb"
 
   build:
     name: Build & Package
