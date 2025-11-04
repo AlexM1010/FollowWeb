@@ -33,8 +33,7 @@ jobs:
       run: |
         cd FollowWeb
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        python -m pip install -r requirements-test.txt
+        python -m pip install -r ../requirements-ci.txt
     
     - name: Test individual commands
       run: |

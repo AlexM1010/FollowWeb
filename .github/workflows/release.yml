@@ -110,7 +110,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: dist/
+        path: FollowWeb/dist/
         retention-days: 90
 
   publish-test:
@@ -128,7 +128,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
-        path: dist/
+        path: FollowWeb/dist/
     
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -157,5 +157,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: dist/
+        path: FollowWeb/dist/
         retention-days: 90

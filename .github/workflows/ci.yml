@@ -98,7 +98,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-        cache-dependency-path: 'FollowWeb/requirements*.txt'
+        cache-dependency-path: 'requirements-ci.txt'
     
     - name: Display Python version and environment info
       run: |
@@ -110,13 +110,9 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        # Install dependencies from requirements.txt (handles conditional dependencies properly)
-        python -m pip install -r requirements.txt
-        python -m pip install -r requirements-test.txt
-        # Install missing type stubs for mypy
-        python -m pip install types-python-dateutil types-PyYAML types-decorator types-requests types-setuptools
-        # Install package in development mode
-        python -m pip install -e .
+        # Single consolidated install for faster CI
+        cd FollowWeb
+        python -m pip install -r ../requirements-ci.txt -e .
       shell: bash
     
     - name: Verify installation
@@ -227,10 +223,8 @@ jobs:
     - name: Install security tools
       run: |
         python -m pip install --upgrade pip
-        # Use pip-audit instead of safety (no registration required)
-        python -m pip install bandit[toml] pip-audit
-        # Install project dependencies for vulnerability scanning
-        python -m pip install -r requirements.txt
+        # Install minimal security tools only (dependencies already cached)
+        python -m pip install bandit[toml] pip-audit -r FollowWeb/requirements.txt
     
     - name: Run Bandit security linter
       run: |
@@ -330,12 +324,13 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'
+        cache-dependency-path: 'requirements-minimal.txt'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        python -m pip install -r requirements-test.txt
+        # Only install what's needed for code quality checks
+        python -m pip install -r requirements-minimal.txt
     
     - name: Check code formatting with ruff
       run: |
@@ -373,8 +368,7 @@ jobs:
     
     - name: Install build dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        python -m pip install build twine check-manifest
+        python -m pip install --upgrade pip setuptools wheel build twine check-manifest
     
     - name: Clean build artifacts
       run: |
@@ -422,7 +416,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: dist/
+        path: FollowWeb/dist/
         retention-days: 30
 
   performance:
@@ -446,9 +440,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        python -m pip install -r requirements-test.txt
-        python -m pip install -e .
+        cd FollowWeb
+        python -m pip install -r ../requirements-ci.txt -e .
     
     - name: Run performance tests
       run: |
@@ -476,7 +469,7 @@ jobs:
       if: always()
       with:
         name: benchmark-results
-        path: .benchmarks/
+        path: FollowWeb/.benchmarks/
         retention-days: 30
   
   # All checks must pass - no exceptions
@@ -571,7 +564,8 @@ jobs:
       working-directory: FollowWeb
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
+        cd FollowWeb
+        python -m pip install -r ../requirements-ci.txt
         python -m pip install -e .
     
     - name: Generate success summary
