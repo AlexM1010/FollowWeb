@@ -476,7 +476,7 @@ jobs:
       if: always()
       with:
         name: benchmark-results
-        path: .benchmarks/
+        path: FollowWeb/.benchmarks/
         retention-days: 30
   
   # All checks must pass - no exceptions
