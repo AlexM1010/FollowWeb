@@ -3,7 +3,7 @@
 # All dependencies use permissive open-source licenses (MIT, BSD, Apache 2.0)
 
 # Include production dependencies
--r FollowWeb/requirements.txt
+-r requirements.txt
 
 # Core testing framework
 pytest>=7.0.0
