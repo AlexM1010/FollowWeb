@@ -177,14 +177,7 @@ jobs:
         # Validate test results with emoji formatting
         python ci_helpers.py success "Test suite completed successfully"
         echo "## Test Validation Results" >> $GITHUB_STEP_SUMMARY
-        python -c "
-        from ci_helpers import setup_ci_emoji_config
-        from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-        setup_ci_emoji_config()
-        print('### ' + EmojiFormatter.format('success', 'Unit Tests (237+ tests)'))
-        print('### ' + EmojiFormatter.format('success', 'Integration Tests (68+ tests)'))
-        print('### ' + EmojiFormatter.format('success', 'Coverage Requirement (>=70%)'))
-        " >> $GITHUB_STEP_SUMMARY
+        python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); print('### ' + EmojiFormatter.format('success', 'Unit Tests (237+ tests)')); print('### ' + EmojiFormatter.format('success', 'Integration Tests (68+ tests)')); print('### ' + EmojiFormatter.format('success', 'Coverage Requirement (>=70%)'))" >> $GITHUB_STEP_SUMMARY
       continue-on-error: false
       env:
         MPLBACKEND: Agg
@@ -473,24 +466,10 @@ jobs:
         working-directory: FollowWeb
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        python -m pip install -e .
-    
     - name: Check all jobs status
       run: |
         # All jobs must succeed - no failures allowed
+        # This check runs BEFORE any installs to fail fast if any job failed
         failed_jobs=""
         
         if [[ "${{ needs.test.result }}" != "success" ]]; then
@@ -514,20 +493,33 @@ jobs:
         fi
         
         if [[ -n "$failed_jobs" ]]; then
-          python ci_helpers.py error "CHECKS FAILED:$failed_jobs"
-          python -c "
-          from ci_helpers import setup_ci_emoji_config
-          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-          setup_ci_emoji_config()
-          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
-              f.write('## ' + EmojiFormatter.format('error', 'CI PIPELINE FAILED') + '\n')
-          "
+          echo "## ❌ CI PIPELINE FAILED" >> $GITHUB_STEP_SUMMARY
           echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**ALL CHECKS MUST PASS**" >> $GITHUB_STEP_SUMMARY
+          echo "**ALL CHECKS MUST PASS - STOPPING EXECUTION**" >> $GITHUB_STEP_SUMMARY
+          echo "❌ CHECKS FAILED:$failed_jobs"
           exit 1
         fi
         
+        echo "✅ ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION"
+    
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+        python -m pip install -e .
+    
+    - name: Generate success summary
+      run: |
         python ci_helpers.py success "ALL CHECKS PASSED!"
         echo "Test result: ${{ needs.test.result }}"
         echo "Security result: ${{ needs.security.result }}"
@@ -537,23 +529,6 @@ jobs:
         
         # Document the rigorous testing approach
         # Generate success summary with emoji formatting
-        python -c "
-        from ci_helpers import setup_ci_emoji_config
-        from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-        setup_ci_emoji_config()
-        
-        # Write to GitHub step summary
-        with open('$GITHUB_STEP_SUMMARY', 'a') as f:
-            f.write('## ' + EmojiFormatter.format('completion', 'CI PIPELINE COMPLETED - ALL CHECKS PASSED!') + '\n')
-            f.write('### Rigorous Quality Assurance:\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Unit Tests** (237+ tests)') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Integration Tests** (68+ tests)') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Performance Tests**') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Code Coverage** (>=70%)') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Security Scanning** (Bandit + pip-audit)') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Type Checking** (mypy)') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Code Formatting** (ruff)') + '\n')
-            f.write('- ' + EmojiFormatter.format('success', '**Package Building**') + '\n')
-        "
+        python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write('## ' + EmojiFormatter.format('completion', 'CI PIPELINE COMPLETED - ALL CHECKS PASSED!') + '\n'); f.write('### Rigorous Quality Assurance:\n'); f.write('- ' + EmojiFormatter.format('success', '**Unit Tests** (237+ tests)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Integration Tests** (68+ tests)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Performance Tests**') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Code Coverage** (>=70%)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Security Scanning** (Bandit + pip-audit)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Type Checking** (mypy)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Code Formatting** (ruff)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Package Building**') + '\n'); f.close()"
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**All tools are open-source with permissive licenses**" >> $GITHUB_STEP_SUMMARY

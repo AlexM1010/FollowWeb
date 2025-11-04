@@ -6,6 +6,9 @@ include CHANGELOG*
 include *.md
 include *.template
 
+# Include Python files in root directory
+include *.py
+
 # Include configuration files
 include pyproject.toml
 include setup.py
