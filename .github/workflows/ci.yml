@@ -188,8 +188,8 @@ jobs:
       with:
         name: coverage-reports
         path: |
-          coverage.xml
-          htmlcov/
+          FollowWeb/coverage.xml
+          FollowWeb/htmlcov/
         retention-days: 7
     
     - name: Generate coverage report summary
@@ -302,8 +302,8 @@ jobs:
       with:
         name: security-reports
         path: |
-          bandit-report.json
-          pip-audit-report.json
+          FollowWeb/bandit-report.json
+          FollowWeb/pip-audit-report.json
         retention-days: 7
 
   format-check:
