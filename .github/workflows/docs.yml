@@ -42,16 +42,27 @@ jobs:
     
     - name: Validate documentation structure
       run: |
-        echo "## Documentation Structure Check" >> $GITHUB_STEP_SUMMARY
-        echo "Checking for required documentation files..." >> $GITHUB_STEP_SUMMARY
+        python ci_helpers.py info "## Documentation Structure Check" --summary-only
+        python ci_helpers.py info "Checking for required documentation files..." --summary-only
         cd FollowWeb
-        for file in README.md docs/USER_GUIDE.md docs/CONFIGURATION_GUIDE.md; do
-          if [ -f "$file" ]; then
-            echo "✅ $file exists" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ $file missing" >> $GITHUB_STEP_SUMMARY
-          fi
-        done
+        # Check for required documentation files
+        if [ -f "README.md" ]; then
+          python ci_helpers.py success "README.md exists" --summary-only
+        else
+          python ci_helpers.py error "README.md missing" --summary-only
+        fi
+        
+        if [ -f "docs/USER_GUIDE.md" ]; then
+          python ci_helpers.py success "docs/USER_GUIDE.md exists" --summary-only
+        else
+          python ci_helpers.py error "docs/USER_GUIDE.md missing" --summary-only
+        fi
+        
+        if [ -f "docs/CONFIGURATION_GUIDE.md" ]; then
+          python ci_helpers.py success "docs/CONFIGURATION_GUIDE.md exists" --summary-only
+        else
+          python ci_helpers.py error "docs/CONFIGURATION_GUIDE.md missing" --summary-only
+        fi
     
     - name: Check for TODO/FIXME comments
       run: |

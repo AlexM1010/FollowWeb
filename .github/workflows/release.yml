@@ -146,7 +146,7 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
       run: |
         twine upload --repository testpypi dist/* --verbose
-        echo "✅ Package published to Test PyPI" >> $GITHUB_STEP_SUMMARY
+        python ci_helpers.py success "Package published to Test PyPI" --summary-only
         echo "Install with: pip install -i https://test.pypi.org/simple/ followweb-visualizor" >> $GITHUB_STEP_SUMMARY
 
   publish-pypi:
@@ -182,5 +182,5 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
         twine upload dist/* --verbose
-        echo "🎉 Package published to PyPI" >> $GITHUB_STEP_SUMMARY
+        python ci_helpers.py completion "Package published to PyPI" --summary-only
         echo "Install with: pip install followweb-visualizor" >> $GITHUB_STEP_SUMMARY

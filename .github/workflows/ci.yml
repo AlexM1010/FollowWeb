@@ -117,33 +117,29 @@ jobs:
     - name: Verify installation
       run: |
         # Package must import successfully
-        python -c "import FollowWeb_Visualizor" && python ci_helpers.py success "Package imported successfully"
+        python -c "import FollowWeb_Visualizor"
+        python ../.github/scripts/ci_helpers.py success "Package imported successfully"
         
-        # Parallel processing must be available
-        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; available = is_nx_parallel_available(); exit(0)" && python ci_helpers.py success "nx-parallel available"
+        # Test parallel processing availability
+        python -c "from FollowWeb_Visualizor.utils.parallel import is_nx_parallel_available; is_nx_parallel_available()"
+        python ../.github/scripts/ci_helpers.py success "nx-parallel available"
         
-        # All submodules must import
-        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization" && python ci_helpers.py success "All submodules imported successfully"
-        
-        # CLI entry point must work
-        python -c "
-        import subprocess
-        result = subprocess.run(['followweb', '--help'], capture_output=True, text=True)
-        if result.returncode != 0:
-            import sys
-            sys.path.insert(0, '.')
-            from ci_helpers import ci_print_error
-            ci_print_error('CLI entry point failed')
-            print('STDOUT:', result.stdout)
-            print('STDERR:', result.stderr)
-            exit(1)
-        " && python ci_helpers.py success "CLI entry point working"
+        # Test all submodules import
+        python -c "from FollowWeb_Visualizor import analysis, core, data, output, utils, visualization"
+        python ../.github/scripts/ci_helpers.py success "All submodules imported successfully"
         
         # Test basic functionality
-        python -c "
-        from FollowWeb_Visualizor.core.config import ConfigurationManager
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
-        " && python ci_helpers.py success "Core functionality verified"
+        python -c "from FollowWeb_Visualizor.core.config import ConfigurationManager; from FollowWeb_Visualizor.data.loaders import GraphLoader"
+        python ../.github/scripts/ci_helpers.py success "Core functionality verified"
+        
+        # CLI entry point must work
+        if followweb --help > /dev/null 2>&1; then
+          python ../.github/scripts/ci_helpers.py success "CLI entry point working"
+        else
+          python ../.github/scripts/ci_helpers.py error "CLI entry point failed"
+          followweb --help || true
+          exit 1
+        fi
     
     - name: Run code formatting check
       run: |
@@ -166,16 +162,16 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=70
+        $threshold = python ../.github/scripts/ci_helpers.py coverage-threshold-value
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold
         if ($LASTEXITCODE -ne 0) {
-          python ci_helpers.py error "Test suite failed with exit code: $LASTEXITCODE"
-          echo "## Test Execution Failed" >> $env:GITHUB_STEP_SUMMARY
-          echo "**Exit Code:** $LASTEXITCODE" >> $env:GITHUB_STEP_SUMMARY
+          python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
+          python ../.github/scripts/ci_helpers.py info "**Exit Code:** $LASTEXITCODE" --summary-only
           exit $LASTEXITCODE
         }
-        python ci_helpers.py success "Test suite completed successfully"
-        echo "## Test Validation Results" >> $env:GITHUB_STEP_SUMMARY
-        python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); print('### ' + EmojiFormatter.format('success', 'Unit Tests (237+ tests)')); print('### ' + EmojiFormatter.format('success', 'Integration Tests (68+ tests)')); print('### ' + EmojiFormatter.format('success', 'Coverage Requirement (>=70%)'))" >> $env:GITHUB_STEP_SUMMARY
+        
+        # Generate test results summary with dynamic counts
+        python ../.github/scripts/ci_helpers.py test-summary
       shell: pwsh
       continue-on-error: false
       env:
@@ -196,11 +192,11 @@ jobs:
     - name: Generate coverage report summary
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
       run: |
-        echo "## Coverage Report Summary" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        python -m coverage report --show-missing >> $GITHUB_STEP_SUMMARY || echo "Coverage report generation failed" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        echo "Full HTML coverage report available in artifacts." >> $GITHUB_STEP_SUMMARY
+        python ../.github/scripts/ci_helpers.py info "## Coverage Report Summary" --summary-only
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
+        python -m coverage report --show-missing >> $GITHUB_STEP_SUMMARY || python ../.github/scripts/ci_helpers.py error "Coverage report generation failed" --summary-only
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
+        python ../.github/scripts/ci_helpers.py info "Full HTML coverage report available in artifacts." --summary-only
 
   security:
     name: Security Scan
@@ -236,15 +232,15 @@ jobs:
         # Generate JSON report for artifacts (include all issues for reporting)
         bandit -r FollowWeb_Visualizor -f json -o bandit-report.json || true
         
-        echo "## Bandit Security Scan Results" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        python ../.github/scripts/ci_helpers.py info "## Bandit Security Scan Results" --summary-only
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         
         # First, run bandit for all severity levels to show complete results
-        echo "### All Security Issues Found:"
+        python ../.github/scripts/ci_helpers.py info "### All Security Issues Found:" --print-only
         bandit -r FollowWeb_Visualizor 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
         
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Critical Check (Medium/High Severity Only):" >> $GITHUB_STEP_SUMMARY
+        python ../.github/scripts/ci_helpers.py info "" --summary-only
+        python ../.github/scripts/ci_helpers.py info "### Critical Check (Medium/High Severity Only):" --summary-only
         
         # Now check for medium/high severity issues - FAIL only on these
         set +e  # Don't exit on error temporarily
@@ -256,21 +252,20 @@ jobs:
         # Allow bandit to fail as long as failure is non-critical (low severity only)
         # Exit codes: 0 = no issues, 1 = issues found, >1 = scanner error
         if [ $bandit_critical_exit_code -eq 0 ] || echo "$bandit_critical_output" | grep -q "No issues identified"; then
-          python ci_helpers.py success "No medium or high severity security issues found (low severity issues are acceptable)"
-          python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write(EmojiFormatter.format('success', 'No critical security issues found') + '\n'); f.close()"
+          python ../.github/scripts/ci_helpers.py success "No medium or high severity security issues found (low severity issues are acceptable)" --print-only
+          python ../.github/scripts/ci_helpers.py success "No critical security issues found" --summary-only
         elif [ $bandit_critical_exit_code -eq 1 ]; then
           # Exit code 1 with medium+ severity means critical issues found
-          python ci_helpers.py error "CRITICAL: Medium or high severity security issues detected"
-          python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write(EmojiFormatter.format('error', 'CRITICAL: Medium or high severity security issues detected') + '\n'); f.close()"
+          python ../.github/scripts/ci_helpers.py error "CRITICAL: Medium or high severity security issues detected"
           exit 1
         else
           # Exit code >1 means scanner error - this is a critical failure
-          python ci_helpers.py error "Bandit security scanner failed to run properly (exit code: $bandit_critical_exit_code)"
-          python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write(EmojiFormatter.format('error', 'Bandit security scanner failed to run') + '\n'); f.close()"
+          python ../.github/scripts/ci_helpers.py error "Bandit security scanner failed to run properly (exit code: $bandit_critical_exit_code)" --print-only
+          python ../.github/scripts/ci_helpers.py error "Bandit security scanner failed to run" --summary-only
           exit 1
         fi
         
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
       continue-on-error: false
     
     - name: Run pip-audit for known vulnerabilities
@@ -278,10 +273,10 @@ jobs:
         # Generate JSON report for artifacts
         pip-audit --format=json --output=pip-audit-report.json
         # Run vulnerability scan - FAIL on any vulnerabilities
-        echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        python ../.github/scripts/ci_helpers.py info "## Security Scan Results" --summary-only
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         pip-audit --desc >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
       continue-on-error: false
     
     - name: Upload security reports
@@ -375,10 +370,10 @@ jobs:
     - name: Validate package structure
       run: |
         # Ensure the wheel contains only the expected packages
-        python -m zipfile -l dist/*.whl | grep -E "(FollowWeb_Visualizor/|followweb_visualizor.*dist-info/)" || echo "Package structure validation"
+        python -m zipfile -l dist/*.whl | grep -E "(FollowWeb_Visualizor/|followweb_visualizor.*dist-info/)" || python ../.github/scripts/ci_helpers.py info "Package structure validation" --print-only
         # Verify no unwanted packages are included
         if python -m zipfile -l dist/*.whl | grep -E "(tests/|analysis_tools/|build/)"; then
-          echo "ERROR: Unwanted packages found in wheel"
+          python ../.github/scripts/ci_helpers.py error "Unwanted packages found in wheel"
           exit 1
         fi
     
@@ -397,7 +392,8 @@ jobs:
         python -m venv test_env
         source test_env/bin/activate || test_env\\Scripts\\activate
         pip install dist/*.whl
-        python -c "import FollowWeb_Visualizor; print('Package installs and imports correctly')"
+        python -c "import FollowWeb_Visualizor"
+        python ../../.github/scripts/ci_helpers.py success "Package installs and imports correctly" --print-only
         deactivate
     
     - name: Upload build artifacts
@@ -436,16 +432,13 @@ jobs:
         mkdir -p .benchmarks
         # Run both slow tests and benchmark tests to save benchmark results
         python -m pytest -m "slow or benchmark" -v --tb=short --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
-        # Verify no performance regressions
-        python ci_helpers.py success "Performance tests completed - no regressions detected"
-        echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
-        python -c "
-        from ci_helpers import setup_ci_emoji_config
-        from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-        setup_ci_emoji_config()
-        with open('$GITHUB_STEP_SUMMARY', 'a') as f:
-            f.write(EmojiFormatter.format('success', 'Performance tests completed successfully - no regressions detected') + '\n')
-        "
+        
+        # Generate performance test summary with proper emoji handling
+        python ../.github/scripts/ci_helpers.py success "Performance tests completed - no regressions detected" --print-only
+        
+        # Write to GitHub step summary
+        python ../.github/scripts/ci_helpers.py info "## Performance Test Results" --summary-only
+        python ../.github/scripts/ci_helpers.py success "Performance tests completed successfully - no regressions detected" --summary-only
       env:
         MPLBACKEND: Agg
         PYTEST_PARALLEL_DISABLE: "1"
@@ -518,26 +511,24 @@ jobs:
         
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
-          echo "## ❌ CI PIPELINE FAILED" >> $GITHUB_STEP_SUMMARY
-          echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
+          python .github/scripts/ci_helpers.py error "CI PIPELINE FAILED" --summary-only
+          python .github/scripts/ci_helpers.py info "**Failed Jobs:**$failed_jobs" --summary-only
           if [[ -n "$skipped_jobs" ]]; then
-            echo "**Skipped Jobs:**$skipped_jobs" >> $GITHUB_STEP_SUMMARY
+            python .github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**ALL CHECKS MUST PASS - STOPPING EXECUTION**" >> $GITHUB_STEP_SUMMARY
-          echo "❌ CHECKS FAILED:$failed_jobs"
+          python .github/scripts/ci_helpers.py info "**ALL CHECKS MUST PASS - STOPPING EXECUTION**" --summary-only
+          python .github/scripts/ci_helpers.py error "CHECKS FAILED:$failed_jobs" --print-only
           exit 1
         fi
         
         # Warn about skipped jobs but don't fail
         if [[ -n "$skipped_jobs" ]]; then
-          echo "⚠️ WARNING: Some jobs were skipped:$skipped_jobs"
-          echo "## ⚠️ CI PIPELINE WARNING" >> $GITHUB_STEP_SUMMARY
-          echo "**Skipped Jobs:**$skipped_jobs" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          python .github/scripts/ci_helpers.py warning "Some jobs were skipped:$skipped_jobs" --print-only
+          python .github/scripts/ci_helpers.py warning "CI PIPELINE WARNING" --summary-only
+          python .github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
         fi
         
-        echo "✅ ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION"
+        python .github/scripts/ci_helpers.py success "ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION" --print-only
     
     - name: Checkout code
       uses: actions/checkout@v4
@@ -552,20 +543,17 @@ jobs:
       working-directory: FollowWeb
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r requirements-ci.txt -e .
     
     - name: Generate success summary
       working-directory: FollowWeb
       run: |
-        python ci_helpers.py success "ALL CHECKS PASSED!"
-        echo "Test result: ${{ needs.test.result }}"
-        echo "Security result: ${{ needs.security.result }}"
-        echo "Format check result: ${{ needs.format-check.result }}"
-        echo "Build result: ${{ needs.build.result }}"
-        echo "Performance result: ${{ needs.performance.result }}"
+        # Generate success summary with proper emoji handling
+        python ../.github/scripts/ci_helpers.py completion "ALL CHECKS PASSED!" --print-only
+        python ../.github/scripts/ci_helpers.py info "Test result: ${{ needs.test.result }}" --print-only
+        python ../.github/scripts/ci_helpers.py info "Security result: ${{ needs.security.result }}" --print-only
+        python ../.github/scripts/ci_helpers.py info "Format check result: ${{ needs.format-check.result }}" --print-only
+        python ../.github/scripts/ci_helpers.py info "Build result: ${{ needs.build.result }}" --print-only
+        python ../.github/scripts/ci_helpers.py info "Performance result: ${{ needs.performance.result }}" --print-only
         
-        # Document the rigorous testing approach
-        # Generate success summary with emoji formatting
-        python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write('## ' + EmojiFormatter.format('completion', 'CI PIPELINE COMPLETED - ALL CHECKS PASSED!') + '\n'); f.write('### Rigorous Quality Assurance:\n'); f.write('- ' + EmojiFormatter.format('success', '**Unit Tests** (237+ tests)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Integration Tests** (68+ tests)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Performance Tests**') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Code Coverage** (>=70%)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Security Scanning** (Bandit + pip-audit)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Type Checking** (mypy)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Code Formatting** (ruff)') + '\n'); f.write('- ' + EmojiFormatter.format('success', '**Package Building**') + '\n'); f.close()"
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**All tools are open-source with permissive licenses**" >> $GITHUB_STEP_SUMMARY
+        # Document the rigorous testing approach with dynamic values
+        python ../.github/scripts/ci_helpers.py quality-summary
