@@ -21,7 +21,7 @@ def setup_ci_emoji_config():
     """
     Configure emoji fallback level based on CI environment and platform.
     
-    Uses 'simple' fallback for Windows to avoid encoding issues,
+    Uses 'text' fallback for Windows to avoid encoding issues,
     'full' for other platforms.
     """
     # Detect if we're on Windows or in a CI environment that might have encoding issues
@@ -29,8 +29,8 @@ def setup_ci_emoji_config():
     is_ci = os.getenv("CI", "").lower() == "true"
     
     if is_windows and is_ci:
-        # Use simple ASCII fallbacks for Windows CI to avoid encoding issues
-        EmojiFormatter.set_fallback_level("simple")
+        # Use text fallbacks for Windows CI to avoid encoding issues
+        EmojiFormatter.set_fallback_level("text")
     else:
         # Use full emojis for other platforms
         EmojiFormatter.set_fallback_level("full")
@@ -46,7 +46,15 @@ def ci_print_status(status_type: str, message: str):
     """
     setup_ci_emoji_config()
     formatted_message = EmojiFormatter.format(status_type, message)
-    print(formatted_message)
+    
+    # Handle encoding issues on Windows by using safe printing
+    try:
+        print(formatted_message)
+    except UnicodeEncodeError:
+        # Fallback to text-only mode if encoding fails
+        EmojiFormatter.set_fallback_level("text")
+        formatted_message = EmojiFormatter.format(status_type, message)
+        print(formatted_message)
 
 
 def ci_print_success(message: str):
