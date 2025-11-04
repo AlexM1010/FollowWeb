@@ -191,6 +191,7 @@ jobs:
           FollowWeb/coverage.xml
           FollowWeb/htmlcov/
         retention-days: 7
+        if-no-files-found: ignore
     
     - name: Generate coverage report summary
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
@@ -305,6 +306,7 @@ jobs:
           FollowWeb/bandit-report.json
           FollowWeb/pip-audit-report.json
         retention-days: 7
+        if-no-files-found: ignore
 
   format-check:
     name: Code Quality & Format Check
@@ -469,6 +471,7 @@ jobs:
         name: benchmark-results
         path: FollowWeb/.benchmarks/
         retention-days: 30
+        if-no-files-found: ignore
   
   # All checks must pass - no exceptions
   ci-success:
