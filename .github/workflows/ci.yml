@@ -422,7 +422,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: dist/
+        path: FollowWeb/dist/
         retention-days: 30
 
   performance:
@@ -473,7 +473,7 @@ jobs:
       if: always()
       with:
         name: benchmark-results
-        path: FollowWeb/.benchmarks/
+        path: .benchmarks/
         retention-days: 30
   
   # All checks must pass - no exceptions
