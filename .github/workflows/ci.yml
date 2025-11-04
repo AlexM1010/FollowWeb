@@ -323,13 +323,13 @@ jobs:
       with:
         python-version: '3.11'
         cache: 'pip'
-        cache-dependency-path: 'requirements-ci.txt'
+        cache-dependency-path: '../requirements-minimal.txt'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         # Only install what's needed for code quality checks
-        python -m pip install ruff mypy
+        python -m pip install -r ../requirements-minimal.txt
     
     - name: Check code formatting with ruff
       run: |
