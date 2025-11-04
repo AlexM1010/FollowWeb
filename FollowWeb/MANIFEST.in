@@ -11,7 +11,6 @@ include *.py
 
 # Include configuration files
 include pyproject.toml
-include setup.py
 include pytest.ini
 include Makefile
 

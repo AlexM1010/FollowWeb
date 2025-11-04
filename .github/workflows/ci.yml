@@ -93,6 +93,11 @@ jobs:
         # Fetch full history for better coverage analysis
         fetch-depth: 0
     
+    - name: Configure Git
+      run: |
+        git config --global init.defaultBranch main
+        git config --global advice.detachedHead false
+    
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -169,7 +174,7 @@ jobs:
         python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=70
         if ($LASTEXITCODE -ne 0) {
           python ci_helpers.py error "Test suite failed with exit code: $LASTEXITCODE"
-          echo "## ❌ Test Execution Failed" >> $env:GITHUB_STEP_SUMMARY
+          echo "## Test Execution Failed" >> $env:GITHUB_STEP_SUMMARY
           echo "**Exit Code:** $LASTEXITCODE" >> $env:GITHUB_STEP_SUMMARY
           exit $LASTEXITCODE
         }
@@ -214,6 +219,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Configure Git
+      run: |
+        git config --global init.defaultBranch main
+        git config --global advice.detachedHead false
+    
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
@@ -252,34 +262,16 @@ jobs:
         # Exit codes: 0 = no issues, 1 = issues found, >1 = scanner error
         if [ $bandit_critical_exit_code -eq 0 ] || echo "$bandit_critical_output" | grep -q "No issues identified"; then
           python ci_helpers.py success "No medium or high severity security issues found (low severity issues are acceptable)"
-          python -c "
-          from ci_helpers import setup_ci_emoji_config
-          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-          setup_ci_emoji_config()
-          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
-              f.write(EmojiFormatter.format('success', 'No critical security issues found') + '\n')
-          "
+          python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write(EmojiFormatter.format('success', 'No critical security issues found') + '\n'); f.close()"
         elif [ $bandit_critical_exit_code -eq 1 ]; then
           # Exit code 1 with medium+ severity means critical issues found
           python ci_helpers.py error "CRITICAL: Medium or high severity security issues detected"
-          python -c "
-          from ci_helpers import setup_ci_emoji_config
-          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-          setup_ci_emoji_config()
-          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
-              f.write(EmojiFormatter.format('error', 'CRITICAL: Medium or high severity security issues detected') + '\n')
-          "
+          python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write(EmojiFormatter.format('error', 'CRITICAL: Medium or high severity security issues detected') + '\n'); f.close()"
           exit 1
         else
           # Exit code >1 means scanner error - this is a critical failure
           python ci_helpers.py error "Bandit security scanner failed to run properly (exit code: $bandit_critical_exit_code)"
-          python -c "
-          from ci_helpers import setup_ci_emoji_config
-          from FollowWeb_Visualizor.output.formatters import EmojiFormatter
-          setup_ci_emoji_config()
-          with open('$GITHUB_STEP_SUMMARY', 'a') as f:
-              f.write(EmojiFormatter.format('error', 'Bandit security scanner failed to run') + '\n')
-          "
+          python -c "from ci_helpers import setup_ci_emoji_config; from FollowWeb_Visualizor.output.formatters import EmojiFormatter; setup_ci_emoji_config(); f=open('$GITHUB_STEP_SUMMARY', 'a'); f.write(EmojiFormatter.format('error', 'Bandit security scanner failed to run') + '\n'); f.close()"
           exit 1
         fi
         
