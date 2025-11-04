@@ -513,9 +513,7 @@ class CentralizedCache:
         """Create a hash of parameters for cache keys."""
         try:
             params_str = json.dumps(params, sort_keys=True, default=str)
-            return hashlib.sha256(params_str.encode()).hexdigest()[
-                :8
-            ]
+            return hashlib.sha256(params_str.encode()).hexdigest()[:8]
         except Exception:
             return "default"
 
