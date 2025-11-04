@@ -78,13 +78,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9', '3.10', '3.11', '3.12']
-        include:
-          # Test with development versions on latest OS
-          - os: ubuntu-latest
-            python-version: '3.13-dev'
-            experimental: true
     
-    continue-on-error: ${{ matrix.experimental == true }}
+    continue-on-error: false
     
     steps:
     - name: Checkout code
