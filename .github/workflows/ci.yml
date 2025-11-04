@@ -193,8 +193,8 @@ jobs:
       with:
         name: coverage-reports
         path: |
-          FollowWeb/coverage.xml
-          FollowWeb/htmlcov/
+          coverage.xml
+          htmlcov/
         retention-days: 7
     
     - name: Generate coverage report summary
@@ -309,8 +309,8 @@ jobs:
       with:
         name: security-reports
         path: |
-          FollowWeb/bandit-report.json
-          FollowWeb/pip-audit-report.json
+          bandit-report.json
+          pip-audit-report.json
         retention-days: 7
 
   format-check:
@@ -422,7 +422,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
-        path: FollowWeb/dist/
+        path: dist/
         retention-days: 30
 
   performance:
@@ -476,7 +476,7 @@ jobs:
       if: always()
       with:
         name: benchmark-results
-        path: FollowWeb/.benchmarks/
+        path: .benchmarks/
         retention-days: 30
   
   # All checks must pass - no exceptions
