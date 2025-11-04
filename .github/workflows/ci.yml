@@ -111,7 +111,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
         # Single consolidated install for faster CI
-        cd FollowWeb
         python -m pip install -r ../requirements-ci.txt -e .
       shell: bash
     
@@ -224,7 +223,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         # Install minimal security tools only (dependencies already cached)
-        python -m pip install bandit[toml] pip-audit -r FollowWeb/requirements.txt
+        python -m pip install bandit[toml] pip-audit -r requirements.txt
     
     - name: Run Bandit security linter
       run: |
@@ -440,7 +439,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        cd FollowWeb
         python -m pip install -r ../requirements-ci.txt -e .
     
     - name: Run performance tests
@@ -564,7 +562,6 @@ jobs:
       working-directory: FollowWeb
       run: |
         python -m pip install --upgrade pip
-        cd FollowWeb
         python -m pip install -r ../requirements-ci.txt
         python -m pip install -e .
     
