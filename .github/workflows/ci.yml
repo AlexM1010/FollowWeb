@@ -447,8 +447,8 @@ jobs:
       run: |
         # Create benchmarks directory
         mkdir -p .benchmarks
-        # Performance tests must pass - run directly with pytest to save benchmark results
-        python -m pytest -m slow -v --tb=short --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
+        # Run both slow tests and benchmark tests to save benchmark results
+        python -m pytest -m "slow or benchmark" -v --tb=short --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
         # Verify no performance regressions
         python ci_helpers.py success "Performance tests completed - no regressions detected"
         echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
