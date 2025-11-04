@@ -452,8 +452,10 @@ jobs:
     
     - name: Run performance tests
       run: |
-        # Performance tests must pass
-        python tests/run_tests.py performance
+        # Create benchmarks directory
+        mkdir -p .benchmarks
+        # Performance tests must pass - run directly with pytest to save benchmark results
+        python -m pytest -m slow -v --tb=short --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
         # Verify no performance regressions
         python ci_helpers.py success "Performance tests completed - no regressions detected"
         echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
@@ -466,6 +468,7 @@ jobs:
         "
       env:
         MPLBACKEND: Agg
+        PYTEST_PARALLEL_DISABLE: "1"
       continue-on-error: false
     
     - name: Upload benchmark results
