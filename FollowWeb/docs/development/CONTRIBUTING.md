@@ -291,13 +291,34 @@ Include in your pull request:
 - `docs/update-api-reference`
 
 ### Commit Messages
-Follow conventional commit format:
+Follow conventional commit format (validated by CI):
 ```bash
-feat(analysis): add support for weighted graphs
-fix(visualization): resolve memory leak in PNG generation
-docs(api): update NetworkAnalyzer documentation
-test(integration): add tests for ego-alter analysis
+feat: add support for weighted graphs
+fix: resolve memory leak in PNG generation  
+docs: update NetworkAnalyzer documentation
+test: add tests for ego-alter analysis
+chore: update dependencies
+ci: add conventional commit validation
 ```
+
+**Supported Types:**
+- `feat` - New features
+- `fix` - Bug fixes
+- `docs` - Documentation changes
+- `style` - Code style changes (formatting, etc.)
+- `refactor` - Code refactoring
+- `perf` - Performance improvements
+- `test` - Adding or updating tests
+- `build` - Build system or dependency changes
+- `ci` - CI/CD changes
+- `chore` - Other changes (maintenance, etc.)
+- `revert` - Reverting previous commits
+
+**Format Rules:**
+- Use lowercase for type and description
+- Keep PR title under 72 characters
+- Don't end with a period
+- Use imperative mood ("add" not "adds" or "added")
 
 ### Development Cycle
 1. Create issue describing problem/feature

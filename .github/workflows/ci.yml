@@ -291,6 +291,23 @@ jobs:
         retention-days: 7
         if-no-files-found: ignore
 
+  conventional-commits:
+    name: Validate Conventional Commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Validate conventional commits
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
@@ -461,7 +478,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [test, security, format-check, build, performance]
+    needs: [test, security, format-check, build, performance, conventional-commits]
     if: always()
     
     steps:
@@ -513,6 +530,10 @@ jobs:
           fi
         fi
         
+        if [[ "${{ needs.conventional-commits.result }}" != "success" && "${{ needs.conventional-commits.result }}" != "skipped" ]]; then
+          failed_jobs="$failed_jobs ConventionalCommits(${{ needs.conventional-commits.result }})"
+        fi
+        
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
           python .github/scripts/ci_helpers.py error "CI PIPELINE FAILED" --summary-only
@@ -558,6 +579,7 @@ jobs:
         python ../.github/scripts/ci_helpers.py info "Format check result: ${{ needs.format-check.result }}" --print-only
         python ../.github/scripts/ci_helpers.py info "Build result: ${{ needs.build.result }}" --print-only
         python ../.github/scripts/ci_helpers.py info "Performance result: ${{ needs.performance.result }}" --print-only
+        python ../.github/scripts/ci_helpers.py info "Conventional commits result: ${{ needs.conventional-commits.result }}" --print-only
         
         # Document the rigorous testing approach with dynamic values
         python ../.github/scripts/ci_helpers.py quality-summary
