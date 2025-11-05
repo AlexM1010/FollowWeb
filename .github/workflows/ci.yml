@@ -140,6 +140,7 @@ jobs:
           followweb --help || true
           exit 1
         fi
+      shell: bash
     
     - name: Run code formatting check
       run: |
@@ -358,6 +359,7 @@ jobs:
         # Clean any previous build artifacts to avoid package configuration issues
         if [ -d "build" ]; then rm -rf build; fi
         if [ -d "*.egg-info" ]; then rm -rf *.egg-info; fi
+      shell: bash
     
     - name: Verify package manifest
       run: |
@@ -385,6 +387,7 @@ jobs:
       run: |
         ls -la dist/
         python -m zipfile -l dist/*.whl || true
+      shell: bash
     
     - name: Test package installation in clean environment
       run: |
@@ -395,6 +398,7 @@ jobs:
         python -c "import FollowWeb_Visualizor"
         python ../../.github/scripts/ci_helpers.py success "Package installs and imports correctly" --print-only
         deactivate
+      shell: bash
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
