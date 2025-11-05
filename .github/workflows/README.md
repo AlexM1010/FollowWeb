@@ -6,6 +6,7 @@ This directory contains the CI/CD workflows for the FollowWeb Network Analysis P
 
 ### `ci.yml` - Continuous Integration
 **Triggers:** Push/PR to main/develop branches
+- **Conventional Commit Validation:** PR title format validation (PRs only)
 - **Matrix Testing:** Python 3.9-3.12 on Ubuntu, Windows, and macOS
 - **Unit & Integration Tests:** Comprehensive test suite with coverage reporting
 - **End-to-End Pipeline Testing:** Full pipeline validation with real data
@@ -46,6 +47,12 @@ The `.github/scripts/ci_helpers.py` script provides:
 - **Cross-platform compatibility:** Works on Windows, macOS, and Linux CI runners
 
 ```yaml
+# Conventional commit validation (PRs only)
+- name: Validate conventional commits
+  uses: amannn/action-semantic-pull-request@v5
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 # Standard test execution with coverage
 - name: Run tests with coverage
   run: |
