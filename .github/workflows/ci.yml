@@ -413,7 +413,7 @@ jobs:
         source test_env/bin/activate || test_env\\Scripts\\activate
         pip install dist/*.whl
         python -c "import FollowWeb_Visualizor"
-        python ../../.github/scripts/ci_helpers.py success "Package installs and imports correctly" --print-only
+        python ../.github/scripts/ci_helpers.py success "Package installs and imports correctly" --print-only
         deactivate
       shell: bash
     
@@ -480,6 +480,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, security, format-check, build, performance, conventional-commits]
     if: always()
+    defaults:
+      run:
+        working-directory: FollowWeb
     
     steps:
     - name: Check all jobs status
@@ -536,24 +539,24 @@ jobs:
         
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
-          python .github/scripts/ci_helpers.py error "CI PIPELINE FAILED" --summary-only
-          python .github/scripts/ci_helpers.py info "**Failed Jobs:**$failed_jobs" --summary-only
+          python ../.github/scripts/ci_helpers.py error "CI PIPELINE FAILED" --summary-only
+          python ../.github/scripts/ci_helpers.py info "**Failed Jobs:**$failed_jobs" --summary-only
           if [[ -n "$skipped_jobs" ]]; then
-            python .github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
+            python ../.github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
           fi
-          python .github/scripts/ci_helpers.py info "**ALL CHECKS MUST PASS - STOPPING EXECUTION**" --summary-only
-          python .github/scripts/ci_helpers.py error "CHECKS FAILED:$failed_jobs" --print-only
+          python ../.github/scripts/ci_helpers.py info "**ALL CHECKS MUST PASS - STOPPING EXECUTION**" --summary-only
+          python ../.github/scripts/ci_helpers.py error "CHECKS FAILED:$failed_jobs" --print-only
           exit 1
         fi
         
         # Warn about skipped jobs but don't fail
         if [[ -n "$skipped_jobs" ]]; then
-          python .github/scripts/ci_helpers.py warning "Some jobs were skipped:$skipped_jobs" --print-only
-          python .github/scripts/ci_helpers.py warning "CI PIPELINE WARNING" --summary-only
-          python .github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
+          python ../.github/scripts/ci_helpers.py warning "Some jobs were skipped:$skipped_jobs" --print-only
+          python ../.github/scripts/ci_helpers.py warning "CI PIPELINE WARNING" --summary-only
+          python ../.github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
         fi
         
-        python .github/scripts/ci_helpers.py success "ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION" --print-only
+        python ../.github/scripts/ci_helpers.py success "ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION" --print-only
     
     - name: Checkout code
       uses: actions/checkout@v4
@@ -565,12 +568,10 @@ jobs:
         cache: 'pip'
     
     - name: Install dependencies
-      working-directory: FollowWeb
       run: |
         python -m pip install --upgrade pip
     
     - name: Generate success summary
-      working-directory: FollowWeb
       run: |
         # Generate success summary with proper emoji handling
         python ../.github/scripts/ci_helpers.py completion "ALL CHECKS PASSED!" --print-only
