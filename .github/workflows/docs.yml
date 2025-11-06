@@ -30,15 +30,14 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        cd FollowWeb
-        python -m pip install -r requirements.txt
-        python -m pip install -r requirements-test.txt
-        python ../.github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
+        python -m pip install -r FollowWeb/requirements.txt
+        python -m pip install -r FollowWeb/requirements-test.txt
+        python .github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
     
     - name: Check docstring coverage
+      working-directory: FollowWeb
       run: |
         python -m pip install interrogate
-        cd FollowWeb
         python ../.github/scripts/ci_helpers.py info "## Docstring Coverage Analysis" --summary-only
         python ../.github/scripts/ci_helpers.py info "Analyzing docstring coverage across all modules..." --summary-only
         
@@ -57,10 +56,11 @@ jobs:
       continue-on-error: true  # Don't fail the entire pipeline on docstring coverage issues
     
     - name: Validate documentation structure
+      working-directory: FollowWeb
       run: |
-        python .github/scripts/ci_helpers.py info "## Documentation Structure Check" --summary-only
-        python .github/scripts/ci_helpers.py info "Checking for required documentation files..." --summary-only
-        cd FollowWeb
+        python ../.github/scripts/ci_helpers.py info "## Documentation Structure Check" --summary-only
+        python ../.github/scripts/ci_helpers.py info "Checking for required documentation files..." --summary-only
+        
         # Check for required documentation files
         if [ -f "README.md" ]; then
           python ../.github/scripts/ci_helpers.py success "README.md exists" --summary-only
@@ -116,8 +116,8 @@ jobs:
         fi
     
     - name: Validate documentation content
+      working-directory: FollowWeb
       run: |
-        cd FollowWeb
         python ../.github/scripts/ci_helpers.py info "## Documentation Content Validation" --summary-only
         
         # Check if README has proper markdown structure
@@ -128,7 +128,7 @@ jobs:
         fi
         
         # Check for code examples in documentation
-        if grep -q "\`\`\`" README.md docs/USER_GUIDE.md; then
+        if grep -q "\`\`\`" README.md docs/USER_GUIDE.md 2>/dev/null; then
           python ../.github/scripts/ci_helpers.py success "Documentation includes code examples" --summary-only
         else
           python ../.github/scripts/ci_helpers.py info "Consider adding code examples to documentation" --summary-only
@@ -184,8 +184,8 @@ jobs:
         fi
     
     - name: Check documentation quality
+      working-directory: FollowWeb
       run: |
-        cd FollowWeb
         python ../.github/scripts/ci_helpers.py info "## Documentation Quality Assessment" --summary-only
         
         # Check for TODO/FIXME comments
@@ -234,8 +234,8 @@ jobs:
         done
     
     - name: Generate documentation summary
+      working-directory: FollowWeb
       run: |
-        cd FollowWeb
         python ../.github/scripts/ci_helpers.py completion "## DOCUMENTATION PIPELINE COMPLETED - ALL CHECKS PASSED!" --summary-only
         python ../.github/scripts/ci_helpers.py info "### Documentation Quality Assurance:" --summary-only
         python ../.github/scripts/ci_helpers.py success "- **Documentation Structure** (All required files present)" --summary-only
