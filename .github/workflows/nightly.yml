@@ -68,13 +68,13 @@ jobs:
         # Run a quick smoke test
         python -c "import FollowWeb_Visualizor"
         python ci_helpers.py success "Package imports successfully with latest dependencies"
-      shell: bash
         
         # Run core unit tests only (not full suite)
         python tests/run_tests.py unit -x --tb=short
         
         deactivate
         python ci_helpers.py success "Core functionality verified with latest dependencies" --summary-only
+      shell: bash
       continue-on-error: true  # Don't fail nightly if latest deps break something
       env:
         MPLBACKEND: Agg
