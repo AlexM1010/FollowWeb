@@ -1,0 +1,42 @@
+# Consolidated CI dependencies for FollowWeb
+# Combines production, testing, and CI-specific dependencies for faster installation
+# All dependencies use permissive open-source licenses (MIT, BSD, Apache 2.0)
+
+# Include production dependencies
+-r requirements.txt
+
+# Core testing framework
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-xdist>=3.0.0
+pytest-timeout>=2.1.0
+pytest-mock>=3.10.0
+pytest-benchmark>=4.0.0
+pytest-doctestplus>=0.12.0
+
+# Test utilities
+faker>=18.0.0
+factory-boy>=3.2.0
+numpy>=1.21.0
+psutil>=7.1.3
+
+# Code quality tools
+ruff>=0.1.0
+mypy>=1.0.0
+
+# Type stubs for mypy (commonly needed)
+types-python-dateutil
+types-PyYAML
+types-decorator
+types-requests
+types-setuptools
+
+# Security scanning tools
+bandit[toml]>=1.7.0
+pip-audit>=2.6.0
+
+# Build tools (for build job)
+build>=0.10.0
+twine>=4.0.0
+wheel>=0.40.0
+check-manifest>=0.49
