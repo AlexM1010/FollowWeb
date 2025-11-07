@@ -480,9 +480,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, security, format-check, build, performance, conventional-commits]
     if: always()
-    defaults:
-      run:
-        working-directory: FollowWeb
     
     steps:
     - name: Check all jobs status
@@ -539,24 +536,35 @@ jobs:
         
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
-          python ../.github/scripts/ci_helpers.py error "CI PIPELINE FAILED" --summary-only
-          python ../.github/scripts/ci_helpers.py info "**Failed Jobs:**$failed_jobs" --summary-only
+          echo "::error::CI PIPELINE FAILED - Failed Jobs:$failed_jobs"
+          echo "## ❌ CI Pipeline Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Conventional Commits: ${{ needs.conventional-commits.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Action Required:** Review the failed job logs above for details." >> $GITHUB_STEP_SUMMARY
           if [[ -n "$skipped_jobs" ]]; then
-            python ../.github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Skipped Jobs:**$skipped_jobs" >> $GITHUB_STEP_SUMMARY
           fi
-          python ../.github/scripts/ci_helpers.py info "**ALL CHECKS MUST PASS - STOPPING EXECUTION**" --summary-only
-          python ../.github/scripts/ci_helpers.py error "CHECKS FAILED:$failed_jobs" --print-only
           exit 1
         fi
         
         # Warn about skipped jobs but don't fail
         if [[ -n "$skipped_jobs" ]]; then
-          python ../.github/scripts/ci_helpers.py warning "Some jobs were skipped:$skipped_jobs" --print-only
-          python ../.github/scripts/ci_helpers.py warning "CI PIPELINE WARNING" --summary-only
-          python ../.github/scripts/ci_helpers.py info "**Skipped Jobs:**$skipped_jobs" --summary-only
+          echo "::warning::Some jobs were skipped:$skipped_jobs"
+          echo "## CI PIPELINE WARNING" >> $GITHUB_STEP_SUMMARY
+          echo "**Skipped Jobs:**$skipped_jobs" >> $GITHUB_STEP_SUMMARY
         fi
         
-        python ../.github/scripts/ci_helpers.py success "ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION" --print-only
+        echo "::notice::ALL PREREQUISITE JOBS PASSED - PROCEEDING WITH SUCCESS VALIDATION"
     
     - name: Checkout code
       uses: actions/checkout@v4
@@ -573,14 +581,14 @@ jobs:
     
     - name: Generate success summary
       run: |
-        # Generate success summary with proper emoji handling
-        python ../.github/scripts/ci_helpers.py completion "ALL CHECKS PASSED!" --print-only
-        python ../.github/scripts/ci_helpers.py info "Test result: ${{ needs.test.result }}" --print-only
-        python ../.github/scripts/ci_helpers.py info "Security result: ${{ needs.security.result }}" --print-only
-        python ../.github/scripts/ci_helpers.py info "Format check result: ${{ needs.format-check.result }}" --print-only
-        python ../.github/scripts/ci_helpers.py info "Build result: ${{ needs.build.result }}" --print-only
-        python ../.github/scripts/ci_helpers.py info "Performance result: ${{ needs.performance.result }}" --print-only
-        python ../.github/scripts/ci_helpers.py info "Conventional commits result: ${{ needs.conventional-commits.result }}" --print-only
-        
-        # Document the rigorous testing approach with dynamic values
-        python ../.github/scripts/ci_helpers.py quality-summary
+        # Generate success summary
+        echo "::notice::ALL CHECKS PASSED!"
+        echo "## ✅ CI Pipeline Success" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All quality checks passed:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Conventional Commits: ${{ needs.conventional-commits.result }}" >> $GITHUB_STEP_SUMMARY
