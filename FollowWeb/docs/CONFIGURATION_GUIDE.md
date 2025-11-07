@@ -160,62 +160,62 @@ Strategy-specific k-values for graph pruning:
 
 ```bash
 # Default configuration (full mode)
-python -m FollowWeb.FollowWeb_Visualizor.main
+followweb
 
 # Load custom configuration
-python -m FollowWeb.FollowWeb_Visualizor.main --config my_config.json
+followweb --config my_config.json
 
 # Validate configuration
-python -m FollowWeb.FollowWeb_Visualizor.main --config my_config.json --validate-config
+followweb --config my_config.json --validate-config
 ```
 
 ### Analysis Mode Examples
 
 ```bash
 # Fast mode for large networks
-python -m FollowWeb.FollowWeb_Visualizor.main --fast-mode --input large_network.json
+followweb --fast-mode --input large_network.json
 
 # Medium mode with custom sampling
-python -m FollowWeb.FollowWeb_Visualizor.main --medium-mode --sampling-threshold 3000
+followweb --medium-mode --sampling-threshold 3000
 
 # Full mode with high-quality layout
-python -m FollowWeb.FollowWeb_Visualizor.main --full-mode --max-layout-iterations 1500
+followweb --full-mode --max-layout-iterations 1500
 ```
 
 ### Pipeline Control Examples
 
 ```bash
 # Analysis only (no visualization)
-python -m FollowWeb.FollowWeb_Visualizor.main --analysis-only
+followweb --analysis-only
 
 # Visualization only (skip analysis)
-python -m FollowWeb.FollowWeb_Visualizor.main --skip-analysis
+followweb --skip-analysis
 
 # Skip expensive path analysis
-python -m FollowWeb.FollowWeb_Visualizor.main --skip-path-analysis
+followweb --skip-path-analysis
 ```
 
 ### Strategy and K-Value Examples
 
 ```bash
 # Reciprocal k-core with custom k-value
-python -m FollowWeb.FollowWeb_Visualizor.main --strategy reciprocal_k-core --k-reciprocal 15
+followweb --strategy reciprocal_k-core --k-reciprocal 15
 
 # Ego-alter analysis
-python -m FollowWeb.FollowWeb_Visualizor.main --strategy ego_alter_k-core --ego-username john_doe --k-ego-alter 5
+followweb --strategy ego_alter_k-core --ego-username john_doe --k-ego-alter 5
 ```
 
 ### Output Control Examples
 
 ```bash
 # HTML only (no PNG or reports)
-python -m FollowWeb.FollowWeb_Visualizor.main --no-png --no-reports
+followweb --no-png --no-reports
 
 # Enable timing logs
-python -m FollowWeb.FollowWeb_Visualizor.main --enable-timing-logs
+followweb --enable-timing-logs
 
 # Custom output location
-python -m FollowWeb.FollowWeb_Visualizor.main --output-prefix Results/MyAnalysis
+followweb --output-prefix Results/MyAnalysis
 ```
 
 ## Configuration File Examples

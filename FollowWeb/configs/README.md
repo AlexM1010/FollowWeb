@@ -40,16 +40,16 @@ Since JSON doesn't support comments, we use a separate documentation approach:
 ### Basic Usage
 ```bash
 # Use fast configuration for development
-python -m FollowWeb_Visualizor --config configs/fast_config.json
+followweb --config configs/fast_config.json
 
 # Use comprehensive configuration for production
-python -m FollowWeb_Visualizor --config configs/comprehensive_layout_config.json
+followweb --config configs/comprehensive_layout_config.json
 ```
 
 ### Custom Configuration
 ```bash
 # Override specific parameters
-python -m FollowWeb_Visualizor --config configs/fast_config.json --k-value 5
+followweb --config configs/fast_config.json --k-value 5
 ```
 
 ## Configuration Features
