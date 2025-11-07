@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from .models import Severity
 
@@ -35,9 +35,9 @@ class AILanguageReport:
 
     file_path: str
     total_matches: int
-    matches_by_category: Dict[str, int]
-    matches_by_severity: Dict[str, int]
-    all_matches: List[AILanguageMatch]
+    matches_by_category: dict[str, int]
+    matches_by_severity: dict[str, int]
+    all_matches: list[AILanguageMatch]
     summary: str
 
 
@@ -46,9 +46,9 @@ class AILanguageScanner:
 
     def __init__(self):
         """Initialize the AI language scanner with comprehensive pattern definitions."""
-        self.ai_patterns = self._initialize_comprehensive_patterns()
-        self.replacement_suggestions = self._initialize_replacements()
-        self.python_keywords = self._get_python_keywords()
+        self.ai_patterns: dict[str, dict[str, any]] = self._initialize_comprehensive_patterns()
+        self.replacement_suggestions: dict[str, str] = self._initialize_replacements()
+        self.python_keywords: set[str] = self._get_python_keywords()
 
     def _get_python_keywords(self) -> set:
         """Get set of Python keywords and common programming terms to exclude from AI pattern matching."""
@@ -118,7 +118,7 @@ class AILanguageScanner:
             "directory",
         }
 
-    def _initialize_comprehensive_patterns(self) -> Dict[str, Dict[str, List[str]]]:
+    def _initialize_comprehensive_patterns(self) -> dict[str, dict[str, list[str]]]:
         """Initialize comprehensive AI language detection patterns."""
         return {
             "overused_adjectives": {
@@ -234,7 +234,7 @@ class AILanguageScanner:
             },
         }
 
-    def _initialize_replacements(self) -> Dict[str, str]:
+    def _initialize_replacements(self) -> dict[str, str]:
         """Initialize replacement suggestions for common AI phrases."""
         return {
             "comprehensive": "complete",
@@ -297,8 +297,8 @@ class AILanguageScanner:
         all_matches.extend(string_matches)
 
         # Generate summary statistics
-        matches_by_category = defaultdict(int)
-        matches_by_severity = defaultdict(int)
+        matches_by_category: dict[str, int] = defaultdict(int)
+        matches_by_severity: dict[str, int] = defaultdict(int)
 
         for match in all_matches:
             matches_by_category[match.category] += 1
@@ -317,7 +317,7 @@ class AILanguageScanner:
 
     def _scan_docstrings_and_comments(
         self, content: str, file_path: str
-    ) -> List[AILanguageMatch]:
+    ) -> list[AILanguageMatch]:
         """Scan docstrings and comments for AI language patterns."""
         matches = []
         lines = content.split("\n")
@@ -359,7 +359,7 @@ class AILanguageScanner:
 
     def _scan_string_literals(
         self, content: str, file_path: str
-    ) -> List[AILanguageMatch]:
+    ) -> list[AILanguageMatch]:
         """Scan string literals for AI language patterns using AST parsing."""
         matches = []
 
@@ -378,8 +378,8 @@ class AILanguageScanner:
                 else:
                     continue
 
-                # Skip very short strings
-                if len(string_value.strip()) < 10:
+                # Skip very short strings or non-string values
+                if not isinstance(string_value, str) or len(string_value.strip()) < 10:
                     continue
 
                 string_matches = self._find_patterns_in_text(
@@ -395,7 +395,7 @@ class AILanguageScanner:
 
     def _scan_strings_with_regex(
         self, content: str, file_path: str
-    ) -> List[AILanguageMatch]:
+    ) -> list[AILanguageMatch]:
         """Fallback method to scan strings using regex when AST parsing fails."""
         matches = []
         lines = content.split("\n")
@@ -422,7 +422,7 @@ class AILanguageScanner:
 
     def _find_patterns_in_text(
         self, text: str, file_path: str, start_line: int
-    ) -> List[AILanguageMatch]:
+    ) -> list[AILanguageMatch]:
         """Find AI language patterns in a given text."""
         matches = []
         lines = text.split("\n")
@@ -499,8 +499,8 @@ class AILanguageScanner:
     def _generate_summary(
         self,
         file_path: str,
-        matches: List[AILanguageMatch],
-        category_counts: Dict[str, int],
+        matches: list[AILanguageMatch],
+        category_counts: dict[str, int],
     ) -> str:
         """Generate a summary of AI language usage in the file."""
         if not matches:
@@ -528,8 +528,8 @@ class AILanguageScanner:
         return "; ".join(summary_parts)
 
     def scan_directory(
-        self, directory_path: str, exclude_patterns: Optional[List[str]] = None
-    ) -> Dict[str, AILanguageReport]:
+        self, directory_path: str, exclude_patterns: Optional[list[str]] = None
+    ) -> dict[str, AILanguageReport]:
         """
         Scan all Python files in a directory for AI language patterns.
 
@@ -578,8 +578,8 @@ class AILanguageScanner:
         return results
 
     def generate_aggregate_report(
-        self, scan_results: Dict[str, AILanguageReport]
-    ) -> Dict:
+        self, scan_results: dict[str, AILanguageReport]
+    ) -> dict:
         """
         Generate an aggregate report across all scanned files.
 
@@ -596,8 +596,8 @@ class AILanguageScanner:
         total_matches = sum(r.total_matches for r in scan_results.values())
 
         # Aggregate by category
-        category_totals = defaultdict(int)
-        severity_totals = defaultdict(int)
+        category_totals: dict[str, int] = defaultdict(int)
+        severity_totals: dict[str, int] = defaultdict(int)
 
         for report in scan_results.values():
             for category, count in report.matches_by_category.items():
@@ -634,8 +634,8 @@ class AILanguageScanner:
         }
 
     def _generate_cleanup_recommendations(
-        self, category_totals: Dict[str, int], severity_totals: Dict[str, int]
-    ) -> List[str]:
+        self, category_totals: dict[str, int], severity_totals: dict[str, int]
+    ) -> list[str]:
         """Generate prioritized cleanup recommendations."""
         recommendations = []
 

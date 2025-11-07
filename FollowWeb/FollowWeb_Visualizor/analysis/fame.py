@@ -7,10 +7,18 @@ based on follower-to-following ratios and connectivity patterns.
 
 # Standard library imports
 import logging
-from typing import Dict, List, Tuple, Union
+import sys
+from typing import Any, Union
 
 # Third-party imports
 import networkx as nx
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..utils import ProgressTracker
@@ -32,8 +40,8 @@ class FameAnalyzer:
 
     def find_famous_accounts(
         self, graph: nx.DiGraph, min_followers: int, min_ratio: float
-    ) -> Tuple[
-        List[Dict[str, Union[str, int, float]]], List[Dict[str, Union[str, int, float]]]
+    ) -> tuple[
+        list[dict[str, Union[str, int, float]]], list[dict[str, Union[str, int, float]]]
     ]:
         """
         Identify influential accounts based on follower-to-following ratio analysis.
@@ -62,8 +70,8 @@ class FameAnalyzer:
             Results are sorted by ratio (descending), then by follower count (descending).
             Accounts with zero following have infinite ratio and appear first in unreachable list.
         """
-        unreachable_famous = []
-        reachable_famous = []
+        unreachable_famous: list[dict[str, Any]] = []
+        reachable_famous: list[dict[str, Any]] = []
 
         if graph.number_of_nodes() == 0:
             return unreachable_famous, reachable_famous

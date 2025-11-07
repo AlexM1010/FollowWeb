@@ -36,7 +36,13 @@ __license__ = "MIT"  # Update as appropriate
 __url__ = ""  # Add repository URL if available
 
 # Core imports for public API
-from .core.config import FollowWebConfig, get_configuration_manager, load_config_from_dict
+
+# Core components
+from .core.config import (
+    FollowWebConfig,
+    get_configuration_manager,
+    load_config_from_dict,
+)
 from .main import PipelineOrchestrator
 from .utils import ProgressTracker
 
@@ -48,10 +54,10 @@ try:
     from .data.loaders import GraphLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
-    FameAnalyzer = None
-    GraphLoader = None
-    NetworkAnalyzer = None
-    PathAnalyzer = None
+    FameAnalyzer = None  # type: ignore
+    GraphLoader = None  # type: ignore
+    NetworkAnalyzer = None  # type: ignore
+    PathAnalyzer = None  # type: ignore
 
 # Visualization components
 try:
@@ -61,44 +67,32 @@ try:
         NodeMetric,
         VisualizationMetrics,
     )
-    from .visualization.metrics import (
-        MetricsCalculator,
-        calculate_shared_metrics,
-        get_shared_layout_positions,
-    )
+    from .visualization.metrics import MetricsCalculator
     from .visualization.renderers import (
         InteractiveRenderer,
         StaticRenderer,
     )
-    from .visualization.colors import get_shared_color_schemes
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
-    ColorScheme = None
-    EdgeMetric = None
-    InteractiveRenderer = None
-    MetricsCalculator = None
-    NodeMetric = None
-    StaticRenderer = None
-    VisualizationMetrics = None
-    calculate_shared_metrics = None
-    get_shared_color_schemes = None
-    get_shared_layout_positions = None
+    ColorScheme = None  # type: ignore
+    EdgeMetric = None  # type: ignore
+    InteractiveRenderer = None  # type: ignore
+    MetricsCalculator = None  # type: ignore
+    NodeMetric = None  # type: ignore
+    StaticRenderer = None  # type: ignore
+    VisualizationMetrics = None  # type: ignore
+
 
 # Error handling utilities
-from .utils.validation import (
-    ConfigurationErrorHandler,
-    ValidationErrorHandler,
-)
+# Unified output system
+from .output.logging import Logger
+from .output.managers import OutputConfig, OutputManager
 from .utils.files import (
     ErrorRecoveryManager,
     FileOperationHandler,
     error_context,
     handle_common_exceptions,
 )
-
-# Unified output system
-from .output.logging import Logger
-from .output.managers import OutputConfig, OutputManager
 
 # Parallel processing utilities
 from .utils.parallel import (
@@ -112,15 +106,59 @@ from .utils.parallel import (
     is_nx_parallel_available,
     log_parallel_usage,
 )
+from .utils.validation import (
+    ConfigurationErrorHandler,
+    ValidationErrorHandler,
+)
 
 # Enhanced metrics reporting
 try:
     from .output.managers import MetricsReporter
 except ImportError:
-    MetricsReporter = None
+    MetricsReporter = None  # type: ignore
 
 # Utility functions and exceptions
 # Validation functions
+# Centralized caching system
+
+from .core.exceptions import (
+    ConfigurationError,
+    DataProcessingError,
+    VisualizationError,
+)
+
+# Data processing components
+from .data.cache import (
+    CentralizedCache,
+    calculate_graph_hash,
+    clear_all_caches,
+    get_cache_manager,
+    get_cached_community_colors,
+    get_cached_node_attributes,
+    get_cached_undirected_graph,
+)
+
+# Output and logging
+from .output.formatters import (
+    EmojiFormatter,
+    format_completion,
+    format_error,
+    format_progress,
+    format_success,
+    format_timer,
+    safe_print_error,
+    safe_print_success,
+)
+
+# Utilities
+from .utils.files import (
+    ensure_output_directory,
+    generate_output_filename,
+)
+from .utils.math import (
+    format_time_duration,
+    get_scaled_size,
+)
 from .utils.validation import (
     validate_at_least_one_enabled,
     validate_choice,
@@ -139,42 +177,54 @@ from .utils.validation import (
     validate_string_format,
 )
 
-# Emoji formatting functions
-from .output.formatters import (
-    EmojiFormatter,
-    format_completion,
-    format_error,
-    format_progress,
-    format_success,
-    format_timer,
-    safe_print_error,
-    safe_print_success,
-)
-
-# Centralized caching system
-from .core.exceptions import (
-    ConfigurationError,
-    DataProcessingError,
-    VisualizationError,
-)
-from .data.cache import (
-    CentralizedCache,
-    calculate_graph_hash,
-    clear_all_caches,
-    get_cache_manager,
-    get_cached_community_colors,
-    get_cached_node_attributes,
-    get_cached_undirected_graph,
-)
-from .utils.files import (
-    ensure_output_directory,
-    generate_output_filename,
-)
-from .utils.math import (
-    format_time_duration,
-    get_scaled_size,
-)
+# Visualization components
 from .visualization.colors import get_community_colors
+
+# Analysis components - conditionally imported
+try:
+    from .analysis.fame import FameAnalyzer
+    from .analysis.network import NetworkAnalyzer
+    from .analysis.paths import PathAnalyzer
+    from .data.loaders import GraphLoader
+except ImportError:
+    # Graceful handling if analysis module is not fully implemented
+    # Setting to None for graceful degradation - mypy cannot infer conditional class/None types
+    FameAnalyzer = None  # type: ignore[assignment,misc]
+    GraphLoader = None  # type: ignore[assignment,misc]
+    NetworkAnalyzer = None  # type: ignore[assignment,misc]
+    PathAnalyzer = None  # type: ignore[assignment,misc]
+
+# Visualization components - conditionally imported
+try:
+    from .core.types import (
+        ColorScheme,
+        EdgeMetric,
+        NodeMetric,
+        VisualizationMetrics,
+    )
+    from .visualization.metrics import MetricsCalculator
+    from .visualization.renderers import (
+        InteractiveRenderer,
+        StaticRenderer,
+    )
+except ImportError:
+    # Graceful handling if visualization module is not fully implemented
+    # Setting to None for graceful degradation - mypy expects type objects, not None
+    ColorScheme = None  # type: ignore[assignment,misc]
+    EdgeMetric = None  # type: ignore[assignment,misc]
+    InteractiveRenderer = None  # type: ignore[assignment,misc]
+    MetricsCalculator = None  # type: ignore[assignment,misc]
+    NodeMetric = None  # type: ignore[assignment,misc]
+    StaticRenderer = None  # type: ignore[assignment,misc]
+    VisualizationMetrics = None  # type: ignore[assignment,misc]
+
+# Output components - conditionally imported
+try:
+    from .output.managers import MetricsReporter
+except ImportError:
+    # Graceful handling if output module is not fully implemented
+    # Setting to None for graceful degradation - mypy expects class, not None
+    MetricsReporter = None  # type: ignore[assignment,misc]
 
 # Public API
 __all__ = [
@@ -199,10 +249,6 @@ __all__ = [
     "NodeMetric",
     "EdgeMetric",
     "ColorScheme",
-    # Shared metrics functions
-    "calculate_shared_metrics",
-    "get_shared_layout_positions",
-    "get_shared_color_schemes",
     # Unified output system
     "Logger",
     "OutputConfig",

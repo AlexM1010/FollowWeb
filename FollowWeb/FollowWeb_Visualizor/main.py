@@ -14,7 +14,7 @@ import sys
 import time
 import traceback
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 # Third-party imports
 import networkx as nx
@@ -23,7 +23,6 @@ import networkx as nx
 from .analysis.fame import FameAnalyzer
 from .analysis.network import NetworkAnalyzer
 from .analysis.paths import PathAnalyzer
-from .data.loaders import GraphLoader
 from .core.config import (
     FollowWebConfig,
     PipelineStagesController,
@@ -31,11 +30,13 @@ from .core.config import (
     get_configuration_manager,
     load_config_from_dict,
 )
-from .output.managers import OutputManager
+from .data.cache import CentralizedCache, get_cache_manager
+from .data.loaders import GraphLoader
 from .output.formatters import EmojiFormatter
+from .output.logging import Logger
+from .output.managers import OutputManager
 from .utils.math import format_time_duration
 from .utils.parallel import get_analysis_parallel_config, get_nx_parallel_status_message
-from .data.cache import get_cache_manager
 
 
 class PipelineOrchestrator:
@@ -103,14 +104,20 @@ class PipelineOrchestrator:
             ),
             emoji_level,
         )
-        self.logger = self.output_manager.unified_logger
+
+        # Ensure logger is properly initialized
+        if self.output_manager.unified_logger is None:
+            raise RuntimeError("Failed to initialize unified logger")
+
+        self.logger: Logger = self.output_manager.unified_logger
 
         # Pipeline state
         self.pipeline_start_time = None
-        self.phase_times = {}
+        self.phase_times: dict[str, float] = {}
+        self.initial_graph_stats: Optional[dict[str, int]] = None
 
         # Get cache manager for performance optimization
-        self.cache_manager = get_cache_manager()
+        self.cache_manager: CentralizedCache = get_cache_manager()
 
     def _log_timer(self, message: str, section: Optional[str] = None) -> None:
         """Log timing information with standardized format."""
@@ -126,7 +133,9 @@ class PipelineOrchestrator:
         """Log progress information with standardized format."""
         self.logger.log_progress(message, section)
 
-    def _log_completion(self, message: str, section: Optional[str] = None) -> None:
+    def _log_completion(
+        self, message: str, section: Optional[Optional[str]] = None
+    ) -> None:
         """Log completion information with standardized format."""
         self.logger.log_completion(message, section)
 
@@ -138,7 +147,7 @@ class PipelineOrchestrator:
             bool: True if pipeline completed successfully, False otherwise
         """
         self.pipeline_start_time = time.perf_counter()
-        phase_results = {}
+        phase_results: dict[str, Union[bool, str]] = {}
 
         try:
             # Start pipeline section
@@ -216,7 +225,7 @@ class PipelineOrchestrator:
                 phase for phase in enabled_phases if phase_results.get(phase) is False
             ]
             successful_phases = [
-                phase for phase in enabled_phases if phase_results.get(phase)
+                phase for phase in enabled_phases if phase_results.get(phase) is True
             ]
 
             # Pipeline succeeds only if ALL enabled phases succeeded
@@ -293,8 +302,15 @@ class PipelineOrchestrator:
                 "success", "Successfully loaded network data"
             )
             self.logger.info(success_msg)
+
+            # Capture initial graph stats for reporting
+            self.initial_graph_stats = {
+                "nodes": graph.number_of_nodes(),
+                "edges": graph.number_of_edges(),
+            }
+
             self.logger.info(
-                f"  Initial graph: {graph.number_of_nodes():,} nodes, {graph.number_of_edges():,} edges"
+                f"  Initial graph: {self.initial_graph_stats['nodes']:,} nodes, {self.initial_graph_stats['edges']:,} edges"
             )
             self.logger.info("")
 
@@ -439,7 +455,7 @@ class PipelineOrchestrator:
             stage_config = self.stages_controller.get_stage_configuration("analysis")
 
             analyzed_graph = graph
-            component_results = {}
+            component_results: dict[str, Union[bool, str]] = {}
 
             # Perform network analysis (communities and centrality) if enabled
             if self.stages_controller.should_execute_analysis_component(
@@ -480,9 +496,7 @@ class PipelineOrchestrator:
                     self.logger.info(
                         "  → Calculating shortest paths and connectivity metrics..."
                     )
-                    self.path_analyzer.analyze_path_lengths(
-                        analyzed_graph
-                    )
+                    self.path_analyzer.analyze_path_lengths(analyzed_graph)
                     self.stages_controller.log_analysis_component_completion(
                         "path_analysis", True
                     )
@@ -573,9 +587,7 @@ class PipelineOrchestrator:
                 )
                 component_results["contact_path"] = "skipped"
             elif contact_target and component_results.get("path_analysis") is False:
-                self.logger.info(
-                    "Contact path analysis skipped - path analysis failed"
-                )
+                self.logger.info("Contact path analysis skipped - path analysis failed")
                 component_results["contact_path"] = "skipped"
             else:
                 component_results["contact_path"] = "skipped"
@@ -607,12 +619,12 @@ class PipelineOrchestrator:
                 name for name, result in component_results.items() if result is False
             ]
             successful_components = [
-                name for name, result in component_results.items() if result
+                name for name, result in component_results.items() if result is True
             ]
             skipped_components = [
                 name
                 for name, result in component_results.items()
-                if result == "skipped"
+                if isinstance(result, str) and result == "skipped"
             ]
 
             phase_time = time.perf_counter() - phase_start
@@ -706,13 +718,21 @@ class PipelineOrchestrator:
 
             # Add total time to phase times for complete timing data
             complete_timing_data = self.phase_times.copy()
+            assert self.pipeline_start_time is not None, (
+                "Pipeline start time should be set"
+            )
             complete_timing_data["total"] = (
                 time.perf_counter() - self.pipeline_start_time
             )
 
             # Generate all outputs using OutputManager
             output_results = self.output_manager.generate_all_outputs(
-                graph, strategy, k_value, complete_timing_data, output_prefix
+                graph,
+                strategy,
+                k_value,
+                complete_timing_data,
+                output_prefix,
+                self.initial_graph_stats,
             )
 
             # Check results - only count actually attempted outputs
@@ -720,9 +740,7 @@ class PipelineOrchestrator:
                 1 for success in output_results.values() if success
             )
             len(output_results)
-            failed_outputs = sum(
-                1 for success in output_results.values() if not success
-            )
+            failed_count = sum(1 for success in output_results.values() if not success)
 
             phase_time = time.perf_counter() - phase_start
             self.phase_times["visualization"] = phase_time
@@ -732,8 +750,8 @@ class PipelineOrchestrator:
             self.logger.info("OUTPUT GENERATION SUMMARY")
             self.logger.info("-" * 25)
             self.logger.info(f"Generated: {successful_outputs} format(s)")
-            if failed_outputs > 0:
-                self.logger.info(f"Failed: {failed_outputs} format(s)")
+            if failed_count > 0:
+                self.logger.info(f"Failed: {failed_count} format(s)")
 
             for format_name, success in output_results.items():
                 if success:
@@ -772,8 +790,8 @@ class PipelineOrchestrator:
 
     def _report_fame_analysis(
         self,
-        unreachable_famous: List[Dict[str, Union[str, int, float]]],
-        reachable_famous: List[Dict[str, Union[str, int, float]]],
+        unreachable_famous: list[dict[str, Union[str, int, float]]],
+        reachable_famous: list[dict[str, Union[str, int, float]]],
     ) -> None:
         """
         Report fame analysis results.
@@ -815,7 +833,7 @@ class PipelineOrchestrator:
     def _analyze_famous_paths(
         self,
         graph: nx.DiGraph,
-        reachable_famous: List[Dict[str, Union[str, int, float]]],
+        reachable_famous: list[dict[str, Union[str, int, float]]],
     ) -> None:
         """
         Analyze paths to famous accounts if requested.
@@ -840,7 +858,7 @@ class PipelineOrchestrator:
 
         paths_found = 0
         for account in reachable_famous[:10]:  # Limit to top 10 to avoid spam
-            username = account["username"]
+            username = str(account["username"])
             path_found = self.path_analyzer.print_detailed_contact_path(
                 graph, ego_username, username
             )
@@ -939,6 +957,7 @@ class PipelineOrchestrator:
 
     def _report_pipeline_completion(self) -> None:
         """Report overall pipeline completion statistics."""
+        assert self.pipeline_start_time is not None, "Pipeline start time should be set"
         total_time = time.perf_counter() - self.pipeline_start_time
 
         self.logger.info("\n" + "=" * 70)
@@ -1018,7 +1037,7 @@ class PipelineOrchestrator:
         self.logger.info("=" * 70)
 
 
-def load_config_from_file(config_path: str) -> Dict[str, Any]:
+def load_config_from_file(config_path: str) -> dict[str, Any]:
     """
     Load configuration from a JSON file using the configuration manager.
 
@@ -1049,11 +1068,11 @@ def create_argument_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m FollowWeb_Visualizor.main --input data.json
-  python -m FollowWeb_Visualizor.main --config my_config.json --fast-mode
-  python -m FollowWeb_Visualizor.main --strategy reciprocal_k-core --k-reciprocal 15
-  python -m FollowWeb_Visualizor.main --skip-analysis --no-png
-  python -m FollowWeb_Visualizor.main --print-default-config > config.json
+  followweb --input examples/followers_following.json
+  followweb --config my_config.json --fast-mode
+  followweb --strategy reciprocal_k-core --k-reciprocal 15
+  followweb --skip-analysis --no-png
+  followweb --print-default-config > config.json
         """,
     )
 
@@ -1611,14 +1630,14 @@ def main() -> int:
             error_msg = EmojiFormatter.format("error", f"Configuration error - {e}")
             logger.error(error_msg)
             logger.info("For configuration help:")
-            logger.info("  python -m FollowWeb_Visualizor.main --print-default-config")
-            logger.info("  python -m FollowWeb_Visualizor.main --help")
+            logger.info("  followweb --print-default-config")
+            logger.info("  followweb --help")
             logger.info("  See docs/CONFIGURATION_GUIDE.md for detailed examples")
         except NameError:
             print(f"ERROR: Configuration error - {e}")
             print("For configuration help:")
-            print("  python -m FollowWeb_Visualizor.main --print-default-config")
-            print("  python -m FollowWeb_Visualizor.main --help")
+            print("  followweb --print-default-config")
+            print("  followweb --help")
             print("  See docs/CONFIGURATION_GUIDE.md for detailed examples")
         return 1
     except PermissionError as e:

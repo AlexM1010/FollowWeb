@@ -174,9 +174,10 @@ class TestVisualizationConsistency:
 
             try:
                 # Mock only matplotlib operations to focus on metrics consistency
-                with patch(
-                    "matplotlib.pyplot.subplots", return_value=(Mock(), Mock())
-                ), patch("matplotlib.pyplot.savefig"):
+                with (
+                    patch("matplotlib.pyplot.subplots", return_value=(Mock(), Mock())),
+                    patch("matplotlib.pyplot.savefig"),
+                ):
                     # Test HTML renderer
                     html_result = self.interactive_renderer.generate_html(
                         G, str(html_path), shared_metrics=shared_metrics
@@ -245,8 +246,9 @@ class TestVisualizationConsistency:
             png_path = Path(temp_dir) / "test.png"
 
             try:
-                with patch("matplotlib.pyplot.subplots") as mock_subplots, patch(
-                    "matplotlib.pyplot.savefig"
+                with (
+                    patch("matplotlib.pyplot.subplots") as mock_subplots,
+                    patch("matplotlib.pyplot.savefig"),
                 ):
                     # Mock matplotlib components
                     mock_fig = Mock()
@@ -325,11 +327,11 @@ class TestVisualizationConsistency:
             mock_scale.return_value = 15.0
 
             # Calculate metrics using shared calculator
-            with patch.object(
-                self.metrics_calculator, "_calculate_color_schemes"
-            ), patch.object(
-                self.metrics_calculator, "_calculate_edge_metrics"
-            ), patch.object(self.metrics_calculator, "_calculate_spring_layout"):
+            with (
+                patch.object(self.metrics_calculator, "_calculate_color_schemes"),
+                patch.object(self.metrics_calculator, "_calculate_edge_metrics"),
+                patch.object(self.metrics_calculator, "_calculate_spring_layout"),
+            ):
                 self.metrics_calculator._calculate_node_metrics(
                     G, ColorScheme({}, {}, "#000", "#fff")
                 )
@@ -376,11 +378,14 @@ class TestVisualizationConsistency:
 
             try:
                 # Mock the actual file operations
-                with patch(
-                    "FollowWeb_Visualizor.visualization.InteractiveRenderer.generate_html"
-                ) as mock_html, patch(
-                    "FollowWeb_Visualizor.visualization.StaticRenderer.generate_png"
-                ) as mock_png:
+                with (
+                    patch(
+                        "FollowWeb_Visualizor.visualization.InteractiveRenderer.generate_html"
+                    ) as mock_html,
+                    patch(
+                        "FollowWeb_Visualizor.visualization.StaticRenderer.generate_png"
+                    ) as mock_png,
+                ):
                     mock_html.return_value = True
                     mock_png.return_value = True
 
@@ -437,9 +442,10 @@ class TestVisualizationConsistency:
 
             try:
                 # Mock only matplotlib operations to focus on consistency
-                with patch(
-                    "matplotlib.pyplot.subplots", return_value=(Mock(), Mock())
-                ), patch("matplotlib.pyplot.savefig"):
+                with (
+                    patch("matplotlib.pyplot.subplots", return_value=(Mock(), Mock())),
+                    patch("matplotlib.pyplot.savefig"),
+                ):
                     # Test HTML renderer with shared metrics
                     html_result = self.interactive_renderer.generate_html(
                         G, str(html_path), shared_metrics=shared_metrics

@@ -11,7 +11,7 @@ import logging
 import os
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional, Union
 
 # Note: These imports will be updated when the respective modules are created
 # For now, we'll comment them out to avoid import errors
@@ -32,63 +32,85 @@ from typing import Any, Dict, List, Optional, Tuple
 # from ..output.formatters import EmojiFormatter
 # from ..utils.math import format_time_duration
 
+
 # Temporary placeholder functions to avoid import errors
-def validate_at_least_one_enabled(options, name):
+def validate_at_least_one_enabled(options: dict[str, bool], name: str) -> None:
     if not any(options.values()):
         raise ValueError(f"At least one {name} must be enabled")
 
-def validate_choice(value, name, choices):
+
+def validate_choice(value: Any, name: str, choices: list[Any]) -> None:
     if value not in choices:
         raise ValueError(f"{name} must be one of {choices}, got {value}")
 
-def validate_ego_strategy_requirements(strategy, ego_username):
+
+def validate_ego_strategy_requirements(
+    strategy: str, ego_username: Optional[str]
+) -> None:
     if strategy == "ego_alter_k-core" and not ego_username:
         raise ValueError("ego_username is required for ego_alter_k-core strategy")
 
-def validate_image_dimensions(width, height):
+
+def validate_image_dimensions(width: int, height: int) -> None:
     if width <= 0 or height <= 0:
         raise ValueError("Image dimensions must be positive")
 
-def validate_k_value_dict(k_values, name, valid_strategies):
+
+def validate_k_value_dict(
+    k_values: dict[str, int], name: str, valid_strategies: list[str]
+) -> None:
     for strategy, k_val in k_values.items():
         if strategy not in valid_strategies:
             raise ValueError(f"Invalid strategy in {name}: {strategy}")
         if not isinstance(k_val, int) or k_val < 0:
             raise ValueError(f"K-value must be non-negative integer, got {k_val}")
 
-def validate_non_negative_integer(value, name):
+
+def validate_non_negative_integer(value: Any, name: str) -> None:
     if not isinstance(value, int) or value < 0:
         raise ValueError(f"{name} must be non-negative integer, got {value}")
 
-def validate_positive_integer(value, name):
+
+def validate_positive_integer(value: Any, name: str) -> None:
     if not isinstance(value, int) or value <= 0:
         raise ValueError(f"{name} must be positive integer, got {value}")
 
-def validate_positive_number(value, name):
+
+def validate_positive_number(value: Any, name: str) -> None:
     if not isinstance(value, (int, float)) or value <= 0:
         raise ValueError(f"{name} must be positive number, got {value}")
 
-def validate_range(value, name, min_val, max_val):
+
+def validate_range(
+    value: Union[int, float],
+    name: str,
+    min_val: Union[int, float],
+    max_val: Union[int, float],
+) -> None:
     if not (min_val <= value <= max_val):
         raise ValueError(f"{name} must be between {min_val} and {max_val}, got {value}")
 
-def validate_string_format(value, name, valid_suffixes):
+
+def validate_string_format(value: str, name: str, valid_suffixes: list[str]) -> None:
     if not any(value.endswith(suffix) for suffix in valid_suffixes):
         raise ValueError(f"{name} must end with one of {valid_suffixes}, got {value}")
 
-def format_time_duration(seconds):
+
+def format_time_duration(seconds: float) -> str:
     """Format time duration in human readable format."""
     if seconds < 60:
         return f"{seconds:.1f}s"
     elif seconds < 3600:
-        return f"{seconds/60:.1f}m"
+        return f"{seconds / 60:.1f}m"
     else:
-        return f"{seconds/3600:.1f}h"
+        return f"{seconds / 3600:.1f}h"
+
 
 class EmojiFormatter:
     """Placeholder emoji formatter."""
+
     @staticmethod
-    def format(emoji_type, message):
+    def format(emoji_type: str, message: str) -> str:
         return message
 
 
@@ -129,7 +151,7 @@ class PipelineStagesConfig:
     enable_centrality_analysis: bool = True
     enable_path_analysis: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate pipeline stages configuration after initialization."""
         # Note: Stage dependency validation is handled by validate_stage_dependencies()
         # to allow for more flexible validation during configuration loading
@@ -142,10 +164,10 @@ class AnalysisModeConfig:
 
     mode: AnalysisMode = AnalysisMode.FULL
     sampling_threshold: int = 5000
-    max_layout_iterations: Optional[int] = None
+    max_layout_iterations: Optional[Optional[int]] = None
     enable_fast_algorithms: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate analysis mode configuration after initialization."""
         if not isinstance(self.mode, AnalysisMode):
             raise ValueError(
@@ -173,7 +195,7 @@ class EmojiConfig:
 
     fallback_level: str = "full"  # "full", "simple", "text", "none"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate emoji configuration after initialization."""
         valid_levels = ["full", "simple", "text", "none"]
         validate_choice(self.fallback_level, "fallback_level", valid_levels)
@@ -189,7 +211,7 @@ class OutputFormattingConfig:
     use_human_readable_labels: bool = True
     emoji: EmojiConfig = field(default_factory=EmojiConfig)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate output formatting configuration after initialization."""
         validate_non_negative_integer(self.indent_size, "indent_size")
 
@@ -206,7 +228,7 @@ class OutputControlConfig:
         default_factory=OutputFormattingConfig
     )
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate output control configuration after initialization."""
         # Ensure at least one output format is enabled
         output_options = {
@@ -228,7 +250,7 @@ class OutputControlConfig:
 class KValueConfig:
     """Configuration for k-core analysis parameters."""
 
-    strategy_k_values: Dict[str, int] = field(
+    strategy_k_values: dict[str, int] = field(
         default_factory=lambda: {
             "k-core": 10,
             "reciprocal_k-core": 10,
@@ -238,7 +260,7 @@ class KValueConfig:
     default_k_value: int = 10
     allow_cli_override: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate k-value configuration after initialization."""
         # Validate all k-values and strategy names
         valid_strategies = ["k-core", "reciprocal_k-core", "ego_alter_k-core"]
@@ -277,7 +299,7 @@ class SpringLayoutConfig:
     initial_k_multiplier: float = 1.5  # Stage 1: k multiplier for separation
     final_k_multiplier: float = 0.8  # Stage 3: k multiplier for fine-tuning
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate spring layout configuration."""
         validate_positive_number(self.k, "spring_k")
         validate_positive_integer(self.iterations, "spring_iterations")
@@ -306,7 +328,7 @@ class KamadaKawaiLayoutConfig:
     pos_tolerance: float = 1e-4  # Position change tolerance
     weight_function: str = "path"  # "path", "weight", or "uniform"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate Kamada-Kawai configuration."""
         validate_positive_integer(self.max_iterations, "max_iterations")
         validate_positive_number(self.tolerance, "tolerance")
@@ -322,8 +344,10 @@ class CircularLayoutConfig:
     """Circular layout configuration."""
 
     # Basic parameters
-    radius: Optional[float] = None  # Circle radius (None = auto)
-    center: Optional[Tuple[float, float]] = None  # Center position (None = origin)
+    radius: Optional[Optional[float]] = None  # Circle radius (None = auto)
+    center: Optional[Optional[tuple[float, float]]] = (
+        None  # Center position (None = origin)
+    )
 
     # Arrangement
     start_angle: float = 0.0  # Starting angle in radians
@@ -333,7 +357,7 @@ class CircularLayoutConfig:
     group_by_community: bool = True  # Group communities together
     community_separation: float = 0.2  # Angular gap between communities
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate circular layout configuration."""
         if self.radius is not None:
             validate_positive_number(self.radius, "radius")
@@ -359,9 +383,9 @@ class ShellLayoutConfig:
 
     # Shell assignment
     max_shells: int = 10  # Maximum number of shells
-    nodes_per_shell: Optional[int] = None  # Max nodes per shell (None = auto)
+    nodes_per_shell: Optional[Optional[int]] = None  # Max nodes per shell (None = auto)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate shell layout configuration."""
         validate_positive_number(self.shell_spacing, "shell_spacing")
         validate_positive_number(self.center_shell_radius, "center_shell_radius")
@@ -407,7 +431,7 @@ class StaticImageConfig:
     edge_alpha: float = 0.3
     edge_arrow_size: int = 8
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate static image configuration after initialization."""
         valid_layouts = ["spring", "circular", "kamada_kawai", "random"]
         validate_choice(self.layout, "layout", valid_layouts)
@@ -428,7 +452,7 @@ class PyvisInteractiveConfig:
     bgcolor: str = "#ffffff"
     font_color: str = "#000000"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate Pyvis configuration after initialization."""
         # Basic validation for height and width format
         validate_string_format(self.height, "height", ["px", "%", "vh", "vw"])
@@ -441,9 +465,9 @@ class PipelineConfig:
 
     strategy: str = "k-core"
     skip_analysis: bool = False
-    ego_username: Optional[str] = None
+    ego_username: Optional[Optional[str]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate pipeline configuration after initialization."""
         valid_strategies = ["k-core", "reciprocal_k-core", "ego_alter_k-core"]
         validate_choice(self.strategy, "strategy", valid_strategies)
@@ -457,7 +481,7 @@ class AnalysisConfig:
     min_followers_in_network: int = 50
     min_fame_ratio: float = 5.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate analysis configuration after initialization."""
         validate_non_negative_integer(
             self.min_followers_in_network, "min_followers_in_network"
@@ -470,11 +494,11 @@ class FameAnalysisConfig:
     """Configuration for fame analysis parameters."""
 
     find_paths_to_all_famous: bool = True
-    contact_path_target: Optional[str] = None
+    contact_path_target: Optional[Optional[str]] = None
     min_followers_in_network: int = 5
     min_fame_ratio: float = 5.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate fame analysis configuration after initialization."""
         validate_non_negative_integer(
             self.min_followers_in_network, "min_followers_in_network"
@@ -482,17 +506,14 @@ class FameAnalysisConfig:
         validate_positive_number(self.min_fame_ratio, "min_fame_ratio")
 
 
-
-
-
 @dataclass
 class OutputConfig:
     """Configuration for output generation."""
 
-    custom_output_directory: Optional[str] = None
+    custom_output_directory: Optional[Optional[str]] = None
     enable_time_logging: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate output configuration after initialization."""
         if self.custom_output_directory and not isinstance(
             self.custom_output_directory, str
@@ -521,7 +542,7 @@ class VisualizationConfig:
     )
     png_layout: PngLayoutConfig = field(default_factory=PngLayoutConfig)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate visualization configuration after initialization."""
         valid_node_metrics = ["degree", "betweenness", "eigenvector", "closeness"]
         validate_choice(self.node_size_metric, "node_size_metric", valid_node_metrics)
@@ -564,9 +585,9 @@ class FollowWebConfig:
 
     # Essential analysis settings
     strategy: str = "k-core"
-    ego_username: Optional[str] = None
+    ego_username: Optional[Optional[str]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate main configuration after initialization."""
         # Validate strategy
         valid_strategies = ["k-core", "reciprocal_k-core", "ego_alter_k-core"]
@@ -574,9 +595,7 @@ class FollowWebConfig:
         validate_ego_strategy_requirements(self.strategy, self.ego_username)
 
 
-
-
-def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
+def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
     """
     Creates a FollowWebConfig instance from a dictionary.
 
@@ -767,7 +786,7 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
             spring=spring_config,
             kamada_kawai=kamada_config,
             circular=circular_config,
-            shell=shell_config,
+            shell=shell_config,  # nosec B604
         )
 
         # Create pyvis interactive config
@@ -807,9 +826,13 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> FollowWebConfig:
         # Create fame analysis config
         fame_analysis_dict = config_dict.get("fame_analysis", {})
         fame_analysis_config = FameAnalysisConfig(
-            find_paths_to_all_famous=fame_analysis_dict.get("find_paths_to_all_famous", True),
+            find_paths_to_all_famous=fame_analysis_dict.get(
+                "find_paths_to_all_famous", True
+            ),
             contact_path_target=fame_analysis_dict.get("contact_path_target"),
-            min_followers_in_network=fame_analysis_dict.get("min_followers_in_network", 5),
+            min_followers_in_network=fame_analysis_dict.get(
+                "min_followers_in_network", 5
+            ),
             min_fame_ratio=fame_analysis_dict.get("min_fame_ratio", 5.0),
         )
 
@@ -846,8 +869,8 @@ class ValidationResult:
     """Result of configuration validation with errors and warnings."""
 
     is_valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -855,8 +878,8 @@ class DuplicateParameter:
     """Information about a duplicate parameter found during validation."""
 
     parameter_name: str
-    locations: List[str]
-    values: List[Any]
+    locations: list[str]
+    values: list[Any]
 
 
 class ConfigurationManager:
@@ -871,8 +894,9 @@ class ConfigurationManager:
     - Configuration display formatting
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the configuration manager."""
+        # Will be initialized in _initialize_mode_configurations
         self._parameter_aliases = {
             # Map of canonical parameter names to their aliases
             "k_values.default_k_value": ["pruning.default_k_value", "default_k"],
@@ -894,7 +918,9 @@ class ConfigurationManager:
         }
 
     def load_configuration(
-        self, config_file: Optional[str] = None, cli_args: Optional[Dict] = None
+        self,
+        config_file: Optional[Optional[str]] = None,
+        cli_args: Optional[Optional[dict]] = None,
     ) -> FollowWebConfig:
         """
         Load configuration from file and CLI arguments with validation.
@@ -989,7 +1015,7 @@ class ConfigurationManager:
             is_valid=len(errors) == 0, errors=errors, warnings=warnings
         )
 
-    def merge_configurations(self, base_config: Dict, overrides: Dict) -> Dict:
+    def merge_configurations(self, base_config: dict, overrides: dict) -> dict:
         """
         Merge configuration dictionaries with proper precedence.
 
@@ -1029,7 +1055,7 @@ class ConfigurationManager:
         formatting_config = config.output_control.output_formatting
         indent = " " * formatting_config.indent_size
 
-        lines = []
+        lines: list[str] = []
         lines.append("=" * 60)
         lines.append("FOLLOWWEB CONFIGURATION")
         lines.append("=" * 60)
@@ -1049,7 +1075,7 @@ class ConfigurationManager:
         lines.append("=" * 60)
         return "\n".join(lines)
 
-    def detect_duplicate_parameters(self, config: Dict) -> List[DuplicateParameter]:
+    def detect_duplicate_parameters(self, config: dict) -> list[DuplicateParameter]:
         """
         Detect duplicate parameters across configuration sections.
 
@@ -1093,7 +1119,7 @@ class ConfigurationManager:
 
         return duplicates
 
-    def consolidate_duplicates(self, config: Dict) -> Dict:
+    def consolidate_duplicates(self, config: dict) -> dict:
         """
         Consolidate duplicate parameters into canonical locations.
 
@@ -1128,7 +1154,7 @@ class ConfigurationManager:
 
         return consolidated
 
-    def get_parameter_aliases(self) -> Dict[str, List[str]]:
+    def get_parameter_aliases(self) -> dict[str, list[str]]:
         """
         Get the parameter alias registry.
 
@@ -1137,7 +1163,7 @@ class ConfigurationManager:
         """
         return self._parameter_aliases.copy()
 
-    def serialize_configuration(self, config: FollowWebConfig) -> Dict[str, Any]:
+    def serialize_configuration(self, config: FollowWebConfig) -> dict[str, Any]:
         """
         Serialize configuration to JSON-compatible dictionary.
 
@@ -1225,7 +1251,7 @@ class ConfigurationManager:
         }
 
     def _validate_analysis_mode_config(
-        self, config: FollowWebConfig, errors: List[str], warnings: List[str]
+        self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate analysis mode configuration."""
         mode_config = config.analysis_mode
@@ -1249,7 +1275,7 @@ class ConfigurationManager:
             )
 
     def _validate_output_control_config(
-        self, config: FollowWebConfig, errors: List[str], warnings: List[str]
+        self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate output control configuration."""
         output_config = config.output_control
@@ -1274,7 +1300,7 @@ class ConfigurationManager:
                 pass
 
     def _validate_k_value_config(
-        self, config: FollowWebConfig, errors: List[str], warnings: List[str]
+        self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate k-value configuration."""
         k_config = config.k_values
@@ -1286,7 +1312,7 @@ class ConfigurationManager:
                     f"High k-value for {strategy} ({k_value}) may result in empty graphs"
                 )
 
-    def _validate_stage_dependencies(self, config: FollowWebConfig) -> List[str]:
+    def _validate_stage_dependencies(self, config: FollowWebConfig) -> list[str]:
         """
         Validate pipeline stage dependencies and return any validation errors.
 
@@ -1343,7 +1369,7 @@ class ConfigurationManager:
 
         return errors
 
-    def _validate_parameter_consistency(self, config: FollowWebConfig) -> List[str]:
+    def _validate_parameter_consistency(self, config: FollowWebConfig) -> list[str]:
         """
         Validate consistency between different configuration parameters.
 
@@ -1374,7 +1400,7 @@ class ConfigurationManager:
     def _add_input_output_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1391,7 +1417,7 @@ class ConfigurationManager:
     def _add_pipeline_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1417,7 +1443,7 @@ class ConfigurationManager:
     def _add_analysis_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1444,7 +1470,7 @@ class ConfigurationManager:
     def _add_output_section(
         self,
         config: FollowWebConfig,
-        lines: List[str],
+        lines: list[str],
         indent: str,
         formatting_config: OutputFormattingConfig,
     ) -> None:
@@ -1466,7 +1492,7 @@ class ConfigurationManager:
             return f"'{value}'"
         return str(value)
 
-    def _get_nested_value(self, config: Dict, path: List[str]) -> Any:
+    def _get_nested_value(self, config: dict, path: list[str]) -> Any:
         """Get a nested value from configuration dictionary."""
         current = config
         for part in path:
@@ -1476,7 +1502,7 @@ class ConfigurationManager:
                 return None
         return current
 
-    def _set_nested_value(self, config: Dict, path: List[str], value: Any) -> None:
+    def _set_nested_value(self, config: dict, path: list[str], value: Any) -> None:
         """Set a nested value in configuration dictionary."""
         current = config
         for part in path[:-1]:
@@ -1485,7 +1511,7 @@ class ConfigurationManager:
             current = current[part]
         current[path[-1]] = value
 
-    def _remove_nested_value(self, config: Dict, path: List[str]) -> None:
+    def _remove_nested_value(self, config: dict, path: list[str]) -> None:
         """Remove a nested value from configuration dictionary."""
         current = config
         for part in path[:-1]:
@@ -1506,7 +1532,7 @@ class PipelineStagesController:
     and execution logging for the FollowWeb pipeline.
     """
 
-    def __init__(self, config: FollowWebConfig):
+    def __init__(self, config: FollowWebConfig) -> None:
         """
         Initialize the pipeline stages controller.
 
@@ -1598,7 +1624,7 @@ class PipelineStagesController:
 
         return enabled
 
-    def get_stage_configuration(self, stage_name: str) -> Dict[str, Any]:
+    def get_stage_configuration(self, stage_name: str) -> dict[str, Any]:
         """
         Get configuration specific to a pipeline stage.
 
@@ -1636,7 +1662,7 @@ class PipelineStagesController:
             self.logger.warning(f"Unknown stage name: {stage_name}")
             return {}
 
-    def validate_stage_dependencies(self) -> List[str]:
+    def validate_stage_dependencies(self) -> list[str]:
         """
         Validate stage dependencies and return validation errors.
 
@@ -1697,7 +1723,7 @@ class PipelineStagesController:
         self.logger.info(f"STAGE START: {stage_name.upper()} phase beginning")
 
     def log_stage_completion(
-        self, stage_name: str, success: bool, duration: float = None
+        self, stage_name: str, success: bool, duration: Optional[float] = None
     ) -> None:
         """
         Log the completion of a pipeline stage.
@@ -1719,7 +1745,7 @@ class PipelineStagesController:
             self.stage_status[stage_name] = "failed"
             self.logger.error(f"STAGE FAILURE: {stage_name.upper()} phase failed")
 
-    def log_stage_skip(self, stage_name: str, reason: str = None) -> None:
+    def log_stage_skip(self, stage_name: str, reason: Optional[str] = None) -> None:
         """
         Log that a pipeline stage was skipped.
 
@@ -1763,7 +1789,7 @@ class PipelineStagesController:
             self.logger.warning(f"Analysis component '{component_name}' failed")
 
     def log_analysis_component_skip(
-        self, component_name: str, reason: str = None
+        self, component_name: str, reason: Optional[str] = None
     ) -> None:
         """
         Log that an analysis component was skipped.
@@ -1778,7 +1804,7 @@ class PipelineStagesController:
             skip_msg += f" - {reason}"
         self.logger.debug(skip_msg)
 
-    def get_execution_summary(self) -> Dict[str, Any]:
+    def get_execution_summary(self) -> dict[str, Any]:
         """
         Get a summary of stage execution status.
 
@@ -1807,7 +1833,7 @@ class AnalysisModeManager:
     optimization logic for FAST, MEDIUM, and FULL analysis modes.
     """
 
-    def __init__(self, config: FollowWebConfig):
+    def __init__(self, config: FollowWebConfig) -> None:
         """
         Initialize the analysis mode manager.
 
@@ -1818,7 +1844,7 @@ class AnalysisModeManager:
         self.logger = logging.getLogger(__name__)
 
         # Define mode-specific parameter mappings
-        self._mode_configurations = {
+        self._mode_configurations: dict[AnalysisMode, dict[str, Any]] = {
             AnalysisMode.FAST: {
                 "sampling_threshold": 1000,
                 "max_layout_iterations": 100,
@@ -1851,7 +1877,9 @@ class AnalysisModeManager:
             },
         }
 
-    def get_mode_configuration(self, mode: AnalysisMode = None) -> Dict[str, Any]:
+    def get_mode_configuration(
+        self, mode: Optional[AnalysisMode] = None
+    ) -> dict[str, Any]:
         """
         Get mode-specific configuration parameters.
 
@@ -1892,8 +1920,8 @@ class AnalysisModeManager:
         return mode_config
 
     def apply_performance_optimizations(
-        self, config: Dict, mode: AnalysisMode = None
-    ) -> Dict:
+        self, config: dict, mode: Optional[AnalysisMode] = None
+    ) -> dict:
         """
         Apply performance optimizations based on analysis mode.
 
@@ -1918,8 +1946,8 @@ class AnalysisModeManager:
         return optimized_config
 
     def get_sampling_parameters(
-        self, graph_size: int, mode: AnalysisMode = None
-    ) -> Dict[str, Any]:
+        self, graph_size: int, mode: Optional[AnalysisMode] = None
+    ) -> dict[str, Any]:
         """
         Calculate sampling parameters based on graph size and analysis mode.
 
@@ -1975,7 +2003,7 @@ class AnalysisModeManager:
 
     def get_performance_config_for_component(
         self, component_name: str, graph_size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get performance configuration for a specific analysis component.
 

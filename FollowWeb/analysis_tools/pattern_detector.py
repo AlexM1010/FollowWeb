@@ -4,7 +4,6 @@ Pattern detection utilities for identifying AI language artifacts and code patte
 
 # Standard library imports
 import re
-from typing import Dict, List
 
 # Local imports
 from .models import CodeIssue, CodeLocation, IssueType, Severity
@@ -18,7 +17,7 @@ class PatternDetector:
         self.error_message_patterns = self._initialize_error_patterns()
         self.validation_patterns = self._initialize_validation_patterns()
 
-    def _initialize_ai_patterns(self) -> Dict[str, List[str]]:
+    def _initialize_ai_patterns(self) -> dict[str, list[str]]:
         """Initialize AI language detection patterns."""
         return {
             "overused_adjectives": [
@@ -62,7 +61,7 @@ class PatternDetector:
             ],
         }
 
-    def _initialize_error_patterns(self) -> List[str]:
+    def _initialize_error_patterns(self) -> list[str]:
         """Initialize patterns for generic error messages."""
         return [
             r"An error occurred",
@@ -74,7 +73,7 @@ class PatternDetector:
             r"Unable to complete",
         ]
 
-    def _initialize_validation_patterns(self) -> List[str]:
+    def _initialize_validation_patterns(self) -> list[str]:
         """Initialize patterns for redundant validation."""
         return [
             r"if\s+.*\s+is\s+None:",
@@ -86,7 +85,7 @@ class PatternDetector:
 
     def detect_ai_language_in_text(
         self, text: str, file_path: str, start_line: int = 1
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect AI-generated language patterns in text."""
         issues = []
         lines = text.split("\n")
@@ -120,7 +119,7 @@ class PatternDetector:
 
     def detect_generic_error_messages(
         self, text: str, file_path: str, start_line: int = 1
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect generic error messages that should be more specific."""
         issues = []
         lines = text.split("\n")
@@ -150,7 +149,7 @@ class PatternDetector:
 
     def detect_redundant_validation(
         self, text: str, file_path: str, start_line: int = 1
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Detect potentially redundant validation patterns."""
         issues = []
         lines = text.split("\n")
@@ -252,7 +251,7 @@ class PatternDetector:
 
     def scan_docstrings_and_comments(
         self, file_content: str, file_path: str
-    ) -> List[CodeIssue]:
+    ) -> list[CodeIssue]:
         """Scan docstrings and comments for AI language patterns."""
         issues = []
         lines = file_content.split("\n")

@@ -8,20 +8,28 @@ including degree, betweenness, and eigenvector centrality.
 # Standard library imports
 import logging
 import math
-from typing import Any, Dict
+import sys
+from typing import Any
 
 # Third-party imports
 import networkx as nx
 import pandas as pd
 
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
+
 # Local imports
-from ..utils.parallel import get_analysis_parallel_config
 from ..utils import ProgressTracker
+from ..utils.parallel import get_analysis_parallel_config
 
 
 def calculate_betweenness_centrality(
-    graph: nx.Graph, config: Dict[str, Any], logger: logging.Logger
-) -> Dict[str, float]:
+    graph: nx.Graph, config: dict[str, Any], logger: logging.Logger
+) -> dict[str, float]:
     """Calculate betweenness centrality with performance optimization."""
     graph_size = graph.number_of_nodes()
 
@@ -31,27 +39,26 @@ def calculate_betweenness_centrality(
     # Use a simulated progress tracker that shows animation during computation
     import threading
     import time as time_module
-    
+
     # Create a progress tracker with multiple steps to show animation
     with ProgressTracker(
         total=100,  # Use 100 steps for smooth animation
         title=f"Calculating betweenness centrality on {graph_size} nodes",
         logger=logger,
     ) as tracker:
-        
         # Start a background thread to animate progress
         stop_animation = threading.Event()
-        
-        def animate_progress():
+
+        def animate_progress() -> None:
             step = 0
             while not stop_animation.is_set() and step < 99:
                 step += 1
                 tracker.update(step)
                 time_module.sleep(0.2)  # Update every 200ms
-        
+
         animation_thread = threading.Thread(target=animate_progress, daemon=True)
         animation_thread.start()
-        
+
         try:
             if config.get("use_approximate_betweenness", False):
                 # OPTIMIZATION: Use more efficient sampling strategy
@@ -114,8 +121,8 @@ def calculate_betweenness_centrality(
 
 
 def calculate_eigenvector_centrality(
-    graph: nx.Graph, config: Dict[str, Any], cache_manager, logger: logging.Logger
-) -> Dict[str, float]:
+    graph: nx.Graph, config: dict[str, Any], cache_manager, logger: logging.Logger
+) -> dict[str, float]:
     """Calculate eigenvector centrality with centralized caching and optimization."""
     # Create params for caching
     params = {"max_iter": config.get("max_iter", 1000)}
@@ -131,27 +138,26 @@ def calculate_eigenvector_centrality(
     # Eigenvector centrality calculation (parallel config already logged at analysis level)
     import threading
     import time as time_module
-    
+
     # Use a simulated progress tracker that shows animation during computation
     with ProgressTracker(
         total=100,  # Use 100 steps for smooth animation
         title="Calculating eigenvector centrality",
         logger=logger,
     ) as tracker:
-        
         # Start a background thread to animate progress
         stop_animation = threading.Event()
-        
-        def animate_progress():
+
+        def animate_progress() -> None:
             step = 0
             while not stop_animation.is_set() and step < 99:
                 step += 1
                 tracker.update(step)
                 time_module.sleep(0.1)  # Update every 100ms (faster for eigenvector)
-        
+
         animation_thread = threading.Thread(target=animate_progress, daemon=True)
         animation_thread.start()
-        
+
         try:
             # OPTIMIZATION: Adaptive iteration count based on graph size
             graph_size = graph.number_of_nodes()
@@ -163,7 +169,7 @@ def calculate_eigenvector_centrality(
                 max_iter = 1000  # Full iterations for small graphs
 
             # OPTIMIZATION: Use degree centrality as better starting point
-            degree_dict = dict(graph.degree())
+            degree_dict = dict(graph.degree())  # type: ignore[operator]
             max_degree = max(degree_dict.values()) if degree_dict else 1
             nstart = {n: degree_dict.get(n, 0) / max_degree for n in graph.nodes()}
 
@@ -179,12 +185,12 @@ def calculate_eigenvector_centrality(
             # Stop animation and complete progress
             stop_animation.set()
             animation_thread.join(timeout=0.5)  # Wait briefly for thread to finish
-            
+
             # Cache the results using centralized cache
             cache_manager.cache_centrality_results(
                 graph, "eigenvector", eigenvector_dict, params
             )
-            
+
             tracker.update(100)  # Complete the progress
 
     return eigenvector_dict
@@ -194,17 +200,19 @@ def set_default_centrality_values(graph: nx.Graph) -> None:
     """Set default centrality values when centrality analysis is skipped."""
     default_values = dict.fromkeys(graph.nodes(), 0)
     nx.set_node_attributes(
-        graph, dict(graph.degree()), "degree"
+        graph,
+        dict(graph.degree()),  # type: ignore[operator]
+        "degree",
     )  # Use actual degree even when skipped
     nx.set_node_attributes(graph, default_values, "betweenness")
     nx.set_node_attributes(graph, default_values, "eigenvector")
 
 
 def display_centrality_results(
-    degree_dict: Dict[str, int],
-    betweenness_dict: Dict[str, float],
-    eigenvector_dict: Dict[str, float],
-    config: Dict[str, Any],
+    degree_dict: dict[str, int],
+    betweenness_dict: dict[str, float],
+    eigenvector_dict: dict[str, float],
+    config: dict[str, Any],
     logger: logging.Logger,
 ) -> None:
     """Display centrality analysis results."""
@@ -221,16 +229,12 @@ def display_centrality_results(
         logger.info("# By Degree (Connections):")
         logger.info(f"{df.sort_values('degree', ascending=False).head(10)}")
         logger.info("# By Betweenness (Bridge-builder):")
-        logger.info(
-            f"{df.sort_values('betweenness', ascending=False).head(10)}"
-        )
+        logger.info(f"{df.sort_values('betweenness', ascending=False).head(10)}")
 
         # Only show eigenvector results if they were calculated
         if not config.get("skip_eigenvector", False):
             logger.info("# By Eigenvector (Influence):")
-            logger.info(
-                f"{df.sort_values('eigenvector', ascending=False).head(10)}"
-            )
+            logger.info(f"{df.sort_values('eigenvector', ascending=False).head(10)}")
         else:
             logger.info("# Eigenvector centrality: Skipped (optimization)")
     else:

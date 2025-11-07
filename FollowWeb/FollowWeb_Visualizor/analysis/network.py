@@ -7,25 +7,30 @@ operations including community detection and centrality calculations.
 
 # Standard library imports
 import logging
-import math
+import sys
 import time
-from typing import Any, Dict
+from typing import Any, Optional
 
 # Third-party imports
 import networkx as nx
-import pandas as pd
 from networkx.algorithms import community
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..core.exceptions import DataProcessingError
+from ..data.cache import get_cache_manager, get_cached_undirected_graph
+from ..utils.math import format_time_duration
 from ..utils.parallel import (
     get_analysis_parallel_config,
     get_nx_parallel_status_message,
     log_parallel_usage,
 )
-from ..utils import ProgressTracker
-from ..utils.math import format_time_duration
-from ..data.cache import get_cache_manager, get_cached_undirected_graph
 
 
 class NetworkAnalyzer:
@@ -69,7 +74,7 @@ class NetworkAnalyzer:
         self.cache_manager.clear_all_caches()
         self.logger.debug("NetworkAnalyzer caches cleared")
 
-    def analyze_network(self, graph: nx.Graph) -> nx.Graph:
+    def analyze_network(self, graph: nx.DiGraph) -> nx.DiGraph:
         """
         Perform network analysis with selective algorithm execution.
 
@@ -78,10 +83,10 @@ class NetworkAnalyzer:
         independently enabled/disabled through the stages controller.
 
         Args:
-            graph: Input graph to analyze (directed or undirected NetworkX graph)
+            graph: Input directed graph to analyze (NetworkX DiGraph)
 
         Returns:
-            nx.Graph: Graph with added node attributes based on enabled components
+            nx.DiGraph: Directed graph with added node attributes based on enabled components
 
         Note:
             For graphs with fewer than 2 nodes, analysis is skipped and the original
@@ -116,11 +121,11 @@ class NetworkAnalyzer:
             "centrality_analysis", graph_size
         )
 
-        mode_info = (
-            f" ({centrality_config.get('mode', 'unknown')} mode)"
-            if self.mode_manager
-            else ""
-        )
+        # mode_info = (
+        #     f" ({centrality_config.get('mode', 'unknown')} mode)"
+        #     if self.mode_manager
+        #     else ""
+        # )
 
         # Log parallel processing configuration once for the entire network analysis
         self.logger.info("")  # Add spacing before parallel notification
@@ -144,7 +149,7 @@ class NetworkAnalyzer:
         else:
             self._log_component_skip("community_detection")
             # Set default community values when skipped
-            nx.set_node_attributes(graph, 0, "community")
+            nx.set_node_attributes(graph, dict.fromkeys(graph.nodes(), 0), "community")
 
         # Execute centrality analysis if enabled
         if execute_centrality:
@@ -161,7 +166,7 @@ class NetworkAnalyzer:
                 )
 
                 # Degree centrality (always calculated when centrality is enabled)
-                degree_dict = dict(graph.degree())
+                degree_dict = dict(graph.degree())  # type: ignore[operator]
                 nx.set_node_attributes(graph, degree_dict, "degree")
 
                 # Betweenness centrality
@@ -208,6 +213,7 @@ class NetworkAnalyzer:
             self._log_component_skip("centrality_analysis")
             # Set default centrality values when skipped
             from .centrality import set_default_centrality_values
+
             set_default_centrality_values(graph)
 
         return graph
@@ -224,7 +230,7 @@ class NetworkAnalyzer:
 
     def _get_component_config(
         self, component_name: str, graph_size: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get performance configuration for a component."""
         if self.mode_manager:
             return self.mode_manager.get_performance_config_for_component(
@@ -295,7 +301,7 @@ class NetworkAnalyzer:
                 )
 
     def _perform_community_detection(
-        self, graph: nx.Graph, config: Dict[str, Any]
+        self, graph: nx.DiGraph, config: dict[str, Any]
     ) -> None:
         """Perform community detection with parallel processing optimization."""
         resolution = config.get("resolution", 1.0)
@@ -351,7 +357,7 @@ class NetworkAnalyzer:
             self.logger.debug(f"Starting {component_name}")
 
     def _log_component_completion(
-        self, component_name: str, success: bool, duration: float = None
+        self, component_name: str, success: bool, duration: Optional[float] = None
     ) -> None:
         """Log the completion of an analysis component."""
         if self.stages_controller:
@@ -366,7 +372,9 @@ class NetworkAnalyzer:
         elif not success:
             self.logger.error(f"{component_name} failed")
 
-    def _log_component_skip(self, component_name: str, reason: str = None) -> None:
+    def _log_component_skip(
+        self, component_name: str, reason: Optional[str] = None
+    ) -> None:
         """Log that an analysis component was skipped."""
         if self.stages_controller:
             self.stages_controller.log_analysis_component_skip(component_name, reason)

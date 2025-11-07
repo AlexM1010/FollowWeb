@@ -21,7 +21,7 @@ from .validation import validate_non_empty_string, validate_path_string
 class ErrorRecoveryManager:
     """Manages error recovery patterns and retry logic."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize error recovery manager."""
         self.logger = logger or logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class ErrorRecoveryManager:
         Raises:
             Last exception if all attempts fail
         """
-        last_exception = None
+        last_exception: Optional[Exception] = None
 
         for attempt in range(max_attempts):
             try:
@@ -65,10 +65,15 @@ class ErrorRecoveryManager:
                         f"All {max_attempts} attempts failed. Last error: {e}"
                     )
 
+        # If we reach here, all attempts failed and we have the last exception
+        assert last_exception is not None, "Expected exception to be set in retry loop"
         raise last_exception
 
     def safe_execute(
-        self, func: Callable, default_return: Any = None, log_errors: bool = True
+        self,
+        func: Callable,
+        default_return: Optional[Any] = None,
+        log_errors: bool = True,
     ) -> Any:
         """
         Execute a function safely, returning default value on error.
@@ -92,7 +97,7 @@ class ErrorRecoveryManager:
 class FileOperationHandler:
     """Handles common file operation error patterns."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize file operation handler."""
         self.logger = logger or logging.getLogger(__name__)
 
@@ -243,7 +248,7 @@ def handle_common_exceptions(func: Callable) -> Callable:
         Decorated function that handles common exceptions
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> None:
         logger = logging.getLogger(func.__module__)
 
         try:
@@ -265,7 +270,11 @@ def handle_common_exceptions(func: Callable) -> Callable:
 
 
 def generate_output_filename(
-    prefix: str, strategy: str, k_value: int, extension: str, run_id: str = None
+    prefix: str,
+    strategy: str,
+    k_value: int,
+    extension: str,
+    run_id: Optional[str] = None,
 ) -> str:
     """
     Generates a descriptive and unique output filename based on config and time.
@@ -288,8 +297,9 @@ def generate_output_filename(
     validate_non_empty_string(prefix, "prefix")
     validate_non_empty_string(strategy, "strategy")
     validate_non_empty_string(extension, "extension")
-    
+
     from .validation import validate_non_negative_integer
+
     validate_non_negative_integer(k_value, "k_value")
 
     # Validate characters for filesystem compatibility
@@ -315,7 +325,7 @@ def generate_output_filename(
     else:
         # On non-Windows systems, no colons allowed in prefix
         if ":" in prefix:
-            raise ValueError("prefix contains invalid filesystem character")
+            raise ValueError("prefix contains invalid filesystem character: :")
 
     # Additional validation for Windows reserved names and path separators
     if os.name == "nt":  # Windows
@@ -340,7 +350,7 @@ def generate_output_filename(
                 run_id = str(int(time.time() * 1000))  # Millisecond precision
 
             config_str = f"{strategy}-{k_value}-{run_id}"
-            config_hash = hashlib.md5(config_str.encode()).hexdigest()[:6]
+            config_hash = hashlib.sha256(config_str.encode()).hexdigest()[:6]
 
             filename = f"{prefix}-{strategy}-k{k_value}-{config_hash}.{extension}"
 
@@ -448,7 +458,9 @@ def ensure_output_directory(output_path: str, create_if_missing: bool = True) ->
         except FileExistsError:
             # This shouldn't happen with exist_ok=True, but handle it gracefully
             if not os.path.isdir(abs_directory):
-                raise OSError("cannot create directory, file exists with same name") from None
+                raise OSError(
+                    "cannot create directory, file exists with same name"
+                ) from None
         except OSError as e:
             # Provide more specific error messages based on common issues
             if "No space left on device" in str(e):

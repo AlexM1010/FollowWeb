@@ -10,12 +10,24 @@ operations like graph hashing, community detection, centrality calculations, and
 import hashlib
 import json
 import logging
+import sys
 import time
 import weakref
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 # Third-party imports
 import networkx as nx
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
+
+# Local imports
+from ..core.types import PositionDict
+from ..utils.parallel import ParallelConfig
 
 
 class CentralizedCache:
@@ -27,7 +39,7 @@ class CentralizedCache:
     community detection, centrality calculations, and layout positions.
     """
 
-    def __init__(self, max_cache_size: int = 50, cache_timeout: float = 3600):
+    def __init__(self, max_cache_size: int = 50, cache_timeout: float = 3600) -> None:
         """
         Initialize the centralized cache.
 
@@ -40,21 +52,35 @@ class CentralizedCache:
         self.logger = logging.getLogger(__name__)
 
         # Separate caches for different types of data
-        self._graph_hashes = {}  # graph_id -> hash_string
-        self._undirected_graphs = {}  # graph_hash -> undirected_graph
-        self._node_attributes = {}  # (graph_hash, attr_name) -> attributes_dict
-        self._edge_attributes = {}  # (graph_hash, attr_name) -> attributes_dict
-        self._community_colors = {}  # num_communities -> color_dict
-        self._layout_positions = {}  # (graph_hash, layout_type, params_hash) -> positions
-        self._centrality_results = {}  # (graph_hash, centrality_type, params_hash) -> results
-        self._community_results = {}  # (graph_hash, params_hash) -> community_dict
-        self._parallel_configs = {}  # (operation_type, graph_size) -> ParallelConfig
+        self._graph_hashes: dict[int, str] = {}  # graph_id -> hash_string
+        self._undirected_graphs: dict[str, Any] = {}  # graph_hash -> undirected_graph
+        self._node_attributes: dict[
+            tuple[str, str], dict[str, Any]
+        ] = {}  # (graph_hash, attr_name) -> attributes_dict
+        self._edge_attributes: dict[
+            tuple[str, str], dict[tuple[str, str], Any]
+        ] = {}  # (graph_hash, attr_name) -> attributes_dict
+        self._community_colors: dict[
+            int, dict[str, dict[int, Union[str, tuple[float, ...]]]]
+        ] = {}  # num_communities -> color_dict
+        self._layout_positions: dict[
+            tuple[str, str, str], PositionDict
+        ] = {}  # (graph_hash, layout_type, params_hash) -> positions
+        self._centrality_results: dict[
+            tuple[str, str, str], dict[str, float]
+        ] = {}  # (graph_hash, centrality_type, params_hash) -> results
+        self._community_results: dict[
+            tuple[str, str], dict[str, int]
+        ] = {}  # (graph_hash, params_hash) -> community_dict
+        self._parallel_configs: dict[
+            tuple[str, Optional[int]], Any
+        ] = {}  # (operation_type, graph_size) -> ParallelConfig
 
         # Timestamps for cache expiration
-        self._timestamps = {}
+        self._timestamps: dict[str, float] = {}
 
         # Weak references to graphs to avoid memory leaks
-        self._graph_refs = weakref.WeakValueDictionary()
+        self._graph_refs: weakref.WeakValueDictionary = weakref.WeakValueDictionary()
 
     def calculate_graph_hash(self, graph: nx.Graph) -> str:
         """
@@ -115,7 +141,7 @@ class CentralizedCache:
         except Exception as e:
             self.logger.warning(f"Failed to calculate graph hash: {e}")
             # Fallback to simple hash
-            return hashlib.md5(
+            return hashlib.sha256(
                 f"{graph.number_of_nodes()}_{graph.number_of_edges()}".encode()
             ).hexdigest()
 
@@ -151,7 +177,7 @@ class CentralizedCache:
 
     def get_cached_node_attributes(
         self, graph: nx.Graph, attribute_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get cached node attributes to avoid repeated graph traversals.
 
@@ -182,7 +208,7 @@ class CentralizedCache:
 
     def get_cached_edge_attributes(
         self, graph: nx.Graph, attribute_name: str
-    ) -> Dict[Tuple[str, str], Any]:
+    ) -> dict[tuple[str, str], Any]:
         """
         Get cached edge attributes to avoid repeated graph traversals.
 
@@ -211,9 +237,7 @@ class CentralizedCache:
 
         return attributes
 
-    def get_cached_community_colors(
-        self, num_communities: int
-    ) -> Optional[Dict[str, Dict[int, Union[str, Tuple[float, ...]]]]]:
+    def get_cached_community_colors(self, num_communities: int) -> Optional[Any]:
         """
         Get cached community colors if available.
 
@@ -232,7 +256,7 @@ class CentralizedCache:
     def cache_community_colors(
         self,
         num_communities: int,
-        colors: Dict[str, Dict[int, Union[str, Tuple[float, ...]]]],
+        colors: Union[dict[str, dict[int, Union[str, tuple[float, ...]]]], Any],
     ) -> None:
         """
         Cache community colors.
@@ -251,8 +275,8 @@ class CentralizedCache:
         self,
         graph: nx.Graph,
         layout_type: str,
-        positions: Dict[str, Tuple[float, float]],
-        params: Dict[str, Any] = None,
+        positions: PositionDict,
+        params: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Cache layout positions for reuse across different output formats.
@@ -276,8 +300,8 @@ class CentralizedCache:
         self._limit_cache_size(self._layout_positions, "layout")
 
     def get_cached_layout_positions(
-        self, graph: nx.Graph, layout_type: str, params: Dict[str, Any] = None
-    ) -> Optional[Dict[str, Tuple[float, float]]]:
+        self, graph: nx.Graph, layout_type: str, params: Optional[dict[str, Any]] = None
+    ) -> Optional[PositionDict]:
         """
         Get cached layout positions if available.
 
@@ -303,8 +327,8 @@ class CentralizedCache:
         self,
         graph: nx.Graph,
         centrality_type: str,
-        results: Dict[str, float],
-        params: Dict[str, Any] = None,
+        results: dict[str, float],
+        params: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Cache centrality calculation results.
@@ -328,8 +352,11 @@ class CentralizedCache:
         self._limit_cache_size(self._centrality_results, "centrality")
 
     def get_cached_centrality_results(
-        self, graph: nx.Graph, centrality_type: str, params: Dict[str, Any] = None
-    ) -> Optional[Dict[str, float]]:
+        self,
+        graph: nx.Graph,
+        centrality_type: str,
+        params: Optional[dict[str, Any]] = None,
+    ) -> Optional[dict[str, float]]:
         """
         Get cached centrality results if available.
 
@@ -356,8 +383,8 @@ class CentralizedCache:
     def cache_community_results(
         self,
         graph: nx.Graph,
-        communities: Dict[str, int],
-        params: Dict[str, Any] = None,
+        communities: dict[str, int],
+        params: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Cache community detection results.
@@ -378,8 +405,8 @@ class CentralizedCache:
         self._limit_cache_size(self._community_results, "community")
 
     def get_cached_community_results(
-        self, graph: nx.Graph, params: Dict[str, Any] = None
-    ) -> Optional[Dict[str, int]]:
+        self, graph: nx.Graph, params: Optional[dict[str, Any]] = None
+    ) -> Optional[dict[str, int]]:
         """
         Get cached community detection results if available.
 
@@ -455,7 +482,7 @@ class CentralizedCache:
 
         self.logger.debug("All caches cleared")
 
-    def get_cache_stats(self) -> Dict[str, int]:
+    def get_cache_stats(self) -> dict[str, int]:
         """
         Get cache statistics for monitoring and debugging.
 
@@ -482,15 +509,15 @@ class CentralizedCache:
         age = time.time() - self._timestamps[cache_key]
         return age < self.cache_timeout
 
-    def _hash_params(self, params: Dict[str, Any]) -> str:
+    def _hash_params(self, params: dict[str, Any]) -> str:
         """Create a hash of parameters for cache keys."""
         try:
             params_str = json.dumps(params, sort_keys=True, default=str)
-            return hashlib.md5(params_str.encode()).hexdigest()[:8]
+            return hashlib.sha256(params_str.encode()).hexdigest()[:8]
         except Exception:
             return "default"
 
-    def _limit_cache_size(self, cache_dict: Dict, cache_type: str) -> None:
+    def _limit_cache_size(self, cache_dict: dict, cache_type: str) -> None:
         """Limit cache size by removing oldest entries."""
         if len(cache_dict) > self.max_cache_size:
             # Find oldest entries to remove
@@ -514,7 +541,7 @@ class CentralizedCache:
                         del self._timestamps[timestamp_key]
 
     def _extract_cache_key_from_timestamp(
-        self, timestamp_key: str, cache_dict: Dict
+        self, timestamp_key: str, cache_dict: dict
     ) -> Any:
         """Extract the actual cache key from a timestamp key."""
         # This is a simplified approach - in practice, you might need more sophisticated mapping
@@ -570,7 +597,7 @@ def get_cached_undirected_graph(graph: nx.DiGraph) -> nx.Graph:
     return get_cache_manager().get_cached_undirected_graph(graph)
 
 
-def get_cached_node_attributes(graph: nx.Graph, attribute_name: str) -> Dict[str, Any]:
+def get_cached_node_attributes(graph: nx.Graph, attribute_name: str) -> dict[str, Any]:
     """
     Get cached node attributes to avoid repeated graph traversals.
 
@@ -591,7 +618,7 @@ def clear_all_caches() -> None:
 
 def get_cached_community_colors(
     num_communities: int,
-) -> Dict[str, Dict[int, Union[str, Tuple[float, ...]]]]:
+) -> Any:
     """
     Get cached community colors, generating them if not cached.
 
@@ -603,15 +630,16 @@ def get_cached_community_colors(
     """
     cache_manager = get_cache_manager()
     cached_colors = cache_manager.get_cached_community_colors(num_communities)
-    
+
     if cached_colors is not None:
         return cached_colors
-    
+
     # Generate new colors if not cached
     from ..visualization.colors import get_community_colors
+
     colors = get_community_colors(num_communities)
-    
+
     # Cache the generated colors
     cache_manager.cache_community_colors(num_communities, colors)
-    
+
     return colors

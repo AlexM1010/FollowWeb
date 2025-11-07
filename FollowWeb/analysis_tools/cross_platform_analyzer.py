@@ -12,7 +12,6 @@ import ast
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from .models import Severity
 
@@ -28,7 +27,7 @@ class PlatformIssue:
     description: str
     problematic_code: str
     fix_suggestion: str
-    affected_platforms: List[str]
+    affected_platforms: list[str]
     severity: Severity
 
 
@@ -41,7 +40,7 @@ class PathIssue:
     current_implementation: str
     issue_description: str
     fix_recommendation: str
-    platforms_affected: List[str]
+    platforms_affected: list[str]
 
 
 @dataclass
@@ -60,10 +59,10 @@ class CrossPlatformReport:
     """Comprehensive cross-platform compatibility report."""
 
     file_path: str
-    platform_issues: List[PlatformIssue]
-    path_issues: List[PathIssue]
-    temp_file_issues: List[TempFileIssue]
-    missing_skip_markers: List[Tuple[str, int, str]]  # (function_name, line, reason)
+    platform_issues: list[PlatformIssue]
+    path_issues: list[PathIssue]
+    temp_file_issues: list[TempFileIssue]
+    missing_skip_markers: list[tuple[str, int, str]]  # (function_name, line, reason)
     ci_compatibility_score: float
     summary: str
 
@@ -78,7 +77,7 @@ class CrossPlatformAnalyzer:
         self.platform_specific_patterns = self._initialize_platform_patterns()
         self.ci_patterns = self._initialize_ci_patterns()
 
-    def _initialize_path_patterns(self) -> Dict[str, List[str]]:
+    def _initialize_path_patterns(self) -> dict[str, list[str]]:
         """Initialize patterns for detecting path-related issues."""
         return {
             "hardcoded_separators": [
@@ -104,7 +103,7 @@ class CrossPlatformAnalyzer:
             ],
         }
 
-    def _initialize_temp_file_patterns(self) -> Dict[str, List[str]]:
+    def _initialize_temp_file_patterns(self) -> dict[str, list[str]]:
         """Initialize patterns for temporary file handling issues."""
         return {
             "hardcoded_temp_paths": [
@@ -128,7 +127,7 @@ class CrossPlatformAnalyzer:
             ],
         }
 
-    def _initialize_platform_patterns(self) -> Dict[str, List[str]]:
+    def _initialize_platform_patterns(self) -> dict[str, list[str]]:
         """Initialize patterns for platform-specific code."""
         return {
             "platform_checks": [
@@ -159,7 +158,7 @@ class CrossPlatformAnalyzer:
             ],
         }
 
-    def _initialize_ci_patterns(self) -> Dict[str, List[str]]:
+    def _initialize_ci_patterns(self) -> dict[str, list[str]]:
         """Initialize patterns for CI/CD environment issues."""
         return {
             "ci_environment_vars": [
@@ -233,7 +232,7 @@ class CrossPlatformAnalyzer:
 
     def _analyze_platform_issues(
         self, content: str, file_path: str
-    ) -> List[PlatformIssue]:
+    ) -> list[PlatformIssue]:
         """Analyze general platform-specific issues."""
         issues = []
         lines = content.split("\n")
@@ -280,7 +279,7 @@ class CrossPlatformAnalyzer:
 
         return issues
 
-    def _analyze_path_issues(self, content: str, file_path: str) -> List[PathIssue]:
+    def _analyze_path_issues(self, content: str, file_path: str) -> list[PathIssue]:
         """Analyze path-related compatibility issues."""
         issues = []
         lines = content.split("\n")
@@ -329,7 +328,7 @@ class CrossPlatformAnalyzer:
 
     def _analyze_temp_file_issues(
         self, content: str, file_path: str
-    ) -> List[TempFileIssue]:
+    ) -> list[TempFileIssue]:
         """Analyze temporary file handling issues."""
         issues = []
         lines = content.split("\n")
@@ -381,9 +380,9 @@ class CrossPlatformAnalyzer:
 
     def _analyze_missing_skip_markers(
         self, content: str, file_path: str
-    ) -> List[Tuple[str, int, str]]:
+    ) -> list[tuple[str, int, str]]:
         """Analyze for missing pytest skip markers on platform-specific tests."""
-        missing_markers = []
+        missing_markers: list[tuple[str, int, str]] = []
 
         try:
             tree = ast.parse(content)
@@ -445,7 +444,7 @@ class CrossPlatformAnalyzer:
         return missing_markers
 
     def _has_nearby_platform_check(
-        self, lines: List[str], line_index: int, search_range: int
+        self, lines: list[str], line_index: int, search_range: int
     ) -> bool:
         """Check if there's a platform check within the specified range."""
         start = max(0, line_index - search_range)
@@ -461,10 +460,10 @@ class CrossPlatformAnalyzer:
 
     def _calculate_ci_compatibility_score(
         self,
-        platform_issues: List[PlatformIssue],
-        path_issues: List[PathIssue],
-        temp_file_issues: List[TempFileIssue],
-        missing_skip_markers: List[Tuple],
+        platform_issues: list[PlatformIssue],
+        path_issues: list[PathIssue],
+        temp_file_issues: list[TempFileIssue],
+        missing_skip_markers: list[tuple],
     ) -> float:
         """Calculate a CI/CD compatibility score (0-100)."""
         total_issues = (
@@ -491,10 +490,10 @@ class CrossPlatformAnalyzer:
     def _generate_summary(
         self,
         file_path: str,
-        platform_issues: List[PlatformIssue],
-        path_issues: List[PathIssue],
-        temp_file_issues: List[TempFileIssue],
-        missing_skip_markers: List[Tuple],
+        platform_issues: list[PlatformIssue],
+        path_issues: list[PathIssue],
+        temp_file_issues: list[TempFileIssue],
+        missing_skip_markers: list[tuple],
         ci_score: float,
     ) -> str:
         """Generate a summary of cross-platform compatibility analysis."""
@@ -519,7 +518,7 @@ class CrossPlatformAnalyzer:
 
     def analyze_directory(
         self, directory_path: str, test_pattern: str = "test_*.py"
-    ) -> Dict[str, CrossPlatformReport]:
+    ) -> dict[str, CrossPlatformReport]:
         """
         Analyze all test files in a directory for cross-platform compatibility.
 
@@ -561,8 +560,8 @@ class CrossPlatformAnalyzer:
         return results
 
     def generate_aggregate_report(
-        self, reports: Dict[str, CrossPlatformReport]
-    ) -> Dict:
+        self, reports: dict[str, CrossPlatformReport]
+    ) -> dict:
         """Generate an aggregate cross-platform compatibility report."""
         total_files = len(reports)
         files_with_issues = len(
@@ -620,7 +619,7 @@ class CrossPlatformAnalyzer:
         path_issues: int,
         temp_issues: int,
         missing_markers: int,
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate prioritized recommendations for improving cross-platform compatibility."""
         recommendations = []
 

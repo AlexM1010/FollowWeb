@@ -6,15 +6,26 @@ for NetworkX operations, testing, and visualization tasks.
 """
 
 # Standard library imports
+import importlib.util
 import logging
 import os
-from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
 
 # Third-party imports for parallel processing
+import sys
+from dataclasses import dataclass
+from typing import Any, Optional
+
 try:
-    import nx_parallel
-    NX_PARALLEL_AVAILABLE = True
+    # Check both availability and Python version requirement
+    NX_PARALLEL_AVAILABLE = (
+        sys.version_info >= (3, 11)
+        and importlib.util.find_spec("nx_parallel") is not None
+    )
+
+    # Actually import if available
+    if NX_PARALLEL_AVAILABLE:
+        import nx_parallel  # noqa: F401
+
 except ImportError:
     NX_PARALLEL_AVAILABLE = False
 
@@ -43,7 +54,7 @@ class ParallelProcessingManager:
     optimization across the entire FollowWeb package.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self._cpu_count = self._detect_cpu_count()
         self._ci_info = self._detect_ci_environment()
@@ -63,7 +74,7 @@ class ParallelProcessingManager:
             self.logger.warning(f"Failed to detect CPU count: {e}, using fallback of 2")
             return 2
 
-    def _detect_ci_environment(self) -> Dict[str, Any]:
+    def _detect_ci_environment(self) -> dict[str, Any]:
         """Detect CI environment and determine appropriate resource allocation."""
         ci_indicators = {
             "GITHUB_ACTIONS": "github",
@@ -97,7 +108,7 @@ class ParallelProcessingManager:
             "strategy": strategy,
         }
 
-    def _check_nx_parallel_availability(self) -> Dict[str, Any]:
+    def _check_nx_parallel_availability(self) -> dict[str, Any]:
         """Check nx-parallel availability and working status."""
         info = {"available": NX_PARALLEL_AVAILABLE, "working": False, "backends": []}
 
@@ -105,6 +116,7 @@ class ParallelProcessingManager:
             try:
                 # Test basic functionality
                 import networkx as nx
+                import nx_parallel  # noqa: F401
 
                 test_graph = nx.path_graph(10)
                 _ = nx.degree_centrality(test_graph)
@@ -127,8 +139,8 @@ class ParallelProcessingManager:
         self,
         operation_type: str,
         min_size_threshold: int = 100,
-        graph_size: Optional[int] = None,
-        override_cores: Optional[int] = None,
+        graph_size: Optional[Optional[int]] = None,
+        override_cores: Optional[Optional[int]] = None,
     ) -> ParallelConfig:
         """
         Get optimized parallel configuration for a specific operation.
@@ -144,7 +156,7 @@ class ParallelProcessingManager:
         """
         # Import here to avoid circular imports
         from ..data.cache import get_cache_manager
-        
+
         # Check cache first (except for overrides)
         if override_cores is None:
             cache_manager = get_cache_manager()
@@ -153,7 +165,7 @@ class ParallelProcessingManager:
             )
             if cached_config is not None:
                 return cached_config
-        
+
         # Handle explicit override
         if override_cores is not None:
             if override_cores < 1:
@@ -238,7 +250,9 @@ class ParallelProcessingManager:
         }
 
         # Operation-specific adjustments
-        operation_adjustments = {
+        from typing import Union
+
+        operation_adjustments: dict[str, Union[float, dict[str, float]]] = {
             "analysis": 1.0,  # Full allocation for analysis
             "testing": {
                 "unit": 1.0,  # Full allocation for unit tests
@@ -253,9 +267,17 @@ class ParallelProcessingManager:
         if operation_type == "testing":
             # For testing, we need to determine the test category
             test_category = os.getenv("PYTEST_TEST_CATEGORY", "unit")
-            adjustment = operation_adjustments["testing"].get(test_category, 1.0)
+            testing_adjustments = operation_adjustments["testing"]
+            if isinstance(testing_adjustments, dict):
+                adjustment = testing_adjustments.get(test_category, 1.0)
+            else:
+                adjustment = 1.0
         else:
-            adjustment = operation_adjustments.get(operation_type, 1.0)
+            op_adjustment = operation_adjustments.get(operation_type, 1.0)
+            if isinstance(op_adjustment, (int, float)):
+                adjustment = float(op_adjustment)
+            else:
+                adjustment = 1.0
 
         if adjustment == 0.0:
             return 1  # Sequential execution
@@ -328,7 +350,7 @@ class ParallelProcessingManager:
 
     def should_use_parallel(
         self, operation_type: str, data_size: int, threshold: int = 100
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Determine if parallel processing should be used for an operation.
 
@@ -364,7 +386,9 @@ def get_parallel_manager() -> ParallelProcessingManager:
     return _parallel_manager
 
 
-def get_analysis_parallel_config(graph_size: Optional[int] = None) -> ParallelConfig:
+def get_analysis_parallel_config(
+    graph_size: Optional[Optional[int]] = None,
+) -> ParallelConfig:
     """Get parallel configuration optimized for network analysis operations."""
     return get_parallel_manager().get_parallel_config("analysis", graph_size=graph_size)
 
@@ -377,7 +401,7 @@ def get_testing_parallel_config(test_category: str = "unit") -> ParallelConfig:
 
 
 def get_visualization_parallel_config(
-    data_size: Optional[int] = None,
+    data_size: Optional[Optional[int]] = None,
 ) -> ParallelConfig:
     """Get parallel configuration optimized for visualization operations."""
     return get_parallel_manager().get_parallel_config(
@@ -400,7 +424,7 @@ def get_nx_parallel_status_message() -> str:
     return get_parallel_manager().get_nx_parallel_status()
 
 
-def detect_ci_environment() -> Dict[str, Any]:
+def detect_ci_environment() -> dict[str, Any]:
     """
     Detects if running in a CI environment and identifies the CI provider.
 
@@ -494,7 +518,7 @@ def detect_ci_environment() -> Dict[str, Any]:
 
 
 def get_optimal_worker_count(
-    test_category: str = "all", override: Optional[int] = None
+    test_category: str = "all", override: Optional[Optional[int]] = None
 ) -> int:
     """
     Determines optimal worker count for parallel test execution based on environment and test category.

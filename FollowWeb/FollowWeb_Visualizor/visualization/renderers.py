@@ -9,16 +9,24 @@ import json
 import logging
 import math
 import os
+import sys
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional, Union
 
-import matplotlib
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 from pyvis.network import Network
 
-from ..core.types import VisualizationMetrics
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
+
+from ..core.types import EdgeMetric, PositionDict, VisualizationMetrics
 from ..data.cache import get_cached_undirected_graph
 from ..output.formatters import EmojiFormatter
 from ..utils import ProgressTracker
@@ -34,8 +42,8 @@ class InteractiveRenderer:
 
     def __init__(
         self,
-        vis_config: Dict[str, Any],
-        metrics_calculator: Optional[MetricsCalculator] = None,
+        vis_config: dict[str, Any],
+        metrics_calculator: Optional[Optional[MetricsCalculator]] = None,
     ) -> None:
         """
         Initialize the interactive renderer with visualization configuration.
@@ -57,7 +65,7 @@ class InteractiveRenderer:
         self,
         graph: nx.DiGraph,
         output_filename: str,
-        shared_metrics: Optional[VisualizationMetrics] = None,
+        shared_metrics: Optional[Optional[VisualizationMetrics]] = None,
     ) -> bool:
         """
         Generates an interactive HTML file to visualize the network graph.
@@ -84,7 +92,7 @@ class InteractiveRenderer:
 
         # Extract metrics from VisualizationMetrics object
         node_metrics = {}
-        edge_metrics = {}
+        edge_metrics: dict[tuple[str, str], dict[str, Any]] = {}
 
         for node, node_metric in shared_metrics.node_metrics.items():
             node_metrics[node] = {
@@ -376,6 +384,9 @@ class InteractiveRenderer:
             return html_string + legend_html
 
 
+# This function is no longer needed since we're using numpy arrays throughout
+
+
 class StaticRenderer:
     """
     Handles matplotlib PNG generation for static network visualizations.
@@ -383,8 +394,8 @@ class StaticRenderer:
 
     def __init__(
         self,
-        vis_config: Dict[str, Any],
-        performance_config: Optional[Dict[str, Any]] = None,
+        vis_config: dict[str, Any],
+        performance_config: Optional[Optional[dict[str, Any]]] = None,
     ) -> None:
         """
         Initialize the static renderer with visualization configuration.
@@ -406,8 +417,10 @@ class StaticRenderer:
         self,
         graph: nx.DiGraph,
         output_filename: str,
-        node_metrics: Dict[str, Dict[str, Any]],
-        edge_metrics: Dict[Tuple[str, str], Dict[str, Any]],
+        node_metrics: dict[str, dict[str, Any]],
+        edge_metrics: Union[
+            dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], EdgeMetric]
+        ],
         shared_metrics: Optional[VisualizationMetrics] = None,
     ) -> bool:
         """
@@ -487,14 +500,17 @@ class StaticRenderer:
             alpha = self.static_config.get("edge_alpha", 0.7)
 
             # Use shared metrics for edge rendering
+            edge_source: Union[
+                dict[tuple[str, str], EdgeMetric], dict[tuple[str, str], dict[str, Any]]
+            ]
             if shared_metrics:
                 edge_source = shared_metrics.edge_metrics
             else:
                 edge_source = edge_metrics
 
             for (u, v), metrics in edge_source.items():
-                # Handle shared metrics (EdgeMetric objects)
-                if shared_metrics:
+                # Handle shared metrics (EdgeMetric objects) vs dict metrics
+                if isinstance(metrics, EdgeMetric):
                     hex_color = metrics.color.lstrip("#")
                     mpl_width = metrics.width * 0.8
                     is_mutual = metrics.is_mutual
@@ -520,42 +536,32 @@ class StaticRenderer:
             tracker.update(1)  # Edge preparation complete
 
             # Step 2: Draw mutual edges
-            nx.draw_networkx_edges(
-                graph,
-                pos,
-                edgelist=mutual_edges,
-                width=[w * 0.4 for w in mutual_widths_mpl],  # Make edges much thinner
-                alpha=alpha,
-                edge_color=mutual_colors_rgb,
-                style="-",
-                arrows=True,
-                arrowsize=self.static_config.get(
-                    "edge_arrow_size", 6
-                ),  # Smaller arrows
-                arrowstyle="<|-|>",
-                ax=ax,
-                node_size=0,  # Prevent overlap issues
-                connectionstyle="arc3,rad=0.1",  # Add edge curves
-            )
+            if mutual_edges:
+                nx.draw_networkx_edges(  # type: ignore[call-overload]
+                    graph,
+                    pos,
+                    edgelist=mutual_edges,
+                    width=[w * 0.4 for w in mutual_widths_mpl],
+                    alpha=alpha,
+                    edge_color=mutual_colors_rgb,
+                    arrows=True,
+                    ax=ax,
+                )
 
             tracker.update(2)  # Mutual edges drawing complete
 
             # Step 3: Draw one-way edges
-            nx.draw_networkx_edges(
-                graph,
-                pos,
-                edgelist=oneway_edges,
-                width=[w * 0.2 for w in oneway_widths_mpl],
-                alpha=alpha,
-                edge_color=oneway_colors_rgb,
-                style="--",
-                arrows=True,
-                arrowsize=self.static_config.get("edge_arrow_size", 3),
-                arrowstyle="-|>",
-                ax=ax,
-                node_size=0,  # Prevent overlap issues
-                connectionstyle="arc3,rad=0.05",  # Add edge curves
-            )
+            if oneway_edges:
+                nx.draw_networkx_edges(  # type: ignore[call-overload]
+                    graph,
+                    pos,
+                    edgelist=oneway_edges,
+                    width=[w * 0.2 for w in oneway_widths_mpl],
+                    alpha=alpha,
+                    edge_color=oneway_colors_rgb,
+                    arrows=True,
+                    ax=ax,
+                )
 
             tracker.update(3)  # One-way edges drawing complete
 
@@ -719,7 +725,9 @@ class StaticRenderer:
     def _add_edge_weights_for_layout(
         self,
         G_undirected: nx.Graph,
-        edge_metrics: Dict[Tuple[str, str], Dict[str, Any]],
+        edge_metrics: Union[
+            dict[tuple[str, str], dict[str, Any]], dict[tuple[str, str], EdgeMetric]
+        ],
     ) -> None:
         """
         Add edge weights to undirected graph for layout calculation.
@@ -732,7 +740,10 @@ class StaticRenderer:
         for (u, v), metrics in edge_metrics.items():
             if G_undirected.has_edge(u, v):
                 # Use edge width as weight (higher width = stronger connection = higher weight)
-                weight = metrics.get("width", 1.0)
+                if isinstance(metrics, EdgeMetric):
+                    weight = metrics.width
+                else:
+                    weight = metrics.get("width", 1.0)
                 G_undirected[u][v]["weight"] = weight
 
         # Set default weight for edges without metrics
@@ -742,7 +753,7 @@ class StaticRenderer:
 
     def _calculate_layout(
         self, graph: nx.DiGraph, G_undirected: nx.Graph, layout_type: str
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """
         Calculate layout positions for all supported layout types with edge weights and progress tracking.
         Enhanced with adaptive node spacing to reduce overlap.
@@ -785,7 +796,7 @@ class StaticRenderer:
 
     def _calculate_spring_layout(
         self, G_undirected: nx.Graph, graph: nx.DiGraph
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """
         Calculate spring layout with comprehensive physics parameters and progress tracking.
 
@@ -929,7 +940,7 @@ class StaticRenderer:
         iterations: int,
         seed: int,
         tracker: ProgressTracker,
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """
         Run spring layout in chunks to provide progress updates.
 
@@ -971,9 +982,7 @@ class StaticRenderer:
 
         return pos
 
-    def _calculate_kamada_kawai_layout(
-        self, G_undirected: nx.Graph
-    ) -> Dict[str, Tuple[float, float]]:
+    def _calculate_kamada_kawai_layout(self, G_undirected: nx.Graph) -> PositionDict:
         """Calculate Kamada-Kawai layout with comprehensive parameters."""
         png_config = self.vis_config.get("png_layout", {})
         kamada_config = (
@@ -998,7 +1007,7 @@ class StaticRenderer:
             # Apply distance scaling
             if distance_scale != 1.0:
                 pos = {
-                    node: (x * distance_scale, y * distance_scale)
+                    node: np.array([x * distance_scale, y * distance_scale])
                     for node, (x, y) in pos.items()
                 }
 
@@ -1008,7 +1017,7 @@ class StaticRenderer:
 
     def _calculate_circular_layout(
         self, G_undirected: nx.Graph, graph: nx.DiGraph
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """Calculate circular layout with community grouping and spacing options."""
         png_config = self.vis_config.get("png_layout", {})
         circular_config = (
@@ -1057,7 +1066,7 @@ class StaticRenderer:
 
     def _calculate_shell_layout(
         self, G_undirected: nx.Graph, graph: nx.DiGraph
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """Calculate shell layout with community-based or centrality-based shells."""
         png_config = self.vis_config.get("png_layout", {})
         shell_config = (
@@ -1104,22 +1113,22 @@ class StaticRenderer:
     def _circular_layout_by_community(
         self,
         G: nx.Graph,
-        communities_dict: Dict[str, int],
+        communities_dict: dict[str, int],
         radius: Optional[float],
-        center: Optional[Tuple[float, float]],
+        center: Optional[tuple[float, float]],
         start_angle: float,
         community_separation: float,
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> PositionDict:
         """Create circular layout with communities grouped together."""
         # Group nodes by community
-        communities = {}
+        communities: dict[int, list[str]] = {}
         for node, comm in communities_dict.items():
             if comm not in communities:
                 communities[comm] = []
             communities[comm].append(node)
 
         # Calculate positions
-        pos = {}
+        pos: PositionDict = {}
         total_nodes = len(G.nodes())
         current_angle = start_angle
 
@@ -1140,7 +1149,7 @@ class StaticRenderer:
                 angle = current_angle + (i * comm_angle_space / comm_size)
                 x = center[0] + radius * math.cos(angle)
                 y = center[1] + radius * math.sin(angle)
-                pos[node] = (x, y)
+                pos[node] = np.array([x, y])
 
             # Move to next community with separation
             current_angle += comm_angle_space + (
@@ -1150,17 +1159,19 @@ class StaticRenderer:
         return pos
 
     def _create_community_shells(
-        self, communities_dict: Dict[str, int], max_shells: int
-    ) -> List[List[str]]:
+        self, communities_dict: dict[str, int], max_shells: int
+    ) -> list[list[str]]:
         """Create shell node lists based on communities."""
-        communities = {}
+        communities: dict[int, list[str]] = {}
         for node, comm in communities_dict.items():
             if comm not in communities:
                 communities[comm] = []
             communities[comm].append(node)
 
         # Distribute communities across shells
-        nodelist = [[] for _ in range(min(max_shells, len(communities)))]
+        nodelist: list[list[str]] = [
+            [] for _ in range(min(max_shells, len(communities)))
+        ]
         for i, (_comm_id, nodes) in enumerate(communities.items()):
             shell_idx = i % len(nodelist)
             nodelist[shell_idx].extend(nodes)
@@ -1169,23 +1180,23 @@ class StaticRenderer:
 
     def _create_centrality_shells(
         self, graph: nx.DiGraph, centrality_metric: str, max_shells: int
-    ) -> List[List[str]]:
+    ) -> list[list[str]]:
         """Create shell node lists based on centrality values."""
         # Get centrality values
         if centrality_metric == "degree":
-            centrality = dict(graph.degree())
+            centrality = dict(graph.degree())  # type: ignore[operator]
         elif centrality_metric == "betweenness":
             centrality = nx.get_node_attributes(graph, "betweenness")
         elif centrality_metric == "eigenvector":
             centrality = nx.get_node_attributes(graph, "eigenvector")
         else:
-            centrality = dict(graph.degree())  # Fallback
+            centrality = dict(graph.degree())  # type: ignore[operator]
 
         # Sort nodes by centrality
         sorted_nodes = sorted(centrality.items(), key=lambda x: x[1], reverse=True)
 
         # Distribute into shells (highest centrality in center)
-        nodelist = [[] for _ in range(max_shells)]
+        nodelist: list[list[str]] = [[] for _ in range(max_shells)]
         nodes_per_shell = len(sorted_nodes) // max_shells + 1
 
         for i, (node, _) in enumerate(sorted_nodes):
@@ -1195,7 +1206,7 @@ class StaticRenderer:
         return [shell for shell in nodelist if shell]  # Remove empty shells
 
     def _get_spring_k_value(
-        self, spring_config: Dict[str, Any], num_nodes: int, density: float
+        self, spring_config: dict[str, Any], num_nodes: int, density: float
     ) -> float:
         """
         Get spring k-value with physics parameters and adaptive scaling.
@@ -1266,7 +1277,7 @@ class StaticRenderer:
 
             legend_elements = [
                 mpatches.Patch(
-                    facecolor=color_maps["rgba"][i],
+                    facecolor=color_maps["rgba"][i][:3],  # Use only RGB, not RGBA
                     edgecolor="black",
                     label=f"Community {i}",
                 )
