@@ -9,7 +9,7 @@ import json
 import os
 import sys
 from io import StringIO
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -27,7 +27,7 @@ from FollowWeb_Visualizor.main import (
 class TestPipelineOrchestrator:
     """Test PipelineOrchestrator functionality."""
 
-    def test_orchestrator_initialization(self, default_config: Dict[str, Any]):
+    def test_orchestrator_initialization(self, default_config: dict[str, Any]):
         """Test PipelineOrchestrator initialization with ConfigurationManager."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -52,7 +52,7 @@ class TestPipelineOrchestrator:
         orchestrator = PipelineOrchestrator(config_obj)
         assert orchestrator.config.strategy == "reciprocal_k-core"
 
-    def test_orchestrator_logging_setup(self, default_config: Dict[str, Any]):
+    def test_orchestrator_logging_setup(self, default_config: dict[str, Any]):
         """Test unified logging setup in orchestrator."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
         from FollowWeb_Visualizor.output.logging import Logger
@@ -360,20 +360,24 @@ class TestMainFunction:
 class TestPipelinePhases:
     """Test individual pipeline phases."""
 
-    def test_pipeline_phase_timing(self, default_config: Dict[str, Any]):
+    def test_pipeline_phase_timing(self, default_config: dict[str, Any]):
         """Test that pipeline tracks phase timing."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config_obj = load_config_from_dict(default_config)
 
         # Mock the pipeline execution to avoid needing real data
-        with patch.object(
-            PipelineOrchestrator, "_execute_strategy_phase"
-        ) as mock_strategy, patch.object(
-            PipelineOrchestrator, "_execute_analysis_phase"
-        ) as mock_analysis, patch.object(
-            PipelineOrchestrator, "_execute_visualization_phase"
-        ) as mock_viz:
+        with (
+            patch.object(
+                PipelineOrchestrator, "_execute_strategy_phase"
+            ) as mock_strategy,
+            patch.object(
+                PipelineOrchestrator, "_execute_analysis_phase"
+            ) as mock_analysis,
+            patch.object(
+                PipelineOrchestrator, "_execute_visualization_phase"
+            ) as mock_viz,
+        ):
             # Mock successful execution
             import networkx as nx
 
@@ -395,7 +399,7 @@ class TestPipelinePhases:
                 assert "analysis" in orchestrator.phase_times
                 assert "visualization" in orchestrator.phase_times
 
-    def test_pipeline_strategy_phase_failure(self, default_config: Dict[str, Any]):
+    def test_pipeline_strategy_phase_failure(self, default_config: dict[str, Any]):
         """Test pipeline handling of strategy phase failure."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -411,17 +415,20 @@ class TestPipelinePhases:
 
             assert success is False
 
-    def test_pipeline_analysis_phase_failure(self, default_config: Dict[str, Any]):
+    def test_pipeline_analysis_phase_failure(self, default_config: dict[str, Any]):
         """Test pipeline handling of analysis phase failure."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config_obj = load_config_from_dict(default_config)
 
-        with patch.object(
-            PipelineOrchestrator, "_execute_strategy_phase"
-        ) as mock_strategy, patch.object(
-            PipelineOrchestrator, "_execute_analysis_phase"
-        ) as mock_analysis:
+        with (
+            patch.object(
+                PipelineOrchestrator, "_execute_strategy_phase"
+            ) as mock_strategy,
+            patch.object(
+                PipelineOrchestrator, "_execute_analysis_phase"
+            ) as mock_analysis,
+        ):
             import networkx as nx
 
             mock_graph = nx.DiGraph()
@@ -435,19 +442,23 @@ class TestPipelinePhases:
 
             assert success is False
 
-    def test_pipeline_visualization_phase_failure(self, default_config: Dict[str, Any]):
+    def test_pipeline_visualization_phase_failure(self, default_config: dict[str, Any]):
         """Test pipeline handling of visualization phase failure."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config_obj = load_config_from_dict(default_config)
 
-        with patch.object(
-            PipelineOrchestrator, "_execute_strategy_phase"
-        ) as mock_strategy, patch.object(
-            PipelineOrchestrator, "_execute_analysis_phase"
-        ) as mock_analysis, patch.object(
-            PipelineOrchestrator, "_execute_visualization_phase"
-        ) as mock_viz:
+        with (
+            patch.object(
+                PipelineOrchestrator, "_execute_strategy_phase"
+            ) as mock_strategy,
+            patch.object(
+                PipelineOrchestrator, "_execute_analysis_phase"
+            ) as mock_analysis,
+            patch.object(
+                PipelineOrchestrator, "_execute_visualization_phase"
+            ) as mock_viz,
+        ):
             import networkx as nx
 
             mock_graph = nx.DiGraph()
@@ -533,7 +544,7 @@ class TestEnhancedCLIInterface:
 class TestPipelineStageControlIntegration:
     """Test pipeline stage control integration."""
 
-    def test_pipeline_with_analysis_disabled(self, default_config: Dict[str, Any]):
+    def test_pipeline_with_analysis_disabled(self, default_config: dict[str, Any]):
         """Test pipeline execution with analysis disabled."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -542,11 +553,14 @@ class TestPipelineStageControlIntegration:
 
         config_obj = load_config_from_dict(config)
 
-        with patch.object(
-            PipelineOrchestrator, "_execute_strategy_phase"
-        ) as mock_strategy, patch.object(
-            PipelineOrchestrator, "_execute_visualization_phase"
-        ) as mock_viz:
+        with (
+            patch.object(
+                PipelineOrchestrator, "_execute_strategy_phase"
+            ) as mock_strategy,
+            patch.object(
+                PipelineOrchestrator, "_execute_visualization_phase"
+            ) as mock_viz,
+        ):
             import networkx as nx
 
             mock_graph = nx.DiGraph()
@@ -563,7 +577,7 @@ class TestPipelineStageControlIntegration:
             mock_strategy.assert_called_once()
             mock_viz.assert_called_once()
 
-    def test_pipeline_with_visualization_disabled(self, default_config: Dict[str, Any]):
+    def test_pipeline_with_visualization_disabled(self, default_config: dict[str, Any]):
         """Test pipeline execution with visualization disabled."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -573,11 +587,14 @@ class TestPipelineStageControlIntegration:
 
         config_obj = load_config_from_dict(config)
 
-        with patch.object(
-            PipelineOrchestrator, "_execute_strategy_phase"
-        ) as mock_strategy, patch.object(
-            PipelineOrchestrator, "_execute_analysis_phase"
-        ) as mock_analysis:
+        with (
+            patch.object(
+                PipelineOrchestrator, "_execute_strategy_phase"
+            ) as mock_strategy,
+            patch.object(
+                PipelineOrchestrator, "_execute_analysis_phase"
+            ) as mock_analysis,
+        ):
             import networkx as nx
 
             mock_graph = nx.DiGraph()

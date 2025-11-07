@@ -9,7 +9,6 @@ across different analyzers.
 import difflib
 import re
 from enum import Enum
-from typing import List
 
 
 class SimilarityMethod(Enum):
@@ -53,7 +52,7 @@ class SimilarityCalculator:
             raise ValueError(f"Unknown similarity method: {method}")
 
     @staticmethod
-    def calculate_line_similarity(lines1: List[str], lines2: List[str]) -> float:
+    def calculate_line_similarity(lines1: list[str], lines2: list[str]) -> float:
         """
         Calculate similarity between two sets of code lines using Jaccard similarity.
 

@@ -5,7 +5,6 @@ Test analysis framework for detecting duplicate tests and refactoring opportunit
 # Standard library imports
 import ast
 from pathlib import Path
-from typing import Dict, List
 
 # Local imports
 from .models import (
@@ -22,7 +21,7 @@ class DuplicateTestAnalyzer:
     def __init__(self):
         self.test_patterns = self._initialize_test_patterns()
 
-    def _initialize_test_patterns(self) -> Dict[str, str]:
+    def _initialize_test_patterns(self) -> dict[str, str]:
         """Initialize patterns for identifying test components."""
         return {
             "test_function": r"^def\s+test_",
@@ -76,7 +75,7 @@ class DuplicateTestAnalyzer:
 
     def analyze_test_directory(
         self, test_dir: str
-    ) -> List[DuplicateTestAnalysisResult]:
+    ) -> list[DuplicateTestAnalysisResult]:
         """Analyze all test files in a directory."""
         results = []
         test_path = Path(test_dir)
@@ -91,8 +90,8 @@ class DuplicateTestAnalyzer:
         return results
 
     def find_cross_file_duplicates(
-        self, test_results: List[DuplicateTestAnalysisResult]
-    ) -> List[DuplicateTestGroup]:
+        self, test_results: list[DuplicateTestAnalysisResult]
+    ) -> list[DuplicateTestGroup]:
         """Find duplicate tests across multiple files."""
         all_tests = []
 
@@ -158,7 +157,7 @@ class DuplicateTestAnalyzer:
 
         return duplicates
 
-    def _extract_test_functions(self, tree: ast.AST) -> List[Dict]:
+    def _extract_test_functions(self, tree: ast.AST) -> list[dict]:
         """Extract test function information from AST."""
         test_functions = []
 
@@ -182,8 +181,8 @@ class DuplicateTestAnalyzer:
         return test_functions
 
     def _find_duplicate_tests(
-        self, test_functions: List[Dict], file_path: str
-    ) -> List[DuplicateTestGroup]:
+        self, test_functions: list[dict], file_path: str
+    ) -> list[DuplicateTestGroup]:
         """Find duplicate tests within a single file."""
         duplicates = []
         processed = set()
@@ -228,7 +227,7 @@ class DuplicateTestAnalyzer:
             body1, body2, SimilarityMethod.SEQUENCE_MATCHER
         )
 
-    def _select_primary_test(self, similar_tests: List[Dict]) -> Dict:
+    def _select_primary_test(self, similar_tests: list[dict]) -> dict:
         """Select the best test to keep from a group of similar tests."""
 
         # Prefer tests with more comprehensive names or more assertions
@@ -251,7 +250,7 @@ class DuplicateTestAnalyzer:
 
         return max(similar_tests, key=test_score)
 
-    def _find_unused_fixtures(self, tree: ast.AST, content: str) -> List[str]:
+    def _find_unused_fixtures(self, tree: ast.AST, content: str) -> list[str]:
         """Find fixtures that are defined but not used."""
         fixtures = set()
         used_names = set()
@@ -285,7 +284,7 @@ class DuplicateTestAnalyzer:
         # Return fixtures that are defined but not used
         return list(fixtures - used_names)
 
-    def _find_redundant_imports(self, tree: ast.AST, content: str) -> List[str]:
+    def _find_redundant_imports(self, tree: ast.AST, content: str) -> list[str]:
         """Find imports that are not used in the test file."""
         imports = set()
         used_names = set()

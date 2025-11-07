@@ -5,7 +5,7 @@ These tests use pytest-benchmark and must run sequentially (no xdist).
 Use: pytest -m benchmark -n 0 --benchmark-only
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import networkx as nx
 import pytest
@@ -17,7 +17,7 @@ class TestBenchmarks:
     """Benchmark tests using pytest-benchmark."""
 
     @pytest.mark.benchmark
-    def test_config_loading_benchmark(self, benchmark, default_config: Dict[str, Any]):
+    def test_config_loading_benchmark(self, benchmark, default_config: dict[str, Any]):
         """Benchmark configuration loading performance."""
 
         def load_config():

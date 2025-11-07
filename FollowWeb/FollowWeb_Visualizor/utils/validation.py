@@ -8,20 +8,21 @@ file paths, and configuration values used throughout the FollowWeb package.
 # Standard library imports
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 # Local imports
-from ..core.exceptions import FollowWebError
 
 
 class ValidationErrorHandler:
     """Handles validation error patterns consistently."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize validation error handler."""
         self.logger = logger or logging.getLogger(__name__)
 
-    def collect_validation_errors(self, validators: List[callable]) -> List[str]:
+    def collect_validation_errors(
+        self, validators: list[Callable[[], str]]
+    ) -> list[str]:
         """
         Collect all validation errors.
 
@@ -44,7 +45,7 @@ class ValidationErrorHandler:
         return errors
 
     def validate_with_context(
-        self, validation_func: callable, context: str
+        self, validation_func: Callable[[], str], context: str
     ) -> Optional[str]:
         """
         Execute validation with context information.
@@ -72,13 +73,13 @@ class ValidationErrorHandler:
 class ConfigurationErrorHandler:
     """Handles configuration-related error patterns."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         """Initialize configuration error handler."""
         self.logger = logger or logging.getLogger(__name__)
 
     def validate_configuration_section(
-        self, config_dict: Dict, required_keys: List[str], section_name: str
-    ) -> List[str]:
+        self, config_dict: dict, required_keys: list[str], section_name: str
+    ) -> list[str]:
         """
         Validate that a configuration section has all required keys.
 
@@ -101,7 +102,7 @@ class ConfigurationErrorHandler:
         return errors
 
     def handle_configuration_error(
-        self, error: Exception, config_file: Optional[str] = None
+        self, error: Exception, config_file: Optional[Optional[str]] = None
     ) -> str:
         """
         Handle configuration errors with helpful error messages.
@@ -258,7 +259,7 @@ def validate_range(
     return value
 
 
-def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> Any:
+def validate_choice(value: Any, param_name: str, valid_choices: list[Any]) -> Any:
     """
     Validate that a parameter is one of the allowed choices.
 
@@ -281,7 +282,7 @@ def validate_choice(value: Any, param_name: str, valid_choices: List[Any]) -> An
 
 
 def validate_string_format(
-    value: Any, param_name: str, allowed_suffixes: Optional[List[str]] = None
+    value: Any, param_name: str, allowed_suffixes: Optional[Optional[list[str]]] = None
 ) -> str:
     """
     Validate string format with optional suffix requirements.
@@ -344,7 +345,15 @@ def validate_filesystem_safe_string(value: Any, param_name: str) -> str:
     Raises:
         ValueError: If value contains invalid filesystem characters
     """
-    validate_non_empty_string(value, param_name)
+    # Ensure value is a string
+    if not isinstance(value, str):
+        raise ValueError(f"{param_name} must be a string, got {type(value).__name__}")
+
+    if not value.strip():
+        raise ValueError(f"{param_name} cannot be empty or whitespace-only")
+
+    if not value.strip():
+        raise ValueError(f"{param_name} cannot be empty or whitespace-only")
 
     # Invalid characters for most filesystems
     invalid_chars = '<>"|?*'
@@ -378,7 +387,7 @@ def validate_at_least_one_enabled(options: dict, param_name: str) -> dict:
 
 
 def validate_k_value_dict(
-    k_values: dict, param_name: str, valid_strategies: List[str]
+    k_values: dict, param_name: str, valid_strategies: list[str]
 ) -> dict:
     """
     Validate a dictionary of k-values for different strategies.

@@ -12,7 +12,7 @@ Usage:
 - Run only k-value tests: pytest Package/tests/unit/test_k_values.py
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -23,7 +23,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 class TestKValueConfiguration:
     """Test k-value configuration and validation."""
 
-    def test_fast_config_uses_appropriate_k_values(self, fast_config: Dict[str, Any]):
+    def test_fast_config_uses_appropriate_k_values(self, fast_config: dict[str, Any]):
         """Test that fast config uses k-values appropriate for the dataset size."""
         k_values = fast_config.get("k_values", {}).get("strategy_k_values", {})
         default_k = fast_config.get("k_values", {}).get("default_k_value", 1)
@@ -62,7 +62,7 @@ class TestKValueConfiguration:
             f"Production default k-value should be >= 0, got {default_k}"
         )
 
-    def test_k_value_consistency_within_config(self, fast_config: Dict[str, Any]):
+    def test_k_value_consistency_within_config(self, fast_config: dict[str, Any]):
         """Test that k-values are consistent within a configuration."""
         k_values = fast_config.get("k_values", {}).get("strategy_k_values", {})
 
@@ -145,7 +145,8 @@ class TestKValueValidation:
             k_values = k_values_config["strategy_k_values"]
 
             config = KValueConfig(
-                strategy_k_values=k_values, default_k_value=k_values_config["default_k_value"]
+                strategy_k_values=k_values,
+                default_k_value=k_values_config["default_k_value"],
             )
             assert config.default_k_value >= 0
             for _strategy, k_value in config.strategy_k_values.items():
@@ -163,7 +164,9 @@ class TestKValueValidation:
         scalability_k_values = get_scalability_k_values("full_anonymized")
         high_k = scalability_k_values["strategy_k_values"]["k-core"]
 
-        high_config = KValueConfig(strategy_k_values={"k-core": high_k}, default_k_value=high_k)
+        high_config = KValueConfig(
+            strategy_k_values={"k-core": high_k}, default_k_value=high_k
+        )
         assert high_config.default_k_value == high_k
 
     def test_invalid_k_values_rejected(self):
@@ -182,7 +185,7 @@ class TestKValuePipelineIntegration:
 
     @pytest.mark.integration
     def test_basic_k_value_pipeline_execution(
-        self, fast_config: Dict[str, Any], sample_data_exists: bool
+        self, fast_config: dict[str, Any], sample_data_exists: bool
     ):
         """Test pipeline execution with basic k-values."""
         if not sample_data_exists:

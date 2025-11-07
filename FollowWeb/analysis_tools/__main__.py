@@ -16,25 +16,21 @@ def main():
 
     parser = argparse.ArgumentParser(description="Run code analysis on the project")
     parser.add_argument(
-        "--optimize",
-        action="store_true",
-        help="Run optimization analysis"
+        "--optimize", action="store_true", help="Run optimization analysis"
     )
     parser.add_argument(
-        "--validate-cleanup",
-        action="store_true",
-        help="Validate cleanup environment"
+        "--validate-cleanup", action="store_true", help="Validate cleanup environment"
     )
     parser.add_argument(
         "--validate-phase",
         type=str,
         choices=["dependencies", "ai_artifacts", "test_optimization"],
-        help="Validate specific cleanup phase"
+        help="Validate specific cleanup phase",
     )
     parser.add_argument(
         "--project-root",
         type=str,
-        help="Project root directory (default: current directory)"
+        help="Project root directory (default: current directory)",
     )
 
     args = parser.parse_args()

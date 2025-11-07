@@ -6,7 +6,7 @@ timing accuracy, and resource efficiency of the FollowWeb system.
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 import networkx as nx
 import pytest
@@ -20,7 +20,7 @@ class TestPerformanceBenchmarks:
 
     @pytest.mark.performance
     @pytest.mark.slow
-    def test_pipeline_timing_accuracy(self, default_config: Dict[str, Any]):
+    def test_pipeline_timing_accuracy(self, default_config: dict[str, Any]):
         """Test that pipeline timing measurements are accurate."""
         config_obj = load_config_from_dict(default_config)
         orchestrator = PipelineOrchestrator(config_obj)

@@ -10,11 +10,10 @@ This module provides unified control over all output generation including:
 import logging
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Optional
 
 import networkx as nx
 
-from ..core.types import VisualizationMetrics
 from .formatters import EmojiFormatter
 from .logging import Logger, OutputConfig
 
@@ -29,7 +28,7 @@ class OutputManager:
     - Single consistent system for all output operations
     """
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """
         Initialize the unified output manager with configuration.
 
@@ -47,11 +46,6 @@ class OutputManager:
         from ..visualization.metrics import MetricsCalculator
         from ..visualization.renderers import InteractiveRenderer, StaticRenderer
 
-        self.metrics_calculator = MetricsCalculator(vis_config)
-        self.interactive_renderer = InteractiveRenderer(
-            vis_config, self.metrics_calculator
-        )
-
         # Initialize static renderer with performance config
         performance_config = vis_config.get("performance", {})
         analysis_mode = config.get("analysis_mode", {})
@@ -62,12 +56,17 @@ class OutputManager:
         if analysis_mode.get("enable_fast_algorithms") is not None:
             performance_config["fast_mode"] = analysis_mode["enable_fast_algorithms"]
 
+        self.metrics_calculator = MetricsCalculator(vis_config, performance_config)
+        self.interactive_renderer = InteractiveRenderer(
+            vis_config, self.metrics_calculator
+        )
+
         self.static_renderer = StaticRenderer(vis_config, performance_config)
         self.metrics_reporter = MetricsReporter(vis_config)
 
         # Initialize unified logger for this pipeline run
-        self.unified_logger = None
-        self._current_run_id = None
+        self.unified_logger: Optional[Logger] = None
+        self._current_run_id: Optional[str] = None
 
     def initialize_unified_logger(
         self, output_prefix: str, strategy: str, k_value: int, emoji_level: str = "full"
@@ -101,7 +100,6 @@ class OutputManager:
             include_emojis_in_text=True,
             preserve_timing_info=True,
             text_file_path=text_file_path,
-
         )
 
         self.unified_logger = Logger(config)
@@ -111,9 +109,10 @@ class OutputManager:
         graph,
         strategy: str,
         k_value: int,
-        timing_data: Dict[str, float],
+        timing_data: dict[str, float],
         output_prefix: str,
-    ) -> Dict[str, bool]:
+        initial_graph_stats: Optional[dict[str, int]] = None,
+    ) -> dict[str, bool]:
         """
         Generate all enabled output formats using unified system.
 
@@ -123,6 +122,7 @@ class OutputManager:
             k_value: K-value used for analysis
             timing_data: Timing information for different phases
             output_prefix: Base output file prefix
+            initial_graph_stats: Optional initial graph statistics before processing
 
         Returns:
             Dict[str, bool]: Success status for each output format
@@ -145,7 +145,7 @@ class OutputManager:
 
         # Extract metrics for PNG renderer (which still needs dict format)
         node_metrics = {}
-        edge_metrics = {}
+        edge_metrics: dict[tuple[str, str], dict[str, Any]] = {}
 
         for node, node_metric in shared_metrics.node_metrics.items():
             node_metrics[node] = {
@@ -243,19 +243,15 @@ class OutputManager:
         # Generate metrics report if enabled
         if self.should_generate_reports():
             if self.unified_logger:
-                self.unified_logger.log_progress(
-                    "Generating metrics report..."
-                )
+                self.unified_logger.log_progress("Generating metrics report...")
             else:
                 progress_msg = EmojiFormatter.format(
                     "progress", "Generating metrics report..."
                 )
                 self.logger.info(progress_msg)
 
-            report_content = (
-                self.metrics_reporter.generate_analysis_report(
-                    graph, self.config, strategy, k_value, timing_data
-                )
+            report_content = self.metrics_reporter.generate_analysis_report(
+                graph, self.config, strategy, k_value, timing_data, initial_graph_stats
             )
 
             results["report"] = self.metrics_reporter.save_metrics_file(
@@ -304,7 +300,7 @@ class OutputManager:
         """Check if timing log generation is enabled."""
         return self.output_control.get("enable_timing_logs", False)
 
-    def get_enabled_formats(self) -> List[str]:
+    def get_enabled_formats(self) -> list[str]:
         """Get list of enabled output formats."""
         enabled = []
         if self.should_generate_html():
@@ -317,7 +313,7 @@ class OutputManager:
             enabled.append("Timing Logs")
         return enabled
 
-    def validate_output_configuration(self) -> List[str]:
+    def validate_output_configuration(self) -> list[str]:
         """Validate output configuration and return any errors."""
         errors = []
 
@@ -349,7 +345,7 @@ class OutputManager:
 
         return errors
 
-    def _save_timing_log(self, output_path: str, timing_data: Dict[str, float]) -> bool:
+    def _save_timing_log(self, output_path: str, timing_data: dict[str, float]) -> bool:
         """Save detailed timing information to a log file."""
         try:
             # Create timing log filename with same base as other outputs
@@ -383,7 +379,7 @@ class OutputManager:
                 self.logger.warning(f"Failed to save timing log: {e}")
             return False
 
-    def _generate_detailed_timing_report(self, timing_data: Dict[str, float]) -> str:
+    def _generate_detailed_timing_report(self, timing_data: dict[str, float]) -> str:
         """Generate a detailed timing report with structured formatting."""
         # Calculate total time
         phase_times = {k: v for k, v in timing_data.items() if k != "total"}
@@ -450,7 +446,7 @@ class OutputManager:
         return "\n".join(log_lines)
 
     @staticmethod
-    def get_emoji_config_from_dict(config_dict: Dict[str, Any]) -> str:
+    def get_emoji_config_from_dict(config_dict: dict[str, Any]) -> str:
         """
         Extract emoji configuration from config dictionary.
 
@@ -480,7 +476,9 @@ class MetricsReporter:
     only available in console output.
     """
 
-    def __init__(self, vis_config: Dict[str, Any], logger: Logger = None):
+    def __init__(
+        self, vis_config: dict[str, Any], logger: Optional[Logger] = None
+    ) -> None:
         """
         Initialize metrics reporter.
 
@@ -494,11 +492,11 @@ class MetricsReporter:
     def generate_analysis_report(
         self,
         graph: nx.DiGraph,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         strategy: str,
         k_value: int,
-        timing_data: Dict[str, float],
-        initial_graph_stats: Dict[str, int] = None,
+        timing_data: dict[str, float],
+        initial_graph_stats: Optional[dict[str, int]] = None,
     ) -> str:
         """
         Generate analysis report with all console information.
@@ -531,11 +529,12 @@ class MetricsReporter:
         )
 
         # Graph Processing Summary
-        report_lines.extend(
-            self._generate_graph_processing_section(
-                graph, initial_graph_stats, strategy, k_value
+        if initial_graph_stats is not None:
+            report_lines.extend(
+                self._generate_graph_processing_section(
+                    graph, initial_graph_stats, strategy, k_value
+                )
             )
-        )
 
         # Detailed Analysis Results
         report_lines.extend(self._generate_detailed_analysis_section(graph))
@@ -569,10 +568,10 @@ class MetricsReporter:
         return "\n".join(report_lines)
 
     def _generate_pipeline_configuration_section(
-        self, config: Dict[str, Any], strategy: str, k_value: int
-    ) -> List[str]:
+        self, config: dict[str, Any], strategy: str, k_value: int
+    ) -> list[str]:
         """Generate pipeline configuration section."""
-        lines = []
+        lines: list[str] = []
 
         config_msg = EmojiFormatter.format("progress", "PIPELINE CONFIGURATION")
         lines.append(config_msg)
@@ -658,12 +657,12 @@ class MetricsReporter:
     def _generate_graph_processing_section(
         self,
         graph: nx.DiGraph,
-        initial_stats: Dict[str, int],
+        initial_stats: dict[str, int],
         strategy: str,
         k_value: int,
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate graph processing summary section."""
-        lines = []
+        lines: list[str] = []
 
         processing_msg = EmojiFormatter.format("progress", "GRAPH PROCESSING SUMMARY")
         lines.append(processing_msg)
@@ -701,15 +700,15 @@ class MetricsReporter:
             lines.append(f"Graph Density: {density:.6f}")
 
         if final_nodes > 0:
-            avg_degree = sum(dict(graph.degree()).values()) / final_nodes
+            avg_degree = sum(dict(graph.degree()).values()) / final_nodes  # type: ignore[operator]
             lines.append(f"Average Degree: {avg_degree:.2f}")
 
         lines.append("")
         return lines
 
-    def _generate_detailed_analysis_section(self, graph: nx.DiGraph) -> List[str]:
+    def _generate_detailed_analysis_section(self, graph: nx.DiGraph) -> list[str]:
         """Generate detailed analysis results section."""
-        lines = []
+        lines: list[str] = []
 
         # Check if detailed results are stored in graph attributes
         if not hasattr(graph, "graph") or "detailed_results" not in graph.graph:
@@ -749,9 +748,9 @@ class MetricsReporter:
 
         return lines
 
-    def _generate_path_analysis_section(self, graph: nx.DiGraph) -> List[str]:
+    def _generate_path_analysis_section(self, graph: nx.DiGraph) -> list[str]:
         """Generate path analysis results section."""
-        lines = []
+        lines: list[str] = []
 
         # Check if path analysis results are stored
         if not hasattr(graph, "graph") or "path_analysis" not in graph.graph:
@@ -797,9 +796,9 @@ class MetricsReporter:
         lines.append("")
         return lines
 
-    def _generate_famous_accounts_section(self, graph: nx.DiGraph) -> List[str]:
+    def _generate_famous_accounts_section(self, graph: nx.DiGraph) -> list[str]:
         """Generate famous accounts analysis section."""
-        lines = []
+        lines: list[str] = []
 
         # Check if famous accounts data is stored
         if not hasattr(graph, "graph") or "famous_accounts" not in graph.graph:
@@ -850,9 +849,9 @@ class MetricsReporter:
 
         return lines
 
-    def _generate_community_analysis_section(self, graph: nx.DiGraph) -> List[str]:
+    def _generate_community_analysis_section(self, graph: nx.DiGraph) -> list[str]:
         """Generate detailed community analysis section."""
-        lines = []
+        lines: list[str] = []
 
         communities_attr = nx.get_node_attributes(graph, "community")
         if not communities_attr:
@@ -863,7 +862,7 @@ class MetricsReporter:
         lines.append("-" * 40)
 
         # Community statistics
-        community_counts = {}
+        community_counts: dict[int, int] = {}
         for _node, community in communities_attr.items():
             community_counts[community] = community_counts.get(community, 0) + 1
 
@@ -894,9 +893,9 @@ class MetricsReporter:
         lines.append("")
         return lines
 
-    def _generate_centrality_analysis_section(self, graph: nx.DiGraph) -> List[str]:
+    def _generate_centrality_analysis_section(self, graph: nx.DiGraph) -> list[str]:
         """Generate detailed centrality analysis section."""
-        lines = []
+        lines: list[str] = []
 
         centrality_msg = EmojiFormatter.format("chart", "CENTRALITY ANALYSIS DETAILS")
         lines.append(centrality_msg)
@@ -945,10 +944,10 @@ class MetricsReporter:
         return lines
 
     def _generate_complete_timing_section(
-        self, timing_data: Dict[str, float]
-    ) -> List[str]:
+        self, timing_data: dict[str, float]
+    ) -> list[str]:
         """Generate complete timing information section."""
-        lines = []
+        lines: list[str] = []
 
         if not timing_data:
             return lines
@@ -978,9 +977,9 @@ class MetricsReporter:
         lines.append("")
         return lines
 
-    def _generate_output_summary_section(self, config: Dict[str, Any]) -> List[str]:
+    def _generate_output_summary_section(self, config: dict[str, Any]) -> list[str]:
         """Generate output generation summary section."""
-        lines = []
+        lines: list[str] = []
 
         output_control = config.get("output_control", {})
 
@@ -1013,9 +1012,7 @@ class MetricsReporter:
 
         return lines
 
-    def save_metrics_file(
-        self, report_content: str, output_path: str
-    ) -> bool:
+    def save_metrics_file(self, report_content: str, output_path: str) -> bool:
         """
         Saves the metrics report to a text file.
 

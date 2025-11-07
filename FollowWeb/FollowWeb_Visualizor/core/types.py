@@ -8,7 +8,14 @@ Copied from Package/FollowWeb_Visualizor/visualization.py and config.py
 """
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
+
+import numpy as np
+from numpy.typing import NDArray
+from typing_extensions import TypeAlias
+
+# Type alias for position coordinates (NetworkX uses numpy arrays)
+PositionArray: TypeAlias = NDArray[np.floating]
+PositionDict: TypeAlias = dict[str, PositionArray]
 
 
 @dataclass
@@ -26,9 +33,9 @@ class NodeMetric:
 
     size: float
     color_hex: str
-    color_rgba: Tuple[float, float, float, float]
+    color_rgba: tuple[float, float, float, float]
     community: int
-    centrality_values: Dict[str, float]
+    centrality_values: dict[str, float]
 
 
 @dataclass
@@ -67,8 +74,8 @@ class ColorScheme:
         intra_community_color: Color for intra-community edges
     """
 
-    hex_colors: Dict[int, str]
-    rgba_colors: Dict[int, Tuple[float, float, float, float]]
+    hex_colors: dict[int, str]
+    rgba_colors: dict[int, tuple[float, float, float, float]]
     bridge_color: str
     intra_community_color: str
 
@@ -86,8 +93,8 @@ class VisualizationMetrics:
         graph_hash: Hash of the graph structure for cache validation
     """
 
-    node_metrics: Dict[str, NodeMetric]
-    edge_metrics: Dict[Tuple[str, str], EdgeMetric]
-    layout_positions: Dict[str, Tuple[float, float]]
+    node_metrics: dict[str, NodeMetric]
+    edge_metrics: dict[tuple[str, str], EdgeMetric]
+    layout_positions: PositionDict
     color_schemes: ColorScheme
     graph_hash: str

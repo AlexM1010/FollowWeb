@@ -184,7 +184,7 @@ python -m pytest -m slow -n auto          # Performance tests
 python -m pytest -n 0
 
 # With coverage (parallel)
-python -m pytest --cov=FollowWeb.FollowWeb_Visualizor --cov-report=html -n auto
+python -m pytest --cov=FollowWeb_Visualizor --cov-report=html -n auto
 
 # Fast tests only (exclude slow)
 python -m pytest -m "not slow" -n auto
@@ -198,7 +198,7 @@ python -m pytest tests/unit/test_config.py -v
 **Unit Test Example:**
 ```python
 import pytest
-from FollowWeb.FollowWeb_Visualizor.utils import format_time_duration
+from FollowWeb_Visualizor.utils.math import format_time_duration
 
 class TestTimeFormatting:
     """Test time formatting utilities."""
@@ -294,7 +294,7 @@ Include in your pull request:
 Follow conventional commit format (validated by CI):
 ```bash
 feat: add support for weighted graphs
-fix: resolve memory leak in PNG generation
+fix: resolve memory leak in PNG generation  
 docs: update NetworkAnalyzer documentation
 test: add tests for ego-alter analysis
 chore: update dependencies
@@ -309,35 +309,16 @@ ci: add conventional commit validation
 - `refactor` - Code refactoring
 - `perf` - Performance improvements
 - `test` - Adding or updating tests
-- `build` - Build system changes
+- `build` - Build system or dependency changes
 - `ci` - CI/CD changes
-- `chore` - Maintenance tasks
+- `chore` - Other changes (maintenance, etc.)
+- `revert` - Reverting previous commits
 
-**Format:**
-```
-<type>(<optional scope>): <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Examples:**
-```bash
-feat(analysis): add weighted graph support
-
-Implement support for edge weights in graph analysis algorithms.
-This enables more accurate centrality calculations for weighted networks.
-
-Closes #123
-
-fix(visualization): resolve memory leak in PNG generation
-
-The matplotlib figure objects were not being properly closed after
-rendering, causing memory accumulation in long-running processes.
-
-BREAKING CHANGE: PNG generation now requires matplotlib 3.5+
-```
+**Format Rules:**
+- Use lowercase for type and description
+- Keep PR title under 72 characters
+- Don't end with a period
+- Use imperative mood ("add" not "adds" or "added")
 
 ### Development Cycle
 1. Create issue describing problem/feature

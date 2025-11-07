@@ -15,8 +15,9 @@ import logging
 import time
 from typing import Optional
 
-from .validation import validate_positive_integer
 from ..output.formatters import EmojiFormatter
+from .validation import validate_positive_integer
+
 
 class ProgressTracker:
     """
@@ -93,18 +94,19 @@ class ProgressTracker:
         self.update_every_n = max(1, min(self.total // 10, 500))
         self.start_time = time.perf_counter()
         self.last_printed_item = -1
-        self.last_animation_update = 0
+        self.last_animation_update: float = 0
 
         # Time estimation attributes
-        self.estimated_total = None
+        self.estimated_total: Optional[float] = None
 
         # Animation attributes
-        self.bar_width = 30
-        self.current_line_length = 0
-        self.completion_message = None
+        self.bar_width: int = 30
+        self.current_line_length: int = 0
+        self.completion_message: Optional[str] = None
 
         # Initialize random bar state
         import random
+
         self.random = random.Random()
         self.bar_state = [False] * self.bar_width
 
@@ -115,12 +117,11 @@ class ProgressTracker:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit with cleanup."""
         self.complete()
-        return False
 
-    def _render_animation(self):
+    def _render_animation(self) -> None:
         """Render the animated progress bar."""
         elapsed = time.perf_counter() - self.start_time
 
@@ -144,7 +145,9 @@ class ProgressTracker:
             progress_line = f"    Progress: [{percent_complete:.0f}%] [{bar_display}] - Est. {remaining_str} remaining"
         else:
             elapsed_str = self._format_time(elapsed)
-            progress_line = f"    Progress: [??%] [{bar_display}] - Running for {elapsed_str}"
+            progress_line = (
+                f"    Progress: [??%] [{bar_display}] - Running for {elapsed_str}"
+            )
 
         # Clear previous line and show new animation state
         if self.current_line_length > 0:
@@ -237,7 +240,7 @@ class ProgressTracker:
             # Add spacing after timer message for consistent formatting
             self.logger.info("")
 
-    def reset(self, total: Optional[int] = None) -> None:
+    def reset(self, total: Optional[Optional[int]] = None) -> None:
         """
         Reset the tracker to start a new task (useful for reuse).
 

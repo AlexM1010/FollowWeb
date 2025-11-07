@@ -7,10 +7,17 @@ reciprocal filtering, ego-alter graph creation, and k-core pruning operations.
 
 # Standard library imports
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+import sys
 
 # Third-party imports
 import networkx as nx
+
+# Conditional nx_parallel import (Python 3.11+ only)
+try:
+    if sys.version_info >= (3, 11):
+        import nx_parallel  # noqa: F401
+except ImportError:
+    pass  # nx_parallel not available, use standard NetworkX
 
 # Local imports
 from ..utils.parallel import get_analysis_parallel_config, log_parallel_usage
@@ -40,7 +47,7 @@ class GraphProcessor:
         Returns:
             nx.DiGraph: New graph with only mutual connections, or empty graph if none exist
         """
-        reciprocal_graph = nx.DiGraph()
+        reciprocal_graph: nx.DiGraph = nx.DiGraph()
 
         # Keep only edges where the reverse edge also exists
         reciprocal_edges = [
@@ -96,7 +103,8 @@ class GraphProcessor:
             return nx.DiGraph()
 
         # 2. Create a new graph containing only connections between alters
-        alter_graph = graph.subgraph(alters).copy()
+        alter_subgraph = graph.subgraph(alters)
+        alter_graph = nx.DiGraph(alter_subgraph)
 
         # Remove isolates (alters who don't connect to any other alters)
         alter_graph.remove_nodes_from(list(nx.isolates(alter_graph)))
