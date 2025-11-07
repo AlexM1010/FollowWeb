@@ -1,17 +1,19 @@
 # GitHub Actions Workflows
 
-This directory contains the CI/CD workflows for the FollowWeb Network Analysis Package. All workflows use the unified Python task management system (`tasks.py`) for consistent cross-platform execution.
+This directory contains the CI/CD workflows for the FollowWeb Network Analysis Package. All workflows use direct Python commands and the `ci_helpers.py` script for consistent cross-platform execution and status reporting.
 
 ## Workflow Overview
 
 ### `ci.yml` - Continuous Integration
 **Triggers:** Push/PR to main/develop branches
 - **Conventional Commit Validation:** PR title format validation (PRs only)
-- **Matrix Testing:** Python 3.8-3.12 on Ubuntu and Windows
+- **Matrix Testing:** Python 3.9-3.12 on Ubuntu, Windows, and macOS
+- **Unit & Integration Tests:** Comprehensive test suite with coverage reporting
+- **End-to-End Pipeline Testing:** Full pipeline validation with real data
 - **Quality Checks:** Linting, type checking, and formatting validation
-- **Test Execution:** Full test suite with coverage reporting
-- **Build Validation:** Package build verification
-- **Performance Testing:** Dedicated performance test job
+- **Security Scanning:** Bandit and pip-audit vulnerability checks
+- **Build Validation:** Package build verification and installation testing
+- **Performance Testing:** Dedicated performance test job with benchmarking
 
 ### `release.yml` - Release Pipeline
 **Triggers:** GitHub releases, manual dispatch
@@ -20,22 +22,29 @@ This directory contains the CI/CD workflows for the FollowWeb Network Analysis P
 - **Publishing:** Automated PyPI/Test PyPI publishing
 - **Quality Gates:** All tests must pass before publishing
 
-### `nightly.yml` - Nightly Builds
+### `nightly.yml` - Nightly Dependency & Security Check
 **Triggers:** Daily at 2 AM UTC, manual dispatch
-- **Comprehensive Testing:** All platforms (Ubuntu, Windows, macOS)
-- **Security Checks:** Dependency vulnerability scanning
-- **Dependency Updates:** Check for outdated packages
-- **Extended Coverage:** Performance and integration tests
+- **Security Scanning:** Stricter vulnerability checks (all severity levels)
+- **Dependency Updates:** Check for outdated packages and test with latest versions
+- **Ecosystem Compatibility:** Test key OS/Python combinations for ecosystem changes
+- **Latest Dependency Testing:** Verify compatibility with newest package versions
 
 ### `docs.yml` - Documentation
-**Triggers:** Changes to docs/ or Python files
-- **Docstring Coverage:** Validate API documentation completeness
-- **Link Validation:** Check for broken documentation links
-- **Code Quality:** Scan for TODO/FIXME comments
+**Triggers:** Changes to docs/, markdown files, or Python files
+- **Docstring Coverage:** Validate API documentation completeness using interrogate
+- **Documentation Structure:** Check for required documentation files
+- **Code Quality:** Scan for TODO/FIXME comments in source code
 
-## Task System Integration
+## CI Helper System Integration
 
-All workflows use cross-platform Python commands that work on both Windows and Unix systems:
+All workflows use cross-platform Python commands and the `ci_helpers.py` script for consistent status reporting:
+
+### CI Helper Script (`ci_helpers.py`)
+The `.github/scripts/ci_helpers.py` script provides:
+- **Platform-aware emoji formatting:** Adjusts emoji display based on OS and CI environment
+- **Consistent status reporting:** Standardized success, error, and info messages
+- **GitHub Actions integration:** Proper formatting for step summaries and annotations
+- **Cross-platform compatibility:** Works on Windows, macOS, and Linux CI runners
 
 ```yaml
 # Conventional commit validation (PRs only)
@@ -44,29 +53,26 @@ All workflows use cross-platform Python commands that work on both Windows and U
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-# Standard test execution
-- name: Run tests
+# Standard test execution with coverage
+- name: Run tests with coverage
   run: |
-    python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
-    python -m coverage combine
-    python -m coverage xml
+    python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html
+    python ../.github/scripts/ci_helpers.py test-summary
 
 # Code quality checks
 - name: Run linting
-  run: python -m ruff check FollowWeb_Visualizor tests
+  run: ruff check FollowWeb_Visualizor tests --output-format=github
 
 - name: Run type checking
-  run: python -m mypy FollowWeb_Visualizor
+  run: mypy FollowWeb_Visualizor
 
 # Code formatting
 - name: Check formatting
-  run: |
-    python -m ruff format --check FollowWeb_Visualizor tests
-    python -m ruff check FollowWeb_Visualizor tests
+  run: ruff format --check FollowWeb_Visualizor tests --diff
 
 # Package building
 - name: Build package
-  run: python -m build
+  run: python -m build --sdist --wheel --outdir dist/
 ```
 
 ## Matrix Strategy
@@ -77,15 +83,17 @@ All workflows use cross-platform Python commands that work on both Windows and U
 - **macOS Latest:** macOS compatibility (nightly only)
 
 ### Python Versions
-- **Full Matrix (CI):** Python 3.8, 3.9, 3.10, 3.11, 3.12
-- **Release Testing:** Python 3.8 (oldest) and 3.12 (newest)
+- **Full Matrix (CI):** Python 3.9, 3.10, 3.11, 3.12
+- **Release Testing:** Python 3.9 (oldest) and 3.12 (newest)
 - **Performance:** Python 3.11 (recommended version)
+- **Nightly:** Python 3.9, 3.11, 3.12 (key ecosystem combinations)
 
 ## Exit Code Handling
 
-All workflows rely on the task script exit codes for build status:
+All workflows rely on command exit codes and the `ci_helpers.py` script for build status:
 - **Exit Code 0:** Success - workflow continues
 - **Non-zero Exit Code:** Failure - workflow fails immediately
+- **CI Helper Script:** Provides consistent status reporting and emoji formatting across platforms
 - **Error Handling:** Clear error messages and recovery suggestions
 
 ## Secrets Configuration
@@ -104,58 +112,75 @@ Required repository secrets for full functionality:
 ```mermaid
 graph TD
     A[Push/PR] --> B[CI Workflow]
-    B --> C[Test Job]
-    B --> D[Format Check]
-    C --> E[Build Job]
-    D --> E
+    B --> C[Test Matrix]
+    B --> D[Security Scan]
+    B --> E[Format Check]
+    B --> F[Performance Tests]
+    C --> G[Build Job]
+    D --> G
+    E --> G
+    F --> G
+    G --> H[CI Success]
     
-    F[Release] --> G[Release Workflow]
-    G --> H[Pre-release Test]
-    H --> I[Build and Publish]
+    I[Release] --> J[Release Workflow]
+    J --> K[Pre-release Test]
+    K --> L[Build Package]
+    L --> M[Publish PyPI/TestPyPI]
     
-    J[Schedule/Manual] --> K[Nightly Workflow]
-    K --> L[Comprehensive Test]
-    K --> M[Security Check]
+    N[Schedule/Manual] --> O[Nightly Workflow]
+    O --> P[Dependency Security]
+    O --> Q[Ecosystem Compatibility]
+    
+    R[Docs Changes] --> S[Documentation Workflow]
+    S --> T[Docstring Coverage]
+    S --> U[Structure Check]
 ```
 
 ## Local Development
 
-Developers can run the same commands locally:
+Developers can run the same commands locally (from the `FollowWeb/` directory):
 
 ```bash
 # Install dependencies
-python -m pip install -r requirements.txt
-python -m pip install -r requirements-test.txt
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements-ci.txt -e .
 
 # Run the same checks as CI
-python -m ruff check FollowWeb_Visualizor tests
-python -m mypy FollowWeb_Visualizor
-python -m ruff format --check FollowWeb_Visualizor tests
-python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
+ruff check FollowWeb_Visualizor tests --output-format=github
+mypy FollowWeb_Visualizor
+ruff format --check FollowWeb_Visualizor tests --diff
+python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term
+
+# Security checks
+bandit -r FollowWeb_Visualizor --severity-level medium
+pip-audit --desc
 
 # Build package
-python -m build
+python -m build --sdist --wheel --outdir dist/
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Task Script Not Found**
-   - Ensure `tasks.py` is in the repository root
-   - Check file permissions (should be executable)
+1. **CI Helper Script Issues**
+   - Ensure `.github/scripts/ci_helpers.py` exists and is accessible
+   - Check that FollowWeb_Visualizor package can be imported
 
 2. **Dependency Installation Failures**
-   - Verify `requirements.txt` and `requirements-test.txt` exist
+   - Verify `requirements-ci.txt` exists and is up to date
    - Check for platform-specific dependency issues
+   - Ensure Python version compatibility
 
 3. **Test Failures**
    - Review test output for specific failure reasons
    - Check if tests pass locally with same Python version
+   - Verify test data files are present
 
 4. **Build Failures**
    - Ensure all dependencies are properly installed
-   - Verify package metadata in `setup.py` and `pyproject.toml`
+   - Verify package metadata in `pyproject.toml`
+   - Check that build artifacts are cleaned before building
 
 ### Debugging Workflows
 
@@ -166,6 +191,15 @@ env:
   ACTIONS_RUNNER_DEBUG: true
 ```
 
+## Automated Dependency Management
+
+### Dependabot Configuration (`dependabot.yml`)
+Automated dependency updates are managed through Dependabot:
+- **Python Dependencies:** Weekly updates on Mondays for pip packages in `/FollowWeb`
+- **GitHub Actions:** Weekly updates on Mondays for action versions
+- **Pull Request Limits:** 10 for Python deps, 5 for GitHub Actions
+- **Auto-labeling:** Dependencies are automatically labeled and assigned
+
 ## Maintenance
 
 ### Adding New Python Versions
@@ -174,11 +208,13 @@ env:
 3. Update documentation and requirements if needed
 
 ### Modifying Test Strategy
-1. Update task commands in workflows
-2. Ensure task script supports new options
+1. Update test commands in workflows
+2. Ensure `tests/run_tests.py` supports new options
 3. Test changes in feature branch before merging
+4. Update `ci_helpers.py` if new status reporting is needed
 
 ### Security Updates
-1. Regularly update GitHub Actions versions
+1. Regularly update GitHub Actions versions (automated via Dependabot)
 2. Monitor dependency security alerts
 3. Update Python versions as they reach end-of-life
+4. Review and merge Dependabot PRs promptly

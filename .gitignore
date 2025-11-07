@@ -1,0 +1,14 @@
+# Kiro IDE
+.kiro/*
+
+# CI/CD Logs
+github-ci-logs.txt
+
+# Test Outputs (root level)
+tests/Output/
+tests\Output
+TestOutput*.txt
+
+# PyPI Credentials
+.pypirc
+*/.pypirc
