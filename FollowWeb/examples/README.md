@@ -12,10 +12,10 @@ The sample data can be used to test the FollowWeb package functionality:
 
 ```bash
 # Analyze sample data
-python -m FollowWeb.FollowWeb_Visualizor examples/followers_following.json
+followweb --input examples/followers_following.json
 
 # Use with custom configuration
-python -m FollowWeb.FollowWeb_Visualizor examples/followers_following.json --config configs/fast_config_k1.json
+followweb --input examples/followers_following.json --config configs/fast_config_k1.json
 ```
 
 ## Data Format

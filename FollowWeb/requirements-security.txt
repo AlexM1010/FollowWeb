@@ -1,3 +1,0 @@
-# Security scanning tools for CI/CD
-bandit[toml]>=1.7.0        # Security linting
-pip-audit>=2.0.0           # Vulnerability scanning (replaces safety)

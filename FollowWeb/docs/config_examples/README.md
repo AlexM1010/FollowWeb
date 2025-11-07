@@ -14,7 +14,7 @@
 
 ## Usage
 ```bash
-python -m FollowWeb_Visualizor.main --config docs/config_examples/[filename].json
+followweb --config docs/config_examples/[filename].json
 ```
 
 ---
@@ -227,7 +227,7 @@ Choose the configuration that best matches your use case:
 ### 3. Validation and Testing
 Always validate your configuration before running analysis:
 ```bash
-python -m FollowWeb_Visualizor.main --config my_config.json --validate-config
+followweb --config my_config.json --validate-config
 ```
 
 ## CLI Override Examples
@@ -236,16 +236,16 @@ You can override any configuration file setting using CLI parameters:
 
 ```bash
 # Override analysis mode
-python -m FollowWeb_Visualizor.main --config my_config.json --fast-mode
+followweb --config my_config.json --fast-mode
 
 # Override k-values
-python -m FollowWeb_Visualizor.main --config my_config.json --k-core 15
+followweb --config my_config.json --k-core 15
 
 # Override output settings
-python -m FollowWeb_Visualizor.main --config my_config.json --no-png --enable-timing-logs
+followweb --config my_config.json --no-png --enable-timing-logs
 
 # Override input/output files
-python -m FollowWeb_Visualizor.main --config my_config.json --input large_network.json --output-prefix Results/Analysis
+followweb --config my_config.json --input large_network.json --output-prefix Results/Analysis
 ```
 
 ## Performance Guidelines

@@ -1,12 +1,14 @@
 # Core dependencies for FollowWeb Network Analysis package
+# All dependencies use permissive open-source licenses (MIT, BSD, Apache 2.0)
 
 # Network analysis and graph algorithms
-networkx>=2.8.0
-nx-parallel>=0.3.0  # Parallel processing backend for NetworkX performance optimization
+networkx>=2.8.0            # BSD License - Graph analysis and algorithms
+nx-parallel>=0.3.0; python_version>="3.11"  # BSD License - Parallel processing backend
+scipy>=1.9.0               # BSD License - Scientific computing library
 
-# Data manipulation and analysis
-pandas>=1.5.0
+# Data manipulation and analysis  
+pandas>=1.5.0              # BSD License - Data manipulation and analysis
 
 # Visualization libraries
-matplotlib>=3.5.0
-pyvis>=0.3.0
+matplotlib>=3.5.0          # PSF License (Python Software Foundation) - Plotting library
+pyvis>=0.3.0               # BSD License - Interactive network visualizations
