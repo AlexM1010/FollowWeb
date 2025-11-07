@@ -253,6 +253,61 @@ def generate_quality_summary():
     _ci_write_summary("info", "**All tools are open-source with permissive licenses**")
 
 
+def generate_benchmark_summary():
+    """
+    Generate benchmark summary from pytest-benchmark results.
+    """
+    try:
+        import json
+        from pathlib import Path
+        
+        # From .github/scripts/, navigate to FollowWeb/.benchmarks/
+        benchmarks_dir = Path(__file__).parent.parent.parent / "FollowWeb" / ".benchmarks"
+        
+        if not benchmarks_dir.exists():
+            _ci_write_summary("warning", "No benchmark data found")
+            return
+        
+        # Find the most recent benchmark run
+        benchmark_files = list(benchmarks_dir.glob("**/0001_*.json"))
+        if not benchmark_files:
+            _ci_write_summary("warning", "No benchmark results found")
+            return
+        
+        # Get the most recent file
+        latest_benchmark = max(benchmark_files, key=lambda p: p.stat().st_mtime)
+        
+        with open(latest_benchmark, 'r') as f:
+            data = json.load(f)
+        
+        _ci_write_summary("info", "**Benchmark Results Summary**")
+        _ci_write_summary("info", "")
+        
+        benchmarks = data.get('benchmarks', [])
+        if not benchmarks:
+            _ci_write_summary("warning", "No benchmark data in results file")
+            return
+        
+        _ci_write_summary("info", "| Test | Min (ms) | Max (ms) | Mean (ms) | StdDev (ms) |")
+        _ci_write_summary("info", "|------|----------|----------|-----------|-------------|")
+        
+        for bench in benchmarks:
+            name = bench.get('name', 'Unknown')
+            stats = bench.get('stats', {})
+            min_time = stats.get('min', 0) * 1000  # Convert to ms
+            max_time = stats.get('max', 0) * 1000
+            mean_time = stats.get('mean', 0) * 1000
+            stddev = stats.get('stddev', 0) * 1000
+            
+            _ci_write_summary("info", f"| {name} | {min_time:.3f} | {max_time:.3f} | {mean_time:.3f} | {stddev:.3f} |")
+        
+        _ci_write_summary("info", "")
+        _ci_write_summary("success", f"Completed {len(benchmarks)} benchmark tests")
+        
+    except Exception as e:
+        _ci_write_summary("error", f"Failed to generate benchmark summary: {e}")
+
+
 if __name__ == "__main__":
     # Command-line interface for CI scripts
     if len(sys.argv) < 2:
@@ -261,6 +316,7 @@ if __name__ == "__main__":
         print("  <emoji_key> <message> [--summary-only|--print-only] - Print/write message with emoji")
         print("  test-summary - Generate dynamic test summary")
         print("  quality-summary - Generate dynamic quality assurance summary")
+        print("  benchmark-summary - Generate benchmark results summary")
         print("  test-counts - Show current test counts")
         print("  coverage-threshold - Show current coverage threshold")
         sys.exit(1)
@@ -272,6 +328,8 @@ if __name__ == "__main__":
         generate_test_summary()
     elif command == "quality-summary":
         generate_quality_summary()
+    elif command == "benchmark-summary":
+        generate_benchmark_summary()
     elif command == "test-counts":
         counts = _get_test_counts()
         print(f"Unit tests: {counts['unit']}")

@@ -465,6 +465,31 @@ jobs:
         PYTEST_PARALLEL_DISABLE: "1"
       continue-on-error: false
     
+    - name: Generate benchmark report
+      if: always()
+      run: |
+        # Generate structured benchmark summary
+        python ../.github/scripts/ci_helpers.py benchmark-summary
+        
+        # Also show detailed pytest-benchmark output
+        python ../.github/scripts/ci_helpers.py info "" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Detailed Benchmark Output**" --summary-only
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
+        
+        # Run benchmark comparison if we have previous data
+        if [ -f ".benchmarks/ci_run/0001_*.json" ]; then
+          # Display current benchmark results with comparison
+          python -m pytest -m benchmark --benchmark-only --benchmark-compare=ci_run --benchmark-storage=.benchmarks --tb=no -v 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+        else
+          echo "No previous benchmark data found - this is the baseline run" | tee -a $GITHUB_STEP_SUMMARY
+          # Just show the current results
+          python -m pytest -m benchmark --benchmark-only --benchmark-storage=.benchmarks --tb=no -v 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+        fi
+        
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
+      shell: bash
+      continue-on-error: true
+    
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4
       if: always()

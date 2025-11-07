@@ -24,6 +24,7 @@ help:
 	@echo "  test-sequential  Run tests sequentially (debugging)"
 	@echo "  test-debug       Run tests with debug output"
 	@echo "  test-benchmark   Run pytest-benchmark performance tests"
+	@echo "  test-benchmark-compare Compare benchmarks with previous run"
 	@echo "  test-performance-comparison Benchmark parallel vs sequential performance"
 	@echo "  system-info      Show system resources and recommended worker counts"
 	@echo "  tox              Run tests across all Python versions"
@@ -126,7 +127,15 @@ test-sequential:
 	python tests/run_tests.py sequential
 
 test-benchmark:
-	python tests/run_tests.py benchmark
+	@echo "Running benchmark tests..."
+	python tests/run_tests.py benchmark --benchmark-save=local_run --benchmark-save-data --benchmark-storage=.benchmarks
+	@echo ""
+	@echo "Benchmark results saved to .benchmarks/"
+	@echo "To compare with previous runs, use: pytest -m benchmark --benchmark-compare=local_run"
+
+test-benchmark-compare:
+	@echo "Running benchmarks with comparison to previous run..."
+	python -m pytest -m benchmark --benchmark-compare=local_run --benchmark-storage=.benchmarks -v
 
 test-performance-comparison:
 	@echo "Benchmarking parallel vs sequential execution..."
