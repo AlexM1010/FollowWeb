@@ -193,7 +193,7 @@ jobs:
     - name: Generate coverage report summary
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
       run: |
-        python ../.github/scripts/ci_helpers.py info "## Coverage Report Summary" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Coverage Report Summary**" --summary-only
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         python -m coverage report --show-missing >> $GITHUB_STEP_SUMMARY || python ../.github/scripts/ci_helpers.py error "Coverage report generation failed" --summary-only
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
@@ -233,15 +233,15 @@ jobs:
         # Generate JSON report for artifacts (include all issues for reporting)
         bandit -r FollowWeb_Visualizor -f json -o bandit-report.json || true
         
-        python ../.github/scripts/ci_helpers.py info "## Bandit Security Scan Results" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Bandit Security Scan Results**" --summary-only
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         
         # First, run bandit for all severity levels to show complete results
-        python ../.github/scripts/ci_helpers.py info "### All Security Issues Found:" --print-only
+        python ../.github/scripts/ci_helpers.py info "**All Security Issues Found:**" --print-only
         bandit -r FollowWeb_Visualizor 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
         
         python ../.github/scripts/ci_helpers.py info "" --summary-only
-        python ../.github/scripts/ci_helpers.py info "### Critical Check (Medium/High Severity Only):" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Critical Check (Medium/High Severity Only):**" --summary-only
         
         # Now check for medium/high severity issues - FAIL only on these
         set +e  # Don't exit on error temporarily
@@ -274,7 +274,7 @@ jobs:
         # Generate JSON report for artifacts
         pip-audit --format=json --output=pip-audit-report.json
         # Run vulnerability scan - FAIL on any vulnerabilities
-        python ../.github/scripts/ci_helpers.py info "## Security Scan Results" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Security Scan Results**" --summary-only
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         pip-audit --desc >> $GITHUB_STEP_SUMMARY
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
@@ -458,7 +458,7 @@ jobs:
         python ../.github/scripts/ci_helpers.py success "Performance tests completed - no regressions detected" --print-only
         
         # Write to GitHub step summary
-        python ../.github/scripts/ci_helpers.py info "## Performance Test Results" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Performance Test Results**" --summary-only
         python ../.github/scripts/ci_helpers.py success "Performance tests completed successfully - no regressions detected" --summary-only
       env:
         MPLBACKEND: Agg
@@ -537,11 +537,11 @@ jobs:
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
           echo "::error::CI PIPELINE FAILED - Failed Jobs:$failed_jobs"
-          echo "## ❌ CI Pipeline Failed" >> $GITHUB_STEP_SUMMARY
+          echo "**❌ CI Pipeline Failed**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Job Results:" >> $GITHUB_STEP_SUMMARY
+          echo "**Job Results:**" >> $GITHUB_STEP_SUMMARY
           echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
@@ -560,7 +560,7 @@ jobs:
         # Warn about skipped jobs but don't fail
         if [[ -n "$skipped_jobs" ]]; then
           echo "::warning::Some jobs were skipped:$skipped_jobs"
-          echo "## CI PIPELINE WARNING" >> $GITHUB_STEP_SUMMARY
+          echo "**⚠️ CI PIPELINE WARNING**" >> $GITHUB_STEP_SUMMARY
           echo "**Skipped Jobs:**$skipped_jobs" >> $GITHUB_STEP_SUMMARY
         fi
         
@@ -583,7 +583,7 @@ jobs:
       run: |
         # Generate success summary
         echo "::notice::ALL CHECKS PASSED!"
-        echo "## ✅ CI Pipeline Success" >> $GITHUB_STEP_SUMMARY
+        echo "**✅ CI Pipeline Success**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "All quality checks passed:" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY

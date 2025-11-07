@@ -38,7 +38,7 @@ jobs:
       working-directory: FollowWeb
       run: |
         python -m pip install interrogate
-        python ../.github/scripts/ci_helpers.py info "## Docstring Coverage Analysis" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Docstring Coverage Analysis**" --summary-only
         python ../.github/scripts/ci_helpers.py info "Analyzing docstring coverage across all modules..." --summary-only
         
         # Run interrogate with detailed output (don't fail on low coverage, just report)
@@ -49,7 +49,7 @@ jobs:
         fi
         
         # Add detailed results to summary
-        python ../.github/scripts/ci_helpers.py info "### Detailed Coverage Results:" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Detailed Coverage Results:**" --summary-only
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         cat interrogate_output.txt >> $GITHUB_STEP_SUMMARY || true
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
@@ -58,7 +58,7 @@ jobs:
     - name: Validate documentation structure
       working-directory: FollowWeb
       run: |
-        python ../.github/scripts/ci_helpers.py info "## Documentation Structure Check" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Documentation Structure Check**" --summary-only
         python ../.github/scripts/ci_helpers.py info "Checking for required documentation files..." --summary-only
         
         # Check for required documentation files
@@ -118,7 +118,7 @@ jobs:
     - name: Validate documentation content
       working-directory: FollowWeb
       run: |
-        python ../.github/scripts/ci_helpers.py info "## Documentation Content Validation" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Documentation Content Validation**" --summary-only
         
         # Check if README has proper markdown structure
         if grep -q "^# \|^## " README.md; then
@@ -156,7 +156,7 @@ jobs:
         fi
         
         # Check for broken internal file references
-        python ../.github/scripts/ci_helpers.py info "### Internal Link Validation:" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Internal Link Validation:**" --summary-only
         broken_links=0
         
         # Check for references to files that might not exist
@@ -186,10 +186,10 @@ jobs:
     - name: Check documentation quality
       working-directory: FollowWeb
       run: |
-        python ../.github/scripts/ci_helpers.py info "## Documentation Quality Assessment" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Documentation Quality Assessment**" --summary-only
         
         # Check for TODO/FIXME comments
-        python ../.github/scripts/ci_helpers.py info "### Code Maintenance Comments:" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Code Maintenance Comments:**" --summary-only
         if grep -r "TODO\|FIXME" FollowWeb_Visualizor/ > todo_comments.txt 2>/dev/null; then
           comment_count=$(wc -l < todo_comments.txt)
           python ../.github/scripts/ci_helpers.py warning "Found $comment_count TODO/FIXME comments in code" --summary-only
@@ -204,7 +204,7 @@ jobs:
         fi
         
         # Check README quality
-        python ../.github/scripts/ci_helpers.py info "### README.md Quality Check:" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**README.md Quality Check:**" --summary-only
         readme_lines=$(wc -l < README.md)
         if [ $readme_lines -gt 50 ]; then
           python ../.github/scripts/ci_helpers.py success "README.md is comprehensive ($readme_lines lines)" --summary-only
@@ -220,7 +220,7 @@ jobs:
         fi
         
         # Check documentation file sizes
-        python ../.github/scripts/ci_helpers.py info "### Documentation File Analysis:" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Documentation File Analysis:**" --summary-only
         for doc_file in docs/USER_GUIDE.md docs/CONFIGURATION_GUIDE.md; do
           if [ -f "$doc_file" ]; then
             doc_lines=$(wc -l < "$doc_file")
@@ -236,8 +236,8 @@ jobs:
     - name: Generate documentation summary
       working-directory: FollowWeb
       run: |
-        python ../.github/scripts/ci_helpers.py completion "## DOCUMENTATION PIPELINE COMPLETED - ALL CHECKS PASSED!" --summary-only
-        python ../.github/scripts/ci_helpers.py info "### Documentation Quality Assurance:" --summary-only
+        python ../.github/scripts/ci_helpers.py completion "**DOCUMENTATION PIPELINE COMPLETED - ALL CHECKS PASSED!**" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Documentation Quality Assurance:**" --summary-only
         python ../.github/scripts/ci_helpers.py success "- **Documentation Structure** (All required files present)" --summary-only
         python ../.github/scripts/ci_helpers.py success "- **Docstring Coverage** (Code documentation analysis)" --summary-only
         python ../.github/scripts/ci_helpers.py success "- **README Quality** (Comprehensive user documentation)" --summary-only

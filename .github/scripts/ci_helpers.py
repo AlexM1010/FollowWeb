@@ -199,7 +199,7 @@ def _get_coverage_threshold():
         pyproject_file = Path(__file__).parent.parent.parent / "FollowWeb" / "pyproject.toml"
         if pyproject_file.exists():
             content = pyproject_file.read_text()
-            match = re.search(r"fail_under_coverage\s*=\s*(\d+)", content)
+            match = re.search(r"fail_under\s*=\s*(\d+)", content)
             if match:
                 return int(match.group(1))
         
@@ -227,10 +227,10 @@ def generate_test_summary():
     counts = _get_test_counts()
     threshold = _get_coverage_threshold()
     
-    _ci_write_summary("info", "## Test Validation Results")
-    _ci_write_summary("success", f"### Unit Tests ({counts['unit']} tests)")
-    _ci_write_summary("success", f"### Integration Tests ({counts['integration']} tests)")
-    _ci_write_summary("success", f"### Coverage Requirement (>={threshold}%)")
+    _ci_write_summary("info", "**Test Validation Results**")
+    _ci_write_summary("success", f"**Unit Tests ({counts['unit']} tests)**")
+    _ci_write_summary("success", f"**Integration Tests ({counts['integration']} tests)**")
+    _ci_write_summary("success", f"**Coverage Requirement (>={threshold}%)**")
 
 
 def generate_quality_summary():
@@ -239,8 +239,8 @@ def generate_quality_summary():
     """
     counts = _get_test_counts()
     
-    _ci_write_summary("completion", "## CI PIPELINE COMPLETED - ALL CHECKS PASSED!")
-    _ci_write_summary("info", "### Rigorous Quality Assurance:")
+    _ci_write_summary("completion", "**CI PIPELINE COMPLETED - ALL CHECKS PASSED!**")
+    _ci_write_summary("info", "**Rigorous Quality Assurance:**")
     _ci_write_summary("success", f"- **Unit Tests** ({counts['unit']} tests)")
     _ci_write_summary("success", f"- **Integration Tests** ({counts['integration']} tests)")
     _ci_write_summary("success", "- **End-to-End Pipeline Tests**")
