@@ -6,6 +6,7 @@ This directory contains the CI/CD workflows for the FollowWeb Network Analysis P
 
 ### `ci.yml` - Continuous Integration
 **Triggers:** Push/PR to main/develop branches
+- **Conventional Commit Validation:** PR title format validation (PRs only)
 - **Matrix Testing:** Python 3.8-3.12 on Ubuntu and Windows
 - **Quality Checks:** Linting, type checking, and formatting validation
 - **Test Execution:** Full test suite with coverage reporting
@@ -34,27 +35,38 @@ This directory contains the CI/CD workflows for the FollowWeb Network Analysis P
 
 ## Task System Integration
 
-All workflows use the unified `python tasks.py` command system:
+All workflows use cross-platform Python commands that work on both Windows and Unix systems:
 
 ```yaml
+# Conventional commit validation (PRs only)
+- name: Validate conventional commits
+  uses: amannn/action-semantic-pull-request@v5
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 # Standard test execution
 - name: Run tests
-  run: python tasks.py test --coverage
+  run: |
+    python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
+    python -m coverage combine
+    python -m coverage xml
 
 # Code quality checks
 - name: Run linting
-  run: python tasks.py lint
+  run: python -m ruff check FollowWeb_Visualizor tests
 
 - name: Run type checking
-  run: python tasks.py type-check
+  run: python -m mypy FollowWeb_Visualizor
 
 # Code formatting
 - name: Check formatting
-  run: python tasks.py format --check
+  run: |
+    python -m ruff format --check FollowWeb_Visualizor tests
+    python -m ruff check FollowWeb_Visualizor tests
 
 # Package building
 - name: Build package
-  run: python tasks.py build
+  run: python -m build
 ```
 
 ## Matrix Strategy
@@ -112,16 +124,17 @@ Developers can run the same commands locally:
 
 ```bash
 # Install dependencies
-python tasks.py install --dev
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-test.txt
 
 # Run the same checks as CI
-python tasks.py lint
-python tasks.py type-check
-python tasks.py format --check
-python tasks.py test --coverage
+python -m ruff check FollowWeb_Visualizor tests
+python -m mypy FollowWeb_Visualizor
+python -m ruff format --check FollowWeb_Visualizor tests
+python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=
 
 # Build package
-python tasks.py build
+python -m build
 ```
 
 ## Troubleshooting

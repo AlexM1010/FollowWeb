@@ -291,12 +291,52 @@ Include in your pull request:
 - `docs/update-api-reference`
 
 ### Commit Messages
-Follow conventional commit format:
+Follow conventional commit format (validated by CI):
 ```bash
-feat(analysis): add support for weighted graphs
+feat: add support for weighted graphs
+fix: resolve memory leak in PNG generation
+docs: update NetworkAnalyzer documentation
+test: add tests for ego-alter analysis
+chore: update dependencies
+ci: add conventional commit validation
+```
+
+**Supported Types:**
+- `feat` - New features
+- `fix` - Bug fixes
+- `docs` - Documentation changes
+- `style` - Code style changes (formatting, etc.)
+- `refactor` - Code refactoring
+- `perf` - Performance improvements
+- `test` - Adding or updating tests
+- `build` - Build system changes
+- `ci` - CI/CD changes
+- `chore` - Maintenance tasks
+
+**Format:**
+```
+<type>(<optional scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Examples:**
+```bash
+feat(analysis): add weighted graph support
+
+Implement support for edge weights in graph analysis algorithms.
+This enables more accurate centrality calculations for weighted networks.
+
+Closes #123
+
 fix(visualization): resolve memory leak in PNG generation
-docs(api): update NetworkAnalyzer documentation
-test(integration): add tests for ego-alter analysis
+
+The matplotlib figure objects were not being properly closed after
+rendering, causing memory accumulation in long-running processes.
+
+BREAKING CHANGE: PNG generation now requires matplotlib 3.5+
 ```
 
 ### Development Cycle
