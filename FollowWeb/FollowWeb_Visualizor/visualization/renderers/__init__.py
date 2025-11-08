@@ -8,5 +8,6 @@ network visualizations in various formats (HTML, PNG, etc.).
 from .base import Renderer
 from .matplotlib import MatplotlibRenderer
 from .pyvis import PyvisRenderer
+from .sigma import SigmaRenderer
 
-__all__ = ["Renderer", "MatplotlibRenderer", "PyvisRenderer"]
+__all__ = ["Renderer", "MatplotlibRenderer", "PyvisRenderer", "SigmaRenderer"]

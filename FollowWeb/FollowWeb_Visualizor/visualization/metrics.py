@@ -453,6 +453,23 @@ class MetricsCalculator:
             iterations = spring_config.get(
                 "iterations", 200
             )  # Increased for better physics
+        
+        # Calculate spring layout with fixed seed for reproducibility
+        k = spring_config.get("k", None)
+        seed = spring_config.get("seed", 42)
+        
+        try:
+            layout = nx.spring_layout(
+                graph,
+                k=k,
+                iterations=iterations,
+                seed=seed
+            )
+            return layout
+        except Exception as e:
+            self.logger.warning(f"Spring layout calculation failed: {e}, using random layout")
+            # Fallback to random layout
+            return nx.random_layout(graph, seed=seed)
         k_value = spring_config.get("k", 0.15)
 
         # Create params for caching
