@@ -1,6 +1,25 @@
 {
   "input_file": "examples/followers_following.json",
   "output_file_prefix": "Output/FollowWeb",
+  "data_source": {
+    "source": "instagram",
+    "freesound": {
+      "api_key": null,
+      "query": null,
+      "tags": null,
+      "max_samples": 1000,
+      "include_similar": true
+    }
+  },
+  "renderer": {
+    "renderer_type": "pyvis",
+    "sigma_interactive": {
+      "height": "100vh",
+      "width": "100%",
+      "enable_webgl": true,
+      "enable_audio_player": true
+    }
+  },
   "pipeline": {
     "strategy": "k-core",
     "ego_username": null,
@@ -98,5 +117,11 @@
         "enable_multistage": true
       }
     }
+  },
+  "checkpoint": {
+    "checkpoint_dir": "checkpoints",
+    "checkpoint_interval": 50,
+    "max_runtime_hours": null,
+    "verify_existing_sounds": false
   }
 }

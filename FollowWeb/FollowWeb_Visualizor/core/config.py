@@ -522,6 +522,69 @@ class CheckpointConfig:
 
 
 @dataclass
+class FreesoundConfig:
+    """Configuration for Freesound API data source."""
+
+    api_key: Optional[str] = None
+    query: Optional[str] = None
+    tags: Optional[list[str]] = None
+    max_samples: int = 1000
+    include_similar: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate Freesound configuration after initialization."""
+        validate_positive_integer(self.max_samples, "max_samples")
+        
+        # Support environment variable substitution for API key
+        if self.api_key and self.api_key.startswith("${") and self.api_key.endswith("}"):
+            env_var = self.api_key[2:-1]
+            self.api_key = os.getenv(env_var)
+            if not self.api_key:
+                raise ValueError(f"Environment variable {env_var} not set for Freesound API key")
+
+
+@dataclass
+class DataSourceConfig:
+    """Configuration for data source selection and parameters."""
+
+    source: str = "instagram"
+    freesound: FreesoundConfig = field(default_factory=FreesoundConfig)
+
+    def __post_init__(self) -> None:
+        """Validate data source configuration after initialization."""
+        valid_sources = ["instagram", "freesound"]
+        validate_choice(self.source, "data_source.source", valid_sources)
+
+
+@dataclass
+class SigmaInteractiveConfig:
+    """Configuration for Sigma.js interactive visualization."""
+
+    height: str = "100vh"
+    width: str = "100%"
+    enable_webgl: bool = True
+    enable_audio_player: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate Sigma configuration after initialization."""
+        validate_string_format(self.height, "height", ["px", "%", "vh", "vw"])
+        validate_string_format(self.width, "width", ["px", "%", "vh", "vw"])
+
+
+@dataclass
+class RendererConfig:
+    """Configuration for renderer selection and parameters."""
+
+    renderer_type: str = "pyvis"
+    sigma_interactive: SigmaInteractiveConfig = field(default_factory=SigmaInteractiveConfig)
+
+    def __post_init__(self) -> None:
+        """Validate renderer configuration after initialization."""
+        valid_renderers = ["pyvis", "sigma", "all"]
+        validate_choice(self.renderer_type, "renderer_type", valid_renderers)
+
+
+@dataclass
 class FollowWebConfig:
     """Main configuration class containing all FollowWeb analysis settings."""
 
@@ -531,6 +594,8 @@ class FollowWebConfig:
     )
 
     # Core configuration sections
+    data_source: DataSourceConfig = field(default_factory=DataSourceConfig)
+    renderer: RendererConfig = field(default_factory=RendererConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     analysis_mode: AnalysisModeConfig = field(default_factory=AnalysisModeConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
@@ -747,6 +812,35 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             verify_existing_sounds=checkpoint_dict.get("verify_existing_sounds", False),
         )
 
+        # Create data source config
+        data_source_dict = config_dict.get("data_source", {})
+        freesound_dict = data_source_dict.get("freesound", {})
+        freesound_config = FreesoundConfig(
+            api_key=freesound_dict.get("api_key"),
+            query=freesound_dict.get("query"),
+            tags=freesound_dict.get("tags"),
+            max_samples=freesound_dict.get("max_samples", 1000),
+            include_similar=freesound_dict.get("include_similar", True),
+        )
+        data_source_config = DataSourceConfig(
+            source=data_source_dict.get("source", "instagram"),
+            freesound=freesound_config,
+        )
+
+        # Create renderer config
+        renderer_dict = config_dict.get("renderer", {})
+        sigma_interactive_dict = renderer_dict.get("sigma_interactive", {})
+        sigma_interactive_config = SigmaInteractiveConfig(
+            height=sigma_interactive_dict.get("height", "100vh"),
+            width=sigma_interactive_dict.get("width", "100%"),
+            enable_webgl=sigma_interactive_dict.get("enable_webgl", True),
+            enable_audio_player=sigma_interactive_dict.get("enable_audio_player", True),
+        )
+        renderer_config = RendererConfig(
+            renderer_type=renderer_dict.get("renderer_type", "pyvis"),
+            sigma_interactive=sigma_interactive_config,
+        )
+
         # Create main config
         config = FollowWebConfig(
             input_file=config_dict.get(
@@ -755,6 +849,8 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             output_file_prefix=config_dict.get(
                 "output_file_prefix", _get_default_output_prefix()
             ),
+            data_source=data_source_config,
+            renderer=renderer_config,
             pipeline=pipeline_config,
             analysis_mode=analysis_mode_config,
             output=output_config,
@@ -1086,6 +1182,25 @@ class ConfigurationManager:
         return {
             "input_file": config.input_file,
             "output_file_prefix": config.output_file_prefix,
+            "data_source": {
+                "source": config.data_source.source,
+                "freesound": {
+                    "api_key": config.data_source.freesound.api_key,
+                    "query": config.data_source.freesound.query,
+                    "tags": config.data_source.freesound.tags,
+                    "max_samples": config.data_source.freesound.max_samples,
+                    "include_similar": config.data_source.freesound.include_similar,
+                },
+            },
+            "renderer": {
+                "renderer_type": config.renderer.renderer_type,
+                "sigma_interactive": {
+                    "height": config.renderer.sigma_interactive.height,
+                    "width": config.renderer.sigma_interactive.width,
+                    "enable_webgl": config.renderer.sigma_interactive.enable_webgl,
+                    "enable_audio_player": config.renderer.sigma_interactive.enable_audio_player,
+                },
+            },
             "pipeline": {
                 "strategy": config.pipeline.strategy,
                 "ego_username": config.pipeline.ego_username,
@@ -1179,6 +1294,12 @@ class ConfigurationManager:
                     },
                 },
             },
+            "checkpoint": {
+                "checkpoint_dir": config.checkpoint.checkpoint_dir,
+                "checkpoint_interval": config.checkpoint.checkpoint_interval,
+                "max_runtime_hours": config.checkpoint.max_runtime_hours,
+                "verify_existing_sounds": config.checkpoint.verify_existing_sounds,
+            },
         }
 
     def _validate_analysis_mode_config(
@@ -1209,7 +1330,7 @@ class ConfigurationManager:
         self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
         """Validate output control configuration."""
-        output_config = config.output_control
+        output_config = config.output
 
         # Check that at least one output format is enabled
         if not any(
@@ -1257,32 +1378,32 @@ class ConfigurationManager:
 
         # Check visualization dependency on analysis
         if (
-            config.pipeline_stages.enable_visualization
-            and not config.pipeline_stages.enable_analysis
+            config.pipeline.enable_visualization
+            and not config.pipeline.enable_analysis
         ):
             errors.append(
                 "Visualization stage requires analysis stage to be enabled. "
-                "Enable analysis in pipeline_stages section or use --skip-visualization CLI flag"
+                "Enable analysis in pipeline section or use --skip-visualization CLI flag"
             )
 
         # Check that at least one analysis component is enabled if analysis is enabled
-        if config.pipeline_stages.enable_analysis:
+        if config.pipeline.enable_analysis:
             analysis_components = [
-                config.pipeline_stages.enable_community_detection,
-                config.pipeline_stages.enable_centrality_analysis,
-                config.pipeline_stages.enable_path_analysis,
+                config.pipeline.enable_community_detection,
+                config.pipeline.enable_centrality_analysis,
+                config.pipeline.enable_path_analysis,
             ]
             if not any(analysis_components):
                 errors.append(
                     "At least one analysis component must be enabled when analysis stage is enabled. "
-                    "Enable community_detection, centrality_analysis, or path_analysis in pipeline_stages section, "
+                    "Enable community_detection, centrality_analysis, or path_analysis in pipeline section, "
                     "or use CLI flags: --skip-community-detection, --skip-centrality-analysis, --skip-path-analysis"
                 )
 
         # Check strategy compatibility with ego_alter analysis
         if (
-            config.strategy == "ego_alter_k-core"
-            and not config.pipeline_stages.enable_path_analysis
+            config.pipeline.strategy == "ego_alter_k-core"
+            and not config.pipeline.enable_path_analysis
         ):
             errors.append(
                 "ego_alter_k-core strategy requires path analysis to be enabled"
@@ -1291,9 +1412,9 @@ class ConfigurationManager:
         # Check output generation - at least one format must be enabled
         if not any(
             [
-                config.output_control.generate_html,
-                config.output_control.generate_png,
-                config.output_control.generate_reports,
+                config.output.generate_html,
+                config.output.generate_png,
+                config.output.generate_reports,
             ]
         ):
             errors.append("At least one output format must be enabled")
@@ -1314,7 +1435,7 @@ class ConfigurationManager:
 
         # Check analysis mode consistency
         if config.analysis_mode.mode == AnalysisMode.FAST:
-            if config.pipeline_stages.enable_path_analysis:
+            if config.pipeline.enable_path_analysis:
                 warnings.append(
                     "Path analysis is enabled in FAST mode, which may impact performance. "
                     "Consider disabling path analysis for optimal speed."
@@ -1356,16 +1477,16 @@ class ConfigurationManager:
         lines.append("")
         lines.append("PIPELINE:")
         lines.append(
-            f"{indent}Strategy: {self._format_value(config.strategy, formatting_config)}"
+            f"{indent}Strategy: {self._format_value(config.pipeline.strategy, formatting_config)}"
         )
 
-        if config.ego_username:
+        if config.pipeline.ego_username:
             lines.append(
-                f"{indent}Ego username: {self._format_value(config.ego_username, formatting_config)}"
+                f"{indent}Ego username: {self._format_value(config.pipeline.ego_username, formatting_config)}"
             )
 
         # Pipeline stages
-        stages = config.pipeline_stages
+        stages = config.pipeline
         lines.append(f"{indent}Stages enabled:")
         lines.append(f"{indent}{indent}Strategy: {stages.enable_strategy}")
         lines.append(f"{indent}{indent}Analysis: {stages.enable_analysis}")
@@ -1392,7 +1513,7 @@ class ConfigurationManager:
         # K-values
         k_config = config.k_values
         current_k = k_config.strategy_k_values.get(
-            config.strategy, k_config.default_k_value
+            config.pipeline.strategy, k_config.default_k_value
         )
         lines.append(
             f"{indent}K-value (current): {self._format_value(current_k, formatting_config)}"
@@ -1409,7 +1530,7 @@ class ConfigurationManager:
         lines.append("")
         lines.append("OUTPUT:")
 
-        output_config = config.output_control
+        output_config = config.output
         lines.append(f"{indent}HTML: {output_config.generate_html}")
         lines.append(f"{indent}PNG: {output_config.generate_png}")
         lines.append(f"{indent}Reports: {output_config.generate_reports}")
@@ -1497,7 +1618,7 @@ class PipelineStagesController:
         Returns:
             bool: True if stage should be executed, False otherwise
         """
-        stage_config = self.config.pipeline_stages
+        stage_config = self.config.pipeline
 
         stage_mapping = {
             "strategy": stage_config.enable_strategy,
@@ -1532,7 +1653,7 @@ class PipelineStagesController:
         if not self.should_execute_stage("analysis"):
             return False
 
-        stage_config = self.config.pipeline_stages
+        stage_config = self.config.pipeline
 
         component_mapping = {
             "community_detection": stage_config.enable_community_detection,
@@ -1567,17 +1688,17 @@ class PipelineStagesController:
         """
         if stage_name == "strategy":
             return {
-                "strategy": self.config.strategy,
+                "strategy": self.config.pipeline.strategy,
                 "k_values": self.config.k_values.strategy_k_values,
                 "default_k_value": self.config.k_values.default_k_value,
-                "ego_username": self.config.ego_username,
+                "ego_username": self.config.pipeline.ego_username,
             }
         elif stage_name == "analysis":
             return {
                 "analysis_mode": self.config.analysis_mode,
-                "enable_community_detection": self.config.pipeline_stages.enable_community_detection,
-                "enable_centrality_analysis": self.config.pipeline_stages.enable_centrality_analysis,
-                "enable_path_analysis": self.config.pipeline_stages.enable_path_analysis,
+                "enable_community_detection": self.config.pipeline.enable_community_detection,
+                "enable_centrality_analysis": self.config.pipeline.enable_centrality_analysis,
+                "enable_path_analysis": self.config.pipeline.enable_path_analysis,
                 "contact_path_target": self.config.fame_analysis.contact_path_target,
                 "min_followers_in_network": self.config.fame_analysis.min_followers_in_network,
                 "min_fame_ratio": self.config.fame_analysis.min_fame_ratio,
@@ -1585,7 +1706,7 @@ class PipelineStagesController:
             }
         elif stage_name == "visualization":
             return {
-                "output_control": self.config.output_control,
+                "output": self.config.output,
                 "visualization": self.config.visualization,
                 "output_file_prefix": self.config.output_file_prefix,
             }
@@ -1604,39 +1725,39 @@ class PipelineStagesController:
 
         # Check visualization dependency on analysis
         if (
-            self.config.pipeline_stages.enable_visualization
-            and not self.config.pipeline_stages.enable_analysis
+            self.config.pipeline.enable_visualization
+            and not self.config.pipeline.enable_analysis
         ):
             errors.append(
                 "Visualization stage requires analysis stage to be enabled. "
-                "Enable analysis in pipeline_stages section or use --skip-visualization CLI flag"
+                "Enable analysis in pipeline section or use --skip-visualization CLI flag"
             )
 
         # Check that at least one analysis component is enabled if analysis is enabled
-        if self.config.pipeline_stages.enable_analysis:
+        if self.config.pipeline.enable_analysis:
             analysis_components = [
-                self.config.pipeline_stages.enable_community_detection,
-                self.config.pipeline_stages.enable_centrality_analysis,
-                self.config.pipeline_stages.enable_path_analysis,
+                self.config.pipeline.enable_community_detection,
+                self.config.pipeline.enable_centrality_analysis,
+                self.config.pipeline.enable_path_analysis,
             ]
             if not any(analysis_components):
                 errors.append(
                     "At least one analysis component must be enabled when analysis stage is enabled. "
-                    "Enable community_detection, centrality_analysis, or path_analysis in pipeline_stages section, "
+                    "Enable community_detection, centrality_analysis, or path_analysis in pipeline section, "
                     "or use CLI flags: --skip-community-detection, --skip-centrality-analysis, --skip-path-analysis"
                 )
 
         # Check strategy compatibility with ego_alter analysis
         if (
-            self.config.strategy == "ego_alter_k-core"
-            and not self.config.pipeline_stages.enable_path_analysis
+            self.config.pipeline.strategy == "ego_alter_k-core"
+            and not self.config.pipeline.enable_path_analysis
         ):
             errors.append(
                 "ego_alter_k-core strategy requires path analysis to be enabled"
             )
 
         # Check that strategy stage is always enabled (required for pipeline)
-        if not self.config.pipeline_stages.enable_strategy:
+        if not self.config.pipeline.enable_strategy:
             errors.append(
                 "Strategy stage cannot be disabled - it is required for pipeline execution"
             )
@@ -1746,12 +1867,12 @@ class PipelineStagesController:
             "stages": self.stage_status.copy(),
             "analysis_components": self.analysis_components_status.copy(),
             "configuration": {
-                "strategy_enabled": self.config.pipeline_stages.enable_strategy,
-                "analysis_enabled": self.config.pipeline_stages.enable_analysis,
-                "visualization_enabled": self.config.pipeline_stages.enable_visualization,
-                "community_detection_enabled": self.config.pipeline_stages.enable_community_detection,
-                "centrality_analysis_enabled": self.config.pipeline_stages.enable_centrality_analysis,
-                "path_analysis_enabled": self.config.pipeline_stages.enable_path_analysis,
+                "strategy_enabled": self.config.pipeline.enable_strategy,
+                "analysis_enabled": self.config.pipeline.enable_analysis,
+                "visualization_enabled": self.config.pipeline.enable_visualization,
+                "community_detection_enabled": self.config.pipeline.enable_community_detection,
+                "centrality_analysis_enabled": self.config.pipeline.enable_centrality_analysis,
+                "path_analysis_enabled": self.config.pipeline.enable_path_analysis,
             },
         }
 
