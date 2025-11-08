@@ -169,8 +169,9 @@ pip install --force-reinstall followweb-visualizor
 ## Requirements
 
 - Python 3.9+ (recommended)
-- Minimum Python 3.8
+- Minimum Python 3.9
 - NetworkX >= 2.8.0
+- NumPy >= 1.21.0
 - pandas >= 1.5.0
 - matplotlib >= 3.5.0
 - pyvis >= 0.3.0

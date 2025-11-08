@@ -18,6 +18,13 @@
   - Key Features Used: Parallel execution of NetworkX algorithms for improved performance
 
 ### Data Manipulation and Analysis
+- **NumPy** (>=1.21.0)
+  - Purpose: Array operations, numerical computing, and type definitions
+  - License: BSD-3-Clause
+  - Homepage: https://numpy.org/
+  - Repository: https://github.com/numpy/numpy
+  - Key Features Used: Array operations, numerical types (NDArray), position calculations
+
 - **pandas** (>=1.5.0)
   - Purpose: Data manipulation, CSV/JSON processing, metrics display and analysis
   - License: BSD-3-Clause
@@ -63,18 +70,6 @@
   - Repository: https://github.com/pytest-dev/pytest-xdist
   - Key Features Used: Distributed testing, parallel execution, worker management
 
-- **pytest-timeout** (>=2.1.0)
-  - Purpose: Test timeout handling to prevent hanging tests
-  - License: MIT
-  - Repository: https://github.com/pytest-dev/pytest-timeout
-  - Key Features Used: Test execution timeouts, hanging test prevention
-
-- **pytest-mock** (>=3.10.0)
-  - Purpose: Mocking utilities for testing
-  - License: MIT
-  - Repository: https://github.com/pytest-dev/pytest-mock
-  - Key Features Used: Mock objects, test isolation, dependency mocking
-
 - **pytest-benchmark** (>=4.0.0)
   - Purpose: Performance benchmarking and timing analysis
   - License: BSD-2-Clause
@@ -87,25 +82,13 @@
   - Repository: https://github.com/astropy/pytest-doctestplus
   - Key Features Used: Docstring testing, documentation validation
 
-### Test Data Generation
-- **faker** (>=18.0.0)
-  - Purpose: Test data generation for realistic testing scenarios
-  - License: MIT
-  - Repository: https://github.com/joke2k/faker
-  - Key Features Used: Synthetic data generation, test fixtures
-
-- **factory-boy** (>=3.2.0)
-  - Purpose: Test object factories for consistent test data
-  - License: MIT
-  - Repository: https://github.com/FactoryBoy/factory_boy
-  - Key Features Used: Object factories, test data management
-
-- **numpy** (>=1.21.0)
-  - Purpose: Numerical computing support for test data generation
+### Test Utilities
+- **psutil** (>=7.1.3)
+  - Purpose: System resource monitoring for test runner optimization
   - License: BSD-3-Clause
-  - Homepage: https://numpy.org/
-  - Repository: https://github.com/numpy/numpy
-  - Key Features Used: Array operations, mathematical functions in tests
+  - Homepage: https://github.com/giampaolo/psutil
+  - Repository: https://github.com/giampaolo/psutil
+  - Key Features Used: CPU count detection, memory monitoring, process management
 
 ### Code Quality Tools
 - **ruff** (>=0.1.0)

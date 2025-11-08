@@ -3,8 +3,3 @@
 
 ruff>=0.1.0
 mypy>=1.0.0
-types-python-dateutil
-types-PyYAML
-types-decorator
-types-requests
-types-setuptools

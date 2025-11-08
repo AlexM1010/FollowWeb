@@ -126,6 +126,7 @@ FollowWeb is built upon excellent open-source libraries and tools. We gratefully
 
 ### Core Dependencies
 - **[NetworkX](https://networkx.org/)** - Graph analysis algorithms and community detection
+- **[NumPy](https://numpy.org/)** - Array operations and numerical computing
 - **[pandas](https://pandas.pydata.org/)** - Data manipulation and analysis
 - **[matplotlib](https://matplotlib.org/)** - Static graph visualization and plotting
 - **[pyvis](https://pyvis.readthedocs.io/)** - Interactive network visualizations

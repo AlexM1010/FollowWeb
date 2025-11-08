@@ -15,6 +15,7 @@ FollowWeb Network Analysis Package is built upon the excellent work of numerous 
 - **nx-parallel Contributors**: For parallel processing optimizations that improve performance on large networks
 
 ### Data Processing and Visualization
+- **NumPy Development Team**: For array operations and numerical computing foundation
 - **pandas Development Team**: For robust data manipulation and analysis tools
 - **matplotlib Development Team**: For flexible and powerful plotting capabilities
 - **pyvis Development Team**: For interactive network visualization features
@@ -25,7 +26,6 @@ FollowWeb Network Analysis Package is built upon the excellent work of numerous 
 
 ### Build and Distribution
 - **Python Packaging Authority (PyPA)**: For modern Python packaging tools (build, twine, wheel)
-- **tox Development Team**: For multi-environment testing capabilities
 
 ## How to Contribute
 
