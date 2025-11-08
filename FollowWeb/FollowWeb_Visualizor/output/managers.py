@@ -44,9 +44,9 @@ class OutputManager:
 
         # Import here to avoid circular imports
         from ..visualization.metrics import MetricsCalculator
-        from ..visualization.renderers import InteractiveRenderer, StaticRenderer
+        from ..visualization.renderers import MatplotlibRenderer, PyvisRenderer
 
-        # Initialize static renderer with performance config
+        # Initialize renderers with performance config
         performance_config = vis_config.get("performance", {})
         analysis_mode = config.get("analysis_mode", {})
         if analysis_mode.get("max_layout_iterations") is not None:
@@ -57,11 +57,10 @@ class OutputManager:
             performance_config["fast_mode"] = analysis_mode["enable_fast_algorithms"]
 
         self.metrics_calculator = MetricsCalculator(vis_config, performance_config)
-        self.interactive_renderer = InteractiveRenderer(
+        self.pyvis_renderer = PyvisRenderer(
             vis_config, self.metrics_calculator
         )
-
-        self.static_renderer = StaticRenderer(vis_config, performance_config)
+        self.matplotlib_renderer = MatplotlibRenderer(vis_config, performance_config)
         self.metrics_reporter = MetricsReporter(vis_config)
 
         # Initialize unified logger for this pipeline run
@@ -143,32 +142,6 @@ class OutputManager:
 
         shared_metrics = self.metrics_calculator.calculate_all_metrics(graph)
 
-        # Extract metrics for PNG renderer (which still needs dict format)
-        node_metrics = {}
-        edge_metrics: dict[tuple[str, str], dict[str, Any]] = {}
-
-        for node, node_metric in shared_metrics.node_metrics.items():
-            node_metrics[node] = {
-                "size": node_metric.size,
-                "community": node_metric.community,
-                "color_hex": node_metric.color_hex,
-                "color_rgba": node_metric.color_rgba,
-                "degree": node_metric.centrality_values["degree"],
-                "betweenness": node_metric.centrality_values["betweenness"],
-                "eigenvector": node_metric.centrality_values["eigenvector"],
-            }
-
-        for edge, edge_metric in shared_metrics.edge_metrics.items():
-            edge_metrics[edge] = {
-                "width": edge_metric.width,
-                "color": edge_metric.color,
-                "is_mutual": edge_metric.is_mutual,
-                "is_bridge": edge_metric.is_bridge,
-                "common_neighbors": edge_metric.common_neighbors,
-                "u_comm": edge_metric.u_comm,
-                "v_comm": edge_metric.v_comm,
-            }
-
         # Generate output filenames with shared run_id
         from ..utils.files import ensure_output_directory, generate_output_filename
 
@@ -205,7 +178,7 @@ class OutputManager:
                     "progress", "Generating interactive HTML visualization..."
                 )
                 self.logger.info(progress_msg)
-            results["html"] = self.interactive_renderer.generate_html(
+            results["html"] = self.pyvis_renderer.generate_visualization(
                 graph, html_filename, shared_metrics
             )
         else:
@@ -229,8 +202,8 @@ class OutputManager:
                     "progress", "Generating static PNG visualization..."
                 )
                 self.logger.info(progress_msg)
-            results["png"] = self.static_renderer.generate_png(
-                graph, png_filename, node_metrics, edge_metrics, shared_metrics
+            results["png"] = self.matplotlib_renderer.generate_visualization(
+                graph, png_filename, shared_metrics
             )
         else:
             if self.unified_logger:

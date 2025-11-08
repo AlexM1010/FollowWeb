@@ -6,5 +6,7 @@ network visualizations in various formats (HTML, PNG, etc.).
 """
 
 from .base import Renderer
+from .matplotlib import MatplotlibRenderer
+from .pyvis import PyvisRenderer
 
-__all__ = ["Renderer"]
+__all__ = ["Renderer", "MatplotlibRenderer", "PyvisRenderer"]
