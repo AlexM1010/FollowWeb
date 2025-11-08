@@ -65,43 +65,12 @@ class PyvisRenderer(Renderer):
         Returns:
             True if successful, False otherwise
         """
-        # Calculate metrics if not provided
-        if metrics is None:
-            if self.metrics_calculator is not None:
-                self.logger.info(
-                    "No metrics provided - calculating using existing MetricsCalculator"
-                )
-                metrics = self.metrics_calculator.calculate_all_metrics(graph)
-            else:
-                self.logger.info("No metrics provided - creating new MetricsCalculator")
-                calculator = MetricsCalculator(self.vis_config)
-                metrics = calculator.calculate_all_metrics(graph)
+        # Calculate metrics if not provided (using base class helper)
+        metrics = self._ensure_metrics(graph, metrics)
 
-        # Extract metrics from VisualizationMetrics object
-        node_metrics = {}
-        edge_metrics: dict[tuple[str, str], dict[str, Any]] = {}
-
-        for node, node_metric in metrics.node_metrics.items():
-            node_metrics[node] = {
-                "size": node_metric.size,
-                "community": node_metric.community,
-                "color_hex": node_metric.color_hex,
-                "color_rgba": node_metric.color_rgba,
-                "degree": node_metric.centrality_values["degree"],
-                "betweenness": node_metric.centrality_values["betweenness"],
-                "eigenvector": node_metric.centrality_values["eigenvector"],
-            }
-
-        for edge, edge_metric in metrics.edge_metrics.items():
-            edge_metrics[edge] = {
-                "width": edge_metric.width,
-                "color": edge_metric.color,
-                "is_mutual": edge_metric.is_mutual,
-                "is_bridge": edge_metric.is_bridge,
-                "common_neighbors": edge_metric.common_neighbors,
-                "u_comm": edge_metric.u_comm,
-                "v_comm": edge_metric.v_comm,
-            }
+        # Extract metrics from VisualizationMetrics object (using base class helpers)
+        node_metrics = self._extract_node_metrics_dict(metrics)
+        edge_metrics = self._extract_edge_metrics_dict(metrics)
 
         pyvis_config = self.vis_config.get("pyvis_interactive", {})
 

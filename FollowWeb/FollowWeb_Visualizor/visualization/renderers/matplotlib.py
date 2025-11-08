@@ -70,15 +70,12 @@ class MatplotlibRenderer(Renderer):
         Returns:
             True if successful, False otherwise
         """
-        if graph.number_of_nodes() == 0:
-            self.logger.warning("Cannot generate static graph. Graph is empty.")
+        # Validate graph is not empty (using base class helper)
+        if not self._validate_graph_not_empty(graph):
             return False
 
-        # Calculate metrics if not provided
-        if metrics is None:
-            self.logger.info("No metrics provided - creating new MetricsCalculator")
-            calculator = MetricsCalculator(self.vis_config, self.performance_config)
-            metrics = calculator.calculate_all_metrics(graph)
+        # Calculate metrics if not provided (using base class helper)
+        metrics = self._ensure_metrics(graph, metrics)
 
         # Setup figure - ensure perfect 1:1 aspect ratio (square)
         default_size = 1200  # Square dimensions for network display
@@ -266,10 +263,8 @@ class MatplotlibRenderer(Renderer):
 
         # Save PNG file
         try:
-            # Ensure output directory exists
-            output_dir = os.path.dirname(output_filename)
-            if output_dir and not os.path.exists(output_dir):
-                os.makedirs(output_dir, exist_ok=True)
+            # Ensure output directory exists (using base class helper)
+            self._ensure_output_directory(output_filename)
 
             # Save with explicit flushing
             plt.savefig(

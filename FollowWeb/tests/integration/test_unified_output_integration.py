@@ -236,8 +236,8 @@ class TestUnifiedOutputIntegration:
         # Mock the actual file generation to avoid complex dependencies
         with (
             patch.object(manager, "metrics_calculator") as mock_calc,
-            patch.object(manager, "interactive_renderer") as mock_html,
-            patch.object(manager, "static_renderer") as mock_png,
+            patch.object(manager, "pyvis_renderer") as mock_html,
+            patch.object(manager, "matplotlib_renderer") as mock_png,
             patch.object(manager, "metrics_reporter") as mock_reporter,
         ):
             # Mock metrics calculation
@@ -261,8 +261,8 @@ class TestUnifiedOutputIntegration:
             mock_calc.calculate_all_metrics.return_value = mock_metrics
 
             # Mock successful generation
-            mock_html.generate_html.return_value = True
-            mock_png.generate_png.return_value = True
+            mock_html.generate_visualization.return_value = True
+            mock_png.generate_visualization.return_value = True
             mock_reporter.generate_analysis_report.return_value = (
                 "Integration test report"
             )
