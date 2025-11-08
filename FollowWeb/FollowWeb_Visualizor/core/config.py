@@ -607,6 +607,27 @@ class FollowWebConfig:
     def __post_init__(self) -> None:
         """Validate main configuration after initialization."""
         pass
+    
+    # Compatibility properties for backward compatibility with existing code
+    @property
+    def strategy(self) -> str:
+        """Get strategy from pipeline config."""
+        return self.pipeline.strategy
+    
+    @property
+    def ego_username(self) -> Optional[str]:
+        """Get ego_username from pipeline config."""
+        return self.pipeline.ego_username
+    
+    @property
+    def pipeline_stages(self) -> PipelineConfig:
+        """Get pipeline stages config (alias for pipeline)."""
+        return self.pipeline
+    
+    @property
+    def output_control(self) -> OutputConfig:
+        """Get output control config (alias for output)."""
+        return self.output
 
 
 def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
