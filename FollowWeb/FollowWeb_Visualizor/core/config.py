@@ -166,6 +166,7 @@ class AnalysisModeConfig:
     sampling_threshold: int = 5000
     max_layout_iterations: Optional[Optional[int]] = None
     enable_fast_algorithms: bool = False
+    skip_path_analysis: bool = False
 
     def __post_init__(self) -> None:
         """Validate analysis mode configuration after initialization."""
@@ -400,10 +401,10 @@ class ShellLayoutConfig:
 
 
 @dataclass
-class PngLayoutConfig:
-    """Configuration for PNG layout alignment and layout options."""
+class LayoutConfig:
+    """Configuration for layout algorithms and alignment options."""
 
-    force_spring_layout: bool = False
+    algorithm: str = "spring"
     align_with_html: bool = True
 
     # Layout-specific configurations
@@ -413,6 +414,11 @@ class PngLayoutConfig:
     )
     circular: CircularLayoutConfig = field(default_factory=CircularLayoutConfig)
     shell: ShellLayoutConfig = field(default_factory=ShellLayoutConfig)
+    
+    def __post_init__(self) -> None:
+        """Validate layout configuration."""
+        valid_algorithms = ["spring", "kamada_kawai", "circular", "shell", "random"]
+        validate_choice(self.algorithm, "algorithm", valid_algorithms)
 
 
 @dataclass
@@ -452,11 +458,16 @@ class PyvisInteractiveConfig:
 
 @dataclass
 class PipelineConfig:
-    """Configuration for pipeline execution control."""
+    """Configuration for pipeline execution control and stage enablement."""
 
     strategy: str = "k-core"
-    skip_analysis: bool = False
     ego_username: Optional[Optional[str]] = None
+    enable_strategy: bool = True
+    enable_analysis: bool = True
+    enable_visualization: bool = True
+    enable_community_detection: bool = True
+    enable_centrality_analysis: bool = True
+    enable_path_analysis: bool = True
 
     def __post_init__(self) -> None:
         """Validate pipeline configuration after initialization."""
@@ -499,10 +510,14 @@ class FameAnalysisConfig:
 
 @dataclass
 class OutputConfig:
-    """Configuration for output generation."""
+    """Configuration for output generation and formatting."""
 
     custom_output_directory: Optional[Optional[str]] = None
-    enable_time_logging: bool = False
+    generate_html: bool = True
+    generate_png: bool = True
+    generate_reports: bool = True
+    enable_timing_logs: bool = False
+    formatting: OutputFormattingConfig = field(default_factory=OutputFormattingConfig)
 
     def __post_init__(self) -> None:
         """Validate output configuration after initialization."""
@@ -510,6 +525,21 @@ class OutputConfig:
             self.custom_output_directory, str
         ):
             raise ValueError("custom_output_directory must be a string")
+        
+        # Ensure at least one output format is enabled
+        output_options = {
+            "generate_html": self.generate_html,
+            "generate_png": self.generate_png,
+            "generate_reports": self.generate_reports,
+        }
+        try:
+            validate_at_least_one_enabled(output_options, "output format")
+        except ValueError as e:
+            raise ValueError(
+                "At least one output format must be enabled. "
+                "Set generate_html, generate_png, or generate_reports to true in output section, "
+                "or use CLI flags: --no-png, --no-html, --no-reports (but keep at least one enabled)"
+            ) from e
 
 
 @dataclass
@@ -540,7 +570,7 @@ class VisualizationConfig:
     pyvis_interactive: PyvisInteractiveConfig = field(
         default_factory=PyvisInteractiveConfig
     )
-    png_layout: PngLayoutConfig = field(default_factory=PngLayoutConfig)
+    layout: LayoutConfig = field(default_factory=LayoutConfig)
 
     def __post_init__(self) -> None:
         """Validate visualization configuration after initialization."""
@@ -596,25 +626,17 @@ class FollowWebConfig:
     )
 
     # Core configuration sections
-    pipeline_stages: PipelineStagesConfig = field(default_factory=PipelineStagesConfig)
+    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     analysis_mode: AnalysisModeConfig = field(default_factory=AnalysisModeConfig)
-    output_control: OutputControlConfig = field(default_factory=OutputControlConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     k_values: KValueConfig = field(default_factory=KValueConfig)
     fame_analysis: FameAnalysisConfig = field(default_factory=FameAnalysisConfig)
     visualization: VisualizationConfig = field(default_factory=VisualizationConfig)
     checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
 
-    # Essential analysis settings
-    strategy: str = "k-core"
-    ego_username: Optional[Optional[str]] = None
-
     def __post_init__(self) -> None:
         """Validate main configuration after initialization."""
-        # Validate strategy
-        valid_strategies = ["k-core", "reciprocal_k-core", "ego_alter_k-core"]
-        validate_choice(self.strategy, "strategy", valid_strategies)
-        validate_ego_strategy_requirements(self.strategy, self.ego_username)
+        pass
 
 
 def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
@@ -632,24 +654,25 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
     """
     try:
         # Extract configuration sections
-        pipeline_stages_dict = config_dict.get("pipeline_stages", {})
+        pipeline_dict = config_dict.get("pipeline", {})
         analysis_mode_dict = config_dict.get("analysis_mode", {})
-        output_control_dict = config_dict.get("output_control", {})
         output_dict = config_dict.get("output", {})
         k_values_dict = config_dict.get("k_values", {})
 
-        # Create pipeline stages config
-        pipeline_stages_config = PipelineStagesConfig(
-            enable_strategy=pipeline_stages_dict.get("enable_strategy", True),
-            enable_analysis=pipeline_stages_dict.get("enable_analysis", True),
-            enable_visualization=pipeline_stages_dict.get("enable_visualization", True),
-            enable_community_detection=pipeline_stages_dict.get(
+        # Create pipeline config (merged with stages)
+        pipeline_config = PipelineConfig(
+            strategy=pipeline_dict.get("strategy", "k-core"),
+            ego_username=pipeline_dict.get("ego_username"),
+            enable_strategy=pipeline_dict.get("enable_strategy", True),
+            enable_analysis=pipeline_dict.get("enable_analysis", True),
+            enable_visualization=pipeline_dict.get("enable_visualization", True),
+            enable_community_detection=pipeline_dict.get(
                 "enable_community_detection", True
             ),
-            enable_centrality_analysis=pipeline_stages_dict.get(
+            enable_centrality_analysis=pipeline_dict.get(
                 "enable_centrality_analysis", True
             ),
-            enable_path_analysis=pipeline_stages_dict.get("enable_path_analysis", True),
+            enable_path_analysis=pipeline_dict.get("enable_path_analysis", True),
         )
 
         # Handle analysis mode - convert string to enum if needed
@@ -675,10 +698,11 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             enable_fast_algorithms=analysis_mode_dict.get(
                 "enable_fast_algorithms", False
             ),
+            skip_path_analysis=analysis_mode_dict.get("skip_path_analysis", False),
         )
 
         # Create output formatting config
-        output_formatting_dict = output_control_dict.get("output_formatting", {})
+        output_formatting_dict = output_dict.get("formatting", {})
 
         # Create emoji config
         emoji_dict = output_formatting_dict.get("emoji", {})
@@ -699,18 +723,14 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             emoji=emoji_config,
         )
 
-        output_control_config = OutputControlConfig(
-            generate_html=output_control_dict.get("generate_html", True),
-            generate_png=output_control_dict.get("generate_png", True),
-            generate_reports=output_control_dict.get("generate_reports", True),
-            enable_timing_logs=output_control_dict.get("enable_timing_logs", False),
-            output_formatting=output_formatting_config,
-        )
-
-        # Create output config
+        # Create merged output config
         output_config = OutputConfig(
             custom_output_directory=output_dict.get("custom_output_directory"),
-            enable_time_logging=output_dict.get("enable_time_logging", False),
+            generate_html=output_dict.get("generate_html", True),
+            generate_png=output_dict.get("generate_png", True),
+            generate_reports=output_dict.get("generate_reports", True),
+            enable_timing_logs=output_dict.get("enable_timing_logs", False),
+            formatting=output_formatting_config,
         )
 
         k_values_config = KValueConfig(
@@ -735,11 +755,11 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             edge_arrow_size=static_image_dict.get("edge_arrow_size", 8),
         )
 
-        # Create PNG layout config with layout options
-        png_layout_dict = visualization_dict.get("png_layout", {})
+        # Create layout config with layout options
+        layout_dict = visualization_dict.get("layout", {})
 
         # Spring layout configuration
-        spring_dict = png_layout_dict.get("spring", {})
+        spring_dict = layout_dict.get("spring", {})
         spring_config = SpringLayoutConfig(
             k=spring_dict.get("k", 0.15),
             iterations=spring_dict.get("iterations", 50),
@@ -759,7 +779,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         )
 
         # Kamada-Kawai layout configuration
-        kamada_dict = png_layout_dict.get("kamada_kawai", {})
+        kamada_dict = layout_dict.get("kamada_kawai", {})
         kamada_config = KamadaKawaiLayoutConfig(
             max_iterations=kamada_dict.get("max_iterations", 1000),
             tolerance=kamada_dict.get("tolerance", 1e-6),
@@ -770,7 +790,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         )
 
         # Circular layout configuration
-        circular_dict = png_layout_dict.get("circular", {})
+        circular_dict = layout_dict.get("circular", {})
         circular_config = CircularLayoutConfig(
             radius=circular_dict.get("radius"),
             center=(
@@ -785,7 +805,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         )
 
         # Shell layout configuration
-        shell_dict = png_layout_dict.get("shell", {})
+        shell_dict = layout_dict.get("shell", {})
         shell_config = ShellLayoutConfig(
             shell_spacing=shell_dict.get("shell_spacing", 1.0),
             center_shell_radius=shell_dict.get("center_shell_radius", 0.5),
@@ -796,9 +816,9 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             nodes_per_shell=shell_dict.get("nodes_per_shell"),
         )
 
-        png_layout_config = PngLayoutConfig(
-            force_spring_layout=png_layout_dict.get("force_spring_layout", False),
-            align_with_html=png_layout_dict.get("align_with_html", True),
+        layout_config = LayoutConfig(
+            algorithm=layout_dict.get("algorithm", "spring"),
+            align_with_html=layout_dict.get("align_with_html", True),
             spring=spring_config,
             kamada_kawai=kamada_config,
             circular=circular_config,
@@ -842,7 +862,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             edge_alpha=visualization_dict.get("edge_alpha", 0.3),
             static_image=static_image_config,
             pyvis_interactive=pyvis_config,
-            png_layout=png_layout_config,
+            layout=layout_config,
         )
 
         # Create fame analysis config
@@ -875,16 +895,13 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             output_file_prefix=config_dict.get(
                 "output_file_prefix", _get_default_output_prefix()
             ),
-            pipeline_stages=pipeline_stages_config,
+            pipeline=pipeline_config,
             analysis_mode=analysis_mode_config,
-            output_control=output_control_config,
             output=output_config,
             k_values=k_values_config,
             fame_analysis=fame_analysis_config,
             visualization=visualization_config,
             checkpoint=checkpoint_config,
-            strategy=config_dict.get("strategy", "k-core"),
-            ego_username=config_dict.get("ego_username"),
         )
 
         return config
@@ -1210,9 +1227,14 @@ class ConfigurationManager:
             "input_file": config.input_file,
             "output_file_prefix": config.output_file_prefix,
             "pipeline": {
-                "strategy": config.strategy,
-                "ego_username": config.ego_username,
-                "skip_analysis": not config.pipeline_stages.enable_analysis,
+                "strategy": config.pipeline.strategy,
+                "ego_username": config.pipeline.ego_username,
+                "enable_strategy": config.pipeline.enable_strategy,
+                "enable_analysis": config.pipeline.enable_analysis,
+                "enable_visualization": config.pipeline.enable_visualization,
+                "enable_community_detection": config.pipeline.enable_community_detection,
+                "enable_centrality_analysis": config.pipeline.enable_centrality_analysis,
+                "enable_path_analysis": config.pipeline.enable_path_analysis,
             },
             "fame_analysis": {
                 "find_paths_to_all_famous": config.fame_analysis.find_paths_to_all_famous,
@@ -1220,32 +1242,26 @@ class ConfigurationManager:
                 "min_followers_in_network": config.fame_analysis.min_followers_in_network,
                 "min_fame_ratio": config.fame_analysis.min_fame_ratio,
             },
-            "pipeline_stages": {
-                "enable_strategy": config.pipeline_stages.enable_strategy,
-                "enable_analysis": config.pipeline_stages.enable_analysis,
-                "enable_visualization": config.pipeline_stages.enable_visualization,
-                "enable_community_detection": config.pipeline_stages.enable_community_detection,
-                "enable_centrality_analysis": config.pipeline_stages.enable_centrality_analysis,
-                "enable_path_analysis": config.pipeline_stages.enable_path_analysis,
-            },
             "analysis_mode": {
                 "mode": config.analysis_mode.mode.value,  # Convert enum to string
                 "sampling_threshold": config.analysis_mode.sampling_threshold,
                 "max_layout_iterations": config.analysis_mode.max_layout_iterations,
                 "enable_fast_algorithms": config.analysis_mode.enable_fast_algorithms,
+                "skip_path_analysis": config.analysis_mode.skip_path_analysis,
             },
-            "output_control": {
-                "generate_html": config.output_control.generate_html,
-                "generate_png": config.output_control.generate_png,
-                "generate_reports": config.output_control.generate_reports,
-                "enable_timing_logs": config.output_control.enable_timing_logs,
-                "output_formatting": {
-                    "indent_size": config.output_control.output_formatting.indent_size,
-                    "group_related_settings": config.output_control.output_formatting.group_related_settings,
-                    "highlight_key_values": config.output_control.output_formatting.highlight_key_values,
-                    "use_human_readable_labels": config.output_control.output_formatting.use_human_readable_labels,
+            "output": {
+                "custom_output_directory": config.output.custom_output_directory,
+                "generate_html": config.output.generate_html,
+                "generate_png": config.output.generate_png,
+                "generate_reports": config.output.generate_reports,
+                "enable_timing_logs": config.output.enable_timing_logs,
+                "formatting": {
+                    "indent_size": config.output.formatting.indent_size,
+                    "group_related_settings": config.output.formatting.group_related_settings,
+                    "highlight_key_values": config.output.formatting.highlight_key_values,
+                    "use_human_readable_labels": config.output.formatting.use_human_readable_labels,
                     "emoji": {
-                        "fallback_level": config.output_control.output_formatting.emoji.fallback_level,
+                        "fallback_level": config.output.formatting.emoji.fallback_level,
                     },
                 },
             },
@@ -1285,50 +1301,50 @@ class ConfigurationManager:
                     "bgcolor": config.visualization.pyvis_interactive.bgcolor,
                     "font_color": config.visualization.pyvis_interactive.font_color,
                 },
-                "png_layout": {
-                    "force_spring_layout": config.visualization.png_layout.force_spring_layout,
-                    "align_with_html": config.visualization.png_layout.align_with_html,
+                "layout": {
+                    "algorithm": config.visualization.layout.algorithm,
+                    "align_with_html": config.visualization.layout.align_with_html,
                     "spring": {
-                        "k": config.visualization.png_layout.spring.k,
-                        "iterations": config.visualization.png_layout.spring.iterations,
-                        "spring_length": config.visualization.png_layout.spring.spring_length,
-                        "spring_constant": config.visualization.png_layout.spring.spring_constant,
-                        "repulsion_strength": config.visualization.png_layout.spring.repulsion_strength,
-                        "attraction_strength": config.visualization.png_layout.spring.attraction_strength,
-                        "center_gravity": config.visualization.png_layout.spring.center_gravity,
-                        "gravity_x": config.visualization.png_layout.spring.gravity_x,
-                        "gravity_y": config.visualization.png_layout.spring.gravity_y,
-                        "damping": config.visualization.png_layout.spring.damping,
-                        "min_velocity": config.visualization.png_layout.spring.min_velocity,
-                        "max_displacement": config.visualization.png_layout.spring.max_displacement,
-                        "enable_multistage": config.visualization.png_layout.spring.enable_multistage,
-                        "initial_k_multiplier": config.visualization.png_layout.spring.initial_k_multiplier,
-                        "final_k_multiplier": config.visualization.png_layout.spring.final_k_multiplier,
+                        "k": config.visualization.layout.spring.k,
+                        "iterations": config.visualization.layout.spring.iterations,
+                        "spring_length": config.visualization.layout.spring.spring_length,
+                        "spring_constant": config.visualization.layout.spring.spring_constant,
+                        "repulsion_strength": config.visualization.layout.spring.repulsion_strength,
+                        "attraction_strength": config.visualization.layout.spring.attraction_strength,
+                        "center_gravity": config.visualization.layout.spring.center_gravity,
+                        "gravity_x": config.visualization.layout.spring.gravity_x,
+                        "gravity_y": config.visualization.layout.spring.gravity_y,
+                        "damping": config.visualization.layout.spring.damping,
+                        "min_velocity": config.visualization.layout.spring.min_velocity,
+                        "max_displacement": config.visualization.layout.spring.max_displacement,
+                        "enable_multistage": config.visualization.layout.spring.enable_multistage,
+                        "initial_k_multiplier": config.visualization.layout.spring.initial_k_multiplier,
+                        "final_k_multiplier": config.visualization.layout.spring.final_k_multiplier,
                     },
                     "kamada_kawai": {
-                        "max_iterations": config.visualization.png_layout.kamada_kawai.max_iterations,
-                        "tolerance": config.visualization.png_layout.kamada_kawai.tolerance,
-                        "distance_scale": config.visualization.png_layout.kamada_kawai.distance_scale,
-                        "spring_strength": config.visualization.png_layout.kamada_kawai.spring_strength,
-                        "pos_tolerance": config.visualization.png_layout.kamada_kawai.pos_tolerance,
-                        "weight_function": config.visualization.png_layout.kamada_kawai.weight_function,
+                        "max_iterations": config.visualization.layout.kamada_kawai.max_iterations,
+                        "tolerance": config.visualization.layout.kamada_kawai.tolerance,
+                        "distance_scale": config.visualization.layout.kamada_kawai.distance_scale,
+                        "spring_strength": config.visualization.layout.kamada_kawai.spring_strength,
+                        "pos_tolerance": config.visualization.layout.kamada_kawai.pos_tolerance,
+                        "weight_function": config.visualization.layout.kamada_kawai.weight_function,
                     },
                     "circular": {
-                        "radius": config.visualization.png_layout.circular.radius,
-                        "center": config.visualization.png_layout.circular.center,
-                        "start_angle": config.visualization.png_layout.circular.start_angle,
-                        "angular_spacing": config.visualization.png_layout.circular.angular_spacing,
-                        "group_by_community": config.visualization.png_layout.circular.group_by_community,
-                        "community_separation": config.visualization.png_layout.circular.community_separation,
+                        "radius": config.visualization.layout.circular.radius,
+                        "center": config.visualization.layout.circular.center,
+                        "start_angle": config.visualization.layout.circular.start_angle,
+                        "angular_spacing": config.visualization.layout.circular.angular_spacing,
+                        "group_by_community": config.visualization.layout.circular.group_by_community,
+                        "community_separation": config.visualization.layout.circular.community_separation,
                     },
                     "shell": {
-                        "shell_spacing": config.visualization.png_layout.shell.shell_spacing,
-                        "center_shell_radius": config.visualization.png_layout.shell.center_shell_radius,
-                        "arrange_by_community": config.visualization.png_layout.shell.arrange_by_community,
-                        "arrange_by_centrality": config.visualization.png_layout.shell.arrange_by_centrality,
-                        "centrality_metric": config.visualization.png_layout.shell.centrality_metric,
-                        "max_shells": config.visualization.png_layout.shell.max_shells,
-                        "nodes_per_shell": config.visualization.png_layout.shell.nodes_per_shell,
+                        "shell_spacing": config.visualization.layout.shell.shell_spacing,
+                        "center_shell_radius": config.visualization.layout.shell.center_shell_radius,
+                        "arrange_by_community": config.visualization.layout.shell.arrange_by_community,
+                        "arrange_by_centrality": config.visualization.layout.shell.arrange_by_centrality,
+                        "centrality_metric": config.visualization.layout.shell.centrality_metric,
+                        "max_shells": config.visualization.layout.shell.max_shells,
+                        "nodes_per_shell": config.visualization.layout.shell.nodes_per_shell,
                     },
                 },
             },

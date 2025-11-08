@@ -3,10 +3,7 @@
   "output_file_prefix": "Output/FollowWeb",
   "pipeline": {
     "strategy": "k-core",
-    "skip_analysis": false,
-    "ego_username": null
-  },
-  "pipeline_stages": {
+    "ego_username": null,
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,
@@ -18,7 +15,8 @@
     "mode": "full",
     "sampling_threshold": 5000,
     "max_layout_iterations": null,
-    "enable_fast_algorithms": false
+    "enable_fast_algorithms": false,
+    "skip_path_analysis": false
   },
 
   "fame_analysis": {
@@ -36,12 +34,13 @@
     "default_k_value": 10,
     "allow_cli_override": true
   },
-  "output_control": {
+  "output": {
+    "custom_output_directory": null,
     "generate_html": true,
     "generate_png": true,
     "generate_reports": true,
     "enable_timing_logs": true,
-    "output_formatting": {
+    "formatting": {
       "indent_size": 2,
       "group_related_settings": true,
       "highlight_key_values": true,
@@ -84,8 +83,8 @@
       "dpi": 300,
       "edge_arrow_size": 8
     },
-    "png_layout": {
-      "force_spring_layout": true,
+    "layout": {
+      "algorithm": "spring",
       "align_with_html": false,
       "spring": {
         "k": 0.8,
@@ -129,16 +128,6 @@
         "max_shells": 8,
         "nodes_per_shell": null
       }
-    },
-    "performance": {
-      "fast_mode": false,
-      "skip_path_analysis": false,
-      "max_layout_iterations": null,
-      "use_sampling_threshold": 5000
     }
-  },
-  "output": {
-    "custom_output_directory": null,
-    "enable_time_logging": true
   }
 }
