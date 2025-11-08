@@ -481,8 +481,8 @@ class TestOutputManager:
         # Mock the renderers to avoid actual file generation
         with (
             patch.object(manager, "metrics_calculator") as mock_calc,
-            patch.object(manager, "interactive_renderer") as mock_html,
-            patch.object(manager, "static_renderer") as mock_png,
+            patch.object(manager, "pyvis_renderer") as mock_html,
+            patch.object(manager, "matplotlib_renderer") as mock_png,
             patch.object(manager, "metrics_reporter") as mock_reporter,
         ):
             # Mock metrics calculation

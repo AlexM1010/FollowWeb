@@ -16,10 +16,10 @@ import pytest
 from FollowWeb_Visualizor.visualization import (
     ColorScheme,
     EdgeMetric,
-    InteractiveRenderer,
+    MatplotlibRenderer,
     MetricsCalculator,
     NodeMetric,
-    StaticRenderer,
+    PyvisRenderer,
     VisualizationMetrics,
 )
 
@@ -53,10 +53,10 @@ class TestVisualizationConsistency:
         }
 
         self.metrics_calculator = MetricsCalculator(self.vis_config)
-        self.interactive_renderer = InteractiveRenderer(
+        self.interactive_renderer = PyvisRenderer(
             self.vis_config, self.metrics_calculator
         )
-        self.static_renderer = StaticRenderer(self.vis_config)
+        self.static_renderer = MatplotlibRenderer(self.vis_config)
 
     def create_test_graph(self) -> nx.DiGraph:
         """Create a test graph with communities and attributes."""
@@ -179,13 +179,13 @@ class TestVisualizationConsistency:
                     patch("matplotlib.pyplot.savefig"),
                 ):
                     # Test HTML renderer
-                    html_result = self.interactive_renderer.generate_html(
-                        G, str(html_path), shared_metrics=shared_metrics
+                    html_result = self.interactive_renderer.generate_visualization(
+                        G, str(html_path), metrics=shared_metrics
                     )
 
                     # Test PNG renderer
-                    png_result = self.static_renderer.generate_png(
-                        G, str(png_path), {}, {}, shared_metrics=shared_metrics
+                    png_result = self.static_renderer.generate_visualization(
+                        G, str(png_path), metrics=shared_metrics
                     )
 
                     # Both should succeed
@@ -256,8 +256,8 @@ class TestVisualizationConsistency:
                     mock_subplots.return_value = (mock_fig, mock_ax)
 
                     # Generate PNG with shared metrics (includes layout positions)
-                    result = self.static_renderer.generate_png(
-                        G, str(png_path), {}, {}, shared_metrics=shared_metrics
+                    result = self.static_renderer.generate_visualization(
+                        G, str(png_path), metrics=shared_metrics
                     )
 
                     assert result is True
@@ -380,24 +380,24 @@ class TestVisualizationConsistency:
                 # Mock the actual file operations
                 with (
                     patch(
-                        "FollowWeb_Visualizor.visualization.InteractiveRenderer.generate_html"
+                        "FollowWeb_Visualizor.visualization.PyvisRenderer.generate_visualization"
                     ) as mock_html,
                     patch(
-                        "FollowWeb_Visualizor.visualization.StaticRenderer.generate_png"
+                        "FollowWeb_Visualizor.visualization.MatplotlibRenderer.generate_visualization"
                     ) as mock_png,
                 ):
                     mock_html.return_value = True
                     mock_png.return_value = True
 
                     # Test renderer classes directly
-                    html_renderer = InteractiveRenderer(self.vis_config)
-                    png_renderer = StaticRenderer(self.vis_config)
+                    html_renderer = PyvisRenderer(self.vis_config)
+                    png_renderer = MatplotlibRenderer(self.vis_config)
 
-                    html_result = html_renderer.generate_html(
-                        G, str(html_path), shared_metrics=shared_metrics
+                    html_result = html_renderer.generate_visualization(
+                        G, str(html_path), metrics=shared_metrics
                     )
-                    png_result = png_renderer.generate_png(
-                        G, str(png_path), {}, {}, shared_metrics=shared_metrics
+                    png_result = png_renderer.generate_visualization(
+                        G, str(png_path), metrics=shared_metrics
                     )
 
                     assert html_result is True
@@ -405,10 +405,10 @@ class TestVisualizationConsistency:
 
                     # Verify both were called with shared metrics
                     mock_html.assert_called_once_with(
-                        G, str(html_path), shared_metrics=shared_metrics
+                        G, str(html_path), metrics=shared_metrics
                     )
                     mock_png.assert_called_once_with(
-                        G, str(png_path), {}, {}, shared_metrics=shared_metrics
+                        G, str(png_path), metrics=shared_metrics
                     )
             except Exception as e:
                 pytest.fail(f"Renderer integration test failed: {e}")
@@ -419,7 +419,7 @@ class TestVisualizationConsistency:
         config_with_force = self.vis_config.copy()
         config_with_force["static_image"]["force_spring_layout"] = True
 
-        static_renderer = StaticRenderer(config_with_force)
+        static_renderer = MatplotlibRenderer(config_with_force)
 
         # Test that the configuration is properly set
         assert static_renderer.static_config["force_spring_layout"] is True
@@ -428,7 +428,7 @@ class TestVisualizationConsistency:
         config_without_force = self.vis_config.copy()
         config_without_force["static_image"]["force_spring_layout"] = False
 
-        static_renderer_no_force = StaticRenderer(config_without_force)
+        static_renderer_no_force = MatplotlibRenderer(config_without_force)
         assert static_renderer_no_force.static_config["force_spring_layout"] is False
 
     def test_shared_metrics_consistency(self):
@@ -447,13 +447,13 @@ class TestVisualizationConsistency:
                     patch("matplotlib.pyplot.savefig"),
                 ):
                     # Test HTML renderer with shared metrics
-                    html_result = self.interactive_renderer.generate_html(
-                        G, str(html_path), shared_metrics=shared_metrics
+                    html_result = self.interactive_renderer.generate_visualization(
+                        G, str(html_path), metrics=shared_metrics
                     )
 
                     # Test PNG renderer with shared metrics
-                    png_result = self.static_renderer.generate_png(
-                        G, str(png_path), {}, {}, shared_metrics=shared_metrics
+                    png_result = self.static_renderer.generate_visualization(
+                        G, str(png_path), metrics=shared_metrics
                     )
 
                     # Both should succeed with shared metrics
@@ -467,38 +467,44 @@ class TestRendererInitialization:
     """Test cases for renderer initialization and configuration."""
 
     def test_interactive_renderer_initialization(self):
-        """Test InteractiveRenderer initialization."""
+        """Test PyvisRenderer initialization."""
         vis_config = {"test": "config"}
         shared_calc = Mock()
 
-        renderer = InteractiveRenderer(vis_config, shared_calc)
+        renderer = PyvisRenderer(vis_config, shared_calc)
 
         assert renderer.vis_config == vis_config
         assert renderer.metrics_calculator == shared_calc
         assert renderer.legend_generator is not None
 
     def test_static_renderer_initialization(self):
-        """Test StaticRenderer initialization."""
+        """Test MatplotlibRenderer initialization."""
         vis_config = {"static_image": {"width": 1200, "height": 800, "dpi": 300}}
 
-        renderer = StaticRenderer(vis_config)
+        renderer = MatplotlibRenderer(vis_config)
 
         assert renderer.vis_config == vis_config
         assert renderer.static_config == vis_config["static_image"]
         assert renderer.performance_config == {}
 
     def test_static_renderer_with_performance_config(self):
-        """Test StaticRenderer initialization with performance config."""
+        """Test MatplotlibRenderer initialization with performance config."""
         vis_config = {"static_image": {}}
         perf_config = {"optimization": True}
 
-        renderer = StaticRenderer(vis_config, perf_config)
+        renderer = MatplotlibRenderer(vis_config, perf_config)
 
         assert renderer.performance_config == perf_config
 
     def test_static_renderer_missing_static_image_config(self):
-        """Test StaticRenderer initialization with missing static_image config."""
+        """Test MatplotlibRenderer initialization with missing static_image config."""
         vis_config = {}  # Missing static_image key
 
         with pytest.raises(KeyError):
-            StaticRenderer(vis_config)
+            MatplotlibRenderer(vis_config)
+
+
+
+
+
+

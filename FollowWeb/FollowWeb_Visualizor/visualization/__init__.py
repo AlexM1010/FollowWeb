@@ -14,7 +14,7 @@ from .metrics import (
     NodeMetric,
     VisualizationMetrics,
 )
-from .renderers import InteractiveRenderer, StaticRenderer
+from .renderers import MatplotlibRenderer, PyvisRenderer, Renderer
 
 __all__ = [
     "MetricsCalculator",
@@ -22,8 +22,9 @@ __all__ = [
     "EdgeMetric",
     "ColorScheme",
     "VisualizationMetrics",
-    "InteractiveRenderer",
-    "StaticRenderer",
+    "Renderer",
+    "PyvisRenderer",
+    "MatplotlibRenderer",
     "LegendGenerator",
     "get_community_colors",
     "get_scaled_size",
