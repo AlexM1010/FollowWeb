@@ -92,9 +92,9 @@ class TestKValueGraphPruning:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
+        from FollowWeb_Visualizor.data.loaders import InstagramLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         original_graph = loader.load_from_json(sample_data_file)
         pruned_graph = loader.prune_graph(original_graph, 0)
 
@@ -110,9 +110,9 @@ class TestKValueGraphPruning:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
+        from FollowWeb_Visualizor.data.loaders import InstagramLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         original_graph = loader.load_from_json(sample_data_file)
 
         if original_graph.number_of_nodes() == 0:

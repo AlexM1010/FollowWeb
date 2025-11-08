@@ -51,11 +51,11 @@ try:
     from .analysis.fame import FameAnalyzer
     from .analysis.network import NetworkAnalyzer
     from .analysis.paths import PathAnalyzer
-    from .data.loaders import GraphLoader
+    from .data.loaders import InstagramLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
     FameAnalyzer = None  # type: ignore
-    GraphLoader = None  # type: ignore
+    InstagramLoader = None  # type: ignore
     NetworkAnalyzer = None  # type: ignore
     PathAnalyzer = None  # type: ignore
 
@@ -185,12 +185,12 @@ try:
     from .analysis.fame import FameAnalyzer
     from .analysis.network import NetworkAnalyzer
     from .analysis.paths import PathAnalyzer
-    from .data.loaders import GraphLoader
+    from .data.loaders import InstagramLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
     # Setting to None for graceful degradation - mypy cannot infer conditional class/None types
     FameAnalyzer = None  # type: ignore[assignment,misc]
-    GraphLoader = None  # type: ignore[assignment,misc]
+    InstagramLoader = None  # type: ignore[assignment,misc]
     NetworkAnalyzer = None  # type: ignore[assignment,misc]
     PathAnalyzer = None  # type: ignore[assignment,misc]
 
@@ -236,7 +236,7 @@ __all__ = [
     "get_configuration_manager",
     "load_config_from_dict",
     # Analysis classes (if available)
-    "GraphLoader",
+    "InstagramLoader",
     "NetworkAnalyzer",
     "PathAnalyzer",
     "FameAnalyzer",

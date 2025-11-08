@@ -71,9 +71,9 @@ class TestPipelineExecution:
             pytest.skip("Sample data file not available")
 
         # First load data to get a valid ego username
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
+        from FollowWeb_Visualizor.data.loaders import InstagramLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(fast_config["input_file"])
 
         if graph.number_of_nodes() == 0:

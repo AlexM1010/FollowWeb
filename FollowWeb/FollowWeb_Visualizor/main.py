@@ -31,7 +31,7 @@ from .core.config import (
     load_config_from_dict,
 )
 from .data.cache import CentralizedCache, get_cache_manager
-from .data.loaders import GraphLoader
+from .data.loaders import InstagramLoader
 from .output.formatters import EmojiFormatter
 from .output.logging import Logger
 from .output.managers import OutputManager
@@ -79,7 +79,7 @@ class PipelineOrchestrator:
             raise ValueError(error_msg)
 
         # Initialize components with mode manager and stages controller integration
-        self.graph_loader = GraphLoader()
+        self.graph_loader = InstagramLoader()
         self.network_analyzer = NetworkAnalyzer(
             mode_manager=self.mode_manager, stages_controller=self.stages_controller
         )

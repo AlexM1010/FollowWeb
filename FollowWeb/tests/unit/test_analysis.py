@@ -15,18 +15,18 @@ from FollowWeb_Visualizor.analysis import (
     NetworkAnalyzer,
     PathAnalyzer,
 )
-from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import InstagramLoader
 
 
-class TestGraphLoader:
-    """Test GraphLoader functionality."""
+class TestInstagramLoader:
+    """Test InstagramLoader functionality."""
 
     def test_load_valid_json(self, sample_data_file: str, sample_data_exists: bool):
         """Test loading valid JSON data."""
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         assert isinstance(graph, nx.DiGraph)
@@ -35,21 +35,21 @@ class TestGraphLoader:
 
     def test_load_nonexistent_file(self):
         """Test loading non-existent file."""
-        loader = GraphLoader()
+        loader = InstagramLoader()
 
         with pytest.raises(FileNotFoundError):
             loader.load_from_json("non_existent_file.json")
 
     def test_load_invalid_json(self, invalid_json_file: str):
         """Test loading invalid JSON file."""
-        loader = GraphLoader()
+        loader = InstagramLoader()
 
         with pytest.raises(ValueError, match="Invalid JSON format"):
             loader.load_from_json(invalid_json_file)
 
     def test_load_empty_json(self, empty_json_file: str):
         """Test loading empty JSON file."""
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(empty_json_file)
 
         assert isinstance(graph, nx.DiGraph)
@@ -61,7 +61,7 @@ class TestGraphLoader:
         # Create temporary file with invalid structure using fixture
         temp_file = temp_file_factory(suffix=".json", content='{"not": "a list"}')
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         with pytest.raises(ValueError, match="JSON root must be a list"):
             loader.load_from_json(str(temp_file))
 
@@ -72,7 +72,7 @@ class TestGraphLoader:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         reciprocal_graph = loader.filter_by_reciprocity(graph)
@@ -84,7 +84,7 @@ class TestGraphLoader:
 
     def test_filter_empty_graph_reciprocity(self):
         """Test reciprocal filtering on empty graph."""
-        loader = GraphLoader()
+        loader = InstagramLoader()
         empty_graph = nx.DiGraph()
 
         result = loader.filter_by_reciprocity(empty_graph)
@@ -100,7 +100,7 @@ class TestGraphLoader:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         if graph.number_of_nodes() == 0:
@@ -122,7 +122,7 @@ class TestGraphLoader:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         with pytest.raises(ValueError, match="ego node.*not found in graph"):
@@ -130,7 +130,7 @@ class TestGraphLoader:
 
     def test_create_ego_alter_graph_empty_ego(self):
         """Test ego-alter graph creation with empty ego username."""
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = nx.DiGraph()
 
         with pytest.raises(ValueError, match="Ego username must be a non-empty string"):
@@ -141,7 +141,7 @@ class TestGraphLoader:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         original_nodes = graph.number_of_nodes()
@@ -155,7 +155,7 @@ class TestGraphLoader:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         pruned_graph = loader.prune_graph(graph, 0)
@@ -170,7 +170,7 @@ class TestGraphLoader:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         pruned_graph = loader.prune_graph(graph, -1)
@@ -191,7 +191,7 @@ class TestNetworkAnalyzer:
 
         from FollowWeb_Visualizor.data.loaders import GraphLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(small_test_data)
 
         if graph.number_of_nodes() < 2:
@@ -247,7 +247,7 @@ class TestPathAnalyzer:
 
         from FollowWeb_Visualizor.data.loaders import GraphLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(small_test_data)
 
         if graph.number_of_nodes() < 2:
@@ -348,7 +348,7 @@ class TestFameAnalyzer:
 
         from FollowWeb_Visualizor.data.loaders import GraphLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         analyzer = FameAnalyzer()
@@ -385,7 +385,7 @@ class TestFameAnalyzer:
 
         from FollowWeb_Visualizor.data.loaders import GraphLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         analyzer = FameAnalyzer()
@@ -405,7 +405,7 @@ class TestFameAnalyzer:
 
         from FollowWeb_Visualizor.data.loaders import GraphLoader
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
         analyzer = FameAnalyzer()
@@ -473,7 +473,7 @@ class TestFameAnalyzer:
             # Make file unreadable (Unix/Linux approach)
             os.chmod(temp_file, 0o000)
 
-            loader = GraphLoader()
+            loader = InstagramLoader()
             with pytest.raises(PermissionError, match="Permission denied reading file"):
                 loader.load_from_json(str(temp_file))
         finally:
