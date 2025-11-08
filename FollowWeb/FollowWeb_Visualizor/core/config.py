@@ -287,8 +287,6 @@ class SpringLayoutConfig:
 
     # Gravity and centering
     center_gravity: float = 0.01  # Pull toward center (0=none, 1=strong)
-    gravity_x: float = 0.0  # Horizontal gravity bias
-    gravity_y: float = 0.0  # Vertical gravity bias
 
     # Damping and convergence
     damping: float = 0.9  # Velocity damping (0=no damping, 1=full)
@@ -296,9 +294,7 @@ class SpringLayoutConfig:
     max_displacement: float = 10.0  # Maximum node movement per iteration
 
     # Multi-stage refinement
-    enable_multistage: bool = True  # Use 3-stage refinement process
-    initial_k_multiplier: float = 1.5  # Stage 1: k multiplier for separation
-    final_k_multiplier: float = 0.8  # Stage 3: k multiplier for fine-tuning
+    enable_multistage: bool = False  # Use 3-stage refinement process
 
     def __post_init__(self) -> None:
         """Validate spring layout configuration."""
@@ -314,106 +310,14 @@ class SpringLayoutConfig:
 
 
 @dataclass
-class KamadaKawaiLayoutConfig:
-    """Kamada-Kawai layout configuration."""
-
-    # Basic parameters
-    max_iterations: int = 1000  # Maximum iterations
-    tolerance: float = 1e-6  # Convergence tolerance
-
-    # Distance and positioning
-    distance_scale: float = 1.0  # Scale factor for ideal distances
-    spring_strength: float = 1.0  # Spring strength coefficient
-
-    # Convergence control
-    pos_tolerance: float = 1e-4  # Position change tolerance
-    weight_function: str = "path"  # "path", "weight", or "uniform"
-
-    def __post_init__(self) -> None:
-        """Validate Kamada-Kawai configuration."""
-        validate_positive_integer(self.max_iterations, "max_iterations")
-        validate_positive_number(self.tolerance, "tolerance")
-        validate_positive_number(self.distance_scale, "distance_scale")
-        validate_positive_number(self.spring_strength, "spring_strength")
-        validate_choice(
-            self.weight_function, "weight_function", ["path", "weight", "uniform"]
-        )
-
-
-@dataclass
-class CircularLayoutConfig:
-    """Circular layout configuration."""
-
-    # Basic parameters
-    radius: Optional[Optional[float]] = None  # Circle radius (None = auto)
-    center: Optional[Optional[tuple[float, float]]] = (
-        None  # Center position (None = origin)
-    )
-
-    # Arrangement
-    start_angle: float = 0.0  # Starting angle in radians
-    angular_spacing: str = "uniform"  # "uniform", "degree", or "weight"
-
-    # Community-based arrangement
-    group_by_community: bool = True  # Group communities together
-    community_separation: float = 0.2  # Angular gap between communities
-
-    def __post_init__(self) -> None:
-        """Validate circular layout configuration."""
-        if self.radius is not None:
-            validate_positive_number(self.radius, "radius")
-        validate_range(self.start_angle, "start_angle", 0, 2 * 3.14159)
-        validate_choice(
-            self.angular_spacing, "angular_spacing", ["uniform", "degree", "weight"]
-        )
-        validate_range(self.community_separation, "community_separation", 0, 1)
-
-
-@dataclass
-class ShellLayoutConfig:
-    """Shell layout configuration."""
-
-    # Shell arrangement
-    shell_spacing: float = 1.0  # Distance between shells
-    center_shell_radius: float = 0.5  # Radius of innermost shell
-
-    # Community-based shells
-    arrange_by_community: bool = True  # Put communities in different shells
-    arrange_by_centrality: bool = False  # Arrange by node importance
-    centrality_metric: str = "degree"  # "degree", "betweenness", "eigenvector"
-
-    # Shell assignment
-    max_shells: int = 10  # Maximum number of shells
-    nodes_per_shell: Optional[Optional[int]] = None  # Max nodes per shell (None = auto)
-
-    def __post_init__(self) -> None:
-        """Validate shell layout configuration."""
-        validate_positive_number(self.shell_spacing, "shell_spacing")
-        validate_positive_number(self.center_shell_radius, "center_shell_radius")
-        validate_positive_integer(self.max_shells, "max_shells")
-        validate_choice(
-            self.centrality_metric,
-            "centrality_metric",
-            ["degree", "betweenness", "eigenvector"],
-        )
-        if self.nodes_per_shell is not None:
-            validate_positive_integer(self.nodes_per_shell, "nodes_per_shell")
-
-
-@dataclass
 class LayoutConfig:
     """Configuration for layout algorithms and alignment options."""
 
     algorithm: str = "spring"
     align_with_html: bool = True
 
-    # Layout-specific configurations
+    # Only spring layout configuration (most commonly used)
     spring: SpringLayoutConfig = field(default_factory=SpringLayoutConfig)
-    kamada_kawai: KamadaKawaiLayoutConfig = field(
-        default_factory=KamadaKawaiLayoutConfig
-    )
-    circular: CircularLayoutConfig = field(default_factory=CircularLayoutConfig)
-    shell: ShellLayoutConfig = field(default_factory=ShellLayoutConfig)
     
     def __post_init__(self) -> None:
         """Validate layout configuration."""
@@ -425,7 +329,6 @@ class LayoutConfig:
 class StaticImageConfig:
     """Configuration for static PNG image generation (renderer-specific settings only)."""
 
-    layout: str = "spring"
     width: int = 1200
     height: int = 800
     dpi: int = 300
@@ -433,8 +336,6 @@ class StaticImageConfig:
 
     def __post_init__(self) -> None:
         """Validate static image configuration after initialization."""
-        valid_layouts = ["spring", "circular", "kamada_kawai", "random"]
-        validate_choice(self.layout, "layout", valid_layouts)
         validate_image_dimensions(self.width, self.height)
         validate_positive_integer(self.dpi, "DPI")
         validate_positive_integer(self.edge_arrow_size, "edge_arrow_size")
@@ -448,12 +349,16 @@ class PyvisInteractiveConfig:
     width: str = "100%"
     bgcolor: str = "#ffffff"
     font_color: str = "#000000"
+    physics_solver: str = "forceAtlas2Based"
 
     def __post_init__(self) -> None:
         """Validate Pyvis configuration after initialization."""
         # Basic validation for height and width format
         validate_string_format(self.height, "height", ["px", "%", "vh", "vw"])
         validate_string_format(self.width, "width", ["px", "%", "vh", "vw"])
+        
+        valid_solvers = ["barnesHut", "forceAtlas2Based", "repulsion", "hierarchicalRepulsion"]
+        validate_choice(self.physics_solver, "physics_solver", valid_solvers)
 
 
 @dataclass
@@ -748,7 +653,6 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         # Create static image config (renderer-specific settings only)
         static_image_dict = visualization_dict.get("static_image", {})
         static_image_config = StaticImageConfig(
-            layout=static_image_dict.get("layout", "spring"),
             width=static_image_dict.get("width", 1200),
             height=static_image_dict.get("height", 800),
             dpi=static_image_dict.get("dpi", 300),
@@ -768,61 +672,16 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             repulsion_strength=spring_dict.get("repulsion_strength", 1.0),
             attraction_strength=spring_dict.get("attraction_strength", 1.0),
             center_gravity=spring_dict.get("center_gravity", 0.01),
-            gravity_x=spring_dict.get("gravity_x", 0.0),
-            gravity_y=spring_dict.get("gravity_y", 0.0),
             damping=spring_dict.get("damping", 0.9),
             min_velocity=spring_dict.get("min_velocity", 0.01),
             max_displacement=spring_dict.get("max_displacement", 10.0),
-            enable_multistage=spring_dict.get("enable_multistage", True),
-            initial_k_multiplier=spring_dict.get("initial_k_multiplier", 1.5),
-            final_k_multiplier=spring_dict.get("final_k_multiplier", 0.8),
-        )
-
-        # Kamada-Kawai layout configuration
-        kamada_dict = layout_dict.get("kamada_kawai", {})
-        kamada_config = KamadaKawaiLayoutConfig(
-            max_iterations=kamada_dict.get("max_iterations", 1000),
-            tolerance=kamada_dict.get("tolerance", 1e-6),
-            distance_scale=kamada_dict.get("distance_scale", 1.0),
-            spring_strength=kamada_dict.get("spring_strength", 1.0),
-            pos_tolerance=kamada_dict.get("pos_tolerance", 1e-4),
-            weight_function=kamada_dict.get("weight_function", "path"),
-        )
-
-        # Circular layout configuration
-        circular_dict = layout_dict.get("circular", {})
-        circular_config = CircularLayoutConfig(
-            radius=circular_dict.get("radius"),
-            center=(
-                tuple(circular_dict["center"])
-                if "center" in circular_dict and circular_dict["center"] is not None
-                else None
-            ),
-            start_angle=circular_dict.get("start_angle", 0.0),
-            angular_spacing=circular_dict.get("angular_spacing", "uniform"),
-            group_by_community=circular_dict.get("group_by_community", True),
-            community_separation=circular_dict.get("community_separation", 0.2),
-        )
-
-        # Shell layout configuration
-        shell_dict = layout_dict.get("shell", {})
-        shell_config = ShellLayoutConfig(
-            shell_spacing=shell_dict.get("shell_spacing", 1.0),
-            center_shell_radius=shell_dict.get("center_shell_radius", 0.5),
-            arrange_by_community=shell_dict.get("arrange_by_community", True),
-            arrange_by_centrality=shell_dict.get("arrange_by_centrality", False),
-            centrality_metric=shell_dict.get("centrality_metric", "degree"),
-            max_shells=shell_dict.get("max_shells", 10),
-            nodes_per_shell=shell_dict.get("nodes_per_shell"),
+            enable_multistage=spring_dict.get("enable_multistage", False),
         )
 
         layout_config = LayoutConfig(
             algorithm=layout_dict.get("algorithm", "spring"),
             align_with_html=layout_dict.get("align_with_html", True),
             spring=spring_config,
-            kamada_kawai=kamada_config,
-            circular=circular_config,
-            shell=shell_config,  # nosec B604
         )
 
         # Create pyvis interactive config
@@ -832,6 +691,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             width=pyvis_dict.get("width", "100%"),
             bgcolor=pyvis_dict.get("bgcolor", "#ffffff"),
             font_color=pyvis_dict.get("font_color", "#000000"),
+            physics_solver=pyvis_dict.get("physics_solver", "forceAtlas2Based"),
         )
 
         visualization_config = VisualizationConfig(
@@ -1289,7 +1149,6 @@ class ConfigurationManager:
                 "node_alpha": config.visualization.node_alpha,
                 "edge_alpha": config.visualization.edge_alpha,
                 "static_image": {
-                    "layout": config.visualization.static_image.layout,
                     "width": config.visualization.static_image.width,
                     "height": config.visualization.static_image.height,
                     "dpi": config.visualization.static_image.dpi,
@@ -1300,6 +1159,7 @@ class ConfigurationManager:
                     "width": config.visualization.pyvis_interactive.width,
                     "bgcolor": config.visualization.pyvis_interactive.bgcolor,
                     "font_color": config.visualization.pyvis_interactive.font_color,
+                    "physics_solver": config.visualization.pyvis_interactive.physics_solver,
                 },
                 "layout": {
                     "algorithm": config.visualization.layout.algorithm,
@@ -1312,39 +1172,10 @@ class ConfigurationManager:
                         "repulsion_strength": config.visualization.layout.spring.repulsion_strength,
                         "attraction_strength": config.visualization.layout.spring.attraction_strength,
                         "center_gravity": config.visualization.layout.spring.center_gravity,
-                        "gravity_x": config.visualization.layout.spring.gravity_x,
-                        "gravity_y": config.visualization.layout.spring.gravity_y,
                         "damping": config.visualization.layout.spring.damping,
                         "min_velocity": config.visualization.layout.spring.min_velocity,
                         "max_displacement": config.visualization.layout.spring.max_displacement,
                         "enable_multistage": config.visualization.layout.spring.enable_multistage,
-                        "initial_k_multiplier": config.visualization.layout.spring.initial_k_multiplier,
-                        "final_k_multiplier": config.visualization.layout.spring.final_k_multiplier,
-                    },
-                    "kamada_kawai": {
-                        "max_iterations": config.visualization.layout.kamada_kawai.max_iterations,
-                        "tolerance": config.visualization.layout.kamada_kawai.tolerance,
-                        "distance_scale": config.visualization.layout.kamada_kawai.distance_scale,
-                        "spring_strength": config.visualization.layout.kamada_kawai.spring_strength,
-                        "pos_tolerance": config.visualization.layout.kamada_kawai.pos_tolerance,
-                        "weight_function": config.visualization.layout.kamada_kawai.weight_function,
-                    },
-                    "circular": {
-                        "radius": config.visualization.layout.circular.radius,
-                        "center": config.visualization.layout.circular.center,
-                        "start_angle": config.visualization.layout.circular.start_angle,
-                        "angular_spacing": config.visualization.layout.circular.angular_spacing,
-                        "group_by_community": config.visualization.layout.circular.group_by_community,
-                        "community_separation": config.visualization.layout.circular.community_separation,
-                    },
-                    "shell": {
-                        "shell_spacing": config.visualization.layout.shell.shell_spacing,
-                        "center_shell_radius": config.visualization.layout.shell.center_shell_radius,
-                        "arrange_by_community": config.visualization.layout.shell.arrange_by_community,
-                        "arrange_by_centrality": config.visualization.layout.shell.arrange_by_centrality,
-                        "centrality_metric": config.visualization.layout.shell.centrality_metric,
-                        "max_shells": config.visualization.layout.shell.max_shells,
-                        "nodes_per_shell": config.visualization.layout.shell.nodes_per_shell,
                     },
                 },
             },

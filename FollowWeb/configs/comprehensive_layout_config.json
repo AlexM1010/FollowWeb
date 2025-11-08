@@ -73,11 +73,9 @@
       "height": "90vh",
       "bgcolor": "#ffffff",
       "font_color": "#000000",
-      "notebook": false,
       "physics_solver": "forceAtlas2Based"
     },
     "static_image": {
-      "layout": "spring",
       "width": 2400,
       "height": 2400,
       "dpi": 300,
@@ -94,39 +92,10 @@
         "repulsion_strength": 1.2,
         "attraction_strength": 0.8,
         "center_gravity": 0.02,
-        "gravity_x": 0.0,
-        "gravity_y": 0.0,
         "damping": 0.85,
         "min_velocity": 0.005,
         "max_displacement": 15.0,
-        "enable_multistage": true,
-        "initial_k_multiplier": 2.0,
-        "final_k_multiplier": 0.7
-      },
-      "kamada_kawai": {
-        "max_iterations": 1500,
-        "tolerance": 1e-7,
-        "distance_scale": 1.2,
-        "spring_strength": 1.5,
-        "pos_tolerance": 1e-5,
-        "weight_function": "path"
-      },
-      "circular": {
-        "radius": null,
-        "center": null,
-        "start_angle": 0.0,
-        "angular_spacing": "uniform",
-        "group_by_community": true,
-        "community_separation": 0.3
-      },
-      "shell": {
-        "shell_spacing": 1.5,
-        "center_shell_radius": 0.3,
-        "arrange_by_community": true,
-        "arrange_by_centrality": false,
-        "centrality_metric": "degree",
-        "max_shells": 8,
-        "nodes_per_shell": null
+        "enable_multistage": true
       }
     }
   }
