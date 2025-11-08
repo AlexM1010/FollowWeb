@@ -62,27 +62,25 @@
     "edge_width_scaling": "logarithmic",
     "intra_community_color": "#c0c0c0",
     "bridge_color": "#6e6e6e",
+    "show_labels": true,
+    "show_tooltips": true,
+    "show_legend": true,
+    "font_size": 8,
+    "node_alpha": 0.8,
+    "edge_alpha": 0.3,
     "pyvis_interactive": {
       "width": "100%",
       "height": "90vh",
       "bgcolor": "#ffffff",
       "font_color": "#000000",
       "notebook": false,
-      "show_labels": true,
-      "show_tooltips": true,
       "physics_solver": "forceAtlas2Based"
     },
     "static_image": {
-      "generate": true,
       "layout": "spring",
       "width": 1800,
       "height": 1800,
       "dpi": 150,
-      "with_labels": false,
-      "font_size": 8,
-      "show_legend": true,
-      "node_alpha": 0.8,
-      "edge_alpha": 0.3,
       "edge_arrow_size": 6
     },
     "png_layout": {

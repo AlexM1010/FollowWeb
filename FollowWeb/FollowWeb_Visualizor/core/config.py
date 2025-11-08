@@ -417,18 +417,12 @@ class PngLayoutConfig:
 
 @dataclass
 class StaticImageConfig:
-    """Configuration for static PNG image generation."""
+    """Configuration for static PNG image generation (renderer-specific settings only)."""
 
-    generate: bool = True
     layout: str = "spring"
     width: int = 1200
     height: int = 800
     dpi: int = 300
-    with_labels: bool = False
-    font_size: int = 8
-    show_legend: bool = True
-    node_alpha: float = 0.8
-    edge_alpha: float = 0.3
     edge_arrow_size: int = 8
 
     def __post_init__(self) -> None:
@@ -437,9 +431,6 @@ class StaticImageConfig:
         validate_choice(self.layout, "layout", valid_layouts)
         validate_image_dimensions(self.width, self.height)
         validate_positive_integer(self.dpi, "DPI")
-        validate_positive_integer(self.font_size, "font_size")
-        validate_range(self.node_alpha, "node_alpha", 0, 1)
-        validate_range(self.edge_alpha, "edge_alpha", 0, 1)
         validate_positive_integer(self.edge_arrow_size, "edge_arrow_size")
 
 
@@ -536,6 +527,15 @@ class VisualizationConfig:
     edge_width_scaling: str = "logarithmic"
     bridge_color: str = "#6e6e6e"
     intra_community_color: str = "#c0c0c0"
+    
+    # Unified display settings (shared across renderers)
+    show_labels: bool = True
+    show_tooltips: bool = True
+    show_legend: bool = True
+    font_size: int = 8
+    node_alpha: float = 0.8
+    edge_alpha: float = 0.3
+    
     static_image: StaticImageConfig = field(default_factory=StaticImageConfig)
     pyvis_interactive: PyvisInteractiveConfig = field(
         default_factory=PyvisInteractiveConfig
@@ -563,6 +563,10 @@ class VisualizationConfig:
         validate_positive_number(self.base_edge_thickness, "base_edge_thickness")
         validate_positive_number(self.base_edge_width, "base_edge_width")
         validate_positive_number(self.edge_width_multiplier, "edge_width_multiplier")
+        
+        validate_positive_integer(self.font_size, "font_size")
+        validate_range(self.node_alpha, "node_alpha", 0, 1)
+        validate_range(self.edge_alpha, "edge_alpha", 0, 1)
 
 
 @dataclass
@@ -721,19 +725,13 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         # Create visualization config
         visualization_dict = config_dict.get("visualization", {})
 
-        # Create static image config
+        # Create static image config (renderer-specific settings only)
         static_image_dict = visualization_dict.get("static_image", {})
         static_image_config = StaticImageConfig(
-            generate=static_image_dict.get("generate", True),
             layout=static_image_dict.get("layout", "spring"),
             width=static_image_dict.get("width", 1200),
             height=static_image_dict.get("height", 800),
             dpi=static_image_dict.get("dpi", 300),
-            with_labels=static_image_dict.get("with_labels", False),
-            font_size=static_image_dict.get("font_size", 8),
-            show_legend=static_image_dict.get("show_legend", True),
-            node_alpha=static_image_dict.get("node_alpha", 0.8),
-            edge_alpha=static_image_dict.get("edge_alpha", 0.3),
             edge_arrow_size=static_image_dict.get("edge_arrow_size", 8),
         )
 
@@ -836,6 +834,12 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             intra_community_color=visualization_dict.get(
                 "intra_community_color", "#c0c0c0"
             ),
+            show_labels=visualization_dict.get("show_labels", True),
+            show_tooltips=visualization_dict.get("show_tooltips", True),
+            show_legend=visualization_dict.get("show_legend", True),
+            font_size=visualization_dict.get("font_size", 8),
+            node_alpha=visualization_dict.get("node_alpha", 0.8),
+            edge_alpha=visualization_dict.get("edge_alpha", 0.3),
             static_image=static_image_config,
             pyvis_interactive=pyvis_config,
             png_layout=png_layout_config,
@@ -1262,17 +1266,17 @@ class ConfigurationManager:
                 "edge_width_scaling": config.visualization.edge_width_scaling,
                 "bridge_color": config.visualization.bridge_color,
                 "intra_community_color": config.visualization.intra_community_color,
+                "show_labels": config.visualization.show_labels,
+                "show_tooltips": config.visualization.show_tooltips,
+                "show_legend": config.visualization.show_legend,
+                "font_size": config.visualization.font_size,
+                "node_alpha": config.visualization.node_alpha,
+                "edge_alpha": config.visualization.edge_alpha,
                 "static_image": {
-                    "generate": config.visualization.static_image.generate,
                     "layout": config.visualization.static_image.layout,
                     "width": config.visualization.static_image.width,
                     "height": config.visualization.static_image.height,
                     "dpi": config.visualization.static_image.dpi,
-                    "with_labels": config.visualization.static_image.with_labels,
-                    "font_size": config.visualization.static_image.font_size,
-                    "show_legend": config.visualization.static_image.show_legend,
-                    "node_alpha": config.visualization.static_image.node_alpha,
-                    "edge_alpha": config.visualization.static_image.edge_alpha,
                     "edge_arrow_size": config.visualization.static_image.edge_arrow_size,
                 },
                 "pyvis_interactive": {
