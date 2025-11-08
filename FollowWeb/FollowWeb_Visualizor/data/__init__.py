@@ -6,11 +6,13 @@ This module handles data loading, processing, and graph operations:
 - Graph filtering and transformation operations
 - Caching strategies for expensive operations
 - Abstract interfaces for extensible data loaders
+- Checkpoint management for incremental processing
 
 Modules:
     loaders: DataLoader abstract base class and loader implementations
     cache: CentralizedCache class and caching utilities
     processors: Graph filtering, reciprocal filtering, k-core operations
+    checkpoint: GraphCheckpoint for incremental graph building
 """
 
 from .cache import (
@@ -21,7 +23,8 @@ from .cache import (
     get_cached_node_attributes,
     get_cached_undirected_graph,
 )
-from .loaders import DataLoader, InstagramLoader
+from .checkpoint import GraphCheckpoint
+from .loaders import DataLoader, FreesoundLoader, IncrementalFreesoundLoader, InstagramLoader
 from .processors import GraphProcessor
 
 __all__ = [
@@ -35,6 +38,10 @@ __all__ = [
     # Data loading
     "DataLoader",
     "InstagramLoader",
+    "FreesoundLoader",
+    "IncrementalFreesoundLoader",
+    # Checkpoint management
+    "GraphCheckpoint",
     # Graph processing
     "GraphProcessor",
 ]

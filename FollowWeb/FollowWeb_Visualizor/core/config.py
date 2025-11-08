@@ -566,6 +566,23 @@ class VisualizationConfig:
 
 
 @dataclass
+class CheckpointConfig:
+    """Configuration for incremental processing and checkpoint management."""
+
+    checkpoint_dir: str = "checkpoints"
+    checkpoint_interval: int = 50
+    max_runtime_hours: Optional[float] = None
+    verify_existing_sounds: bool = False
+
+    def __post_init__(self) -> None:
+        """Validate checkpoint configuration after initialization."""
+        validate_positive_integer(self.checkpoint_interval, "checkpoint_interval")
+        
+        if self.max_runtime_hours is not None:
+            validate_positive_number(self.max_runtime_hours, "max_runtime_hours")
+
+
+@dataclass
 class FollowWebConfig:
     """Main configuration class containing all FollowWeb analysis settings."""
 
@@ -582,6 +599,7 @@ class FollowWebConfig:
     k_values: KValueConfig = field(default_factory=KValueConfig)
     fame_analysis: FameAnalysisConfig = field(default_factory=FameAnalysisConfig)
     visualization: VisualizationConfig = field(default_factory=VisualizationConfig)
+    checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
 
     # Essential analysis settings
     strategy: str = "k-core"
@@ -836,6 +854,15 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             min_fame_ratio=fame_analysis_dict.get("min_fame_ratio", 5.0),
         )
 
+        # Create checkpoint config
+        checkpoint_dict = config_dict.get("checkpoint", {})
+        checkpoint_config = CheckpointConfig(
+            checkpoint_dir=checkpoint_dict.get("checkpoint_dir", "checkpoints"),
+            checkpoint_interval=checkpoint_dict.get("checkpoint_interval", 50),
+            max_runtime_hours=checkpoint_dict.get("max_runtime_hours"),
+            verify_existing_sounds=checkpoint_dict.get("verify_existing_sounds", False),
+        )
+
         # Create main config
         config = FollowWebConfig(
             input_file=config_dict.get(
@@ -851,6 +878,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             k_values=k_values_config,
             fame_analysis=fame_analysis_config,
             visualization=visualization_config,
+            checkpoint=checkpoint_config,
             strategy=config_dict.get("strategy", "k-core"),
             ego_username=config_dict.get("ego_username"),
         )
