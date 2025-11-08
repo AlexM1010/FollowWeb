@@ -46,6 +46,7 @@ from .parallel import (
     log_parallel_usage,
 )
 from .progress import ProgressTracker
+from .rate_limiter import RateLimiter
 from .validation import (
     ConfigurationErrorHandler,
     ValidationErrorHandler,
@@ -117,4 +118,6 @@ __all__ = [
     "safe_file_cleanup",
     # Progress tracking
     "ProgressTracker",
+    # Rate limiting
+    "RateLimiter",
 ]
