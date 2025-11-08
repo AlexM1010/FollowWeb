@@ -6,6 +6,14 @@
     "skip_analysis": false,
     "ego_username": null
   },
+  "pipeline_stages": {
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": true
+  },
   "analysis_mode": {
     "mode": "fast",
     "sampling_threshold": 3000,
@@ -27,11 +35,28 @@
     "default_k_value": 1,
     "allow_cli_override": true
   },
+  "output_control": {
+    "generate_html": true,
+    "generate_png": true,
+    "generate_reports": true,
+    "enable_timing_logs": true,
+    "output_formatting": {
+      "indent_size": 2,
+      "group_related_settings": true,
+      "highlight_key_values": true,
+      "use_human_readable_labels": true,
+      "emoji": {
+        "fallback_level": "full"
+      }
+    }
+  },
   "visualization": {
     "node_size_metric": "degree",
     "base_node_size": 6.0,
     "node_size_multiplier": 4.0,
     "scaling_algorithm": "logarithmic",
+    "edge_thickness_metric": "weight",
+    "base_edge_thickness": 1.0,
     "base_edge_width": 0.5,
     "edge_width_multiplier": 1.5,
     "edge_width_scaling": "logarithmic",
@@ -40,6 +65,8 @@
     "pyvis_interactive": {
       "width": "100%",
       "height": "90vh",
+      "bgcolor": "#ffffff",
+      "font_color": "#000000",
       "notebook": false,
       "show_labels": true,
       "show_tooltips": true,
@@ -53,10 +80,10 @@
       "dpi": 150,
       "with_labels": false,
       "font_size": 8,
-      "edge_alpha": 0.3,
+      "show_legend": true,
       "node_alpha": 0.8,
-      "edge_arrow_size": 6,
-      "show_legend": true
+      "edge_alpha": 0.3,
+      "edge_arrow_size": 6
     },
     "png_layout": {
       "force_spring_layout": true,
@@ -69,10 +96,39 @@
         "repulsion_strength": 1.0,
         "attraction_strength": 1.0,
         "center_gravity": 0.01,
+        "gravity_x": 0.0,
+        "gravity_y": 0.0,
         "damping": 0.9,
         "min_velocity": 0.02,
         "max_displacement": 8.0,
-        "enable_multistage": false
+        "enable_multistage": false,
+        "initial_k_multiplier": 2.0,
+        "final_k_multiplier": 0.7
+      },
+      "kamada_kawai": {
+        "max_iterations": 1500,
+        "tolerance": 1e-7,
+        "distance_scale": 1.2,
+        "spring_strength": 1.5,
+        "pos_tolerance": 1e-5,
+        "weight_function": "path"
+      },
+      "circular": {
+        "radius": null,
+        "center": null,
+        "start_angle": 0.0,
+        "angular_spacing": "uniform",
+        "group_by_community": true,
+        "community_separation": 0.3
+      },
+      "shell": {
+        "shell_spacing": 1.5,
+        "center_shell_radius": 0.3,
+        "arrange_by_community": true,
+        "arrange_by_centrality": false,
+        "centrality_metric": "degree",
+        "max_shells": 8,
+        "nodes_per_shell": null
       }
     },
     "performance": {
