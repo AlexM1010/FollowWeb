@@ -32,6 +32,7 @@ from .core.config import (
 )
 from .data.cache import CentralizedCache, get_cache_manager
 from .data.loaders import InstagramLoader
+from .data.strategies import GraphStrategy
 from .output.formatters import EmojiFormatter
 from .output.logging import Logger
 from .output.managers import OutputManager
@@ -80,6 +81,7 @@ class PipelineOrchestrator:
 
         # Initialize components with mode manager and stages controller integration
         self.graph_loader = InstagramLoader()
+        self.graph_strategy = GraphStrategy()
         self.network_analyzer = NetworkAnalyzer(
             mode_manager=self.mode_manager, stages_controller=self.stages_controller
         )
@@ -327,7 +329,7 @@ class PipelineOrchestrator:
                 if strategy == "reciprocal_k-core":
                     # Filter for mutual connections only
                     self.logger.info("  → Filtering for mutual connections only...")
-                    graph = self.graph_loader.filter_by_reciprocity(graph)
+                    graph = self.graph_strategy.filter_by_reciprocity(graph)
                     success_msg = EmojiFormatter.format(
                         "success",
                         f"After reciprocal filtering: {graph.number_of_nodes():,} nodes, {graph.number_of_edges():,} edges",
@@ -344,7 +346,7 @@ class PipelineOrchestrator:
                     self.logger.info(
                         f"  → Creating ego-alter network for user: {ego_username}"
                     )
-                    graph = self.graph_loader.create_ego_alter_graph(
+                    graph = self.graph_strategy.create_ego_alter_graph(
                         graph, ego_username
                     )
                     success_msg = EmojiFormatter.format(
@@ -387,7 +389,7 @@ class PipelineOrchestrator:
                 self.logger.info("-" * 27)
                 self.logger.info(f"K-value: {k_value} (minimum connections required)")
                 self.logger.info("  → Removing nodes with fewer connections...")
-                graph = self.graph_loader.prune_graph(graph, k_value)
+                graph = self.graph_strategy.prune_graph(graph, k_value)
 
                 # Final validation
                 if graph.number_of_nodes() == 0:

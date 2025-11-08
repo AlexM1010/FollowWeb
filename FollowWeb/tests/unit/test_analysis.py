@@ -16,6 +16,7 @@ from FollowWeb_Visualizor.analysis import (
     PathAnalyzer,
 )
 from FollowWeb_Visualizor.data.loaders import InstagramLoader
+from FollowWeb_Visualizor.data.strategies import GraphStrategy
 
 
 class TestInstagramLoader:
@@ -75,7 +76,8 @@ class TestInstagramLoader:
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
-        reciprocal_graph = loader.filter_by_reciprocity(graph)
+        strategy = GraphStrategy()
+        reciprocal_graph = strategy.filter_by_reciprocity(graph)
 
         assert isinstance(reciprocal_graph, nx.DiGraph)
         # All edges should be reciprocal
@@ -84,10 +86,10 @@ class TestInstagramLoader:
 
     def test_filter_empty_graph_reciprocity(self):
         """Test reciprocal filtering on empty graph."""
-        loader = InstagramLoader()
+        strategy = GraphStrategy()
         empty_graph = nx.DiGraph()
 
-        result = loader.filter_by_reciprocity(empty_graph)
+        result = strategy.filter_by_reciprocity(empty_graph)
 
         assert isinstance(result, nx.DiGraph)
         assert result.number_of_nodes() == 0
@@ -109,7 +111,8 @@ class TestInstagramLoader:
         # Get a node that exists in the graph
         ego_node = list(graph.nodes())[0]
 
-        alter_graph = loader.create_ego_alter_graph(graph, ego_node)
+        strategy = GraphStrategy()
+        alter_graph = strategy.create_ego_alter_graph(graph, ego_node)
 
         assert isinstance(alter_graph, nx.DiGraph)
         # Ego should not be in the alter graph
@@ -125,16 +128,17 @@ class TestInstagramLoader:
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
+        strategy = GraphStrategy()
         with pytest.raises(ValueError, match="ego node.*not found in graph"):
-            loader.create_ego_alter_graph(graph, "non_existent_user")
+            strategy.create_ego_alter_graph(graph, "non_existent_user")
 
     def test_create_ego_alter_graph_empty_ego(self):
         """Test ego-alter graph creation with empty ego username."""
-        loader = InstagramLoader()
+        strategy = GraphStrategy()
         graph = nx.DiGraph()
 
         with pytest.raises(ValueError, match="Ego username must be a non-empty string"):
-            loader.create_ego_alter_graph(graph, "")
+            strategy.create_ego_alter_graph(graph, "")
 
     def test_prune_graph_valid_k(self, sample_data_file: str, sample_data_exists: bool):
         """Test graph pruning with valid k-value."""
@@ -144,8 +148,9 @@ class TestInstagramLoader:
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
+        strategy = GraphStrategy()
         original_nodes = graph.number_of_nodes()
-        pruned_graph = loader.prune_graph(graph, 2)
+        pruned_graph = strategy.prune_graph(graph, 2)
 
         assert isinstance(pruned_graph, nx.DiGraph)
         assert pruned_graph.number_of_nodes() <= original_nodes
@@ -158,7 +163,8 @@ class TestInstagramLoader:
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
-        pruned_graph = loader.prune_graph(graph, 0)
+        strategy = GraphStrategy()
+        pruned_graph = strategy.prune_graph(graph, 0)
 
         # Should return original graph for k=0
         assert pruned_graph.number_of_nodes() == graph.number_of_nodes()
@@ -173,7 +179,8 @@ class TestInstagramLoader:
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
-        pruned_graph = loader.prune_graph(graph, -1)
+        strategy = GraphStrategy()
+        pruned_graph = strategy.prune_graph(graph, -1)
 
         # Should return original graph for negative k
         assert pruned_graph.number_of_nodes() == graph.number_of_nodes()
