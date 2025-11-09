@@ -43,7 +43,7 @@ from .core.config import (
     get_configuration_manager,
     load_config_from_dict,
 )
-from .main import PipelineOrchestrator
+from .__main__ import PipelineOrchestrator
 from .utils import ProgressTracker
 
 # Analysis components

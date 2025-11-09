@@ -576,6 +576,7 @@ class RendererConfig:
     """Configuration for renderer selection and parameters."""
 
     renderer_type: str = "pyvis"
+    template_name: str = "sigma_visualization.html"
     sigma_interactive: SigmaInteractiveConfig = field(default_factory=SigmaInteractiveConfig)
 
     def __post_init__(self) -> None:
@@ -859,6 +860,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         )
         renderer_config = RendererConfig(
             renderer_type=renderer_dict.get("renderer_type", "pyvis"),
+            template_name=renderer_dict.get("template_name", "sigma_visualization.html"),
             sigma_interactive=sigma_interactive_config,
         )
 

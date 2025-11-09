@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+    <!-- Use graphology-layout for built-in layouts -->
+    <script src="https://unpkg.com/graphology-layout@0.17.0/build/graphology-layout.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: {{ background_color|default('#0a0e27') }};
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #graph {
+            width: 100%;
+            height: 100%;
+            background: {{ graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)') }};
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        #controls h2 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #6c8eff;
+            font-weight: 600;
+        }
+
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 200px;
+            z-index: 1000;
+        }
+
+        #stats h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #6c8eff;
+            font-weight: 600;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+        }
+
+        .stat-value {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #a0a0a0;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #6c8eff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: linear-gradient(135deg, #6c8eff 0%, #5a7de8 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 142, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+        }
+
+        button.secondary:hover {
+            box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
+        }
+
+        #node-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 350px;
+            display: none;
+            z-index: 1000;
+        }
+
+        #node-info h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #6c8eff;
+            word-break: break-all;
+        }
+
+        #node-info p {
+            margin: 6px 0;
+            font-size: 13px;
+            color: #a0a0a0;
+        }
+
+        #node-info strong {
+            color: #ffffff;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        #legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #6c8eff;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 2000;
+            display: none;
+            max-width: 250px;
+            line-height: 1.5;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #tooltip.visible {
+            display: block;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 2000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #6c8eff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="graph"></div>
+        
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Applying layout...</p>
+        </div>
+
+        <div id="controls">
+            <h2>🔍 Network Controls</h2>
+            <div class="control-group">
+                <label for="search">Search User:</label>
+                <input type="text" id="search" placeholder="Enter username...">
+            </div>
+            <button onclick="highlightNode()">Highlight User</button>
+            <button onclick="resetView()" class="secondary">Reset View</button>
+            <button onclick="toggleLayout()" class="secondary">Apply Layout</button>
+            <button onclick="exportView()" class="secondary">Export View</button>
+        </div>
+
+        <div id="stats">
+            <h3>📊 Network Stats</h3>
+            <div class="stat-item">
+                <span class="stat-label">Nodes:</span>
+                <span class="stat-value" id="node-count">{{ node_count|default(0) }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Edges:</span>
+                <span class="stat-value" id="edge-count">{{ edge_count|default(0) }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Avg Degree:</span>
+                <span class="stat-value" id="avg-degree">{{ avg_degree|default('0.00') }}</span>
+            </div>
+            {% if density %}
+            <div class="stat-item">
+                <span class="stat-label">Density:</span>
+                <span class="stat-value">{{ "%.4f"|format(density) }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="node-info">
+            <h3 id="node-name"></h3>
+            <p><strong>Followers:</strong> <span id="node-followers">0</span></p>
+            <p><strong>Following:</strong> <span id="node-following">0</span></p>
+            <p><strong>Connections:</strong> <span id="node-degree">0</span></p>
+            {% if show_centrality %}
+            <p><strong>Centrality:</strong> <span id="node-centrality">0</span></p>
+            {% endif %}
+            {% if show_community %}
+            <p><strong>Community:</strong> <span id="node-community">-</span></p>
+            {% endif %}
+        </div>
+
+        <div id="legend">
+            <h4>Node Colors</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b9d;"></div>
+                <span>Popular (more followers)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ecdc4;"></div>
+                <span>Active (more following)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6c8eff;"></div>
+                <span>Balanced</span>
+            </div>
+        </div>
+
+        <div id="tooltip"></div>
+    </div>
+
+    <script>
+        // Graph data from Jinja2 template
+        const graphData = {{ graph_data|tojson }};
+        const config = {{ config|tojson }};
+        
+        let graph, renderer, layoutRunning = false;
+
+        function initGraph() {
+            // Initialize Graphology graph
+            graph = new graphology.DirectedGraph();
+
+            // Add nodes
+            graphData.nodes.forEach(node => {
+                graph.addNode(node.key, node.attributes);
+            });
+
+            // Add edges
+            graphData.edges.forEach(edge => {
+                try {
+                    if (!graph.hasEdge(edge.source, edge.target)) {
+                        graph.addEdge(edge.source, edge.target, edge.attributes || {});
+                    }
+                } catch (e) {
+                    console.warn('Failed to add edge:', edge, e);
+                }
+            });
+
+            return graph;
+        }
+
+        function initRenderer() {
+            const container = document.getElementById('graph');
+            
+            renderer = new Sigma(graph, container, {
+                renderEdgeLabels: config.renderEdgeLabels || false,
+                defaultNodeColor: config.defaultNodeColor || '#6c8eff',
+                defaultEdgeColor: config.defaultEdgeColor || 'rgba(108, 142, 255, 0.2)',
+                labelSize: config.labelSize || 12,
+                labelColor: { color: config.labelColor || '#ffffff' },
+                labelWeight: config.labelWeight || '600',
+                minCameraRatio: config.minCameraRatio || 0.1,
+                maxCameraRatio: config.maxCameraRatio || 10,
+                enableEdgeEvents: true
+            });
+
+            // Add click event
+            renderer.on('clickNode', ({ node }) => {
+                showNodeInfo(node);
+            });
+
+            // Add hover events
+            renderer.on('enterNode', ({ node }) => {
+                showTooltip(node);
+                const nodeAttributes = graph.getNodeAttributes(node);
+                if (!nodeAttributes.originalSize) {
+                    graph.setNodeAttribute(node, 'originalSize', nodeAttributes.size);
+                }
+                graph.setNodeAttribute(node, 'size', nodeAttributes.originalSize * 1.5);
+                renderer.refresh();
+            });
+
+            renderer.on('leaveNode', ({ node }) => {
+                hideTooltip();
+                const nodeAttributes = graph.getNodeAttributes(node);
+                if (nodeAttributes.originalSize) {
+                    graph.setNodeAttribute(node, 'size', nodeAttributes.originalSize);
+                }
+                renderer.refresh();
+            });
+
+            // Mouse move for tooltip positioning
+            renderer.getMouseCaptor().on('mousemove', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip.classList.contains('visible')) {
+                    tooltip.style.left = (e.x + 15) + 'px';
+                    tooltip.style.top = (e.y + 15) + 'px';
+                }
+            });
+
+            renderer.refresh();
+        }
+
+        function showNodeInfo(nodeId) {
+            const attributes = graph.getNodeAttributes(nodeId);
+            document.getElementById('node-name').textContent = attributes.label || nodeId;
+            document.getElementById('node-followers').textContent = attributes.followers || 0;
+            document.getElementById('node-following').textContent = attributes.following || 0;
+            document.getElementById('node-degree').textContent = graph.degree(nodeId);
+            
+            {% if show_centrality %}
+            const centralityElem = document.getElementById('node-centrality');
+            if (centralityElem && attributes.centrality !== undefined) {
+                centralityElem.textContent = attributes.centrality.toFixed(4);
+            }
+            {% endif %}
+            
+            {% if show_community %}
+            const communityElem = document.getElementById('node-community');
+            if (communityElem && attributes.community !== undefined) {
+                communityElem.textContent = attributes.community;
+            }
+            {% endif %}
+            
+            document.getElementById('node-info').style.display = 'block';
+        }
+
+        function showTooltip(nodeId) {
+            const attributes = graph.getNodeAttributes(nodeId);
+            const tooltip = document.getElementById('tooltip');
+            
+            let content = `<strong>${attributes.label || nodeId}</strong><br>`;
+            content += `Followers: ${attributes.followers || 0}<br>`;
+            content += `Following: ${attributes.following || 0}<br>`;
+            content += `Degree: ${graph.degree(nodeId)}`;
+            
+            {% if show_centrality %}
+            if (attributes.centrality !== undefined) {
+                content += `<br>Centrality: ${attributes.centrality.toFixed(4)}`;
+            }
+            {% endif %}
+            
+            {% if show_community %}
+            if (attributes.community !== undefined) {
+                content += `<br>Community: ${attributes.community}`;
+            }
+            {% endif %}
+            
+            tooltip.innerHTML = content;
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('visible');
+        }
+
+        function highlightNode() {
+            const searchTerm = document.getElementById('search').value.toLowerCase().trim();
+            if (!searchTerm) {
+                alert('Please enter a username to search');
+                return;
+            }
+
+            let found = false;
+            graph.forEachNode((node, attributes) => {
+                const label = (attributes.label || node).toLowerCase();
+                if (label.includes(searchTerm)) {
+                    // Store original color if not already stored
+                    if (!attributes.originalColor) {
+                        graph.setNodeAttribute(node, 'originalColor', attributes.color);
+                    }
+                    if (!attributes.originalSize) {
+                        graph.setNodeAttribute(node, 'originalSize', attributes.size);
+                    }
+                    
+                    // Highlight the node
+                    graph.setNodeAttribute(node, 'color', '#ffff00');
+                    graph.setNodeAttribute(node, 'size', attributes.originalSize * 2);
+                    
+                    // Center camera on node
+                    const nodePosition = renderer.getNodeDisplayData(node);
+                    if (nodePosition) {
+                        renderer.getCamera().animate(nodePosition, {
+                            duration: 500
+                        });
+                    }
+                    
+                    showNodeInfo(node);
+                    found = true;
+                    return false; // Stop iteration
+                }
+            });
+
+            if (!found) {
+                alert('User not found!');
+            } else {
+                renderer.refresh();
+            }
+        }
+
+        function resetView() {
+            // Reset all node colors and sizes
+            graph.forEachNode((node, attributes) => {
+                if (attributes.originalColor) {
+                    graph.setNodeAttribute(node, 'color', attributes.originalColor);
+                }
+                if (attributes.originalSize) {
+                    graph.setNodeAttribute(node, 'size', attributes.originalSize);
+                }
+            });
+
+            renderer.getCamera().animate({ x: 0.5, y: 0.5, ratio: 1 }, { duration: 500 });
+            document.getElementById('node-info').style.display = 'none';
+            document.getElementById('search').value = '';
+            renderer.refresh();
+        }
+
+        function toggleLayout() {
+            if (layoutRunning) {
+                alert('Layout is already running');
+                return;
+            }
+
+            // Use built-in circular layout from graphology-layout
+            if (typeof window.circularLayout === 'undefined') {
+                alert('Layout library not available. Using current positions.');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            layoutRunning = true;
+
+            // Run layout
+            setTimeout(() => {
+                try {
+                    // Apply circular layout
+                    window.circularLayout.assign(graph, {
+                        scale: 100
+                    });
+                    
+                    renderer.refresh();
+                    alert('Circular layout applied successfully!');
+                } catch (e) {
+                    console.error('Layout error:', e);
+                    alert('Failed to apply layout: ' + e.message);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                    layoutRunning = false;
+                }
+            }, 100);
+        }
+
+        function exportView() {
+            // Get current camera state
+            const camera = renderer.getCamera();
+            const state = camera.getState();
+            
+            const exportData = {
+                camera: state,
+                timestamp: new Date().toISOString(),
+                stats: {
+                    nodes: graph.order,
+                    edges: graph.size
+                }
+            };
+            
+            console.log('Current view state:', exportData);
+            alert('View state exported to console. Check browser developer tools.');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                initGraph();
+                initRenderer();
+                console.log('Sigma.js visualization initialized');
+                console.log('Nodes:', graph.order);
+                console.log('Edges:', graph.size);
+            } catch (e) {
+                console.error('Initialization error:', e);
+                alert('Failed to initialize visualization: ' + e.message);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.getElementById('search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                highlightNode();
+            }
+        });
+
+        // Prevent context menu on graph
+        document.getElementById('graph').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>

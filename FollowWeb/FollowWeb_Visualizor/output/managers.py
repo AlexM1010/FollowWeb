@@ -71,7 +71,10 @@ class OutputManager:
             self.pyvis_renderer = PyvisRenderer(vis_config, self.metrics_calculator)
         
         if self.renderer_type in ["sigma", "all"]:
-            self.sigma_renderer = SigmaRenderer(vis_config, self.metrics_calculator)
+            self.logger.info(f"renderer_config: {renderer_config}")
+            template_name = renderer_config.get("template_name", "sigma_visualization.html")
+            self.logger.info(f"Initializing SigmaRenderer with template: {template_name}")
+            self.sigma_renderer = SigmaRenderer(vis_config, self.metrics_calculator, template_name)
         
         self.metrics_reporter = MetricsReporter(vis_config)
 

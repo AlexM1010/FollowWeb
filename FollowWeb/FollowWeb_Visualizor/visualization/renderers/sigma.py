@@ -35,6 +35,7 @@ class SigmaRenderer(Renderer):
         self,
         vis_config: dict[str, Any],
         metrics_calculator: Optional[MetricsCalculator] = None,
+        template_name: str = "sigma_visualization.html",
     ) -> None:
         """
         Initialize the Sigma.js renderer with visualization configuration.
@@ -43,6 +44,9 @@ class SigmaRenderer(Renderer):
             vis_config: Visualization configuration dictionary containing Sigma settings,
                        display options, and styling preferences
             metrics_calculator: Optional MetricsCalculator instance for consistent metrics
+            template_name: Name of the Jinja2 template to use (default: sigma_visualization.html)
+                          Options: 'sigma_visualization.html' (Freesound/audio),
+                                  'sigma_instagram.html' (Instagram social network)
 
         Raises:
             KeyError: If required configuration keys are missing
@@ -50,6 +54,7 @@ class SigmaRenderer(Renderer):
         super().__init__(vis_config)
         self.legend_generator = LegendGenerator(vis_config)
         self.metrics_calculator = metrics_calculator
+        self.template_name = template_name
         
         # Setup Jinja2 template environment
         template_dir = Path(__file__).parent / "templates"
@@ -121,15 +126,37 @@ class SigmaRenderer(Renderer):
                 logger=self.logger,
             ) as tracker:
                 
-                template = self.jinja_env.get_template("sigma_visualization.html")
+                template = self.jinja_env.get_template(self.template_name)
                 
-                html_content = template.render(
-                    title=f"Network Visualization - {graph.number_of_nodes()} nodes",
-                    graph_data=json.dumps(graph_data),
-                    config=json.dumps(config),
-                    legend_html=legend_html,
-                    legend_html_style=""  # Legend styles are inline in the legend HTML
-                )
+                # Prepare template context based on template type
+                if self.template_name == "sigma_instagram.html":
+                    # Instagram-specific template context
+                    stats = self._calculate_network_stats(graph)
+                    html_content = template.render(
+                        title=f"Instagram Network - {graph.number_of_nodes()} users",
+                        graph_data=graph_data,
+                        config=config,
+                        node_count=stats["node_count"],
+                        edge_count=stats["edge_count"],
+                        avg_degree=stats["avg_degree"],
+                        density=stats.get("density"),
+                        show_centrality=any("betweenness" in m for m in node_metrics.values() if m),
+                        show_community=any("community" in m for m in node_metrics.values() if m),
+                        layout_iterations=100,
+                        layout_gravity=1,
+                        layout_scaling=10,
+                        background_color="#0a0e27",
+                        graph_background="linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)"
+                    )
+                else:
+                    # Default Freesound/audio template context
+                    html_content = template.render(
+                        title=f"Network Visualization - {graph.number_of_nodes()} nodes",
+                        graph_data=json.dumps(graph_data),
+                        config=json.dumps(config),
+                        legend_html=legend_html,
+                        legend_html_style=""  # Legend styles are inline in the legend HTML
+                    )
                 tracker.update(1)
                 
                 # Ensure output directory exists
@@ -195,43 +222,86 @@ class SigmaRenderer(Renderer):
             else:
                 x, y = 0.0, 0.0
             
-            # Build node attributes for Sigma.js
-            sigma_node = {
-                "key": str(node_id),
-                "attributes": {
-                    "label": str(node_id),
-                    "x": x,
-                    "y": y,
-                    "size": float(node_metric.get("size", 10)),
-                    "color": node_metric.get("color_hex", "#999999"),
-                    "community": node_metric.get("community", 0),
-                    "degree": node_metric.get("degree", 0),
-                    "betweenness": node_metric.get("betweenness", 0.0),
-                    "eigenvector": node_metric.get("eigenvector", 0.0),
+            # Check if this is Instagram data (has followers/following counts)
+            is_instagram = "followers_count" in node_attrs or "following_count" in node_attrs
+            
+            if is_instagram and self.template_name == "sigma_instagram.html":
+                # Instagram-specific node attributes
+                degree = graph.degree(node_id)
+                max_degree = max(dict(graph.degree()).values()) if graph.number_of_nodes() > 0 else 1
+                size = 3 + (degree / max_degree) * 15
+                
+                followers = node_attrs.get("followers_count", 0)
+                following = node_attrs.get("following_count", 0)
+                
+                # Calculate color based on follower/following ratio
+                ratio = followers / (following + 1)
+                if ratio > 1.5:
+                    color = "#ff6b9d"  # Popular
+                elif ratio < 0.7:
+                    color = "#4ecdc4"  # Active follower
+                else:
+                    color = "#6c8eff"  # Balanced
+                
+                sigma_node = {
+                    "key": str(node_id),
+                    "attributes": {
+                        "label": str(node_id),
+                        "x": x,
+                        "y": y,
+                        "size": float(size),
+                        "color": color,
+                        "followers": followers,
+                        "following": following,
+                        "degree": degree,
+                    }
                 }
-            }
-            
-            # Add node-specific attributes from graph
-            if "name" in node_attrs:
-                sigma_node["attributes"]["name"] = str(node_attrs["name"])
-            
-            if "tags" in node_attrs:
-                # Ensure tags is a list
-                tags = node_attrs["tags"]
-                if isinstance(tags, str):
-                    tags = [tags]
-                elif not isinstance(tags, list):
-                    tags = []
-                sigma_node["attributes"]["tags"] = tags
-            
-            if "duration" in node_attrs:
-                sigma_node["attributes"]["duration"] = float(node_attrs["duration"])
-            
-            if "user" in node_attrs:
-                sigma_node["attributes"]["user"] = str(node_attrs["user"])
-            
-            if "audio_url" in node_attrs:
-                sigma_node["attributes"]["audio_url"] = str(node_attrs["audio_url"])
+                
+                # Add centrality if available
+                if node_id in node_metrics and "betweenness" in node_metrics[node_id]:
+                    sigma_node["attributes"]["centrality"] = float(node_metrics[node_id]["betweenness"])
+                
+                # Add community if available
+                if node_id in node_metrics and "community" in node_metrics[node_id]:
+                    sigma_node["attributes"]["community"] = int(node_metrics[node_id]["community"])
+            else:
+                # Default Freesound/audio node attributes
+                sigma_node = {
+                    "key": str(node_id),
+                    "attributes": {
+                        "label": str(node_id),
+                        "x": x,
+                        "y": y,
+                        "size": float(node_metric.get("size", 10)),
+                        "color": node_metric.get("color_hex", "#999999"),
+                        "community": node_metric.get("community", 0),
+                        "degree": node_metric.get("degree", 0),
+                        "betweenness": node_metric.get("betweenness", 0.0),
+                        "eigenvector": node_metric.get("eigenvector", 0.0),
+                    }
+                }
+                
+                # Add node-specific attributes from graph
+                if "name" in node_attrs:
+                    sigma_node["attributes"]["name"] = str(node_attrs["name"])
+                
+                if "tags" in node_attrs:
+                    # Ensure tags is a list
+                    tags = node_attrs["tags"]
+                    if isinstance(tags, str):
+                        tags = [tags]
+                    elif not isinstance(tags, list):
+                        tags = []
+                    sigma_node["attributes"]["tags"] = tags
+                
+                if "duration" in node_attrs:
+                    sigma_node["attributes"]["duration"] = float(node_attrs["duration"])
+                
+                if "user" in node_attrs:
+                    sigma_node["attributes"]["user"] = str(node_attrs["user"])
+                
+                if "audio_url" in node_attrs:
+                    sigma_node["attributes"]["audio_url"] = str(node_attrs["audio_url"])
             
             nodes.append(sigma_node)
         
@@ -264,6 +334,35 @@ class SigmaRenderer(Renderer):
             "nodes": nodes,
             "edges": edges
         }
+
+    def _calculate_network_stats(self, graph: nx.DiGraph) -> dict[str, Any]:
+        """
+        Calculate basic network statistics for Instagram template.
+        
+        Args:
+            graph: NetworkX directed graph
+            
+        Returns:
+            Dictionary with network statistics
+        """
+        node_count = graph.number_of_nodes()
+        edge_count = graph.number_of_edges()
+        
+        stats = {
+            "node_count": node_count,
+            "edge_count": edge_count,
+            "avg_degree": f"{(edge_count * 2 / node_count):.2f}" if node_count > 0 else "0.00",
+        }
+        
+        # Calculate density for smaller graphs
+        if node_count > 0 and node_count < 10000:
+            try:
+                density = nx.density(graph)
+                stats["density"] = density
+            except Exception:
+                pass
+        
+        return stats
 
     def get_file_extension(self) -> str:
         """Return file extension for Sigma.js HTML output."""
