@@ -66,7 +66,7 @@ Fine-grained control over output file generation:
 ```json
 {
   "output_control": {
-    "generate_html": true,        // Interactive Pyvis visualization
+    "generate_html": true,        // Interactive Sigma.js visualization
     "generate_png": true,         // Static matplotlib image
     "generate_reports": true,     // Text metrics and statistics
     "enable_timing_logs": false,  // Detailed timing information

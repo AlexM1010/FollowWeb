@@ -1,13 +1,18 @@
+<!-- 
+    Jinja2 Template File
+    This file contains Jinja2 template syntax that will be processed server-side.
+    IDE warnings about template syntax are expected and can be ignored.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
-    <!-- Use graphology-layout for built-in layouts -->
-    <script src="https://unpkg.com/graphology-layout@0.17.0/build/graphology-layout.min.js"></script>
+    <!-- ForceAtlas2 layout from graphology-library -->
+    <script src="https://cdn.jsdelivr.net/npm/graphology-library/dist/graphology-library.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -15,7 +20,9 @@
             box-sizing: border-box;
         }
 
-        body {
+        html, body {
+            width: 100%;
+            height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: {{ background_color|default('#0a0e27') }};
             color: #e0e0e0;
@@ -23,14 +30,11 @@
         }
 
         #container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-
-        #graph {
             width: 100%;
             height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
             background: {{ graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)') }};
         }
 
@@ -44,8 +48,10 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 300px;
+            max-width: 320px;
             z-index: 1000;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         #controls h2 {
@@ -150,6 +156,83 @@
 
         button.secondary:hover {
             box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6c8eff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #5a7de8;
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6c8eff;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #5a7de8;
+            transform: scale(1.2);
+        }
+
+        .slider-value {
+            float: right;
+            color: #6c8eff;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .physics-controls {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .physics-controls h3 {
+            font-size: 14px;
+            color: #6c8eff;
+            margin-bottom: 12px;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        button.danger:hover {
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        button.success:hover {
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
         }
 
         #node-info {
@@ -264,8 +347,6 @@
 </head>
 <body>
     <div id="container">
-        <div id="graph"></div>
-        
         <div class="loading" id="loading" style="display: none;">
             <div class="spinner"></div>
             <p>Applying layout...</p>
@@ -279,7 +360,97 @@
             </div>
             <button onclick="highlightNode()">Highlight User</button>
             <button onclick="resetView()" class="secondary">Reset View</button>
-            <button onclick="toggleLayout()" class="secondary">Apply Layout</button>
+            <button onclick="startLayout()" class="success" id="startLayoutBtn">▶ Start Physics</button>
+            <button onclick="stopLayout()" class="danger" id="stopLayoutBtn" style="display:none;">⏸ Stop Physics</button>
+            
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="showLabels" checked onchange="toggleLabels()" style="width: auto; margin-right: 8px;">
+                    Show Node Labels
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="showTooltips" checked onchange="toggleTooltips()" style="width: auto; margin-right: 8px;">
+                    Show Tooltips on Hover
+                </label>
+            </div>
+            
+            <div class="physics-controls">
+                <h3>⚙️ Physics Settings</h3>
+                
+                <div class="control-group">
+                    <label for="gravity">
+                        Gravity: <span class="slider-value" id="gravityValue">1.0</span>
+                    </label>
+                    <input type="range" id="gravity" min="0.1" max="5" step="0.1" value="1.0" oninput="updatePhysics()">
+                </div>
+                
+                <div class="control-group">
+                    <label for="scalingRatio">
+                        Scaling: <span class="slider-value" id="scalingValue">10</span>
+                    </label>
+                    <input type="range" id="scalingRatio" min="1" max="50" step="1" value="10" oninput="updatePhysics()">
+                </div>
+                
+                <div class="control-group">
+                    <label for="edgeWeightInfluence">
+                        Edge Weight: <span class="slider-value" id="edgeWeightValue">1.0</span>
+                    </label>
+                    <input type="range" id="edgeWeightInfluence" min="0" max="2" step="0.1" value="1.0" oninput="updatePhysics()">
+                </div>
+                
+                <div class="control-group">
+                    <label for="slowDown">
+                        Slow Down: <span class="slider-value" id="slowDownValue">5.0</span>
+                    </label>
+                    <input type="range" id="slowDown" min="0.1" max="10" step="0.1" value="5.0" oninput="updatePhysics()">
+                </div>
+                
+                <div class="control-group">
+                    <label for="strongGravityMode">
+                        <input type="checkbox" id="strongGravityMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Strong Gravity Mode
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="linLogMode">
+                        <input type="checkbox" id="linLogMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        LinLog Mode
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="outboundAttractionDistribution">
+                        <input type="checkbox" id="outboundAttractionDistribution" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Outbound Attraction
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="adjustSizes">
+                        <input type="checkbox" id="adjustSizes" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Adjust Sizes (Prevent Overlap)
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="barnesHutOptimize">
+                        <input type="checkbox" id="barnesHutOptimize" checked onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Barnes-Hut Optimize
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="barnesHutTheta">
+                        Barnes-Hut θ: <span class="slider-value" id="barnesHutThetaValue">0.5</span>
+                    </label>
+                    <input type="range" id="barnesHutTheta" min="0.1" max="1.5" step="0.1" value="0.5" oninput="updatePhysics()">
+                </div>
+            </div>
+            
             <button onclick="exportView()" class="secondary">Export View</button>
         </div>
 
@@ -342,7 +513,28 @@
         const graphData = {{ graph_data|tojson }};
         const config = {{ config|tojson }};
         
-        let graph, renderer, layoutRunning = false;
+        let graph, renderer, layoutRunning = false, layoutWorker = null;
+        
+        // Track previous state of labels/tooltips before physics
+        let labelsBeforePhysics = true;
+        let tooltipsBeforePhysics = true;
+        
+        // Physics settings - ForceAtlas2 parameters
+        let physicsSettings = {
+            gravity: 1.0,
+            scalingRatio: 10,
+            edgeWeightInfluence: 1.0,
+            slowDown: 5.0,
+            linLogMode: false,
+            outboundAttractionDistribution: false,
+            adjustSizes: false,
+            barnesHutOptimize: true,
+            barnesHutTheta: 0.5,
+            strongGravityMode: false
+        };
+        
+        // Separate setting for overlap prevention (not a ForceAtlas2 param)
+        let preventOverlap = false;
 
         function initGraph() {
             // Initialize Graphology graph
@@ -368,10 +560,11 @@
         }
 
         function initRenderer() {
-            const container = document.getElementById('graph');
+            const container = document.getElementById('container');
             
             renderer = new Sigma(graph, container, {
                 renderEdgeLabels: config.renderEdgeLabels || false,
+                renderLabels: config.show_labels !== false,
                 defaultNodeColor: config.defaultNodeColor || '#6c8eff',
                 defaultEdgeColor: config.defaultEdgeColor || 'rgba(108, 142, 255, 0.2)',
                 labelSize: config.labelSize || 12,
@@ -389,7 +582,9 @@
 
             // Add hover events
             renderer.on('enterNode', ({ node }) => {
-                showTooltip(node);
+                if (config.show_tooltips !== false) {
+                    showTooltip(node);
+                }
                 const nodeAttributes = graph.getNodeAttributes(node);
                 if (!nodeAttributes.originalSize) {
                     graph.setNodeAttribute(node, 'originalSize', nodeAttributes.size);
@@ -399,7 +594,9 @@
             });
 
             renderer.on('leaveNode', ({ node }) => {
-                hideTooltip();
+                if (config.show_tooltips !== false) {
+                    hideTooltip();
+                }
                 const nodeAttributes = graph.getNodeAttributes(node);
                 if (nodeAttributes.originalSize) {
                     graph.setNodeAttribute(node, 'size', nodeAttributes.originalSize);
@@ -533,39 +730,138 @@
             renderer.refresh();
         }
 
-        function toggleLayout() {
+        function toggleLabels() {
+            const showLabels = document.getElementById('showLabels').checked;
+            renderer.setSetting('renderLabels', showLabels);
+            renderer.refresh();
+            console.log('Labels:', showLabels ? 'enabled' : 'disabled');
+        }
+
+        function toggleTooltips() {
+            const showTooltips = document.getElementById('showTooltips').checked;
+            config.show_tooltips = showTooltips;
+            console.log('Tooltips:', showTooltips ? 'enabled' : 'disabled');
+        }
+
+        function updatePhysics() {
+            // Update physics settings from sliders and checkboxes
+            physicsSettings.gravity = parseFloat(document.getElementById('gravity').value);
+            physicsSettings.scalingRatio = parseFloat(document.getElementById('scalingRatio').value);
+            physicsSettings.edgeWeightInfluence = parseFloat(document.getElementById('edgeWeightInfluence').value);
+            physicsSettings.slowDown = parseFloat(document.getElementById('slowDown').value);
+            physicsSettings.barnesHutTheta = parseFloat(document.getElementById('barnesHutTheta').value);
+            physicsSettings.strongGravityMode = document.getElementById('strongGravityMode').checked;
+            physicsSettings.linLogMode = document.getElementById('linLogMode').checked;
+            physicsSettings.outboundAttractionDistribution = document.getElementById('outboundAttractionDistribution').checked;
+            physicsSettings.adjustSizes = document.getElementById('adjustSizes').checked;
+            physicsSettings.barnesHutOptimize = document.getElementById('barnesHutOptimize').checked;
+            
+            // Update display values
+            document.getElementById('gravityValue').textContent = physicsSettings.gravity.toFixed(1);
+            document.getElementById('scalingValue').textContent = physicsSettings.scalingRatio.toFixed(0);
+            document.getElementById('edgeWeightValue').textContent = physicsSettings.edgeWeightInfluence.toFixed(1);
+            document.getElementById('slowDownValue').textContent = physicsSettings.slowDown.toFixed(1);
+            document.getElementById('barnesHutThetaValue').textContent = physicsSettings.barnesHutTheta.toFixed(1);
+            
+            // Settings will be applied on next animation frame if layout is running
+            console.log('Physics settings updated:', physicsSettings);
+        }
+
+        function startLayout() {
             if (layoutRunning) {
-                alert('Layout is already running');
+                console.log('Layout is already running');
                 return;
             }
 
-            // Use built-in circular layout from graphology-layout
-            if (typeof window.circularLayout === 'undefined') {
-                alert('Layout library not available. Using current positions.');
-                return;
+            // Save current state of labels and tooltips
+            labelsBeforePhysics = document.getElementById('showLabels').checked;
+            tooltipsBeforePhysics = document.getElementById('showTooltips').checked;
+            
+            // Disable labels and tooltips for better performance
+            if (labelsBeforePhysics) {
+                document.getElementById('showLabels').checked = false;
+                toggleLabels();
+            }
+            if (tooltipsBeforePhysics) {
+                document.getElementById('showTooltips').checked = false;
+                toggleTooltips();
             }
 
             document.getElementById('loading').style.display = 'block';
+            document.getElementById('startLayoutBtn').style.display = 'none';
+            document.getElementById('stopLayoutBtn').style.display = 'block';
             layoutRunning = true;
 
-            // Run layout
-            setTimeout(() => {
-                try {
-                    // Apply circular layout
-                    window.circularLayout.assign(graph, {
-                        scale: 100
+            try {
+                // Use graphology-library ForceAtlas2
+                if (!window.graphologyLibrary || !window.graphologyLibrary.layoutForceAtlas2) {
+                    throw new Error('graphology-library not loaded');
+                }
+                
+                console.log('Using ForceAtlas2 from graphology-library');
+                
+                // Infer base settings from graph structure
+                const inferredSettings = window.graphologyLibrary.layoutForceAtlas2.inferSettings(graph);
+                
+                // Run layout with animation
+                let iteration = 0;
+                const maxIterations = 500;
+                
+                const animate = () => {
+                    if (!layoutRunning || iteration >= maxIterations) {
+                        stopLayout();
+                        return;
+                    }
+                    
+                    // Merge inferred settings with current user settings (allows live updates)
+                    const currentSettings = Object.assign({}, inferredSettings, physicsSettings);
+                    
+                    // Run one iteration and assign positions to graph
+                    window.graphologyLibrary.layoutForceAtlas2.assign(graph, {
+                        iterations: 1,
+                        settings: currentSettings
                     });
                     
-                    renderer.refresh();
-                    alert('Circular layout applied successfully!');
-                } catch (e) {
-                    console.error('Layout error:', e);
-                    alert('Failed to apply layout: ' + e.message);
-                } finally {
-                    document.getElementById('loading').style.display = 'none';
-                    layoutRunning = false;
-                }
-            }, 100);
+                    iteration++;
+                    
+                    // Refresh renderer every 3 iterations for smooth performance
+                    if (iteration % 3 === 0) {
+                        renderer.refresh();
+                    }
+                    
+                    // Continue animation
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+                console.log('ForceAtlas2 layout started');
+            } catch (e) {
+                console.error('Layout error:', e);
+                alert('Failed to start layout: ' + e.message);
+                stopLayout();
+            }
+        }
+
+        function stopLayout() {
+            layoutRunning = false;
+            layoutWorker = null;
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('startLayoutBtn').style.display = 'block';
+            document.getElementById('stopLayoutBtn').style.display = 'none';
+            
+            // Restore previous state of labels and tooltips
+            if (labelsBeforePhysics) {
+                document.getElementById('showLabels').checked = true;
+                toggleLabels();
+            }
+            if (tooltipsBeforePhysics) {
+                document.getElementById('showTooltips').checked = true;
+                toggleTooltips();
+            }
+            
+            renderer.refresh();
+            console.log('Layout stopped');
         }
 
         function exportView() {
@@ -591,9 +887,21 @@
             try {
                 initGraph();
                 initRenderer();
+                
+                // Set checkbox states based on config
+                document.getElementById('showLabels').checked = config.show_labels !== false;
+                document.getElementById('showTooltips').checked = config.show_tooltips !== false;
+                
                 console.log('Sigma.js visualization initialized');
                 console.log('Nodes:', graph.order);
                 console.log('Edges:', graph.size);
+                
+                // Check if graphology-library is available
+                if (window.graphologyLibrary && window.graphologyLibrary.layoutForceAtlas2) {
+                    console.log('✓ graphology-library loaded with ForceAtlas2');
+                } else {
+                    console.error('✗ graphology-library failed to load');
+                }
             } catch (e) {
                 console.error('Initialization error:', e);
                 alert('Failed to initialize visualization: ' + e.message);
@@ -607,10 +915,11 @@
             }
         });
 
-        // Prevent context menu on graph
-        document.getElementById('graph').addEventListener('contextmenu', (e) => {
+        // Prevent context menu on container
+        document.getElementById('container').addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
     </script>
 </body>
 </html>
+

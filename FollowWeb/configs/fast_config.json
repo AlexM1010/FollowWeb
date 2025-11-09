@@ -12,12 +12,13 @@
     }
   },
   "renderer": {
-    "renderer_type": "pyvis",
+    "renderer_type": "sigma",
+    "template_name": "sigma_instagram.html",
     "sigma_interactive": {
       "height": "100vh",
       "width": "100%",
       "enable_webgl": true,
-      "enable_audio_player": true
+      "enable_audio_player": false
     }
   },
   "pipeline": {

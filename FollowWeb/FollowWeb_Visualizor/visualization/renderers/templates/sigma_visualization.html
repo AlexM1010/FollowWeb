@@ -251,6 +251,7 @@
         // Initialize Sigma renderer
         const container = document.getElementById('container');
         const renderer = new Sigma(graph, container, {
+            allowInvalidContainer: true,
             renderEdgeLabels: false,
             defaultNodeColor: '#999',
             defaultEdgeColor: '#ccc',

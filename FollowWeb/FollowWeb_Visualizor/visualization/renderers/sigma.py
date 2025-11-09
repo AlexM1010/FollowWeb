@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import networkx as nx
+import numpy as np
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from ...core.types import VisualizationMetrics
@@ -35,7 +36,7 @@ class SigmaRenderer(Renderer):
         self,
         vis_config: dict[str, Any],
         metrics_calculator: Optional[MetricsCalculator] = None,
-        template_name: str = "sigma_visualization.html",
+        template_name: Optional[str] = None,
     ) -> None:
         """
         Initialize the Sigma.js renderer with visualization configuration.
@@ -44,7 +45,8 @@ class SigmaRenderer(Renderer):
             vis_config: Visualization configuration dictionary containing Sigma settings,
                        display options, and styling preferences
             metrics_calculator: Optional MetricsCalculator instance for consistent metrics
-            template_name: Name of the Jinja2 template to use (default: sigma_visualization.html)
+            template_name: Name of the Jinja2 template to use. If None, reads from vis_config['template_name']
+                          or defaults to 'sigma_visualization.html'
                           Options: 'sigma_visualization.html' (Freesound/audio),
                                   'sigma_instagram.html' (Instagram social network)
 
@@ -54,13 +56,18 @@ class SigmaRenderer(Renderer):
         super().__init__(vis_config)
         self.legend_generator = LegendGenerator(vis_config)
         self.metrics_calculator = metrics_calculator
+        # Read template_name from config if not provided
+        if template_name is None:
+            template_name = vis_config.get("template_name", "sigma_visualization.html")
         self.template_name = template_name
         
         # Setup Jinja2 template environment
         template_dir = Path(__file__).parent / "templates"
         self.jinja_env = Environment(
             loader=FileSystemLoader(str(template_dir)),
-            autoescape=select_autoescape(['html', 'xml'])
+            autoescape=select_autoescape(['html', 'xml']),
+            auto_reload=True,
+            cache_size=0  # Disable template caching for development
         )
 
     def generate_visualization(
@@ -111,11 +118,13 @@ class SigmaRenderer(Renderer):
                 tracker.update(2)
                 
                 # Prepare configuration
+                # Read from visualization config (primary) or sigma_interactive (fallback)
+                vis_settings = self.vis_config
                 sigma_config = self.vis_config.get("sigma_interactive", {})
                 config = {
-                    "show_labels": sigma_config.get("show_labels", True),
-                    "show_tooltips": sigma_config.get("show_tooltips", True),
-                    "enable_audio": sigma_config.get("enable_audio", True),
+                    "show_labels": vis_settings.get("show_labels", sigma_config.get("show_labels", True)),
+                    "show_tooltips": vis_settings.get("show_tooltips", sigma_config.get("show_tooltips", True)),
+                    "enable_audio": sigma_config.get("enable_audio_player", False),
                 }
                 tracker.update(3)
             
@@ -127,6 +136,7 @@ class SigmaRenderer(Renderer):
             ) as tracker:
                 
                 template = self.jinja_env.get_template(self.template_name)
+                self.logger.info(f"Loading template: {self.template_name} from {Path(__file__).parent / 'templates'}")
                 
                 # Prepare template context based on template type
                 if self.template_name == "sigma_instagram.html":
@@ -166,6 +176,10 @@ class SigmaRenderer(Renderer):
                 with open(output_filename, "w", encoding="utf-8") as f:
                     f.write(html_content)
                 
+                # Copy forceatlas2.js to output directory if using Instagram template
+                if self.template_name == "sigma_instagram.html":
+                    self._copy_forceatlas2_script(output_filename)
+                
                 tracker.update(2)
             
             success_msg = EmojiFormatter.format(
@@ -200,13 +214,23 @@ class SigmaRenderer(Renderer):
         nodes = []
         edges = []
         
-        # Get layout positions from metrics, or calculate fallback
+        # Get layout positions from metrics, or calculate physics-based layout
         layout = metrics.layout_positions
         
-        # If layout is empty, calculate a simple spring layout
+        # If layout is empty, calculate a physics-based spring layout
         if not layout:
-            import networkx as nx
-            layout = nx.spring_layout(graph, seed=42)
+            self.logger.info("Calculating physics-based layout for visualization...")
+            # Use spring_layout with more iterations for better physics simulation
+            # k controls the optimal distance between nodes (spring length)
+            # iterations controls convergence quality
+            layout = nx.spring_layout(
+                graph, 
+                k=1/np.sqrt(graph.number_of_nodes()) if graph.number_of_nodes() > 0 else 1,
+                iterations=50,
+                seed=42,
+                scale=100  # Scale up for better spread
+            )
+            self.logger.info(f"Layout calculated for {len(layout)} nodes")
         
         # Convert nodes
         for node_id in graph.nodes():
@@ -334,6 +358,33 @@ class SigmaRenderer(Renderer):
             "nodes": nodes,
             "edges": edges
         }
+
+    def _copy_forceatlas2_script(self, output_filename: str) -> None:
+        """
+        Copy the forceatlas2.js script to the same directory as the output HTML file.
+        
+        Args:
+            output_filename: Path to the output HTML file
+        """
+        import shutil
+        
+        try:
+            # Get the template directory where forceatlas2.js is located
+            template_dir = Path(__file__).parent / "templates"
+            source_script = template_dir / "forceatlas2.js"
+            
+            # Get the output directory
+            output_dir = Path(output_filename).parent
+            dest_script = output_dir / "forceatlas2.js"
+            
+            # Copy the script file
+            if source_script.exists():
+                shutil.copy2(source_script, dest_script)
+                self.logger.debug(f"Copied forceatlas2.js to {dest_script}")
+            else:
+                self.logger.warning(f"forceatlas2.js not found at {source_script}")
+        except Exception as e:
+            self.logger.warning(f"Could not copy forceatlas2.js: {e}")
 
     def _calculate_network_stats(self, graph: nx.DiGraph) -> dict[str, Any]:
         """
