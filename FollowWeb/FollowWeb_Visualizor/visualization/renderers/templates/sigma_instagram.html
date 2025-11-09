@@ -381,17 +381,43 @@
                 <h3>⚙️ Physics Settings</h3>
                 
                 <div class="control-group">
-                    <label for="gravity">
-                        Gravity: <span class="slider-value" id="gravityValue">1.0</span>
+                    <label for="linLogMode">
+                        <input type="checkbox" id="linLogMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        LinLog Mode
                     </label>
-                    <input type="range" id="gravity" min="0.1" max="5" step="0.1" value="1.0" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Enables logarithmic attraction for better clustering
+                    </small>
+                </div>
+                
+                <div class="control-group" id="gravityControl">
+                    <label for="gravity">
+                        <span id="gravityLabel">Gravity</span>: <span class="slider-value" id="gravityValue">1.0</span>
+                    </label>
+                    <input type="range" id="gravity" min="0" max="100" step="1" value="50" oninput="handleGravityInput()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;" id="gravityHint">
+                        Pulls nodes toward center
+                    </small>
                 </div>
                 
                 <div class="control-group">
                     <label for="scalingRatio">
-                        Scaling: <span class="slider-value" id="scalingValue">10</span>
+                        Physics Scale: <span class="slider-value" id="scalingValue">10</span>
                     </label>
-                    <input type="range" id="scalingRatio" min="1" max="50" step="1" value="10" oninput="updatePhysics()">
+                    <input type="range" id="scalingRatio" min="1" max="200" step="1" value="10" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Controls force calculation spacing
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="visualScale">
+                        Visual Scale: <span class="slider-value" id="visualScaleValue">0.5</span>
+                    </label>
+                    <input type="range" id="visualScale" min="0.1" max="5" step="0.1" value="0.5" oninput="updateVisualScale()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Adjusts node sizes in viewport
+                    </small>
                 </div>
                 
                 <div class="control-group">
@@ -399,27 +425,19 @@
                         Edge Weight: <span class="slider-value" id="edgeWeightValue">1.0</span>
                     </label>
                     <input type="range" id="edgeWeightInfluence" min="0" max="2" step="0.1" value="1.0" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        How much edge weights affect layout
+                    </small>
                 </div>
                 
                 <div class="control-group">
                     <label for="slowDown">
                         Slow Down: <span class="slider-value" id="slowDownValue">5.0</span>
                     </label>
-                    <input type="range" id="slowDown" min="0.1" max="10" step="0.1" value="5.0" oninput="updatePhysics()">
-                </div>
-                
-                <div class="control-group">
-                    <label for="strongGravityMode">
-                        <input type="checkbox" id="strongGravityMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
-                        Strong Gravity Mode
-                    </label>
-                </div>
-                
-                <div class="control-group">
-                    <label for="linLogMode">
-                        <input type="checkbox" id="linLogMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
-                        LinLog Mode
-                    </label>
+                    <input type="range" id="slowDown" min="0" max="100" step="1" value="50" oninput="handleSlowDownInput()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Higher = slower, more stable convergence
+                    </small>
                 </div>
                 
                 <div class="control-group">
@@ -427,6 +445,9 @@
                         <input type="checkbox" id="outboundAttractionDistribution" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
                         Outbound Attraction
                     </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Hubs attract more strongly
+                    </small>
                 </div>
                 
                 <div class="control-group">
@@ -434,6 +455,9 @@
                         <input type="checkbox" id="adjustSizes" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
                         Adjust Sizes (Prevent Overlap)
                     </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Prevents large nodes from overlapping
+                    </small>
                 </div>
                 
                 <div class="control-group">
@@ -441,13 +465,19 @@
                         <input type="checkbox" id="barnesHutOptimize" checked onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
                         Barnes-Hut Optimize
                     </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Faster computation for large graphs
+                    </small>
                 </div>
                 
-                <div class="control-group">
+                <div class="control-group" id="barnesHutThetaControl">
                     <label for="barnesHutTheta">
                         Barnes-Hut θ: <span class="slider-value" id="barnesHutThetaValue">0.5</span>
                     </label>
                     <input type="range" id="barnesHutTheta" min="0.1" max="1.5" step="0.1" value="0.5" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Lower = more accurate, higher = faster
+                    </small>
                 </div>
             </div>
             
@@ -530,11 +560,46 @@
             adjustSizes: false,
             barnesHutOptimize: true,
             barnesHutTheta: 0.5,
-            strongGravityMode: false
+            strongGravityMode: true
         };
         
-        // Separate setting for overlap prevention (not a ForceAtlas2 param)
-        let preventOverlap = false;
+        // Track which mode gravity is controlling and store separate values for each mode
+        let gravityControlsStrongMode = true; // Start with strong gravity mode
+        
+        // Separate settings for LinLog mode vs Normal mode
+        // Store as slider positions (0-100) for logarithmic mapping
+        let linLogSettings = {
+            gravitySlider: 30,  // Maps to ~0.1
+            slowDownSlider: 30, // Maps to ~0.1
+            scalingRatio: 10,
+            edgeWeightInfluence: 1.0
+        };
+        
+        let normalSettings = {
+            gravitySlider: 20,  // Maps to ~0.0025
+            slowDownSlider: 100, // Maps to 10
+            scalingRatio: 10,
+            edgeWeightInfluence: 1.0
+        };
+        
+        // Logarithmic mapping functions for progressive control
+        // Maps slider position (0-100) to actual value (0.0001-10)
+        function sliderToValue(sliderPos) {
+            // Logarithmic scale: 0.0001 to 10
+            // Position 0 = 0.0001, Position 50 = ~0.1, Position 100 = 10
+            const minLog = Math.log(0.0001);
+            const maxLog = Math.log(10);
+            const scale = (maxLog - minLog) / 100;
+            return Math.exp(minLog + scale * sliderPos);
+        }
+        
+        // Maps actual value (0.0001-10) to slider position (0-100)
+        function valueToSlider(value) {
+            const minLog = Math.log(0.0001);
+            const maxLog = Math.log(10);
+            const scale = (maxLog - minLog) / 100;
+            return Math.round((Math.log(Math.max(0.0001, value)) - minLog) / scale);
+        }
 
         function initGraph() {
             // Initialize Graphology graph
@@ -586,10 +651,10 @@
                     showTooltip(node);
                 }
                 const nodeAttributes = graph.getNodeAttributes(node);
-                if (!nodeAttributes.originalSize) {
-                    graph.setNodeAttribute(node, 'originalSize', nodeAttributes.size);
-                }
-                graph.setNodeAttribute(node, 'size', nodeAttributes.originalSize * 1.5);
+                const currentSize = nodeAttributes.size;
+                // Scale up by 1.5x from current visual size
+                graph.setNodeAttribute(node, 'size', currentSize * 1.5);
+                graph.setNodeAttribute(node, 'hovering', true);
                 renderer.refresh();
             });
 
@@ -598,8 +663,11 @@
                     hideTooltip();
                 }
                 const nodeAttributes = graph.getNodeAttributes(node);
-                if (nodeAttributes.originalSize) {
-                    graph.setNodeAttribute(node, 'size', nodeAttributes.originalSize);
+                if (nodeAttributes.hovering) {
+                    // Restore to base size with current visual scale
+                    const baseSize = baseNodeSizes.get(node) || 5;
+                    graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale);
+                    graph.setNodeAttribute(node, 'hovering', false);
                 }
                 renderer.refresh();
             });
@@ -684,13 +752,14 @@
                     if (!attributes.originalColor) {
                         graph.setNodeAttribute(node, 'originalColor', attributes.color);
                     }
-                    if (!attributes.originalSize) {
-                        graph.setNodeAttribute(node, 'originalSize', attributes.size);
-                    }
                     
                     // Highlight the node
                     graph.setNodeAttribute(node, 'color', '#ffff00');
-                    graph.setNodeAttribute(node, 'size', attributes.originalSize * 2);
+                    graph.setNodeAttribute(node, 'highlighted', true);
+                    
+                    // Make it 2x larger than current visual size
+                    const baseSize = baseNodeSizes.get(node) || 5;
+                    graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale * 2);
                     
                     // Center camera on node
                     const nodePosition = renderer.getNodeDisplayData(node);
@@ -718,9 +787,13 @@
             graph.forEachNode((node, attributes) => {
                 if (attributes.originalColor) {
                     graph.setNodeAttribute(node, 'color', attributes.originalColor);
+                    graph.setNodeAttribute(node, 'originalColor', undefined);
                 }
-                if (attributes.originalSize) {
-                    graph.setNodeAttribute(node, 'size', attributes.originalSize);
+                if (attributes.highlighted) {
+                    // Restore to base size with current visual scale
+                    const baseSize = baseNodeSizes.get(node) || 5;
+                    graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale);
+                    graph.setNodeAttribute(node, 'highlighted', false);
                 }
             });
 
@@ -743,28 +816,171 @@
             console.log('Tooltips:', showTooltips ? 'enabled' : 'disabled');
         }
 
+        // Format value with appropriate precision
+        function formatValue(val) {
+            if (val < 0.001) return val.toFixed(4);
+            if (val < 0.01) return val.toFixed(3);
+            if (val < 0.1) return val.toFixed(2);
+            return val.toFixed(1);
+        }
+
+        // Logarithmic gravity slider handler
+        function handleGravityInput() {
+            const slider = document.getElementById('gravity');
+            const sliderPos = parseInt(slider.value);
+            const actualValue = sliderToValue(sliderPos);
+            
+            // Save to current mode settings
+            const linLogMode = document.getElementById('linLogMode').checked;
+            if (linLogMode) {
+                linLogSettings.gravitySlider = sliderPos;
+            } else {
+                normalSettings.gravitySlider = sliderPos;
+            }
+            
+            // Update physics with actual value
+            physicsSettings.gravity = actualValue;
+            
+            // Update display
+            document.getElementById('gravityValue').textContent = formatValue(actualValue);
+            
+            console.log(`Gravity slider: ${sliderPos} → value: ${actualValue.toFixed(4)}`);
+        }
+
+        // Logarithmic slowDown slider handler
+        function handleSlowDownInput() {
+            const slider = document.getElementById('slowDown');
+            const sliderPos = parseInt(slider.value);
+            const actualValue = sliderToValue(sliderPos);
+            
+            // Save to current mode settings
+            const linLogMode = document.getElementById('linLogMode').checked;
+            if (linLogMode) {
+                linLogSettings.slowDownSlider = sliderPos;
+            } else {
+                normalSettings.slowDownSlider = sliderPos;
+            }
+            
+            // Update physics with actual value
+            physicsSettings.slowDown = actualValue;
+            
+            // Update display
+            document.getElementById('slowDownValue').textContent = formatValue(actualValue);
+            
+            console.log(`SlowDown slider: ${sliderPos} → value: ${actualValue.toFixed(4)}`);
+        }
+        
+        // Visual scale handler (affects node sizes in viewport)
+        let baseNodeSizes = new Map(); // Store original node sizes
+        let currentVisualScale = 0.5;
+        
+        function updateVisualScale() {
+            const visualScale = parseFloat(document.getElementById('visualScale').value);
+            document.getElementById('visualScaleValue').textContent = visualScale.toFixed(1);
+            
+            if (!graph) return;
+            
+            // Store base sizes on first call
+            if (baseNodeSizes.size === 0) {
+                graph.forEachNode((node, attributes) => {
+                    baseNodeSizes.set(node, attributes.size || 5);
+                });
+            }
+            
+            // Apply visual scale to all node sizes
+            graph.forEachNode((node, attributes) => {
+                const baseSize = baseNodeSizes.get(node) || attributes.size || 5;
+                graph.setNodeAttribute(node, 'size', baseSize * visualScale);
+            });
+            
+            currentVisualScale = visualScale;
+            
+            if (renderer) {
+                renderer.refresh();
+            }
+            
+            console.log(`Visual scale: ${visualScale} (node sizes multiplied)`);
+        }
+
         function updatePhysics() {
-            // Update physics settings from sliders and checkboxes
-            physicsSettings.gravity = parseFloat(document.getElementById('gravity').value);
-            physicsSettings.scalingRatio = parseFloat(document.getElementById('scalingRatio').value);
-            physicsSettings.edgeWeightInfluence = parseFloat(document.getElementById('edgeWeightInfluence').value);
-            physicsSettings.slowDown = parseFloat(document.getElementById('slowDown').value);
+            const linLogMode = document.getElementById('linLogMode').checked;
+            const barnesHutOptimize = document.getElementById('barnesHutOptimize').checked;
+            
+            // Get slider elements
+            const gravitySlider = document.getElementById('gravity');
+            const slowDownSlider = document.getElementById('slowDown');
+            const scalingSlider = document.getElementById('scalingRatio');
+            const edgeWeightSlider = document.getElementById('edgeWeightInfluence');
+            
+            // Check if mode changed (checkbox was toggled)
+            const modeChanged = (linLogMode && gravityControlsStrongMode) || (!linLogMode && !gravityControlsStrongMode);
+            
+            if (modeChanged) {
+                // Mode switched - restore all settings for the new mode
+                if (linLogMode) {
+                    // Switching TO LinLog mode - restore LinLog settings
+                    gravitySlider.value = linLogSettings.gravitySlider;
+                    slowDownSlider.value = linLogSettings.slowDownSlider;
+                    scalingSlider.value = linLogSettings.scalingRatio;
+                    edgeWeightSlider.value = linLogSettings.edgeWeightInfluence;
+                    
+                    physicsSettings.strongGravityMode = false;
+                    gravityControlsStrongMode = false;
+                    
+                    document.getElementById('gravityLabel').textContent = 'Gravity';
+                    document.getElementById('gravityHint').textContent = 'Pulls nodes toward center (LinLog Mode)';
+                    document.getElementById('gravityHint').style.color = '#4ecdc4';
+                } else {
+                    // Switching TO Normal mode - restore Normal settings
+                    gravitySlider.value = normalSettings.gravitySlider;
+                    slowDownSlider.value = normalSettings.slowDownSlider;
+                    scalingSlider.value = normalSettings.scalingRatio;
+                    edgeWeightSlider.value = normalSettings.edgeWeightInfluence;
+                    
+                    physicsSettings.strongGravityMode = true;
+                    gravityControlsStrongMode = true;
+                    
+                    document.getElementById('gravityLabel').textContent = 'Gravity (Strong)';
+                    document.getElementById('gravityHint').textContent = 'Pulls nodes toward center (Strong Mode)';
+                    document.getElementById('gravityHint').style.color = '#6c8eff';
+                }
+                
+                // Trigger input handlers to update actual values
+                handleGravityInput();
+                handleSlowDownInput();
+            } else {
+                // No mode change - save regular slider values to current mode
+                if (linLogMode) {
+                    linLogSettings.scalingRatio = parseFloat(scalingSlider.value);
+                    linLogSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
+                } else {
+                    normalSettings.scalingRatio = parseFloat(scalingSlider.value);
+                    normalSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
+                }
+            }
+            
+            // Apply current slider values to physics settings
+            // Gravity and slowDown are handled by their input handlers
+            physicsSettings.scalingRatio = parseFloat(scalingSlider.value);
+            physicsSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
             physicsSettings.barnesHutTheta = parseFloat(document.getElementById('barnesHutTheta').value);
-            physicsSettings.strongGravityMode = document.getElementById('strongGravityMode').checked;
-            physicsSettings.linLogMode = document.getElementById('linLogMode').checked;
+            physicsSettings.linLogMode = linLogMode;
             physicsSettings.outboundAttractionDistribution = document.getElementById('outboundAttractionDistribution').checked;
             physicsSettings.adjustSizes = document.getElementById('adjustSizes').checked;
-            physicsSettings.barnesHutOptimize = document.getElementById('barnesHutOptimize').checked;
+            physicsSettings.barnesHutOptimize = barnesHutOptimize;
             
-            // Update display values
-            document.getElementById('gravityValue').textContent = physicsSettings.gravity.toFixed(1);
+            // Show/hide Barnes-Hut theta control based on optimization setting
+            const barnesHutThetaControl = document.getElementById('barnesHutThetaControl');
+            barnesHutThetaControl.style.display = barnesHutOptimize ? 'block' : 'none';
+            
+            // Update display values for non-logarithmic sliders
             document.getElementById('scalingValue').textContent = physicsSettings.scalingRatio.toFixed(0);
             document.getElementById('edgeWeightValue').textContent = physicsSettings.edgeWeightInfluence.toFixed(1);
-            document.getElementById('slowDownValue').textContent = physicsSettings.slowDown.toFixed(1);
             document.getElementById('barnesHutThetaValue').textContent = physicsSettings.barnesHutTheta.toFixed(1);
             
             // Settings will be applied on next animation frame if layout is running
             console.log('Physics settings updated:', physicsSettings);
+            console.log('Mode:', linLogMode ? 'LinLog' : 'Normal (Strong Gravity)');
         }
 
         function startLayout() {
@@ -886,11 +1102,27 @@
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 initGraph();
+                
+                // Store base node sizes before any scaling
+                graph.forEachNode((node, attributes) => {
+                    baseNodeSizes.set(node, attributes.size || 5);
+                });
+                
                 initRenderer();
                 
                 // Set checkbox states based on config
                 document.getElementById('showLabels').checked = config.show_labels !== false;
                 document.getElementById('showTooltips').checked = config.show_tooltips !== false;
+                
+                // Initialize logarithmic sliders with default values
+                handleGravityInput();
+                handleSlowDownInput();
+                
+                // Initialize visual scale (apply 0.5 default)
+                updateVisualScale();
+                
+                // Initialize physics UI state
+                updatePhysics();
                 
                 console.log('Sigma.js visualization initialized');
                 console.log('Nodes:', graph.order);
