@@ -43,22 +43,114 @@
             top: 20px;
             left: 20px;
             background: rgba(26, 30, 63, 0.95);
-            padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 320px;
+            width: 320px;
+            max-width: calc(100vw - 40px);
             z-index: 1000;
             max-height: 90vh;
-            overflow-y: auto;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #controls.hidden {
+            max-height: 60px;
+            width: fit-content;
+            min-width: auto;
+            overflow: hidden;
+        }
+        
+        #controls-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(108, 142, 255, 0.1);
+            border-radius: 12px 12px 0 0;
+            transition: background 0.2s ease;
+            min-height: 60px;
+            box-sizing: border-box;
+        }
+        
+        #controls-header:hover {
+            background: rgba(108, 142, 255, 0.15);
+        }
+        
+        #controls-toggle {
+            background: transparent;
+            color: #6c8eff;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            line-height: 1;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        
+        #controls-toggle-icon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+        
+        #controls.hidden #controls-toggle-icon {
+            transform: rotate(-90deg);
         }
 
         #controls h2 {
-            margin: 0 0 15px 0;
+            margin: 0;
+            padding-right: 28px;
             font-size: 18px;
             color: #6c8eff;
             font-weight: 600;
+            flex: 1;
+        }
+        
+        #controls-content {
+            padding: 0 20px 20px 20px;
+            max-height: calc(90vh - 60px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        
+        #controls.hidden #controls-content {
+            display: none;
+        }
+        
+        /* Custom scrollbar for controls content */
+        #controls-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #controls-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        #controls-content::-webkit-scrollbar-thumb {
+            background: rgba(108, 142, 255, 0.5);
+            border-radius: 4px;
+        }
+        
+        #controls-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(108, 142, 255, 0.7);
+        }
+        
+        /* Firefox scrollbar */
+        #controls-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(108, 142, 255, 0.5) rgba(255, 255, 255, 0.05);
         }
 
         #stats {
@@ -127,7 +219,7 @@
             background: rgba(255, 255, 255, 0.08);
         }
 
-        button {
+        #controls-content button {
             width: 100%;
             padding: 10px;
             margin: 5px 0;
@@ -141,20 +233,20 @@
             transition: all 0.3s ease;
         }
 
-        button:hover {
+        #controls-content button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(108, 142, 255, 0.4);
         }
 
-        button:active {
+        #controls-content button:active {
             transform: translateY(0);
         }
 
-        button.secondary {
+        #controls-content button.secondary {
             background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
         }
 
-        button.secondary:hover {
+        #controls-content button.secondary:hover {
             box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
         }
 
@@ -219,19 +311,19 @@
             margin-bottom: 12px;
         }
 
-        button.danger {
+        #controls-content button.danger {
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
         }
 
-        button.danger:hover {
+        #controls-content button.danger:hover {
             box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
         }
 
-        button.success {
+        #controls-content button.success {
             background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
         }
 
-        button.success:hover {
+        #controls-content button.success:hover {
             box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
         }
 
@@ -327,6 +419,9 @@
             transform: translate(-50%, -50%);
             text-align: center;
             z-index: 2000;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px 40px;
+            border-radius: 12px;
         }
 
         .spinner {
@@ -343,6 +438,92 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Responsive: Hide title text on narrow screens to prevent overlap with stats */
+        @media (max-width: 768px) {
+            /* Hide title when collapsed */
+            #controls.hidden .controls-title-text {
+                display: none;
+            }
+            
+            /* Hide the entire h2 when collapsed to remove its space */
+            #controls.hidden h2 {
+                display: none;
+            }
+            
+            /* Show title when expanded */
+            #controls:not(.hidden) .controls-title-text {
+                display: inline;
+            }
+            
+            #controls {
+                width: calc(100vw - 40px) !important;
+                max-width: 100% !important;
+                left: 20px;
+                right: auto;
+            }
+            
+            #controls.hidden {
+                width: fit-content !important;
+                min-width: auto !important;
+                padding: 0 !important;
+            }
+            
+            #controls-header {
+                padding: 12px 16px;
+                min-width: auto;
+                width: 100%;
+                justify-content: center;
+                gap: 0;
+            }
+            
+            /* When expanded, show title with proper gap */
+            #controls:not(.hidden) #controls-header {
+                gap: 12px;
+                justify-content: flex-start;
+                padding: 12px 16px;
+            }
+            
+            #controls.hidden #controls-header {
+                width: fit-content;
+                padding: 16px;
+                border-radius: 12px;
+            }
+            
+            #controls-content {
+                padding: 0 15px 15px 15px;
+            }
+            
+            input[type="text"],
+            #controls-content button {
+                font-size: 13px;
+            }
+            
+            /* Hide other panels when settings are expanded on mobile */
+            #controls:not(.hidden) ~ #stats,
+            #controls:not(.hidden) ~ #node-info,
+            #controls:not(.hidden) ~ #legend {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            #controls {
+                top: 10px;
+                left: 10px;
+                right: auto;
+                width: calc(100vw - 20px) !important;
+                max-width: 100% !important;
+            }
+            
+            #stats {
+                top: 10px;
+                right: 10px;
+                padding: 12px;
+                min-width: 150px;
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -353,7 +534,13 @@
         </div>
 
         <div id="controls">
-            <h2>🔍 Network Controls</h2>
+            <div id="controls-header">
+                <button id="controls-toggle" aria-label="Toggle controls">
+                    <span id="controls-toggle-icon">☰</span>
+                </button>
+                <h2><span class="controls-title-text">⚙️ Network Controls</span></h2>
+            </div>
+            <div id="controls-content">
             <div class="control-group">
                 <label for="search">Search User:</label>
                 <input type="text" id="search" placeholder="Enter username...">
@@ -482,6 +669,7 @@
             </div>
             
             <button onclick="exportView()" class="secondary">Export View</button>
+            </div>
         </div>
 
         <div id="stats">
@@ -1123,6 +1311,24 @@
                 
                 // Initialize physics UI state
                 updatePhysics();
+                
+                // Initialize controls toggle - hidden by default
+                const controlsHeader = document.getElementById('controls-header');
+                const controls = document.getElementById('controls');
+                let controlsVisible = false;
+                
+                // Hide controls by default on all devices
+                controls.classList.add('hidden');
+                
+                controlsHeader.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    controlsVisible = !controlsVisible;
+                    if (controlsVisible) {
+                        controls.classList.remove('hidden');
+                    } else {
+                        controls.classList.add('hidden');
+                    }
+                });
                 
                 console.log('Sigma.js visualization initialized');
                 console.log('Nodes:', graph.order);
