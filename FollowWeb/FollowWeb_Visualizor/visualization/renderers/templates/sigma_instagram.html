@@ -339,7 +339,32 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             max-width: 350px;
             display: none;
-            z-index: 1000;
+            z-index: 1001;
+        }
+        
+        #node-info-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: #a0a0a0;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        #node-info-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
         }
 
         #node-info h3 {
@@ -499,6 +524,15 @@
                 font-size: 13px;
             }
             
+            /* Mobile-friendly node info panel */
+            #node-info {
+                left: 50%;
+                bottom: 10px;
+                transform: translateX(-50%);
+                max-width: calc(100vw - 40px);
+                width: 90%;
+            }
+            
             /* Hide other panels when settings are expanded on mobile */
             #controls:not(.hidden) ~ #stats,
             #controls:not(.hidden) ~ #node-info,
@@ -522,6 +556,30 @@
                 padding: 12px;
                 min-width: 150px;
                 font-size: 12px;
+            }
+        }
+        
+        /* Mobile hint for tapping nodes */
+        @media (hover: none) and (pointer: coarse) {
+            #container::after {
+                content: '👆 Tap a node to see details';
+                position: absolute;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(108, 142, 255, 0.9);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                pointer-events: none;
+                animation: fadeOut 4s forwards;
+                z-index: 999;
+            }
+            
+            @keyframes fadeOut {
+                0%, 70% { opacity: 1; }
+                100% { opacity: 0; }
             }
         }
     </style>
@@ -695,6 +753,7 @@
         </div>
 
         <div id="node-info">
+            <button id="node-info-close" onclick="closeNodeInfo()" aria-label="Close">×</button>
             <h3 id="node-name"></h3>
             <p><strong>Followers:</strong> <span id="node-followers">0</span></p>
             <p><strong>Following:</strong> <span id="node-following">0</span></p>
@@ -828,9 +887,84 @@
                 enableEdgeEvents: true
             });
 
-            // Add click event
+            // Track touch/click state for mobile support
+            let touchState = {
+                node: null,
+                startX: 0,
+                startY: 0,
+                startTime: 0,
+                moved: false,
+                timeout: null
+            };
+            
+            // Add click event for desktop
             renderer.on('clickNode', ({ node }) => {
                 showNodeInfo(node);
+            });
+
+            // Track touch start on node
+            renderer.on('downNode', ({ node, event }) => {
+                // Clear any existing timeout
+                if (touchState.timeout) {
+                    clearTimeout(touchState.timeout);
+                }
+                
+                // Record touch start
+                touchState.node = node;
+                touchState.startX = event.x;
+                touchState.startY = event.y;
+                touchState.startTime = Date.now();
+                touchState.moved = false;
+                
+                console.log('Touch start on node:', node);
+            });
+            
+            // Track camera movement (indicates dragging)
+            let lastCameraState = null;
+            renderer.getCamera().on('updated', () => {
+                if (touchState.node) {
+                    const currentState = renderer.getCamera().getState();
+                    
+                    if (lastCameraState) {
+                        // Check if camera moved significantly
+                        const dx = Math.abs(currentState.x - lastCameraState.x);
+                        const dy = Math.abs(currentState.y - lastCameraState.y);
+                        const dr = Math.abs(currentState.ratio - lastCameraState.ratio);
+                        
+                        if (dx > 0.001 || dy > 0.001 || dr > 0.001) {
+                            touchState.moved = true;
+                            console.log('Camera moved - drag detected');
+                        }
+                    }
+                    
+                    lastCameraState = currentState;
+                }
+            });
+            
+            // Detect tap vs drag on touch end
+            renderer.getMouseCaptor().on('mouseup', (event) => {
+                if (touchState.node) {
+                    const duration = Date.now() - touchState.startTime;
+                    
+                    console.log('Touch end:', {
+                        node: touchState.node,
+                        duration: duration + 'ms',
+                        moved: touchState.moved
+                    });
+                    
+                    // If touch was quick (<400ms) and didn't move, treat as tap
+                    if (!touchState.moved && duration < 400) {
+                        console.log('Tap detected - showing node info');
+                        showNodeInfo(touchState.node);
+                    } else {
+                        console.log('Drag detected - not showing node info');
+                    }
+                    
+                    // Reset state
+                    touchState.node = null;
+                    touchState.moved = false;
+                    lastCameraState = null;
+                }
             });
 
             // Add hover events
@@ -894,6 +1028,10 @@
             {% endif %}
             
             document.getElementById('node-info').style.display = 'block';
+        }
+        
+        function closeNodeInfo() {
+            document.getElementById('node-info').style.display = 'none';
         }
 
         function showTooltip(nodeId) {
