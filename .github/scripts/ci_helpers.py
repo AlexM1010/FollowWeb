@@ -9,7 +9,6 @@ for CI/CD pipelines using the existing EmojiFormatter system.
 import os
 import platform
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -18,7 +17,7 @@ from pathlib import Path
 followweb_path = Path(__file__).parent.parent.parent / "FollowWeb"
 sys.path.insert(0, str(followweb_path))
 
-from FollowWeb_Visualizor.output.formatters import EmojiFormatter
+from FollowWeb_Visualizor.output.formatters import EmojiFormatter  # noqa: E402
 
 def _setup_ci_emoji_config():
     """
