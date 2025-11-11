@@ -1,0 +1,609 @@
+# Freesound Pipeline Test
+#
+# Full-featured test workflow for validating the Freesound pipeline with minimal API usage.
+# Uses the complete production pipeline including checkpoint backup/restore for incremental growth.
+#
+# Architecture:
+# - Persistent Storage: Private GitHub repository release assets (TOS-compliant)
+# - Ephemeral Cache: Workflow cache populated from private repo at start, wiped at end
+# - Split Checkpoint: Graph topology (.gpickle) + SQLite metadata (.db) + metadata JSON
+#
+# Features:
+# - Manual trigger only (no scheduled runs)
+# - Limited to 50 API requests by default (configurable)
+# - Incremental data collection with checkpoint recovery
+# - Automatic visualization generation
+# - Private repository backup with 14-day rolling retention
+# - Comprehensive logging and monitoring
+#
+# This workflow is identical to the production pipeline except for:
+# - Lower API request limit (50 vs 1950)
+# - Lower recursive depth (1 vs 3)
+# - Manual trigger only (no scheduling)
+# - Shorter timeout (60 vs 120 minutes)
+
+name: Freesound Pipeline Test
+
+on:
+  workflow_dispatch:
+    # Allow manual triggering with custom parameters
+    inputs:
+      seed_sample_id:
+        description: 'Seed sample ID (leave empty to use most downloaded sample)'
+        required: false
+        default: ''
+        type: string
+      max_requests:
+        description: 'Maximum API requests (circuit breaker, default: 50)'
+        required: false
+        default: '50'
+        type: string
+      recursive_depth:
+        description: 'Depth of recursive similar sound fetching (default: 1)'
+        required: false
+        default: '1'
+        type: string
+
+# Prevent workflow collisions
+concurrency:
+  group: freesound-pipeline-test
+  cancel-in-progress: false
+
+jobs:
+  test-pipeline:
+    name: Test Freesound Data Collection & Visualization
+    runs-on: ubuntu-latest
+    timeout-minutes: 60  # 1-hour timeout
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for proper Git operations
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Git
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git config --global init.defaultBranch main
+        git config --global advice.detachedHead false
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements.txt'
+    
+    - name: Display Python environment info
+      run: |
+        python --version
+        python -c "import sys; print(f'Python executable: {sys.executable}')"
+        python -c "import platform; print(f'Platform: {platform.platform()}')"
+        pip --version
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r FollowWeb/requirements.txt
+        pip install -e FollowWeb/
+    
+    - name: Verify installation
+      run: |
+        python -c "import FollowWeb_Visualizor"
+        echo "✅ FollowWeb package imported successfully"
+        python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader"
+        echo "✅ IncrementalFreesoundLoader available"
+        python -c "from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer"
+        echo "✅ SigmaRenderer available"
+    
+    - name: Set pipeline parameters
+      id: params
+      run: |
+        # Use workflow_dispatch inputs (test workflow is always manual)
+        echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> $GITHUB_OUTPUT
+        echo "max_requests=${{ github.event.inputs.max_requests || '50' }}" >> $GITHUB_OUTPUT
+        echo "depth=${{ github.event.inputs.recursive_depth || '1' }}" >> $GITHUB_OUTPUT
+        
+        # Generate execution ID
+        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+    
+    - name: Download checkpoint from private repository
+      id: download_checkpoint
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "**📥 Phase 1: Download Checkpoint from Private Repository**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if BACKUP_PAT is configured
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "⚠️ BACKUP_PAT not configured, starting with empty checkpoint"
+          echo "- Status: No backup available" >> $GITHUB_STEP_SUMMARY
+          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        # Get repository owner and name from GITHUB_REPOSITORY
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # List all assets from v-checkpoint release
+        echo "Fetching assets from ${BACKUP_REPO} release v-checkpoint..."
+        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        # Check if release exists
+        if echo "$ASSETS_JSON" | grep -q "Not Found"; then
+          echo "⚠️ Release v-checkpoint not found in ${BACKUP_REPO}"
+          echo "- Status: No backup available" >> $GITHUB_STEP_SUMMARY
+          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        # Find most recent checkpoint backup
+        LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
+        
+        if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
+          echo "⚠️ No checkpoint backups found in ${BACKUP_REPO}"
+          echo "- Status: No backup available" >> $GITHUB_STEP_SUMMARY
+          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        # Extract asset details
+        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
+        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
+        ASSET_SIZE=$(echo "$LATEST_ASSET" | jq -r '.size')
+        ASSET_CREATED=$(echo "$LATEST_ASSET" | jq -r '.created_at')
+        
+        echo "📦 Found latest backup: $ASSET_NAME"
+        echo "- Size: $(numfmt --to=iec-i --suffix=B $ASSET_SIZE)"
+        echo "- Created: $ASSET_CREATED"
+        
+        # Download asset
+        echo "Downloading checkpoint backup..."
+        curl -L -H "Authorization: token $BACKUP_PAT" \
+          -H "Accept: application/octet-stream" \
+          "$ASSET_URL" -o checkpoint_backup.tar.gz
+        
+        # Extract to data/freesound_library/
+        echo "Extracting checkpoint to data/freesound_library/..."
+        mkdir -p data/freesound_library
+        tar -xzf checkpoint_backup.tar.gz -C data/
+        
+        # Verify extraction
+        if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
+          echo "✅ Checkpoint restored successfully"
+          echo "- Backup: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Created: \`$ASSET_CREATED\`" >> $GITHUB_STEP_SUMMARY
+          echo "checkpoint_restored=true" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️ Checkpoint extraction failed"
+          echo "- Status: Extraction failed" >> $GITHUB_STEP_SUMMARY
+          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Cleanup
+        rm -f checkpoint_backup.tar.gz
+    
+    - name: Check for workflow conflicts
+      id: orchestration
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python -c "
+        from workflow_orchestrator import WorkflowOrchestrator
+        import os
+        import sys
+        
+        orchestrator = WorkflowOrchestrator(
+            github_token=os.environ['GITHUB_TOKEN'],
+            repository='${{ github.repository }}'
+        )
+        
+        can_proceed, reason = orchestrator.check_and_wait_for_conflicts(
+            current_workflow='freesound-pipeline-test',
+            timeout=3600  # 1 hour
+        )
+        
+        # Set output for subsequent steps to check
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'can_proceed={str(can_proceed).lower()}\n')
+            f.write(f'skip_reason={reason}\n')
+        
+        if not can_proceed:
+            print(f'⚠️ SKIPPING EXECUTION: {reason}')
+            # Write to GitHub Actions step summary
+            with open(os.environ.get('GITHUB_STEP_SUMMARY', '/dev/null'), 'a') as f:
+                f.write(f'## ⚠️ Execution Skipped\n\n')
+                f.write(f'**Reason:** {reason}\n\n')
+                f.write(f'The test workflow will wait for conflicting workflows to complete.\n')
+        "
+    
+    - name: Display pipeline configuration
+      if: steps.orchestration.outputs.can_proceed == 'true'
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🧪 Phase 2: Test Pipeline Configuration**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ steps.params.outputs.seed_sample_id }}" ]; then
+          echo "- Seed Sample ID: \`${{ steps.params.outputs.seed_sample_id }}\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- Seed Sample: \`Most downloaded sample (auto-detected)\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> $GITHUB_STEP_SUMMARY
+        echo "- Recursive Depth: \`${{ steps.params.outputs.depth }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Trigger: \`${{ github.event_name }}\` (test mode)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Run data collection and visualization
+      if: steps.orchestration.outputs.can_proceed == 'true'
+      id: pipeline
+      env:
+        FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+      run: |
+        echo "**📊 Phase 3: Data Collection**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Build command with optional seed sample ID
+        cmd="python generate_freesound_visualization.py"
+        if [ -n "${{ steps.params.outputs.seed_sample_id }}" ]; then
+          cmd="$cmd --seed-sample-id ${{ steps.params.outputs.seed_sample_id }}"
+        fi
+        cmd="$cmd --max-requests ${{ steps.params.outputs.max_requests }}"
+        cmd="$cmd --depth ${{ steps.params.outputs.depth }}"
+        
+        # Run the pipeline script
+        eval "$cmd" 2>&1 | tee pipeline_${{ steps.params.outputs.execution_id }}.log
+        
+        # Capture exit code
+        pipeline_exit_code=${PIPESTATUS[0]}
+        
+        if [ $pipeline_exit_code -eq 0 ]; then
+          echo "✅ Data collection and visualization completed successfully"
+          echo "pipeline_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Pipeline failed with exit code: $pipeline_exit_code"
+          echo "pipeline_status=failed" >> $GITHUB_OUTPUT
+          exit $pipeline_exit_code
+        fi
+    
+    - name: Append execution metrics
+      if: steps.pipeline.outputs.pipeline_status == 'success'
+      run: |
+        # Extract metrics from log
+        log_file="pipeline_${{ steps.params.outputs.execution_id }}.log"
+        
+        # Create metrics entry
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        nodes_added=$(grep -oP "(?<=Nodes added: )\d+" "$log_file" | tail -1 || echo "0")
+        edges_added=$(grep -oP "(?<=Edges added: )\d+" "$log_file" | tail -1 || echo "0")
+        api_requests=$(grep -oP "(?<=API requests: )\d+" "$log_file" | tail -1 || echo "0")
+        duration=$(grep -oP "(?<=Duration: )\d+" "$log_file" | tail -1 || echo "0")
+        
+        # Append to metrics history
+        mkdir -p data
+        echo "{\"timestamp\":\"$timestamp\",\"nodes_added\":$nodes_added,\"edges_added\":$edges_added,\"api_requests\":$api_requests,\"duration\":$duration}" >> data/metrics_history.jsonl
+        
+        echo "✅ Metrics appended to history"
+    
+    - name: Upload checkpoint to private repository
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      id: upload_checkpoint
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**💾 Phase 4: Upload Checkpoint to Private Repository**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if BACKUP_PAT is configured
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "⚠️ BACKUP_PAT not configured, skipping backup upload"
+          echo "- Status: Backup skipped (PAT not configured)" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        # Create tar.gz archive
+        backup_filename="checkpoint_backup_${{ github.run_id }}.tar.gz"
+        echo "Creating backup archive: $backup_filename"
+        tar -czf "$backup_filename" -C data freesound_library/
+        
+        # Get file size
+        backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
+        echo "Backup size: $(numfmt --to=iec-i --suffix=B $backup_size)"
+        
+        # Get repository details
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # Get release ID for v-checkpoint
+        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
+        
+        if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
+          echo "❌ Release v-checkpoint not found in ${BACKUP_REPO}"
+          echo "- Status: Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Upload asset
+        echo "Uploading backup to ${BACKUP_REPO}..."
+        UPLOAD_URL="https://uploads.github.com/repos/${BACKUP_REPO}/releases/${RELEASE_ID}/assets?name=${backup_filename}"
+        
+        UPLOAD_RESPONSE=$(curl -s -X POST \
+          -H "Authorization: token $BACKUP_PAT" \
+          -H "Content-Type: application/gzip" \
+          --data-binary "@${backup_filename}" \
+          "$UPLOAD_URL")
+        
+        ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
+        
+        if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
+          echo "❌ Failed to upload backup"
+          echo "- Status: Upload failed" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "✅ Backup uploaded successfully"
+        echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Run ID: \`${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Cleanup local backup file
+        rm -f "$backup_filename"
+    
+    - name: Cleanup old backups (retention policy)
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🧹 Phase 5: Backup Retention Policy**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if BACKUP_PAT is configured
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "⚠️ BACKUP_PAT not configured, skipping retention cleanup"
+          exit 0
+        fi
+        
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # List all assets from v-checkpoint release
+        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        # Get total asset count
+        TOTAL_ASSETS=$(echo "$ASSETS_JSON" | jq '.assets | length')
+        echo "Total backups: $TOTAL_ASSETS"
+        
+        # Keep only 14 most recent backups
+        MAX_BACKUPS=14
+        
+        if [ "$TOTAL_ASSETS" -le "$MAX_BACKUPS" ]; then
+          echo "✅ Retention policy satisfied ($TOTAL_ASSETS <= $MAX_BACKUPS)"
+          echo "- Backups retained: \`$TOTAL_ASSETS\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Backups deleted: \`0\`" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        # Calculate how many to delete
+        TO_DELETE=$((TOTAL_ASSETS - MAX_BACKUPS))
+        echo "Deleting $TO_DELETE oldest backups..."
+        
+        # Get oldest assets (sorted by creation date)
+        ASSETS_TO_DELETE=$(echo "$ASSETS_JSON" | jq -r ".assets | sort_by(.created_at) | .[:$TO_DELETE] | .[].id")
+        
+        DELETED_COUNT=0
+        for ASSET_ID in $ASSETS_TO_DELETE; do
+          echo "Deleting asset ID: $ASSET_ID"
+          DELETE_RESPONSE=$(curl -s -X DELETE \
+            -H "Authorization: token $BACKUP_PAT" \
+            "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}")
+          
+          if [ $? -eq 0 ]; then
+            DELETED_COUNT=$((DELETED_COUNT + 1))
+          else
+            echo "⚠️ Failed to delete asset $ASSET_ID"
+          fi
+        done
+        
+        RETAINED_COUNT=$((TOTAL_ASSETS - DELETED_COUNT))
+        echo "✅ Retention cleanup complete"
+        echo "- Backups retained: \`$RETAINED_COUNT\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Backups deleted: \`$DELETED_COUNT\`" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Extract pipeline statistics
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      id: stats
+      run: |
+        # Extract statistics from log file
+        log_file="pipeline_${{ steps.params.outputs.execution_id }}.log"
+        
+        # Extract nodes and edges statistics
+        nodes_added=$(grep -oP "(?<=Nodes added: )\d+" "$log_file" | tail -1 || echo "N/A")
+        edges_added=$(grep -oP "(?<=Edges added: )\d+" "$log_file" | tail -1 || echo "N/A")
+        total_nodes=$(grep -oP "(?<=Total nodes: )\d+" "$log_file" | tail -1 || echo "N/A")
+        total_edges=$(grep -oP "(?<=Total edges: )\d+" "$log_file" | tail -1 || echo "N/A")
+        
+        # Extract seed sample information
+        seed_sample_id=$(grep -oP "(?<=Seed sample ID: )\d+" "$log_file" | tail -1 || echo "N/A")
+        seed_sample_name=$(grep -oP "(?<=Seed sample name: ).*" "$log_file" | tail -1 || echo "N/A")
+        
+        # Extract visualization output path
+        viz_path=$(grep -oP "(?<=Output: )Output/.*\.html" "$log_file" | tail -1 || echo "N/A")
+        
+        # Calculate execution time
+        start_time="${{ steps.params.outputs.execution_id }}"
+        start_epoch=$(date -d "${start_time:0:8} ${start_time:9:2}:${start_time:11:2}:${start_time:13:2}" +%s 2>/dev/null || echo "0")
+        current_epoch=$(date +%s)
+        duration_seconds=$((current_epoch - start_epoch))
+        duration_minutes=$((duration_seconds / 60))
+        
+        echo "nodes_added=$nodes_added" >> $GITHUB_OUTPUT
+        echo "edges_added=$edges_added" >> $GITHUB_OUTPUT
+        echo "total_nodes=$total_nodes" >> $GITHUB_OUTPUT
+        echo "total_edges=$total_edges" >> $GITHUB_OUTPUT
+        echo "seed_sample_id=$seed_sample_id" >> $GITHUB_OUTPUT
+        echo "seed_sample_name=$seed_sample_name" >> $GITHUB_OUTPUT
+        echo "viz_path=$viz_path" >> $GITHUB_OUTPUT
+        echo "duration_seconds=$duration_seconds" >> $GITHUB_OUTPUT
+        echo "duration_minutes=$duration_minutes" >> $GITHUB_OUTPUT
+    
+    - name: Commit and push changes
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**💾 Phase 6: Git Persistence**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Add ONLY visualizations and metrics (NOT checkpoint data)
+        git add Output/*.html data/metrics_history.jsonl
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "ℹ️ No changes to commit"
+          echo "- No new visualizations generated" >> $GITHUB_STEP_SUMMARY
+        else
+          # Create commit message with statistics
+          commit_msg="Test pipeline: $(date +'%Y-%m-%d %H:%M')"
+          if [ "${{ steps.stats.outputs.nodes_added }}" != "N/A" ]; then
+            commit_msg="$commit_msg - +${{ steps.stats.outputs.nodes_added }} nodes, +${{ steps.stats.outputs.edges_added }} edges (total: ${{ steps.stats.outputs.total_nodes }} nodes, ${{ steps.stats.outputs.total_edges }} edges)"
+          fi
+          
+          git commit -m "$commit_msg"
+          git push
+          
+          echo "✅ Changes committed and pushed"
+          echo "- Commit: \`$commit_msg\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Files: Visualizations, metrics history" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Cleanup ephemeral cache
+      if: always()
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🧹 Phase 7: Cleanup Ephemeral Cache**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Delete checkpoint directory
+        if [ -d "data/freesound_library" ]; then
+          rm -rf data/freesound_library
+          echo "✅ Ephemeral cache wiped"
+          echo "- Status: Cache deleted" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "ℹ️ No cache to clean"
+          echo "- Status: No cache found" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Generate execution summary
+      if: always()
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📈 Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if execution was skipped due to conflicts
+        if [ "${{ steps.orchestration.outputs.can_proceed }}" = "false" ]; then
+          echo "### ⏭️ Status: Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** ${{ steps.orchestration.outputs.skip_reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time." >> $GITHUB_STEP_SUMMARY
+          echo "The workflow will retry on the next scheduled run." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.pipeline.outputs.pipeline_status }}" = "success" ]; then
+          echo "### ✅ Status: Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Execution time
+          duration_min="${{ steps.stats.outputs.duration_minutes }}"
+          duration_sec="${{ steps.stats.outputs.duration_seconds }}"
+          if [ "$duration_min" != "N/A" ] && [ "$duration_min" -gt 0 ]; then
+            echo "**⏱️ Execution Time:** ${duration_min} minutes (${duration_sec} seconds)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**⏱️ Execution Time:** ${duration_sec} seconds" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Data collection statistics
+          echo "### 📊 Data Collection Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Nodes Added** | \`${{ steps.stats.outputs.nodes_added }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Edges Added** | \`${{ steps.stats.outputs.edges_added }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Nodes** | \`${{ steps.stats.outputs.total_nodes }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Edges** | \`${{ steps.stats.outputs.total_edges }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Seed sample information
+          if [ "${{ steps.stats.outputs.seed_sample_id }}" != "N/A" ]; then
+            echo "**🌱 Seed Sample:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ID: \`${{ steps.stats.outputs.seed_sample_id }}\`" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.stats.outputs.seed_sample_name }}" != "N/A" ]; then
+              echo "- Name: \`${{ steps.stats.outputs.seed_sample_name }}\`" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Visualization output
+          if [ "${{ steps.stats.outputs.viz_path }}" != "N/A" ]; then
+            echo "**🎨 Visualization:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Path: \`${{ steps.stats.outputs.viz_path }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- [View in Repository](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/${{ steps.stats.outputs.viz_path }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+        else
+          echo "### ❌ Status: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The pipeline execution failed. Please check the logs for error details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
+          echo "- API key not configured or invalid" >> $GITHUB_STEP_SUMMARY
+          echo "- API rate limit exceeded" >> $GITHUB_STEP_SUMMARY
+          echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
+          echo "- Checkpoint file corruption" >> $GITHUB_STEP_SUMMARY
+          echo "- BACKUP_PAT not configured or invalid" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Execution details (always shown)
+        echo "### 📋 Execution Details" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Artifacts
+        echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Pipeline logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
+        echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Upload pipeline logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-pipeline-logs-${{ steps.params.outputs.execution_id }}
+        path: |
+          pipeline_*.log
+          freesound_viz_*.log
+          fetch_freesound_*.log
+        retention-days: 14
+        if-no-files-found: ignore
