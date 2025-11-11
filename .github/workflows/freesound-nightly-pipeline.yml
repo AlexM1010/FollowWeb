@@ -1,7 +1,8 @@
-# Freesound Pipeline Test
+# Freesound Nightly Pipeline
 #
-# Full-featured test workflow for validating the Freesound pipeline with minimal API usage.
-# Uses the complete production pipeline including checkpoint backup/restore for incremental growth.
+# Automated pipeline that runs daily to continuously grow the Freesound sample library
+# by consuming the daily API request allowance (2000 requests) and generating updated
+# interactive visualizations.
 #
 # Architecture:
 # - Persistent Storage: Private GitHub repository release assets (TOS-compliant)
@@ -9,22 +10,20 @@
 # - Split Checkpoint: Graph topology (.gpickle) + SQLite metadata (.db) + metadata JSON
 #
 # Features:
-# - Manual trigger only (no scheduled runs)
-# - Limited to 50 API requests by default (configurable)
+# - Scheduled execution at 2 AM UTC daily
+# - Manual trigger with configurable parameters
 # - Incremental data collection with checkpoint recovery
 # - Automatic visualization generation
 # - Private repository backup with 14-day rolling retention
 # - Comprehensive logging and monitoring
-#
-# This workflow is identical to the production pipeline except for:
-# - Lower API request limit (50 vs 1950)
-# - Lower recursive depth (1 vs 3)
-# - Manual trigger only (no scheduling)
-# - Shorter timeout (60 vs 120 minutes)
 
-name: Freesound Pipeline Test
+name: Freesound Nightly Pipeline
 
 on:
+  schedule:
+    # Run at 2 AM UTC Monday through Saturday (skip Sunday for validation)
+    - cron: '0 2 * * 1-6'
+  
   workflow_dispatch:
     # Allow manual triggering with custom parameters
     inputs:
@@ -34,35 +33,26 @@ on:
         default: ''
         type: string
       max_requests:
-        description: 'Maximum API requests (circuit breaker, default: 50)'
+        description: 'Maximum API requests (circuit breaker, default: 1950)'
         required: false
-        default: '50'
+        default: '1950'
         type: string
       recursive_depth:
-        description: 'Depth of recursive similar sound fetching (default: 1)'
+        description: 'Depth of recursive similar sound fetching'
         required: false
-        default: '1'
+        default: '3'
         type: string
 
 # Prevent workflow collisions
 concurrency:
-  group: freesound-pipeline-test
+  group: freesound-pipeline
   cancel-in-progress: false
 
-# Required permissions for GitHub Pages deployment
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 jobs:
-  test-pipeline:
-    name: Test Freesound Data Collection & Visualization
+  freesound-pipeline:
+    name: Freesound Data Collection & Visualization
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # 1-hour timeout
-    
-    outputs:
-      pipeline_status: ${{ steps.pipeline.outputs.pipeline_status }}
+    timeout-minutes: 120  # 2-hour timeout
     
     steps:
     - name: Checkout code
@@ -110,10 +100,16 @@ jobs:
     - name: Set pipeline parameters
       id: params
       run: |
-        # Use workflow_dispatch inputs (test workflow is always manual)
-        echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> $GITHUB_OUTPUT
-        echo "max_requests=${{ github.event.inputs.max_requests || '50' }}" >> $GITHUB_OUTPUT
-        echo "depth=${{ github.event.inputs.recursive_depth || '1' }}" >> $GITHUB_OUTPUT
+        # Use workflow_dispatch inputs if available, otherwise use defaults
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> $GITHUB_OUTPUT
+          echo "max_requests=${{ github.event.inputs.max_requests }}" >> $GITHUB_OUTPUT
+          echo "depth=${{ github.event.inputs.recursive_depth }}" >> $GITHUB_OUTPUT
+        else
+          echo "seed_sample_id=" >> $GITHUB_OUTPUT
+          echo "max_requests=1950" >> $GITHUB_OUTPUT
+          echo "depth=3" >> $GITHUB_OUTPUT
+        fi
         
         # Generate execution ID
         echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
@@ -214,8 +210,8 @@ jobs:
         )
         
         can_proceed, reason = orchestrator.check_and_wait_for_conflicts(
-            current_workflow='freesound-pipeline-test',
-            timeout=3600  # 1 hour
+            current_workflow='freesound-nightly-pipeline',
+            timeout=7200  # 2 hours
         )
         
         # Set output for subsequent steps to check
@@ -229,14 +225,14 @@ jobs:
             with open(os.environ.get('GITHUB_STEP_SUMMARY', '/dev/null'), 'a') as f:
                 f.write(f'## ⚠️ Execution Skipped\n\n')
                 f.write(f'**Reason:** {reason}\n\n')
-                f.write(f'The test workflow will wait for conflicting workflows to complete.\n')
+                f.write(f'The workflow will retry on the next scheduled run.\n')
         "
     
     - name: Display pipeline configuration
       if: steps.orchestration.outputs.can_proceed == 'true'
       run: |
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**🧪 Phase 2: Test Pipeline Configuration**" >> $GITHUB_STEP_SUMMARY
+        echo "**🚀 Phase 2: Pipeline Configuration**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ -n "${{ steps.params.outputs.seed_sample_id }}" ]; then
           echo "- Seed Sample ID: \`${{ steps.params.outputs.seed_sample_id }}\`" >> $GITHUB_STEP_SUMMARY
@@ -246,7 +242,7 @@ jobs:
         echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> $GITHUB_STEP_SUMMARY
         echo "- Recursive Depth: \`${{ steps.params.outputs.depth }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Trigger: \`${{ github.event_name }}\` (test mode)" >> $GITHUB_STEP_SUMMARY
+        echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
     
     - name: Run data collection and visualization
@@ -483,7 +479,7 @@ jobs:
           echo "- No new visualizations generated" >> $GITHUB_STEP_SUMMARY
         else
           # Create commit message with statistics
-          commit_msg="Test pipeline: $(date +'%Y-%m-%d %H:%M')"
+          commit_msg="Nightly pipeline: $(date +'%Y-%m-%d')"
           if [ "${{ steps.stats.outputs.nodes_added }}" != "N/A" ]; then
             commit_msg="$commit_msg - +${{ steps.stats.outputs.nodes_added }} nodes, +${{ steps.stats.outputs.edges_added }} edges (total: ${{ steps.stats.outputs.total_nodes }} nodes, ${{ steps.stats.outputs.total_edges }} edges)"
           fi
@@ -605,65 +601,14 @@ jobs:
         echo "- Pipeline logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
         echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
     
-    - name: Prepare GitHub Pages artifact
-      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
-      run: |
-        # Create pages directory with only HTML files
-        mkdir -p _site
-        cp Output/*.html _site/ 2>/dev/null || true
-        
-        # Create index.html that redirects to the latest visualization
-        latest_html=$(ls -t _site/*.html 2>/dev/null | head -1 | xargs basename)
-        if [ -n "$latest_html" ]; then
-          cat > _site/index.html << EOF
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta http-equiv="refresh" content="0; url=./$latest_html">
-          <title>Freesound Network Visualization</title>
-        </head>
-        <body>
-          <p>Redirecting to <a href="./$latest_html">latest visualization</a>...</p>
-        </body>
-        </html>
-        EOF
-          echo "✅ Created index.html redirecting to: $latest_html"
-          echo "📊 GitHub Pages will be available at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-        else
-          echo "⚠️ No HTML files found in Output/"
-        fi
-    
-    - name: Upload GitHub Pages artifact
-      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: _site/
-    
     - name: Upload pipeline logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-pipeline-logs-${{ steps.params.outputs.execution_id }}
+        name: pipeline-logs-${{ steps.params.outputs.execution_id }}
         path: |
           pipeline_*.log
           freesound_viz_*.log
           fetch_freesound_*.log
-        retention-days: 14
+        retention-days: 30
         if-no-files-found: ignore
-
-  # Deploy to GitHub Pages
-  deploy-pages:
-    name: Deploy to GitHub Pages
-    needs: test-pipeline
-    if: needs.test-pipeline.outputs.pipeline_status == 'success'
-    runs-on: ubuntu-latest
-    
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
