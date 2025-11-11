@@ -114,14 +114,21 @@ gh workflow run freesound-pipeline-test.yml -f max_requests=200 -f recursive_dep
 
 ## Viewing Results
 
-### Download Visualization
-1. Go to workflow run page
-2. Scroll to **Artifacts**
-3. Download logs (includes HTML visualization)
-4. Open `Output/*.html` in browser
+### View on GitHub Pages (Easiest!)
+After workflow completes, visit:
+```
+https://<your-username>.github.io/<your-repo>/
+```
+
+**First-time setup (one-time only):**
+1. Go to **Settings** → **Pages**
+2. Under **Source**, select **GitHub Actions**
+3. Save
+
+The visualization will be live and interactive in your browser!
 
 ### View in Repository
-After workflow completes, visualization is committed to `Output/` directory.
+After workflow completes, visualization is committed to `Output/` directory (download HTML file to view locally).
 
 ## Troubleshooting
 

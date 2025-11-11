@@ -152,14 +152,49 @@ The workflow automatically generates a summary with:
 - Statistics (nodes, edges, API calls)
 - Seed sample information
 
-### Downloading Artifacts
+### Interactive Visualization
+
+The HTML visualization includes:
+- **Interactive graph**: Drag nodes, zoom, pan
+- **Node tooltips**: Hover to see sample name, username, duration
+- **Audio preview**: Click nodes to play sample preview
+- **Community colors**: Nodes colored by detected communities
+- **Search**: Find specific samples by name
+- **Physics controls**: Adjust layout behavior
+- **Export**: Save as PNG image
+
+### View on GitHub Pages (Automatic)
+
+The workflow automatically deploys the visualization to GitHub Pages:
+
+1. After workflow completes, go to:
+   ```
+   https://<your-username>.github.io/<your-repo>/
+   ```
+2. The page automatically redirects to the latest visualization
+3. Interact with the live visualization directly in your browser
+
+**First-time setup:**
+- Go to **Settings** → **Pages**
+- Under **Source**, select **GitHub Actions**
+- Save (this is a one-time setup)
+
+### View in Repository (After Commit)
+
+The visualization is also committed to `Output/` directory:
+1. Go to your repository on GitHub
+2. Navigate to `Output/` folder
+3. Click on the HTML file (e.g., `freesound_seed123_depth1_n45_20251111_120000.html`)
+4. Click **Download** or **Raw** to save and open locally
+
+### Download Logs
 
 1. Go to the workflow run page
 2. Scroll to **Artifacts** section at bottom
-3. Download **test-pipeline-artifacts-{timestamp}**
-4. Extract and open:
+3. Download **test-pipeline-logs-{timestamp}**
+4. Extract and review:
    - `test_pipeline_*.log` - Full execution log
-   - `Output/*.html` - Interactive visualization (open in browser)
+   - `freesound_viz_*.log` - Visualization generation log
 
 ## Next Steps
 

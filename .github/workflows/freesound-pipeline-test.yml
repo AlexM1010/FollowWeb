@@ -49,11 +49,20 @@ concurrency:
   group: freesound-pipeline-test
   cancel-in-progress: false
 
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   test-pipeline:
     name: Test Freesound Data Collection & Visualization
     runs-on: ubuntu-latest
     timeout-minutes: 60  # 1-hour timeout
+    
+    outputs:
+      pipeline_status: ${{ steps.pipeline.outputs.pipeline_status }}
     
     steps:
     - name: Checkout code
@@ -596,6 +605,41 @@ jobs:
         echo "- Pipeline logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
         echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
     
+    - name: Prepare GitHub Pages artifact
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      run: |
+        # Create pages directory with only HTML files
+        mkdir -p _site
+        cp Output/*.html _site/ 2>/dev/null || true
+        
+        # Create index.html that redirects to the latest visualization
+        latest_html=$(ls -t _site/*.html 2>/dev/null | head -1 | xargs basename)
+        if [ -n "$latest_html" ]; then
+          cat > _site/index.html << EOF
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./$latest_html">
+          <title>Freesound Network Visualization</title>
+        </head>
+        <body>
+          <p>Redirecting to <a href="./$latest_html">latest visualization</a>...</p>
+        </body>
+        </html>
+        EOF
+          echo "✅ Created index.html redirecting to: $latest_html"
+          echo "📊 GitHub Pages will be available at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+        else
+          echo "⚠️ No HTML files found in Output/"
+        fi
+    
+    - name: Upload GitHub Pages artifact
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: _site/
+    
     - name: Upload pipeline logs
       if: always()
       uses: actions/upload-artifact@v4
@@ -607,3 +651,19 @@ jobs:
           fetch_freesound_*.log
         retention-days: 14
         if-no-files-found: ignore
+
+  # Deploy to GitHub Pages
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: test-pipeline
+    if: needs.test-pipeline.outputs.pipeline_status == 'success'
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
