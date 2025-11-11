@@ -151,10 +151,19 @@ class ProgressTracker:
 
         # Clear previous line and show new animation state
         if self.current_line_length > 0:
-            print("\r" + " " * self.current_line_length + "\r", end="", flush=True)
+            try:
+                print("\r" + " " * self.current_line_length + "\r", end="", flush=True)
+            except UnicodeEncodeError:
+                pass  # Ignore encoding errors on Windows console
 
-        print(progress_line, end="", flush=True)
-        self.current_line_length = len(progress_line)
+        try:
+            print(progress_line, end="", flush=True)
+            self.current_line_length = len(progress_line)
+        except UnicodeEncodeError:
+            # Fallback to ASCII-only progress on Windows console
+            ascii_line = progress_line.encode("ascii", "replace").decode("ascii")
+            print(ascii_line, end="", flush=True)
+            self.current_line_length = len(ascii_line)
 
     def _calculate_time_estimate(self, current_item: int, elapsed: float) -> float:
         """
@@ -222,9 +231,17 @@ class ProgressTracker:
 
         # Clear previous line and print final progress with newline
         if self.current_line_length > 0:
-            print("\r" + " " * self.current_line_length + "\r", end="", flush=True)
+            try:
+                print("\r" + " " * self.current_line_length + "\r", end="", flush=True)
+            except UnicodeEncodeError:
+                pass  # Ignore encoding errors on Windows console
 
-        print(final_progress, flush=True)
+        try:
+            print(final_progress, flush=True)
+        except UnicodeEncodeError:
+            # Fallback to ASCII-only progress on Windows console
+            ascii_progress = final_progress.encode("ascii", "replace").decode("ascii")
+            print(ascii_progress, flush=True)
 
         # Store completion message
         try:

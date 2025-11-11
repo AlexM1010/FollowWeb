@@ -38,7 +38,6 @@ from .output.logging import Logger
 from .output.managers import OutputManager
 from .utils.math import format_time_duration
 from .utils.parallel import get_analysis_parallel_config, get_nx_parallel_status_message
-from .visualization.renderers import Renderer, PyvisRenderer, SigmaRenderer
 
 
 class PipelineOrchestrator:
@@ -285,23 +284,37 @@ class PipelineOrchestrator:
             # Initialize data loader based on data_source configuration
             data_source = self.config.data_source.source
             self.logger.info(f"Data source: {data_source}")
-            
+
             try:
                 if data_source == "instagram":
                     self.graph_loader = InstagramLoader()
                 elif data_source == "freesound":
                     # Create config dict for FreesoundLoader
                     freesound_config = {
-                        'api_key': self.config.data_source.freesound.api_key,
-                        'checkpoint_dir': self.config.checkpoint.checkpoint_dir,
-                        'checkpoint_interval': self.config.checkpoint.checkpoint_interval,
-                        'max_runtime_hours': self.config.checkpoint.max_runtime_hours,
-                        'verify_existing_sounds': self.config.checkpoint.verify_existing_sounds,
+                        "api_key": self.config.data_source.freesound.api_key,
+                        "checkpoint_dir": self.config.checkpoint.checkpoint_dir,
+                        "checkpoint_interval": self.config.checkpoint.checkpoint_interval,
+                        "max_runtime_hours": self.config.checkpoint.max_runtime_hours,
+                        "verify_existing_sounds": self.config.checkpoint.verify_existing_sounds,
                     }
-                    self.graph_loader = FreesoundLoader(config=freesound_config)
+
+                    # Use IncrementalFreesoundLoader if recursive depth is specified
+                    use_incremental = (
+                        hasattr(self.config.data_source.freesound, "recursive_depth")
+                        and self.config.data_source.freesound.recursive_depth > 0
+                    )
+
+                    if use_incremental:
+                        from .data.loaders import IncrementalFreesoundLoader
+
+                        self.graph_loader = IncrementalFreesoundLoader(
+                            config=freesound_config
+                        )
+                    else:
+                        self.graph_loader = FreesoundLoader(config=freesound_config)
                 else:
                     raise ValueError(f"Unsupported data source: {data_source}")
-                
+
                 success_msg = EmojiFormatter.format(
                     "success", f"Initialized {data_source} data loader"
                 )
@@ -322,12 +335,24 @@ class PipelineOrchestrator:
                     graph = self.graph_loader.load_from_json(self.config.input_file)
                 elif data_source == "freesound":
                     # For Freesound, use the load() method with query parameters
-                    graph = self.graph_loader.load(
-                        query=self.config.data_source.freesound.query,
-                        tags=self.config.data_source.freesound.tags,
-                        max_samples=self.config.data_source.freesound.max_samples,
-                        include_similar=self.config.data_source.freesound.include_similar
-                    )
+                    freesound_params = {
+                        "query": self.config.data_source.freesound.query,
+                        "tags": self.config.data_source.freesound.tags,
+                        "max_samples": self.config.data_source.freesound.max_samples,
+                        "include_similar": self.config.data_source.freesound.include_similar,
+                    }
+
+                    # Add recursive parameters if present
+                    if hasattr(self.config.data_source.freesound, "recursive_depth"):
+                        freesound_params["recursive_depth"] = (
+                            self.config.data_source.freesound.recursive_depth
+                        )
+                    if hasattr(self.config.data_source.freesound, "max_total_samples"):
+                        freesound_params["max_total_samples"] = (
+                            self.config.data_source.freesound.max_total_samples
+                        )
+
+                    graph = self.graph_loader.load(**freesound_params)
                 else:
                     raise ValueError(f"Unsupported data source: {data_source}")
             except Exception as e:

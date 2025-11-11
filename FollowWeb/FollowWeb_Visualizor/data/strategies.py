@@ -8,7 +8,6 @@ These strategies are applied during the pipeline's strategy phase.
 
 # Standard library imports
 import logging
-from typing import List
 
 # Third-party imports
 import networkx as nx
@@ -17,24 +16,24 @@ import networkx as nx
 class GraphStrategy:
     """
     Graph filtering and transformation strategies.
-    
+
     This class provides methods for manipulating and filtering NetworkX graphs
     based on various network analysis strategies. These operations are typically
     applied during the strategy phase of the analysis pipeline.
-    
+
     Attributes:
         logger: Logger instance for this strategy class
-    
+
     Example:
         strategy = GraphStrategy()
         pruned_graph = strategy.prune_graph(graph, min_degree=2)
         reciprocal_graph = strategy.filter_by_reciprocity(graph)
     """
-    
+
     def __init__(self):
         """Initialize the GraphStrategy with logging."""
         self.logger = logging.getLogger(__name__)
-    
+
     def prune_graph(self, graph: nx.DiGraph, min_degree: int) -> nx.DiGraph:
         """
         Uses nx.k_core function to find the maximal subgraph

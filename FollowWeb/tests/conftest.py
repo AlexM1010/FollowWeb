@@ -21,6 +21,28 @@ from FollowWeb_Visualizor.core.config import get_configuration_manager
 # Add the FollowWeb_Visualizor package to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Ensure UTF-8 encoding for Unicode characters on Windows (for progress bars with emojis)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError):
+        # Fallback: continue with default encoding
+        pass
+
+
+def pytest_runtest_teardown(item, nextitem):
+    """Clean up memory after each test to prevent accumulation."""
+    import gc
+
+    # Force garbage collection after each test
+    gc.collect()
+
+    # Additional cleanup for integration tests (which create larger objects)
+    if any(marker.name == "integration" for marker in item.iter_markers()):
+        # More aggressive cleanup for integration tests
+        gc.collect(generation=2)  # Full collection including oldest generation
+
 
 # Cache for dataset summary to avoid repeated file reads
 _dataset_summary_cache = None
@@ -627,25 +649,15 @@ def empty_json_file() -> Generator[str, None, None]:
         os.unlink(temp_file)
 
 
-def pytest_configure(config):
-    """Configure pytest with custom markers and parallel execution strategies."""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
-    config.addinivalue_line("markers", "integration: marks tests as integration tests")
-    config.addinivalue_line("markers", "unit: marks tests as unit tests")
-
-    # Configure category-specific parallel execution
-    _configure_parallel_execution(config)
-
-
 def _configure_parallel_execution(config):
-    """Configure category-specific parallel execution strategies with CI environment detection."""
-    from FollowWeb_Visualizor.utils import (
-        detect_ci_environment,
-        get_optimal_worker_count,
-    )
+    """
+    Configure memory-aware parallel execution using pytest-xdist.
 
+    Automatically adapts to any device by:
+    1. Using pytest-xdist's 'auto' for CPU detection
+    2. Limiting workers based on available memory
+    3. Using appropriate distribution strategies per test type
+    """
     # Check for environment variable override to disable parallel execution
     env_disable = os.environ.get("PYTEST_PARALLEL_DISABLE", "").lower() in (
         "1",
@@ -658,121 +670,122 @@ def _configure_parallel_execution(config):
         config.option.dist = "no"
         return
 
-    # Detect CI environment for optimized configuration
-    ci_info = detect_ci_environment()
-
     # Determine test category from markers
     markers = config.getoption("-m", default="")
-    test_category = "all"  # Default
 
-    if "benchmark" in markers:
-        test_category = "benchmark"
-    elif "unit" in markers and "integration" not in markers and "slow" not in markers:
-        test_category = "unit"
-    elif "integration" in markers and "unit" not in markers and "slow" not in markers:
-        test_category = "integration"
-    elif "slow" in markers or "performance" in markers:
-        test_category = "performance"
-
-    # Handle benchmark tests - always sequential
-    if test_category == "benchmark":
+    # Benchmark and performance tests always run sequentially
+    if "benchmark" in markers or "performance" in markers or "slow" in markers:
         config.option.numprocesses = 1
         config.option.dist = "no"
+        if hasattr(config.option, "cov"):
+            config.option.cov = None  # Disable coverage for accurate timing
         return
 
-    # CI-specific optimizations
-    if ci_info["is_ci"]:
-        # Reduce worker count in CI to avoid resource contention
-        if test_category == "performance":
-            # Force sequential execution for performance tests in CI
-            config.option.numprocesses = 1
-            config.option.dist = "no"
-            return
-        elif ci_info["provider"] == "github_actions":
-            # GitHub Actions specific optimizations
-            if os.environ.get("RUNNER_OS") == "Windows":
-                # Windows runners are slower, use ~50% of cores
-                max_workers = max(1, int((os.cpu_count() or 2) * 0.5))
-            else:
-                # Linux/macOS runners can handle more, use ~75% of cores
-                max_workers = max(1, int((os.cpu_count() or 2) * 0.75))
+    # Let pytest-xdist auto-detect CPU count, then apply memory limits
+    # This works on any device without hardcoded values
+    if not hasattr(config.option, "numprocesses") or config.option.numprocesses is None:
+        config.option.numprocesses = "auto"  # Let pytest-xdist decide based on CPUs
+
+    # Apply memory-based limits to prevent overflow
+    try:
+        import psutil
+
+        available_memory_gb = psutil.virtual_memory().available / (1024**3)
+
+        # Estimate memory per worker based on test type
+        if "integration" in markers:
+            memory_per_worker_gb = 0.5  # Integration tests use more memory
+            test_type = "integration"
+        elif "unit" in markers:
+            memory_per_worker_gb = 0.2  # Unit tests are lighter
+            test_type = "unit"
         else:
-            # Other CI providers - conservative approach, use ~50% of cores
-            max_workers = max(1, int((os.cpu_count() or 2) * 0.5))
+            memory_per_worker_gb = 0.3  # Mixed tests
+            test_type = "mixed"
+
+        # Leave 2GB for system, calculate max workers based on available memory
+        max_workers_by_memory = max(
+            1, int((available_memory_gb - 2) / memory_per_worker_gb)
+        )
+
+        # If numprocesses is 'auto', pytest-xdist will resolve it
+        # We'll apply the memory limit in pytest_configure hook after resolution
+        config._memory_limit = max_workers_by_memory
+        config._test_type = test_type
+
+    except ImportError:
+        # psutil not available, let pytest-xdist handle it
+        config._memory_limit = None
+        config._test_type = "unknown"
+
+    # Choose distribution strategy based on test type
+    if "unit" in markers:
+        config.option.dist = "worksteal"  # Best for fast unit tests
+    elif "integration" in markers:
+        config.option.dist = "loadgroup"  # Better for resource-heavy tests
     else:
-        max_workers = None  # No limit for local development
+        config.option.dist = "loadscope"  # Balanced for mixed workloads
 
-    # Get optimal worker count using CI-aware detection
-    worker_count = get_optimal_worker_count(test_category)
 
-    # Apply CI limits if applicable
-    if max_workers and worker_count > max_workers:
-        worker_count = max_workers
+def pytest_configure(config):
+    """
+    Configure pytest with custom markers and memory-aware parallel execution.
 
-    # Configure pytest-xdist based on test category and environment
-    config.option.numprocesses = worker_count
+    This hook runs after pytest-xdist resolves 'auto' to actual worker count,
+    allowing us to apply memory-based limits.
+    """
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "unit: marks tests as unit tests")
 
-    if test_category == "unit":
-        # Use worksteal distribution for better load balancing with fast unit tests
-        config.option.dist = "worksteal"
-    elif test_category == "integration":
-        # Use loadgroup distribution to handle resource conflicts better
-        config.option.dist = "loadgroup"
-    elif test_category == "performance" or test_category == "benchmark":
-        # Sequential execution for timing accuracy
-        config.option.dist = "no"
-        # Disable coverage for performance tests to avoid measurement interference
-        if hasattr(config.option, "cov"):
-            config.option.cov = None
-    else:
-        # Mixed workload - use loadscope for balanced distribution
-        config.option.dist = "loadscope"
+    # Configure parallel execution with memory awareness
+    _configure_parallel_execution(config)
+
+    # Apply memory limit if pytest-xdist resolved 'auto' to a number
+    if hasattr(config, "_memory_limit") and config._memory_limit:
+        if hasattr(config.option, "numprocesses") and isinstance(
+            config.option.numprocesses, int
+        ):
+            if config.option.numprocesses > config._memory_limit:
+                original = config.option.numprocesses
+                config.option.numprocesses = config._memory_limit
+                print(
+                    f"\n💾 Memory limit: Reduced workers from {original} to {config._memory_limit}"
+                )
 
 
 def pytest_sessionstart(session):
     """Log parallel execution configuration at session start."""
-    from FollowWeb_Visualizor.utils import detect_ci_environment
-
     config = session.config
     markers = config.getoption("-m", default="")
-    ci_info = detect_ci_environment()
-
-    # Log CI environment information
-    if ci_info["is_ci"]:
-        ci_msg = f"[CI Environment] Detected {ci_info['provider']}"
-        if ci_info["build_id"]:
-            ci_msg += f" (Build: {ci_info['build_id']})"
-        print(f"\n{ci_msg}")
 
     if hasattr(config.option, "numprocesses") and config.option.numprocesses:
         worker_count = config.option.numprocesses
         dist_mode = getattr(config.option, "dist", "loadscope")
 
         if worker_count == 1:
-            if "benchmark" in markers:
-                print(
-                    "[Parallel Execution] Sequential mode for benchmark tests (pytest-benchmark compatibility)"
-                )
-            elif "slow" in markers or "performance" in markers:
-                print(
-                    "[Parallel Execution] Sequential mode for performance tests (timing accuracy)"
-                )
+            if "benchmark" in markers or "performance" in markers:
+                print("[Parallel Execution] Sequential mode for accurate timing")
             else:
                 print("[Parallel Execution] Sequential mode")
         else:
-            test_type = (
-                "unit"
-                if "unit" in markers
-                else "integration"
-                if "integration" in markers
-                else "mixed"
-            )
-            env_context = "CI-optimized" if ci_info["is_ci"] else "local development"
+            test_type = getattr(config, "_test_type", "mixed")
+            try:
+                import psutil
+
+                mem_gb = psutil.virtual_memory().available / (1024**3)
+                mem_info = f", {mem_gb:.1f} GB available"
+            except ImportError:
+                mem_info = ""
+
             print(
-                f"[Parallel Execution] Using {worker_count} workers for {test_type} tests ('{dist_mode}' distribution, {env_context})"
+                f"[Parallel Execution] {worker_count} workers for {test_type} tests "
+                f"('{dist_mode}' distribution{mem_info})"
             )
     else:
-        print("[Parallel Execution] Running in sequential mode")
+        print("[Parallel Execution] Sequential mode")
 
 
 def pytest_collection_modifyitems(config, items):

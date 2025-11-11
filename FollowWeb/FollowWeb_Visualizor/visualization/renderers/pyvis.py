@@ -6,7 +6,6 @@ for generating interactive HTML visualizations using the Pyvis library.
 """
 
 import json
-import logging
 from typing import Any, Optional
 
 import networkx as nx
@@ -23,7 +22,7 @@ from .base import Renderer
 class PyvisRenderer(Renderer):
     """
     Pyvis-based renderer for interactive HTML network visualizations.
-    
+
     This renderer generates standalone HTML files with embedded Pyvis library
     for interactive graph visualization with zoom, pan, and physics controls.
     """
@@ -346,7 +345,7 @@ class PyvisRenderer(Renderer):
     def supports_large_graphs(self) -> bool:
         """
         Pyvis can handle moderately large graphs but not as efficiently as Sigma.js.
-        
+
         Returns:
             False - Pyvis is not optimized for 10,000+ nodes
         """

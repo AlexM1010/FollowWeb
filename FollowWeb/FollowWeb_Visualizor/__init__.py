@@ -38,12 +38,12 @@ __url__ = ""  # Add repository URL if available
 # Core imports for public API
 
 # Core components
+from .__main__ import PipelineOrchestrator
 from .core.config import (
     FollowWebConfig,
     get_configuration_manager,
     load_config_from_dict,
 )
-from .__main__ import PipelineOrchestrator
 from .utils import ProgressTracker
 
 # Analysis components

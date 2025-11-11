@@ -44,7 +44,11 @@ class OutputManager:
 
         # Import here to avoid circular imports
         from ..visualization.metrics import MetricsCalculator
-        from ..visualization.renderers import MatplotlibRenderer, PyvisRenderer, SigmaRenderer
+        from ..visualization.renderers import (
+            MatplotlibRenderer,
+            PyvisRenderer,
+            SigmaRenderer,
+        )
 
         # Initialize renderers with performance config
         performance_config = vis_config.get("performance", {})
@@ -57,25 +61,31 @@ class OutputManager:
             performance_config["fast_mode"] = analysis_mode["enable_fast_algorithms"]
 
         self.metrics_calculator = MetricsCalculator(vis_config, performance_config)
-        
+
         # Get renderer configuration
         renderer_config = config.get("renderer", {})
         self.renderer_type = renderer_config.get("renderer_type", "pyvis")
-        
+
         # Initialize renderers based on configuration
         self.pyvis_renderer = None
         self.sigma_renderer = None
         self.matplotlib_renderer = MatplotlibRenderer(vis_config, performance_config)
-        
+
         if self.renderer_type in ["pyvis", "all"]:
             self.pyvis_renderer = PyvisRenderer(vis_config, self.metrics_calculator)
-        
+
         if self.renderer_type in ["sigma", "all"]:
             self.logger.info(f"renderer_config: {renderer_config}")
-            template_name = renderer_config.get("template_name", "sigma_visualization.html")
-            self.logger.info(f"Initializing SigmaRenderer with template: {template_name}")
-            self.sigma_renderer = SigmaRenderer(vis_config, self.metrics_calculator, template_name)
-        
+            template_name = renderer_config.get(
+                "template_name", "sigma_visualization.html"
+            )
+            self.logger.info(
+                f"Initializing SigmaRenderer with template: {template_name}"
+            )
+            self.sigma_renderer = SigmaRenderer(
+                vis_config, self.metrics_calculator, template_name
+            )
+
         self.metrics_reporter = MetricsReporter(vis_config)
 
         # Initialize unified logger for this pipeline run
@@ -184,9 +194,13 @@ class OutputManager:
 
         # Generate HTML visualization if enabled
         if self.should_generate_html():
-            results.update(self._generate_html_visualizations(graph, html_filename, shared_metrics))
+            results.update(
+                self._generate_html_visualizations(graph, html_filename, shared_metrics)
+            )
         else:
-            self._log_message("ℹ️  Interactive HTML generation disabled in configuration")
+            self._log_message(
+                "ℹ️  Interactive HTML generation disabled in configuration"
+            )
 
         # Generate PNG visualization if enabled
         if self.should_generate_png():
@@ -260,7 +274,7 @@ class OutputManager:
             self.unified_logger.info(message)
         else:
             self.logger.info(message)
-    
+
     def _log_progress(self, message: str) -> None:
         """Log a progress message using unified logger or standard logger."""
         if self.unified_logger:
@@ -268,36 +282,33 @@ class OutputManager:
         else:
             progress_msg = EmojiFormatter.format("progress", message)
             self.logger.info(progress_msg)
-    
+
     def _log_error(self, message: str) -> None:
         """Log an error message using unified logger or standard logger."""
         if self.unified_logger:
             self.unified_logger.error(message)
         else:
             self.logger.error(message)
-    
+
     def _generate_html_visualizations(
-        self, 
-        graph: nx.DiGraph, 
-        html_filename: str, 
-        shared_metrics: Any
+        self, graph: nx.DiGraph, html_filename: str, shared_metrics: Any
     ) -> dict[str, bool]:
         """
         Generate HTML visualizations based on renderer_type configuration.
-        
+
         Args:
             graph: Graph to visualize
             html_filename: Base filename for HTML output
             shared_metrics: Pre-calculated visualization metrics
-            
+
         Returns:
             Dictionary with results for each renderer
         """
         results = {}
-        
+
         # Define renderer configurations
         renderers_to_run = []
-        
+
         if self.renderer_type == "pyvis":
             renderers_to_run.append(("pyvis", self.pyvis_renderer, html_filename))
         elif self.renderer_type == "sigma":
@@ -312,32 +323,42 @@ class OutputManager:
             self._log_error(f"Invalid renderer type: {self.renderer_type}")
             results["html"] = False
             return results
-        
+
         # Generate visualizations for each renderer
         for renderer_name, renderer, filename in renderers_to_run:
             if renderer is None:
-                self._log_error(f"{renderer_name.capitalize()} renderer not initialized")
+                self._log_error(
+                    f"{renderer_name.capitalize()} renderer not initialized"
+                )
                 results[f"html_{renderer_name}"] = False
                 continue
-            
-            self._log_progress(f"Generating {renderer_name.capitalize()} interactive HTML visualization...")
-            
+
+            self._log_progress(
+                f"Generating {renderer_name.capitalize()} interactive HTML visualization..."
+            )
+
             try:
-                success = renderer.generate_visualization(graph, filename, shared_metrics)
+                success = renderer.generate_visualization(
+                    graph, filename, shared_metrics
+                )
                 results[f"html_{renderer_name}"] = success
             except Exception as e:
-                self._log_error(f"Failed to generate {renderer_name} visualization: {e}")
+                self._log_error(
+                    f"Failed to generate {renderer_name} visualization: {e}"
+                )
                 results[f"html_{renderer_name}"] = False
-        
+
         # Set backward compatibility result
         if self.renderer_type == "all":
             # For "all", succeed if at least one renderer succeeded
-            results["html"] = any(results.get(f"html_{name}", False) for name, _, _ in renderers_to_run)
+            results["html"] = any(
+                results.get(f"html_{name}", False) for name, _, _ in renderers_to_run
+            )
         else:
             # For single renderer, use its result
             renderer_name = renderers_to_run[0][0] if renderers_to_run else None
             results["html"] = results.get(f"html_{renderer_name}", False)
-        
+
         return results
 
     def should_generate_html(self) -> bool:

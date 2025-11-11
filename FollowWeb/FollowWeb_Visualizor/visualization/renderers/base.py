@@ -18,11 +18,11 @@ from ...core.types import VisualizationMetrics
 class Renderer(ABC):
     """
     Abstract base class for visualization renderers.
-    
+
     This class defines the interface that all renderers must implement to generate
     visualizations from NetworkX graphs. Subclasses should implement the
     generate_visualization method to create their specific output format.
-    
+
     The base class provides common functionality:
     - Metrics calculation with caching support
     - Empty graph validation
@@ -99,7 +99,7 @@ class Renderer(ABC):
     ) -> VisualizationMetrics:
         """
         Calculate metrics if not provided.
-        
+
         This helper method ensures that visualization metrics are available, either by
         using the provided metrics or by calculating them. It checks for an existing
         metrics_calculator attribute first, otherwise creates a new one.
@@ -126,16 +126,14 @@ class Renderer(ABC):
         else:
             self.logger.info("No metrics provided - creating new MetricsCalculator")
             # Check if performance_config is available
-            performance_config = (
-                getattr(self, "performance_config", None) or {}
-            )
+            performance_config = getattr(self, "performance_config", None) or {}
             calculator = MetricsCalculator(self.vis_config, performance_config)
             return calculator.calculate_all_metrics(graph)
 
     def _validate_graph_not_empty(self, graph: nx.DiGraph) -> bool:
         """
         Validate that graph has nodes.
-        
+
         This helper method checks if the graph is empty and logs a warning if so.
         Renderers should call this before attempting to generate visualizations.
 
@@ -155,7 +153,7 @@ class Renderer(ABC):
     ) -> dict[str, dict[str, Any]]:
         """
         Extract node metrics to dictionary format.
-        
+
         This helper method converts the VisualizationMetrics node_metrics into a
         simpler dictionary format that's easier to work with in rendering code.
 
@@ -184,7 +182,7 @@ class Renderer(ABC):
     ) -> dict[tuple[str, str], dict[str, Any]]:
         """
         Extract edge metrics to dictionary format.
-        
+
         This helper method converts the VisualizationMetrics edge_metrics into a
         simpler dictionary format that's easier to work with in rendering code.
 
@@ -211,7 +209,7 @@ class Renderer(ABC):
     def _ensure_output_directory(self, output_filename: str) -> None:
         """
         Ensure output directory exists.
-        
+
         This helper method creates the output directory if it doesn't exist,
         preventing file write errors due to missing directories.
 

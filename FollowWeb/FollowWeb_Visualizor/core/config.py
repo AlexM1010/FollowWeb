@@ -318,7 +318,7 @@ class LayoutConfig:
 
     # Only spring layout configuration (most commonly used)
     spring: SpringLayoutConfig = field(default_factory=SpringLayoutConfig)
-    
+
     def __post_init__(self) -> None:
         """Validate layout configuration."""
         valid_algorithms = ["spring", "kamada_kawai", "circular", "shell", "random"]
@@ -356,8 +356,13 @@ class PyvisInteractiveConfig:
         # Basic validation for height and width format
         validate_string_format(self.height, "height", ["px", "%", "vh", "vw"])
         validate_string_format(self.width, "width", ["px", "%", "vh", "vw"])
-        
-        valid_solvers = ["barnesHut", "forceAtlas2Based", "repulsion", "hierarchicalRepulsion"]
+
+        valid_solvers = [
+            "barnesHut",
+            "forceAtlas2Based",
+            "repulsion",
+            "hierarchicalRepulsion",
+        ]
         validate_choice(self.physics_solver, "physics_solver", valid_solvers)
 
 
@@ -430,7 +435,7 @@ class OutputConfig:
             self.custom_output_directory, str
         ):
             raise ValueError("custom_output_directory must be a string")
-        
+
         # Ensure at least one output format is enabled
         output_options = {
             "generate_html": self.generate_html,
@@ -462,7 +467,7 @@ class VisualizationConfig:
     edge_width_scaling: str = "logarithmic"
     bridge_color: str = "#6e6e6e"
     intra_community_color: str = "#c0c0c0"
-    
+
     # Unified display settings (shared across renderers)
     show_labels: bool = True
     show_tooltips: bool = True
@@ -470,7 +475,7 @@ class VisualizationConfig:
     font_size: int = 8
     node_alpha: float = 0.8
     edge_alpha: float = 0.3
-    
+
     static_image: StaticImageConfig = field(default_factory=StaticImageConfig)
     pyvis_interactive: PyvisInteractiveConfig = field(
         default_factory=PyvisInteractiveConfig
@@ -498,7 +503,7 @@ class VisualizationConfig:
         validate_positive_number(self.base_edge_thickness, "base_edge_thickness")
         validate_positive_number(self.base_edge_width, "base_edge_width")
         validate_positive_number(self.edge_width_multiplier, "edge_width_multiplier")
-        
+
         validate_positive_integer(self.font_size, "font_size")
         validate_range(self.node_alpha, "node_alpha", 0, 1)
         validate_range(self.edge_alpha, "edge_alpha", 0, 1)
@@ -516,7 +521,7 @@ class CheckpointConfig:
     def __post_init__(self) -> None:
         """Validate checkpoint configuration after initialization."""
         validate_positive_integer(self.checkpoint_interval, "checkpoint_interval")
-        
+
         if self.max_runtime_hours is not None:
             validate_positive_number(self.max_runtime_hours, "max_runtime_hours")
 
@@ -534,13 +539,19 @@ class FreesoundConfig:
     def __post_init__(self) -> None:
         """Validate Freesound configuration after initialization."""
         validate_positive_integer(self.max_samples, "max_samples")
-        
+
         # Support environment variable substitution for API key
-        if self.api_key and self.api_key.startswith("${") and self.api_key.endswith("}"):
+        if (
+            self.api_key
+            and self.api_key.startswith("${")
+            and self.api_key.endswith("}")
+        ):
             env_var = self.api_key[2:-1]
             self.api_key = os.getenv(env_var)
             if not self.api_key:
-                raise ValueError(f"Environment variable {env_var} not set for Freesound API key")
+                raise ValueError(
+                    f"Environment variable {env_var} not set for Freesound API key"
+                )
 
 
 @dataclass
@@ -577,7 +588,9 @@ class RendererConfig:
 
     renderer_type: str = "pyvis"
     template_name: str = "sigma_visualization.html"
-    sigma_interactive: SigmaInteractiveConfig = field(default_factory=SigmaInteractiveConfig)
+    sigma_interactive: SigmaInteractiveConfig = field(
+        default_factory=SigmaInteractiveConfig
+    )
 
     def __post_init__(self) -> None:
         """Validate renderer configuration after initialization."""
@@ -608,23 +621,23 @@ class FollowWebConfig:
     def __post_init__(self) -> None:
         """Validate main configuration after initialization."""
         pass
-    
+
     # Compatibility properties for backward compatibility with existing code
     @property
     def strategy(self) -> str:
         """Get strategy from pipeline config."""
         return self.pipeline.strategy
-    
+
     @property
     def ego_username(self) -> Optional[str]:
         """Get ego_username from pipeline config."""
         return self.pipeline.ego_username
-    
+
     @property
     def pipeline_stages(self) -> PipelineConfig:
         """Get pipeline stages config (alias for pipeline)."""
         return self.pipeline
-    
+
     @property
     def output_control(self) -> OutputConfig:
         """Get output control config (alias for output)."""
@@ -860,7 +873,9 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         )
         renderer_config = RendererConfig(
             renderer_type=renderer_dict.get("renderer_type", "pyvis"),
-            template_name=renderer_dict.get("template_name", "sigma_visualization.html"),
+            template_name=renderer_dict.get(
+                "template_name", "sigma_visualization.html"
+            ),
             sigma_interactive=sigma_interactive_config,
         )
 
@@ -1400,10 +1415,7 @@ class ConfigurationManager:
         errors = []
 
         # Check visualization dependency on analysis
-        if (
-            config.pipeline.enable_visualization
-            and not config.pipeline.enable_analysis
-        ):
+        if config.pipeline.enable_visualization and not config.pipeline.enable_analysis:
             errors.append(
                 "Visualization stage requires analysis stage to be enabled. "
                 "Enable analysis in pipeline section or use --skip-visualization CLI flag"

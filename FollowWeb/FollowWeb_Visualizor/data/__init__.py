@@ -24,7 +24,12 @@ from .cache import (
     get_cached_undirected_graph,
 )
 from .checkpoint import GraphCheckpoint
-from .loaders import DataLoader, FreesoundLoader, IncrementalFreesoundLoader, InstagramLoader
+from .loaders import (
+    DataLoader,
+    FreesoundLoader,
+    IncrementalFreesoundLoader,
+    InstagramLoader,
+)
 from .processors import GraphProcessor
 
 __all__ = [

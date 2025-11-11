@@ -5,13 +5,10 @@ This module provides the MatplotlibRenderer class that implements the Renderer i
 for generating static PNG visualizations using matplotlib.
 """
 
-import logging
 import math
-import os
 import time
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -20,15 +17,13 @@ from ...core.types import EdgeMetric, PositionDict, VisualizationMetrics
 from ...data.cache import get_cached_undirected_graph
 from ...output.formatters import EmojiFormatter
 from ...utils import ProgressTracker
-from ..colors import get_community_colors
-from ..metrics import MetricsCalculator
 from .base import Renderer
 
 
 class MatplotlibRenderer(Renderer):
     """
     Matplotlib-based renderer for static PNG network visualizations.
-    
+
     This renderer generates high-quality PNG images of network graphs with
     customizable layouts, colors, and styling options.
     """
@@ -755,7 +750,7 @@ class MatplotlibRenderer(Renderer):
     def supports_large_graphs(self) -> bool:
         """
         Matplotlib can handle large graphs but performance degrades.
-        
+
         Returns:
             False - Not optimized for 10,000+ nodes
         """
