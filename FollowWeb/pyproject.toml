@@ -86,7 +86,7 @@ Documentation = "https://github.com/AlexM1010/FollowWeb/blob/main/docs/"
 "Bug Tracker" = "https://github.com/AlexM1010/FollowWeb/issues"
 
 [project.scripts]
-followweb = "FollowWeb_Visualizor.main:main"
+followweb = "FollowWeb_Visualizor.__main__:main"
 
 [tool.setuptools]
 packages = [
@@ -167,9 +167,9 @@ module = [
 ]
 ignore_missing_imports = true
 
-# Be more lenient with main.py since it has many logger None issues
+# Be more lenient with __main__.py since it has many logger None issues
 [[tool.mypy.overrides]]
-module = "FollowWeb_Visualizor.main"
+module = "FollowWeb_Visualizor.__main__"
 disable_error_code = ["attr-defined", "assignment", "operator"]
 
 # Be more lenient with output managers

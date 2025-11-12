@@ -20,8 +20,8 @@ Modules:
     progress: Progress tracking for long-running operations
 
 Example:
-    >>> from FollowWeb_Visualizor.main import PipelineOrchestrator
-    >>> from FollowWeb_Visualizor.config import get_configuration_manager
+    >>> from FollowWeb_Visualizor.__main__ import PipelineOrchestrator
+    >>> from FollowWeb_Visualizor.core.config import get_configuration_manager
     >>>
     >>> config_manager = get_configuration_manager()
     >>> config = config_manager.load_configuration()
