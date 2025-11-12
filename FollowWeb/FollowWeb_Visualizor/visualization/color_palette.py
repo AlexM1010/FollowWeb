@@ -22,22 +22,24 @@ scheme and represents our own unique color choices.
 
 class NodeGroupColors:
     """Base colors for automatic group detection nodes.
-    
+
     Original palette designed for FollowWeb network visualizations.
     Colors selected for optimal differentiation and visual clarity.
     """
 
     # Original color palette - designed for FollowWeb
-    TEAL = "#4ECDC4"        # Vibrant teal - primary accent
-    CORAL = "#FF6B6B"       # Warm coral - secondary accent  
-    AMBER = "#FFD93D"       # Bright amber - tertiary accent
-    VIOLET = "#A78BFA"      # Soft violet - quaternary accent
-    SAGE = "#6BCF7F"        # Fresh sage green - quinary accent
-    TURQUOISE = "#00B4D8"   # Deep turquoise - senary accent (more blue-shifted for distinction)
+    TEAL = "#4ECDC4"  # Vibrant teal - primary accent
+    CORAL = "#FF6B6B"  # Warm coral - secondary accent
+    AMBER = "#FFD93D"  # Bright amber - tertiary accent
+    VIOLET = "#A78BFA"  # Soft violet - quaternary accent
+    SAGE = "#6BCF7F"  # Fresh sage green - quinary accent
+    TURQUOISE = (
+        "#00B4D8"  # Deep turquoise - senary accent (more blue-shifted for distinction)
+    )
 
     # Base palette for community detection
     BASE_PALETTE = [TEAL, CORAL, AMBER, VIOLET, SAGE, TURQUOISE]
-    
+
     # Extended palette - additional muted colors for large networks
     # These colors maintain Delta E > 15 from base palette and each other
     # Muted tones provide a softer, more professional aesthetic
@@ -256,7 +258,7 @@ def generate_extended_palette(num_colors: int) -> list[str]:
     if num_colors > len(base_palette):
         remaining_after_base = num_colors - len(base_palette)
         extended_to_use = min(remaining_after_base, len(extended_palette))
-        
+
         for i in range(extended_to_use):
             color = extended_palette[i]
             if color in seen_colors:

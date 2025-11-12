@@ -46,7 +46,9 @@ class AILanguageScanner:
 
     def __init__(self):
         """Initialize the AI language scanner with comprehensive pattern definitions."""
-        self.ai_patterns: dict[str, dict[str, any]] = self._initialize_comprehensive_patterns()
+        self.ai_patterns: dict[str, dict[str, any]] = (
+            self._initialize_comprehensive_patterns()
+        )
         self.replacement_suggestions: dict[str, str] = self._initialize_replacements()
         self.python_keywords: set[str] = self._get_python_keywords()
 
