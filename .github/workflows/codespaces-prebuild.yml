@@ -58,22 +58,35 @@ jobs:
             prebuild-${{ runner.os }}-py3.12-
       
       - name: Install dependencies
-        if: steps.cache-prebuild.outputs.cache-hit != 'true'
         working-directory: FollowWeb
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m venv .venv
+          
+          # Create or use existing venv
+          if [ ! -d ".venv" ]; then
+            echo "Creating new virtual environment..."
+            python -m venv .venv
+          else
+            echo "Using existing virtual environment from cache..."
+          fi
+          
           source .venv/bin/activate
+          
+          # Always verify/install dependencies (quick if already installed)
+          echo "Installing/verifying dependencies..."
           pip install -e ".[dev]"
           pip install -r requirements-ci.txt
-          echo "✅ Dependencies installed and cached"
+          
+          # Verify critical dependencies
+          python -c "import networkx; print(f'✅ networkx {networkx.__version__}')"
+          python -c "import pytest; print(f'✅ pytest installed')"
+          
+          echo "✅ Dependencies installed and verified"
       
       - name: Verify prebuild
         working-directory: FollowWeb
         run: |
-          if [ -d ".venv" ]; then
-            source .venv/bin/activate
-          fi
+          source .venv/bin/activate
           python -c "import FollowWeb_Visualizor; print('✅ Package imports successfully')"
           echo "📦 Prebuild environment ready"
           echo "🚀 Cache key: ${{ steps.cache-info.outputs.cache-key }}"
