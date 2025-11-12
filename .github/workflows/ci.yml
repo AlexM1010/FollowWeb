@@ -67,6 +67,8 @@ concurrency:
 
 jobs:
   # Quick smoke test on Ubuntu with latest Python - gates the build job
+  # Runs unit tests only (excludes integration tests) for faster feedback
+  # Full test suite including integration tests runs in the 'test' job after this passes
   test-quick:
     name: Smoke Test (Python 3.12 on Ubuntu)
     runs-on: ubuntu-latest
@@ -103,8 +105,11 @@ jobs:
       run: |
         set -e
         threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
-        # Use --fast flag: skips benchmarks, uses maximum parallelization
-        python tests/run_tests.py all --fast --cov=FollowWeb_Visualizor --cov-report=term --cov-fail-under=$threshold
+        # Get CPU count for CI environment (use all cores, no safety margin needed in CI)
+        cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
+        echo "Running tests with $cpu_count workers (all available cores)"
+        # Run unit tests only (fast, isolated tests with maximum parallelization)
+        python -m pytest -m unit --maxfail=5 --tb=short -v --cov=FollowWeb_Visualizor --cov-report=term --cov-fail-under=$threshold -n $cpu_count
       shell: bash
       env:
         MPLBACKEND: Agg
