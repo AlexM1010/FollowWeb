@@ -68,7 +68,7 @@ concurrency:
 jobs:
   # Quick smoke test on Ubuntu with latest Python - gates the build job
   test-quick:
-    name: Quick Test (Python 3.12 on Ubuntu)
+    name: Smoke Test (Python 3.12 on Ubuntu)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -99,11 +99,12 @@ jobs:
         python -m pip install -r requirements-ci.txt -e .
       shell: bash
     
-    - name: Run quick tests
+    - name: Run quick smoke tests
       run: |
         set -e
         threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
-        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=term --cov-fail-under=$threshold
+        # Use --fast flag: skips benchmarks, uses maximum parallelization
+        python tests/run_tests.py all --fast --cov=FollowWeb_Visualizor --cov-report=term --cov-fail-under=$threshold
       shell: bash
       env:
         MPLBACKEND: Agg
