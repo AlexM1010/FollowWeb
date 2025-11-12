@@ -292,23 +292,6 @@ jobs:
         retention-days: 7
         if-no-files-found: ignore
 
-  conventional-commits:
-    name: Validate Conventional Commits
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: github.event_name == 'pull_request'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Validate conventional commits
-      uses: amannn/action-semantic-pull-request@v5
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
@@ -504,7 +487,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [test, security, format-check, build, performance, conventional-commits]
+    needs: [test, security, format-check, build, performance]
     if: always()
     
     steps:
@@ -556,10 +539,6 @@ jobs:
           fi
         fi
         
-        if [[ "${{ needs.conventional-commits.result }}" != "success" && "${{ needs.conventional-commits.result }}" != "skipped" ]]; then
-          failed_jobs="$failed_jobs ConventionalCommits(${{ needs.conventional-commits.result }})"
-        fi
-        
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
           echo "::error::CI PIPELINE FAILED - Failed Jobs:$failed_jobs"
@@ -573,7 +552,6 @@ jobs:
           echo "- Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Conventional Commits: ${{ needs.conventional-commits.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Action Required:** Review the failed job logs above for details." >> $GITHUB_STEP_SUMMARY
           if [[ -n "$skipped_jobs" ]]; then
@@ -617,4 +595,3 @@ jobs:
         echo "- ✅ Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Conventional Commits: ${{ needs.conventional-commits.result }}" >> $GITHUB_STEP_SUMMARY

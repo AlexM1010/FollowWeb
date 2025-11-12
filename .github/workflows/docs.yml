@@ -245,6 +245,74 @@ jobs:
         python ../.github/scripts/ci_helpers.py success "- **Code Maintenance** (TODO/FIXME comment analysis)" --summary-only
         python ../.github/scripts/ci_helpers.py info "**Documentation pipeline ensures comprehensive project documentation**"
     
+    - name: Validate PR title follows conventional commits
+      if: github.event_name == 'pull_request'
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Validate conventional commit messages
+      if: github.event_name == 'pull_request'
+      run: |
+        python .github/scripts/ci_helpers.py info "**Conventional Commit Messages Validation**" --summary-only
+        
+        # Get the base branch commit
+        git fetch origin ${{ github.base_ref }}
+        base_commit=$(git merge-base origin/${{ github.base_ref }} HEAD)
+        
+        # Get all commits in this PR
+        commits=$(git log --format="%H" $base_commit..HEAD)
+        
+        if [ -z "$commits" ]; then
+          python .github/scripts/ci_helpers.py warning "No commits found to validate" --summary-only
+          exit 0
+        fi
+        
+        # Conventional commit pattern
+        # Matches: type(scope): description or type: description
+        # Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+        pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+"
+        
+        invalid_commits=""
+        valid_count=0
+        total_count=0
+        
+        echo "Checking commits for conventional commit format..." | tee -a $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        for commit in $commits; do
+          total_count=$((total_count + 1))
+          message=$(git log --format=%s -n 1 $commit)
+          short_hash=$(git log --format=%h -n 1 $commit)
+          
+          if echo "$message" | grep -qE "$pattern"; then
+            valid_count=$((valid_count + 1))
+            echo "✅ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          else
+            invalid_commits="$invalid_commits\n❌ $short_hash: $message"
+            echo "❌ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "$invalid_commits" ]; then
+          python .github/scripts/ci_helpers.py error "Found $((total_count - valid_count)) commit(s) not following conventional commit format" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Conventional Commit Format:**" --summary-only
+          python .github/scripts/ci_helpers.py info "\`type(scope): description\` or \`type: description\`" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Valid types:** feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Examples:**" --summary-only
+          python .github/scripts/ci_helpers.py info "- \`feat(api): add new endpoint\`" --summary-only
+          python .github/scripts/ci_helpers.py info "- \`fix: resolve memory leak\`" --summary-only
+          python .github/scripts/ci_helpers.py info "- \`docs: update README\`" --summary-only
+          exit 1
+        else
+          python .github/scripts/ci_helpers.py success "All $valid_count commit(s) follow conventional commit format" --summary-only
+        fi
+    
     - name: Upload documentation reports
       uses: actions/upload-artifact@v4
       if: always()
