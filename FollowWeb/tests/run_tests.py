@@ -4,9 +4,10 @@ Minimal test runner for FollowWeb - handles benchmark isolation only.
 
 Use pytest directly for most cases. This script only exists to handle the
 pytest-benchmark + pytest-xdist incompatibility.
+
+Note: This is a minimal wrapper. For most testing, use pytest directly.
 """
 
-import os
 import subprocess
 import sys
 
