@@ -25,6 +25,8 @@ class TestMetricsCalculator:
 
     def setup_method(self):
         """Set up test fixtures."""
+        from FollowWeb_Visualizor.data.cache import CentralizedCache
+
         self.vis_config = {
             "node_size_metric": "degree",
             "base_node_size": 10,
@@ -38,7 +40,17 @@ class TestMetricsCalculator:
             "shared_metrics": {"enable_caching": True, "cache_timeout_seconds": 300},
             "static_image": {"spring": {"iterations": 5, "k": 0.15}},
         }
-        self.calculator = MetricsCalculator(self.vis_config)
+        # Create isolated cache manager for this test
+        self.cache_manager = CentralizedCache()
+        self.calculator = MetricsCalculator(
+            self.vis_config, cache_manager=self.cache_manager
+        )
+
+    def teardown_method(self):
+        """Clean up after each test."""
+        # Clear cache to avoid interference with other tests
+        if hasattr(self, "cache_manager"):
+            self.cache_manager.clear_all_caches()
 
     def create_test_graph(self) -> nx.DiGraph:
         """Create a simple test graph with communities."""
@@ -123,7 +135,6 @@ class TestMetricsCalculator:
 
         # If hashes are the same, print debug info
         if hash1 == hash2:
-            import json
             # Get the data that would be hashed
             g1_attrs = nx.get_node_attributes(G1, "degree")
             g2_attrs = nx.get_node_attributes(G2, "degree")

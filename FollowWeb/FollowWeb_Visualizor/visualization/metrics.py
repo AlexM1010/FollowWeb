@@ -8,7 +8,7 @@ It includes unified metrics calculation, node and edge metrics, and color scheme
 import logging
 import sys
 import time
-from typing import Any, Optional
+from typing import Any
 
 import networkx as nx
 
@@ -49,7 +49,8 @@ class MetricsCalculator:
     def __init__(
         self,
         vis_config: dict[str, Any],
-        performance_config: Optional[dict[str, Any]] = None,
+        performance_config: dict[str, Any] | None = None,
+        cache_manager: Any | None = None,
     ) -> None:
         """
         Initialize the shared metrics calculator with visualization configuration.
@@ -59,6 +60,8 @@ class MetricsCalculator:
                        scaling algorithms, colors, and other visual parameters
             performance_config: Performance configuration dictionary containing max_layout_iterations
                               and other performance-related settings
+            cache_manager: Optional cache manager instance. If None, uses global singleton.
+                          Useful for testing to avoid shared state.
 
         Raises:
             KeyError: If required configuration keys are missing
@@ -67,8 +70,11 @@ class MetricsCalculator:
         self.performance_config = performance_config or {}
         self.logger = logging.getLogger(__name__)
 
-        # Use centralized cache manager instead of local caches
-        self.cache_manager = get_cache_manager()
+        # Use provided cache manager or get global singleton
+        if cache_manager is not None:
+            self.cache_manager = cache_manager
+        else:
+            self.cache_manager = get_cache_manager()
 
         # Cache configuration
         self.cache_enabled = vis_config.get("shared_metrics", {}).get(
