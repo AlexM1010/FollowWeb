@@ -126,7 +126,7 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [test-quick, prebuild]  # Wait for both quick test and prebuild
+    needs: test-quick  # Wait for smoke test to pass
     timeout-minutes: 30
     defaults:
       run:
@@ -170,7 +170,7 @@ jobs:
           .pytest_cache
           .mypy_cache
           .ruff_cache
-        key: ${{ needs.prebuild.outputs.cache-key }}
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
@@ -245,18 +245,12 @@ jobs:
       run: |
         set -e  # Exit immediately if any command fails
         threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
-        # Run non-benchmark tests with coverage in parallel
-        python -m pytest -m "not benchmark" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+        # Run fast tests (unit + integration) with coverage in parallel
+        # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
+        python -m pytest -m "not (benchmark or slow or performance)" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
           exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
           python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
-          exit $exit_code
-        }
-        
-        # Run benchmark tests sequentially (no coverage needed)
-        python -m pytest -m benchmark -n 0 --tb=short || {
-          exit_code=$?
-          python ../.github/scripts/ci_helpers.py error "Benchmark Tests Failed" --summary-only
           exit $exit_code
         }
         
@@ -291,7 +285,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: prebuild  # Use prebuild cache
+    needs: test-quick  # Wait for smoke test to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -323,7 +317,7 @@ jobs:
           .pytest_cache
           .mypy_cache
           .ruff_cache
-        key: ${{ needs.prebuild.outputs.cache-key }}
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
@@ -409,7 +403,7 @@ jobs:
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
-    needs: prebuild  # Use prebuild cache
+    needs: test-quick  # Wait for smoke test to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -436,7 +430,7 @@ jobs:
           .pytest_cache
           .mypy_cache
           .ruff_cache
-        key: ${{ needs.prebuild.outputs.cache-key }}
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
@@ -474,7 +468,7 @@ jobs:
   build:
     name: Build & Package
     runs-on: ubuntu-latest
-    needs: [test-quick, format-check, security]  # Start as soon as quick test passes
+    needs: test-quick  # Start as soon as smoke test passes
     timeout-minutes: 15
     defaults:
       run:
@@ -552,7 +546,7 @@ jobs:
   performance:
     name: Performance & Benchmarks
     runs-on: ubuntu-latest
-    needs: prebuild  # Use prebuild cache
+    needs: test-quick  # Wait for smoke test to pass
     timeout-minutes: 30
     defaults:
       run:
@@ -579,7 +573,7 @@ jobs:
           .pytest_cache
           .mypy_cache
           .ruff_cache
-        key: ${{ needs.prebuild.outputs.cache-key }}
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
@@ -601,8 +595,9 @@ jobs:
         if [ -d ".venv" ]; then source .venv/bin/activate; fi
         # Create benchmarks directory
         mkdir -p .benchmarks
-        # Run both slow tests and benchmark tests to save benchmark results
-        python -m pytest -m "slow or benchmark" -v --tb=short --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
+        # Run slow, performance, and benchmark tests sequentially (no parallelization)
+        # These tests are excluded from the main test matrix to prevent timeouts
+        python -m pytest -m "slow or performance or benchmark" -v --tb=short -n 0 --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
         
         # Generate performance test summary with proper emoji handling
         python ../.github/scripts/ci_helpers.py success "Performance tests completed - no regressions detected" --print-only
@@ -649,13 +644,11 @@ jobs:
         retention-days: 30
         if-no-files-found: ignore
   
-  # Documentation pipeline - runs after smoke test passes, uses prebuild cache
+  # Documentation pipeline - runs after smoke test passes
   documentation:
     name: Documentation Pipeline
-    needs: [test-quick, prebuild]
+    needs: test-quick
     uses: ./.github/workflows/docs.yml
-    with:
-      prebuild-cache-key: ${{ needs.prebuild.outputs.cache-key }}
   
   # All checks must pass - no exceptions
   ci-success:

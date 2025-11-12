@@ -3,11 +3,6 @@ name: Documentation
 on:
   # Only triggered by CI workflow after smoke test passes
   workflow_call:
-    inputs:
-      prebuild-cache-key:
-        description: 'Cache key from CI prebuild'
-        required: true
-        type: string
 
 jobs:
   # Job 1: Documentation Structure (CRITICAL - Pipeline fails if this fails)
@@ -35,7 +30,7 @@ jobs:
           .pytest_cache
           .mypy_cache
           .ruff_cache
-        key: ${{ inputs.prebuild-cache-key }}
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
@@ -48,6 +43,9 @@ jobs:
           source .venv/bin/activate
           # Verify installation
           python -c "import FollowWeb_Visualizor" || pip install -e .
+          # Export venv path for subsequent steps
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
         else
           echo "Installing dependencies fresh"
           python -m pip install --upgrade pip
@@ -280,7 +278,7 @@ jobs:
           .pytest_cache
           .mypy_cache
           .ruff_cache
-        key: ${{ inputs.prebuild-cache-key }}
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
