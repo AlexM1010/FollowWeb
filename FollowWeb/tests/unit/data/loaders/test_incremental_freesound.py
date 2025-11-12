@@ -413,24 +413,18 @@ class TestIncrementalFreesoundLoaderMetadataUpdate:
         """Test updating metadata for all nodes."""
         loader = loader_with_mocks
         
-        loader.graph.add_node('1', name='sound1')
-        loader.graph.add_node('2', name='sound2')
-        
-        mock_sound = Mock()
-        mock_sound.tags = []
-        mock_sound.duration = 1.0
-        mock_sound.username = 'user'
-        mock_sound.previews = {}
+        loader.graph.add_node('1', name='sound1', type='sample')
+        loader.graph.add_node('2', name='sound2', type='sample')
         
         def mock_get_sound(sample_id):
-            sound = Mock()
-            sound.id = sample_id
-            sound.name = f'updated_{sample_id}'
-            sound.tags = []
-            sound.duration = 1.0
-            sound.username = 'user'
-            sound.previews = {}
-            return sound
+            return create_mock_sound(
+                sound_id=sample_id,
+                name=f'updated_{sample_id}',
+                tags=['test'],
+                duration=2.0,
+                username='updated_user',
+                previews={'preview-hq-mp3': 'http://example.com/preview.mp3'}
+            )
         
         loader.client.get_sound.side_effect = mock_get_sound
         
@@ -451,21 +445,21 @@ class TestIncrementalFreesoundLoaderMetadataUpdate:
         """Test update_metadata handles API failures gracefully."""
         loader = loader_with_mocks
         
-        loader.graph.add_node('1', name='sound1')
-        loader.graph.add_node('2', name='sound2')
+        loader.graph.add_node('1', name='sound1', type='sample')
+        loader.graph.add_node('2', name='sound2', type='sample')
         
         # Mock API to fail for sample 1
         def mock_get_sound(sample_id):
             if sample_id == 1:
                 raise Exception("API Error")
-            sound = Mock()
-            sound.id = sample_id
-            sound.name = f'sound{sample_id}'
-            sound.tags = []
-            sound.duration = 1.0
-            sound.username = 'user'
-            sound.previews = {}
-            return sound
+            return create_mock_sound(
+                sound_id=sample_id,
+                name=f'sound{sample_id}',
+                tags=['test'],
+                duration=1.0,
+                username='user',
+                previews={}
+            )
         
         loader.client.get_sound.side_effect = mock_get_sound
         

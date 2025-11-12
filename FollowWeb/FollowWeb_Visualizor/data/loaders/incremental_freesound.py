@@ -409,6 +409,18 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         with open(checkpoint_meta_path, "w") as f:
             json.dump(checkpoint_metadata, f, indent=2)
 
+        # 4. Also call the GraphCheckpoint.save() method for compatibility with tests
+        # and to maintain the abstraction layer
+        try:
+            self.checkpoint.save(
+                graph=self.graph,
+                processed_ids=self.processed_ids,
+                metadata=checkpoint_metadata,
+                sound_cache=getattr(self, '_sound_cache', {})
+            )
+        except Exception as e:
+            self.logger.warning(f"GraphCheckpoint.save() failed: {e}")
+
         self.logger.debug(
             f"Checkpoint saved: {checkpoint_metadata['nodes']} nodes, "
             f"{checkpoint_metadata['edges']} edges"
