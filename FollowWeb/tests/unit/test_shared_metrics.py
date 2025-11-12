@@ -357,6 +357,15 @@ class TestMetricsCalculator:
         mock_get_scaled_size.return_value = 2.0
 
         G = self.create_test_graph()
+        
+        # Ensure cache is completely clear before this test
+        # This prevents race conditions in parallel execution
+        self.cache_manager.clear_all_caches()
+        
+        # Verify graph structure is correct
+        assert G.nodes["A"]["community"] == 0
+        assert G.nodes["C"]["community"] == 1
+        
         color_schemes = ColorScheme(
             hex_colors={0: "#ff0000", 1: "#00ff00"},
             rgba_colors={0: (1.0, 0.0, 0.0, 1.0), 1: (0.0, 1.0, 0.0, 1.0)},
@@ -380,7 +389,10 @@ class TestMetricsCalculator:
         # Check bridge edge (A-C)
         if ("A", "C") in edge_metrics:
             edge_ac = edge_metrics[("A", "C")]
-            assert edge_ac.is_bridge is True  # Different communities
+            # Debug: print actual values if assertion fails
+            assert edge_ac.u_comm == 0, f"Expected u_comm=0, got {edge_ac.u_comm}"
+            assert edge_ac.v_comm == 1, f"Expected v_comm=1, got {edge_ac.v_comm}"
+            assert edge_ac.is_bridge is True, f"Expected is_bridge=True, got {edge_ac.is_bridge} (u_comm={edge_ac.u_comm}, v_comm={edge_ac.v_comm})"
             assert edge_ac.color == "#6e6e6e"  # Bridge color
 
     @patch("networkx.spring_layout")
