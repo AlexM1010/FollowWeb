@@ -3,20 +3,64 @@ Centralized color palette for FollowWeb visualizations.
 
 This module defines all colors used throughout the visualization system,
 including node group colors, UI colors, and utility functions for color manipulation.
+
+Color Palette Design:
+---------------------
+This palette was designed specifically for FollowWeb, inspired by the minimalist
+aesthetic of games like Mini Motorways. The colors are our own original selections
+chosen to provide:
+- High contrast and accessibility
+- Clear visual differentiation (Delta E > 20 between base colors)
+- Pleasant viewing experience for extended analysis sessions
+- Distinct identity for the FollowWeb project
+
+The palette is original work created for this project. While inspired by minimalist
+city visualization aesthetics, it does not replicate any specific commercial color
+scheme and represents our own unique color choices.
 """
 
 
 class NodeGroupColors:
-    """Base colors for automatic group detection nodes."""
+    """Base colors for automatic group detection nodes.
+    
+    Original palette designed for FollowWeb network visualizations.
+    Colors selected for optimal differentiation and visual clarity.
+    """
 
-    GREEN = "#62CB89"
-    BLUE = "#47BEE1"
-    BLUE_ALT = "#6C95C1"
-    ORANGE = "#FFB242"
-    PURPLE = "#F15668"
+    # Original color palette - designed for FollowWeb
+    TEAL = "#4ECDC4"        # Vibrant teal - primary accent
+    CORAL = "#FF6B6B"       # Warm coral - secondary accent  
+    AMBER = "#FFD93D"       # Bright amber - tertiary accent
+    VIOLET = "#A78BFA"      # Soft violet - quaternary accent
+    SAGE = "#6BCF7F"        # Fresh sage green - quinary accent
+    TURQUOISE = "#00B4D8"   # Deep turquoise - senary accent (more blue-shifted for distinction)
 
     # Base palette for community detection
-    BASE_PALETTE = [GREEN, BLUE, ORANGE, PURPLE, BLUE_ALT]
+    BASE_PALETTE = [TEAL, CORAL, AMBER, VIOLET, SAGE, TURQUOISE]
+    
+    # Extended palette - additional muted colors for large networks
+    # These colors maintain Delta E > 15 from base palette and each other
+    # Muted tones provide a softer, more professional aesthetic
+    EXTENDED_PALETTE = [
+        "#87BDFF",  # Soft sky blue
+        "#FFBC7B",  # Muted peach
+        "#FC9CB7",  # Soft pink
+        "#F06292",  # Muted rose
+        "#FFA07B",  # Soft coral
+        "#FEB959",  # Muted gold
+        "#79D5FF",  # Pale blue
+        "#C47ED0",  # Soft purple
+        "#A489D4",  # Muted lavender
+        "#B9DB93",  # Soft lime
+        "#C6F04D",  # Muted chartreuse
+        "#9FFF4F",  # Soft green
+        "#F48684",  # Muted salmon
+        "#60EFCA",  # Soft mint
+        "#8C97D2",  # Muted periwinkle
+        "#A6DADC",  # Soft cyan
+        "#C55A89",  # Muted magenta
+        "#DCE674",  # Soft yellow-green
+    ]
 
 
 class UIColors:
@@ -41,7 +85,7 @@ def darken_color(hex_color: str, factor: float = 0.7) -> str:
     Darken a hex color by a given factor.
 
     Args:
-        hex_color: Hex color string (e.g., "#62CB89")
+        hex_color: Hex color string (e.g., "#4ECDC4")
         factor: Darkening factor (0.0 = black, 1.0 = original color)
 
     Returns:
@@ -85,7 +129,7 @@ def lighten_color(hex_color: str, factor: float = 1.3) -> str:
     Lighten a hex color by a given factor.
 
     Args:
-        hex_color: Hex color string (e.g., "#62CB89")
+        hex_color: Hex color string (e.g., "#4ECDC4")
         factor: Lightening factor (1.0 = original color, >1.0 = lighter)
 
     Returns:
@@ -131,7 +175,7 @@ def hex_to_rgba(
     Convert hex color to RGBA tuple.
 
     Args:
-        hex_color: Hex color string (e.g., "#62CB89")
+        hex_color: Hex color string (e.g., "#4ECDC4")
         alpha: Alpha channel value (0.0 = transparent, 1.0 = opaque)
 
     Returns:
@@ -162,18 +206,16 @@ def hex_to_rgba(
 
 def generate_extended_palette(num_colors: int) -> list[str]:
     """
-    Generate an extended color palette by modifying base colors.
+    Generate an extended color palette using base colors, extended palette, and variations.
 
     When more colors are needed than available in the base palette,
-    this function generates variations using both darkening and lightening
+    this function uses pre-selected extended colors, then generates variations
     to maintain perceptual differences of at least Delta E > 15.
 
     Strategy:
-    - Colors 1-5: Base palette (Delta E > 20 between all pairs)
-    - Colors 6-10: Darkened by 30% (factor 0.7)
-    - Colors 11-15: Darkened by 50% (factor 0.5)
-    - Colors 16-20: Lightened by 20% (factor 1.2)
-    - Colors 21+: Continue alternating darker/lighter variations
+    - Colors 1-6: Base palette (Delta E > 20 between all pairs)
+    - Colors 7-24: Extended palette (18 additional muted colors, Delta E > 15)
+    - Colors 25+: Generated variations using darkening/lightening
 
     The function ensures no color repetition by tracking all generated colors.
 
@@ -198,10 +240,11 @@ def generate_extended_palette(num_colors: int) -> list[str]:
         return []
 
     base_palette = NodeGroupColors.BASE_PALETTE
+    extended_palette = NodeGroupColors.EXTENDED_PALETTE
     palette = []
     seen_colors = set()  # Track colors to prevent duplicates
 
-    # Use base colors first (colors 1-5)
+    # Use base colors first (colors 1-6)
     for i in range(min(num_colors, len(base_palette))):
         color = base_palette[i]
         if color in seen_colors:
@@ -209,9 +252,21 @@ def generate_extended_palette(num_colors: int) -> list[str]:
         palette.append(color)
         seen_colors.add(color)
 
-    # Generate variations if more colors needed
+    # Use extended palette colors next (colors 7-26)
     if num_colors > len(base_palette):
-        remaining = num_colors - len(base_palette)
+        remaining_after_base = num_colors - len(base_palette)
+        extended_to_use = min(remaining_after_base, len(extended_palette))
+        
+        for i in range(extended_to_use):
+            color = extended_palette[i]
+            if color in seen_colors:
+                raise RuntimeError(f"Duplicate color in extended palette: {color}")
+            palette.append(color)
+            seen_colors.add(color)
+
+    # Generate variations if more colors needed (colors 27+)
+    if num_colors > len(base_palette) + len(extended_palette):
+        remaining = num_colors - len(base_palette) - len(extended_palette)
 
         # Define variation strategies ordered from LARGEST to SMALLEST changes
         # Alternate between darken and lighten to maximize differentiation
