@@ -100,6 +100,18 @@ def cleanup_processes():
 def run_benchmarks() -> int:
     """Run benchmark tests with proper configuration."""
 
+    # Ensure we're running from the FollowWeb package directory
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    original_dir = os.getcwd()
+
+    # Change to the package directory if we're not already there
+    if os.path.basename(original_dir) != "FollowWeb" or not os.path.exists(
+        os.path.join(original_dir, "pytest.ini")
+    ):
+        if os.path.exists(os.path.join(script_dir, "pytest.ini")):
+            os.chdir(script_dir)
+            print(f"Changed working directory to: {script_dir}")
+
     # Build command that runs benchmarks sequentially
     cmd = [
         sys.executable,
@@ -130,7 +142,7 @@ def run_benchmarks() -> int:
         return 1
 
 
-def run_all_tests_optimally(extra_args: list[str]) -> int:
+def run_all_tests_optimally(extra_args: list[str], no_parallel: bool = False) -> int:
     """Run all tests with optimal execution: parallel tests first, then sequential benchmarks."""
 
     print("Running all tests with optimal execution strategy...")
@@ -139,11 +151,16 @@ def run_all_tests_optimally(extra_args: list[str]) -> int:
     total_failures = 0
 
     try:
-        # Phase 1: Run all non-benchmark tests in parallel
-        print("Phase 1: Running regular tests in parallel...")
+        # Phase 1: Run all non-benchmark tests in parallel (or sequential if requested)
+        if no_parallel:
+            print("Phase 1: Running regular tests sequentially...")
+        else:
+            print("Phase 1: Running regular tests in parallel...")
         print("-" * 40)
 
         regular_args = ["-m", "not benchmark"] + extra_args
+        if no_parallel:
+            regular_args.extend(["-n", "0"])
         regular_result = run_tests_safely(regular_args, "default")
 
         if regular_result != 0:
@@ -190,6 +207,21 @@ def run_all_tests_optimally(extra_args: list[str]) -> int:
 
 def run_tests_safely(test_args: list[str], test_type: Optional[str] = None) -> int:
     """Run tests with safe resource management."""
+    import time
+    
+    start_time = time.time()
+
+    # Ensure we're running from the FollowWeb package directory
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    original_dir = os.getcwd()
+
+    # Change to the package directory if we're not already there
+    if os.path.basename(original_dir) != "FollowWeb" or not os.path.exists(
+        os.path.join(original_dir, "pytest.ini")
+    ):
+        if os.path.exists(os.path.join(script_dir, "pytest.ini")):
+            os.chdir(script_dir)
+            print(f"Changed working directory to: {script_dir}")
 
     # Detect test type from arguments if not specified
     if test_type is None:
@@ -254,6 +286,16 @@ def run_tests_safely(test_args: list[str], test_type: Optional[str] = None) -> i
     # Run the tests
     try:
         result = subprocess.run(cmd, check=False, capture_output=False, text=True)
+        
+        # Report execution time
+        elapsed = time.time() - start_time
+        minutes = int(elapsed // 60)
+        seconds = elapsed % 60
+        if minutes > 0:
+            print(f"\n⏱️  Test execution completed in {minutes}m {seconds:.1f}s")
+        else:
+            print(f"\n⏱️  Test execution completed in {seconds:.1f}s")
+        
         return result.returncode
     except KeyboardInterrupt:
         print("\nTest execution interrupted by user")
@@ -269,7 +311,7 @@ def main():
     """Main entry point with command parsing."""
     if len(sys.argv) < 2:
         print("FollowWeb Test Runner")
-        print("Usage: python run_tests.py <command> [pytest arguments]")
+        print("Usage: python run_tests.py <command> [options] [pytest arguments]")
         print()
         print("Commands:")
         print("  all                      - Run all tests with optimal parallelization")
@@ -281,14 +323,32 @@ def main():
         print("  debug                    - Run tests with debug output")
         print("  system-info              - Show system resources and worker counts")
         print()
+        print("Options:")
+        print("  --fast                   - Skip benchmark tests with aggressive parallelization")
+        print()
         print("Examples:")
         print("  python run_tests.py unit")
+        print("  python run_tests.py all --fast")
         print("  python run_tests.py benchmark")
         print("  python run_tests.py all --collect-only")
         print("  python run_tests.py integration -k test_pipeline")
         return 0
 
     command = sys.argv[1]
+
+    # Check for --fast flag and remove it from argv
+    fast_mode = "--fast" in sys.argv
+    
+    # Check for --no-parallel flag
+    no_parallel = "--no-parallel" in sys.argv
+    
+    # Remove flags from sys.argv before extracting extra_args
+    if fast_mode:
+        sys.argv = [arg for arg in sys.argv if arg != "--fast"]
+    if no_parallel:
+        sys.argv = [arg for arg in sys.argv if arg != "--no-parallel"]
+
+    # Extract extra args after removing flags
     extra_args = sys.argv[2:] if len(sys.argv) > 2 else []
 
     if command == "system-info":
@@ -309,7 +369,19 @@ def main():
         return 0
 
     elif command == "all":
-        return run_all_tests_optimally(extra_args)
+        if fast_mode:
+            print("Running in FAST mode (skipping benchmarks)...")
+            print("=" * 60)
+            test_args = ["-m", "not benchmark"] + extra_args
+            # Use maximum parallelization for fast mode
+            # Override worker count to use all available cores - 1 (leave one for system)
+            info = get_system_info()
+            max_workers = max(1, info["cpu_count"] - 1)
+            test_args.extend(["-n", str(max_workers)])
+            print(f"Using maximum parallelization: {max_workers} workers")
+            return run_tests_safely(test_args, "unit")
+        else:
+            return run_all_tests_optimally(extra_args)
 
     elif command == "unit":
         test_args = ["-m", "unit"] + extra_args
