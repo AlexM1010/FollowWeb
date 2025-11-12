@@ -8,7 +8,7 @@ It includes unified metrics calculation, node and edge metrics, and color scheme
 import logging
 import sys
 import time
-from typing import Any
+from typing import Any, Optional
 
 import networkx as nx
 
@@ -49,8 +49,8 @@ class MetricsCalculator:
     def __init__(
         self,
         vis_config: dict[str, Any],
-        performance_config: dict[str, Any] | None = None,
-        cache_manager: Any | None = None,
+        performance_config: Optional[dict[str, Any]] = None,
+        cache_manager: Optional[Any] = None,
     ) -> None:
         """
         Initialize the shared metrics calculator with visualization configuration.
