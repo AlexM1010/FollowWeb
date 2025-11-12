@@ -1,18 +1,13 @@
 name: Documentation
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'FollowWeb/docs/**'
-      - '*.md'
-      - 'FollowWeb/FollowWeb_Visualizor/**/*.py'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'FollowWeb/docs/**'
-      - '*.md'
-      - 'FollowWeb/FollowWeb_Visualizor/**/*.py'
+  # Only triggered by CI workflow after smoke test passes
+  workflow_call:
+    inputs:
+      prebuild-cache-key:
+        description: 'Cache key from CI prebuild'
+        required: true
+        type: string
 
 jobs:
   # Job 1: Documentation Structure (CRITICAL - Pipeline fails if this fails)
@@ -23,16 +18,39 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
+    
+    - name: Restore CI prebuild cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/pip
+          FollowWeb/.venv
+          FollowWeb/tests/test_data
+          .pytest_cache
+          .mypy_cache
+          .ruff_cache
+        key: ${{ inputs.prebuild-cache-key }}
+        restore-keys: |
+          prebuild-${{ runner.os }}-py3.12-
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install -r FollowWeb/requirements.txt
-        python -m pip install -r FollowWeb/requirements-test.txt
+        # Use cached environment if available
+        if [ -d "FollowWeb/.venv" ]; then
+          echo "Using prebuild cache"
+          cd FollowWeb && source .venv/bin/activate && cd ..
+        else
+          echo "Installing dependencies fresh"
+          python -m pip install --upgrade pip
+          python -m pip install -r FollowWeb/requirements.txt
+          python -m pip install -r FollowWeb/requirements-test.txt
+        fi
         python .github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
     
     - name: Validate documentation structure
@@ -243,15 +261,38 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
+    
+    - name: Restore CI prebuild cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/pip
+          FollowWeb/.venv
+          FollowWeb/tests/test_data
+          .pytest_cache
+          .mypy_cache
+          .ruff_cache
+        key: ${{ inputs.prebuild-cache-key }}
+        restore-keys: |
+          prebuild-${{ runner.os }}-py3.12-
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install interrogate
+        # Use cached environment if available
+        if [ -d "FollowWeb/.venv" ]; then
+          echo "Using CI prebuild cache"
+          cd FollowWeb && source .venv/bin/activate && cd ..
+        else
+          echo "Installing dependencies fresh"
+          python -m pip install --upgrade pip
+          python -m pip install interrogate
+        fi
         python .github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
     
     - name: Check docstring coverage
