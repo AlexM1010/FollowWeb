@@ -248,6 +248,20 @@ jobs:
     - name: Validate PR title follows conventional commits
       if: github.event_name == 'pull_request'
       uses: amannn/action-semantic-pull-request@v5
+      with:
+        types: |
+          feat
+          fix
+          docs
+          style
+          refactor
+          perf
+          test
+          build
+          ci
+          chore
+          revert
+          security
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
@@ -270,8 +284,8 @@ jobs:
         
         # Conventional commit pattern
         # Matches: type(scope): description or type: description
-        # Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
-        pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+"
+        # Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security
+        pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security)(\(.+\))?: .+"
         
         invalid_commits=""
         valid_count=0
@@ -302,7 +316,7 @@ jobs:
           python .github/scripts/ci_helpers.py info "**Conventional Commit Format:**" --summary-only
           python .github/scripts/ci_helpers.py info "\`type(scope): description\` or \`type: description\`" --summary-only
           python .github/scripts/ci_helpers.py info "" --summary-only
-          python .github/scripts/ci_helpers.py info "**Valid types:** feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert" --summary-only
+          python .github/scripts/ci_helpers.py info "**Valid types:** feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security" --summary-only
           python .github/scripts/ci_helpers.py info "" --summary-only
           python .github/scripts/ci_helpers.py info "**Examples:**" --summary-only
           python .github/scripts/ci_helpers.py info "- \`feat(api): add new endpoint\`" --summary-only
