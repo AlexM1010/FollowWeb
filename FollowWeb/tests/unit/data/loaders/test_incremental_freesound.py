@@ -5,6 +5,7 @@ Tests incremental loading with checkpoint support, time limits, deleted sample
 cleanup, and metadata updates with mocked checkpoint and API operations.
 """
 
+import tempfile
 import time
 from unittest.mock import Mock, patch
 
@@ -65,25 +66,31 @@ def mock_checkpoint():
 
 
 @pytest.fixture
-def loader_with_mocks(mock_freesound_client, mock_checkpoint):
-    """Create IncrementalFreesoundLoader with mocked dependencies."""
-    with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-        loader = IncrementalFreesoundLoader()
-        return loader
+def loader_with_mocks(mock_freesound_client, mock_checkpoint, tmp_path):
+    """Create IncrementalFreesoundLoader with mocked dependencies and isolated checkpoint dir."""
+    config = {
+        'api_key': 'test_key',
+        'checkpoint_dir': str(tmp_path / 'checkpoints')
+    }
+    loader = IncrementalFreesoundLoader(config=config)
+    return loader
 
 
 class TestIncrementalFreesoundLoaderInitialization:
     """Test IncrementalFreesoundLoader initialization."""
 
-    def test_init_with_default_config(self, mock_freesound_client, mock_checkpoint):
+    def test_init_with_default_config(self, mock_freesound_client, mock_checkpoint, tmp_path):
         """Test initialization with default configuration."""
-        with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            loader = IncrementalFreesoundLoader()
-            
-            assert loader.checkpoint_interval == 50
-            assert loader.max_runtime_hours is None
-            assert loader.verify_existing_sounds is False
-            assert isinstance(loader.processed_ids, set)
+        config = {
+            'api_key': 'test_key',
+            'checkpoint_dir': str(tmp_path / 'checkpoints')
+        }
+        loader = IncrementalFreesoundLoader(config=config)
+        
+        assert loader.checkpoint_interval == 50
+        assert loader.max_runtime_hours is None
+        assert loader.verify_existing_sounds is False
+        assert isinstance(loader.processed_ids, set)
 
     def test_init_with_custom_config(self, mock_freesound_client, mock_checkpoint):
         """Test initialization with custom configuration."""
@@ -101,7 +108,7 @@ class TestIncrementalFreesoundLoaderInitialization:
         assert loader.max_runtime_hours == 1.5
         assert loader.verify_existing_sounds is True
 
-    def test_init_loads_existing_checkpoint(self, mock_freesound_client, mock_checkpoint):
+    def test_init_loads_existing_checkpoint(self, mock_freesound_client, mock_checkpoint, tmp_path):
         """Test initialization loads existing checkpoint."""
         # Mock existing checkpoint data
         existing_graph = nx.DiGraph()
@@ -111,18 +118,21 @@ class TestIncrementalFreesoundLoaderInitialization:
             self.graph = existing_graph
             self.processed_ids = {'1', '2'}
         
-        with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            with patch.object(IncrementalFreesoundLoader, '_load_checkpoint', mock_load_checkpoint):
-                loader = IncrementalFreesoundLoader()
-                
-                assert loader.graph.number_of_nodes() == 1
-                assert loader.processed_ids == {'1', '2'}
+        config = {
+            'api_key': 'test_key',
+            'checkpoint_dir': str(tmp_path / 'checkpoints')
+        }
+        with patch.object(IncrementalFreesoundLoader, '_load_checkpoint', mock_load_checkpoint):
+            loader = IncrementalFreesoundLoader(config=config)
+            
+            assert loader.graph.number_of_nodes() == 1
+            assert loader.processed_ids == {'1', '2'}
 
 
 class TestIncrementalFreesoundLoaderCheckpoint:
     """Test checkpoint loading and saving."""
 
-    def test_load_checkpoint_restores_state(self, mock_freesound_client, mock_checkpoint):
+    def test_load_checkpoint_restores_state(self, mock_freesound_client, mock_checkpoint, tmp_path):
         """Test loading checkpoint restores graph and processed IDs."""
         graph = nx.DiGraph()
         graph.add_nodes_from(['a', 'b', 'c'])
@@ -131,12 +141,15 @@ class TestIncrementalFreesoundLoaderCheckpoint:
             self.graph = graph
             self.processed_ids = {'a', 'b', 'c'}
         
-        with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            with patch.object(IncrementalFreesoundLoader, '_load_checkpoint', mock_load_checkpoint):
-                loader = IncrementalFreesoundLoader()
-                
-                assert loader.graph.number_of_nodes() == 3
-                assert len(loader.processed_ids) == 3
+        config = {
+            'api_key': 'test_key',
+            'checkpoint_dir': str(tmp_path / 'checkpoints')
+        }
+        with patch.object(IncrementalFreesoundLoader, '_load_checkpoint', mock_load_checkpoint):
+            loader = IncrementalFreesoundLoader(config=config)
+            
+            assert loader.graph.number_of_nodes() == 3
+            assert len(loader.processed_ids) == 3
 
     def test_save_checkpoint_called_periodically(self, loader_with_mocks, mock_checkpoint):
         """Test checkpoint is saved at configured intervals."""
@@ -171,16 +184,19 @@ class TestIncrementalFreesoundLoaderCheckpoint:
         # Should save at intervals: after 2, 4, and final
         assert loader.checkpoint.save.call_count >= 2
 
-    def test_no_checkpoint_load_starts_fresh(self, mock_freesound_client, mock_checkpoint):
+    def test_no_checkpoint_load_starts_fresh(self, mock_freesound_client, mock_checkpoint, tmp_path):
         """Test starting fresh when no checkpoint exists."""
         mock_checkpoint.load.return_value = None
         
-        with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            with patch.object(IncrementalFreesoundLoader, '_load_checkpoint'):
-                loader = IncrementalFreesoundLoader()
-                
-                assert loader.graph.number_of_nodes() == 0
-                assert len(loader.processed_ids) == 0
+        config = {
+            'api_key': 'test_key',
+            'checkpoint_dir': str(tmp_path / 'checkpoints')
+        }
+        with patch.object(IncrementalFreesoundLoader, '_load_checkpoint'):
+            loader = IncrementalFreesoundLoader(config=config)
+            
+            assert loader.graph.number_of_nodes() == 0
+            assert len(loader.processed_ids) == 0
 
 
 class TestIncrementalFreesoundLoaderSkipProcessed:
@@ -526,36 +542,47 @@ class TestIncrementalFreesoundLoaderProgressStats:
 class TestIncrementalFreesoundLoaderIntegration:
     """Test complete incremental loading workflows."""
 
-    def test_complete_incremental_workflow(self, loader_with_mocks, mock_checkpoint):
+    def test_complete_incremental_workflow(self, mock_freesound_client, mock_checkpoint):
         """Test complete incremental loading workflow."""
-        loader = loader_with_mocks
-        loader.checkpoint_interval = 2
+        import tempfile
         
-        # Mock search results
-        sounds = [
-            create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
-            for i in range(3)
-        ]
-        
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
-        mock_results.more = False
-        loader.client.text_search.return_value = mock_results
-        
-        # Mock similar sounds
-        mock_sound_obj = Mock()
-        mock_sound_obj.get_similar.return_value = []
-        loader.client.get_sound.return_value = mock_sound_obj
-        
-        # Fetch data
-        data = loader.fetch_data(query='test', max_samples=10)
-        
-        # Build graph
-        graph = loader.build_graph(data)
-        
-        assert graph.number_of_nodes() == 3
-        assert len(loader.processed_ids) == 3
-        assert mock_checkpoint.save.called
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            config = {
+                'api_key': 'test_key',
+                'checkpoint_dir': tmpdir,
+                'checkpoint_interval': 2
+            }
+            
+            loader = IncrementalFreesoundLoader(config=config)
+            
+            # Mock _search_samples to return properly formatted sample dictionaries
+            sample_dicts = [
+                {
+                    'id': i,
+                    'name': f'sound{i}',
+                    'tags': [],
+                    'duration': 1.0,
+                    'username': f'user{i}',
+                    'audio_url': f'http://example.com/sound{i}.mp3',
+                    'previews': {},
+                    'num_downloads': 100,
+                    'avg_rating': 4.0,
+                    'num_ratings': 10
+                }
+                for i in range(3)
+            ]
+            
+            with patch.object(loader, '_search_samples', return_value=sample_dicts):
+                with patch.object(loader, '_fetch_similar_sounds_for_sample', return_value=[]):
+                    # Fetch data
+                    data = loader.fetch_data(query='test', max_samples=10)
+                    
+                    # Build graph
+                    graph = loader.build_graph(data)
+                    
+                    assert graph.number_of_nodes() == 3
+                    assert len(loader.processed_ids) == 3
+                    assert mock_checkpoint.save.called
 
     def test_resume_from_checkpoint(self, mock_freesound_client, mock_checkpoint):
         """Test resuming from existing checkpoint."""
@@ -563,33 +590,44 @@ class TestIncrementalFreesoundLoaderIntegration:
         existing_graph = nx.DiGraph()
         existing_graph.add_node('1', name='sound1')
         
+        # Set up the checkpoint to return data BEFORE creating the loader
         mock_checkpoint.load.return_value = {
             'graph': existing_graph,
             'processed_ids': {'1'},
-            'metadata': {}
+            'metadata': {},
+            'sound_cache': {}
         }
         
-        with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            loader = IncrementalFreesoundLoader()
-            
-            # Mock new samples (including already-processed one)
-            sounds = [
-                create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
-                create_mock_sound(2, "sound2", [], 1.0, "user2", {})
-            ]
-            
-            mock_results = Mock()
-            mock_results.__iter__ = Mock(return_value=iter(sounds))
-            mock_results.more = False
-            loader.client.text_search.return_value = mock_results
-            
-            mock_sound_obj = Mock()
-            mock_sound_obj.get_similar.return_value = []
-            loader.client.get_sound.return_value = mock_sound_obj
-            
-            data = loader.fetch_data(query='test', max_samples=10)
-            
-            # Should only process sample 2
-            assert len(data['samples']) == 1
-            assert data['samples'][0]['id'] == 2
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            config = {
+                'api_key': 'test_key',
+                'checkpoint_dir': tmpdir
+            }
+            # Mock the split checkpoint files to not exist
+            with patch('pathlib.Path.exists', return_value=False):
+                loader = IncrementalFreesoundLoader(config=config)
+                
+                # Verify checkpoint was loaded
+                assert '1' in loader.processed_ids
+                
+                # Mock new samples (including already-processed one)
+                sounds = [
+                    create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
+                    create_mock_sound(2, "sound2", [], 1.0, "user2", {})
+                ]
+                
+                mock_results = Mock()
+                mock_results.__iter__ = Mock(return_value=iter(sounds))
+                mock_results.more = False
+                loader.client.text_search.return_value = mock_results
+                
+                mock_sound_obj = Mock()
+                mock_sound_obj.get_similar.return_value = []
+                loader.client.get_sound.return_value = mock_sound_obj
+                
+                data = loader.fetch_data(query='test', max_samples=10)
+                
+                # Should only process sample 2 (sample 1 is already processed)
+                assert len(data['samples']) == 1
+                assert data['samples'][0]['id'] == 2
     

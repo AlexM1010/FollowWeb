@@ -5,12 +5,19 @@ Tests that PNG and HTML use identical node sizes and colors, spring layout appli
 shared scaling algorithms and color schemes, and layout parameter consistency.
 """
 
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import networkx as nx
 import pytest
+
+# Set matplotlib backend before importing pyplot
+os.environ["MPLBACKEND"] = "Agg"
+import matplotlib
+
+matplotlib.use("Agg")
 
 # Import the visualization classes
 from FollowWeb_Visualizor.visualization import (

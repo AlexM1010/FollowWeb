@@ -304,14 +304,13 @@ class TestOutputManager:
         """Set up test fixtures."""
         self.temp_dir = temp_output_dir
         self.config = {
-            "output_control": {
+            "output": {
                 "generate_html": True,
                 "generate_png": True,
                 "generate_reports": True,
                 "enable_timing_logs": True,
-                "output_formatting": {"emoji": {"fallback_level": "full"}},
+                "formatting": {"emoji": {"fallback_level": "full"}},
             },
-            "output": {},
             "visualization": {
                 "node_size_metric": "degree",
                 "base_node_size": 10.0,
@@ -359,7 +358,7 @@ class TestOutputManager:
         manager = OutputManager(self.config)
 
         assert manager.config == self.config
-        assert manager.output_control == self.config["output_control"]
+        assert manager.output == self.config["output"]
         assert manager.unified_logger is None
         assert manager._current_run_id is None
 
@@ -389,7 +388,7 @@ class TestOutputManager:
         assert emoji_level == "full"  # Default fallback
 
         # Test partial config
-        partial_config = {"output_control": {"output_formatting": {}}}
+        partial_config = {"output": {"formatting": {}}}
         emoji_level = OutputManager.get_emoji_config_from_dict(partial_config)
         assert emoji_level == "full"  # Default fallback
 
@@ -404,7 +403,7 @@ class TestOutputManager:
 
         # Test with disabled formats
         disabled_config = self.config.copy()
-        disabled_config["output_control"] = {
+        disabled_config["output"] = {
             "generate_html": False,
             "generate_png": False,
             "generate_reports": True,
@@ -435,7 +434,7 @@ class TestOutputManager:
 
         # Test with all formats disabled
         invalid_config = self.config.copy()
-        invalid_config["output_control"] = {
+        invalid_config["output"] = {
             "generate_html": False,
             "generate_png": False,
             "generate_reports": False,
@@ -623,8 +622,8 @@ class TestEmojiIntegration:
     def test_emoji_configuration_from_config_dict(self):
         """Test emoji configuration extraction and application."""
         config_dict = {
-            "output_control": {
-                "output_formatting": {"emoji": {"fallback_level": "simple"}}
+            "output": {
+                "formatting": {"emoji": {"fallback_level": "simple"}}
             }
         }
 
@@ -748,3 +747,4 @@ class TestOutputSynchronization:
 
 if __name__ == "__main__":
     pytest.main([__file__])
+

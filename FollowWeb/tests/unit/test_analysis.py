@@ -196,8 +196,6 @@ class TestNetworkAnalyzer:
         if not test_data_exists:
             pytest.skip("Test data files not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
-
         loader = InstagramLoader()
         graph = loader.load_from_json(small_test_data)
 
@@ -251,8 +249,6 @@ class TestPathAnalyzer:
         """Test path length analysis on valid graph."""
         if not test_data_exists:
             pytest.skip("Test data files not available")
-
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
 
         loader = InstagramLoader()
         graph = loader.load_from_json(small_test_data)
@@ -353,8 +349,6 @@ class TestFameAnalyzer:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
-
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
@@ -389,8 +383,6 @@ class TestFameAnalyzer:
         """Test fame analysis with high thresholds."""
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
-
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
 
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)

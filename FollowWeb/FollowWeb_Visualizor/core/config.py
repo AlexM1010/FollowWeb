@@ -218,36 +218,6 @@ class OutputFormattingConfig:
 
 
 @dataclass
-class OutputControlConfig:
-    """Configuration for output generation control."""
-
-    generate_html: bool = True
-    generate_png: bool = True
-    generate_reports: bool = True
-    enable_timing_logs: bool = False
-    output_formatting: OutputFormattingConfig = field(
-        default_factory=OutputFormattingConfig
-    )
-
-    def __post_init__(self) -> None:
-        """Validate output control configuration after initialization."""
-        # Ensure at least one output format is enabled
-        output_options = {
-            "generate_html": self.generate_html,
-            "generate_png": self.generate_png,
-            "generate_reports": self.generate_reports,
-        }
-        try:
-            validate_at_least_one_enabled(output_options, "output format")
-        except ValueError as e:
-            raise ValueError(
-                "At least one output format must be enabled. "
-                "Set generate_html, generate_png, or generate_reports to true in output_control section, "
-                "or use CLI flags: --no-png, --no-html, --no-reports (but keep at least one enabled)"
-            ) from e
-
-
-@dataclass
 class KValueConfig:
     """Configuration for k-core analysis parameters."""
 
@@ -638,11 +608,6 @@ class FollowWebConfig:
         """Get pipeline stages config (alias for pipeline)."""
         return self.pipeline
 
-    @property
-    def output_control(self) -> OutputConfig:
-        """Get output control config (alias for output)."""
-        return self.output
-
 
 def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
     """
@@ -952,12 +917,9 @@ class ConfigurationManager:
                 "pipeline.enable_visualization",
                 "enable_visualization",
             ],
-            "output_control.generate_html": ["output.generate_html", "html_output"],
-            "output_control.generate_png": ["output.generate_png", "png_output"],
-            "output_control.generate_reports": [
-                "output.generate_reports",
-                "text_output",
-            ],
+            "output.generate_html": ["html_output"],
+            "output.generate_png": ["png_output"],
+            "output.generate_reports": ["text_output"],
         }
 
     def load_configuration(
@@ -1048,7 +1010,7 @@ class ConfigurationManager:
 
             # Additional validation for new configuration options
             self._validate_analysis_mode_config(config, errors, warnings)
-            self._validate_output_control_config(config, errors, warnings)
+            self._validate_output_config(config, errors, warnings)
             self._validate_k_value_config(config, errors, warnings)
 
         except Exception as e:
@@ -1095,7 +1057,7 @@ class ConfigurationManager:
         Returns:
             str: Formatted configuration string
         """
-        formatting_config = config.output_control.output_formatting
+        formatting_config = config.output.formatting
         indent = " " * formatting_config.indent_size
 
         lines: list[str] = []
@@ -1364,10 +1326,10 @@ class ConfigurationManager:
                 "High layout iteration count may cause slow visualization generation"
             )
 
-    def _validate_output_control_config(
+    def _validate_output_config(
         self, config: FollowWebConfig, errors: list[str], warnings: list[str]
     ) -> None:
-        """Validate output control configuration."""
+        """Validate output configuration."""
         output_config = config.output
 
         # Check that at least one output format is enabled

@@ -116,14 +116,13 @@ class TestUnifiedOutputIntegration:
                 "sampling_threshold": 1000,
                 "enable_fast_algorithms": True,
             },
-            "output_control": {
+            "output": {
                 "generate_html": True,
                 "generate_png": True,
                 "generate_reports": True,
                 "enable_timing_logs": True,
-                "output_formatting": {"emoji": {"fallback_level": emoji_level}},
+                "formatting": {"emoji": {"fallback_level": emoji_level}},
             },
-            "output": {},
             "k_values": {
                 "strategy_k_values": {
                     "k-core": 2,
@@ -559,7 +558,7 @@ class TestUnifiedOutputIntegration:
 
         # Test invalid configuration (all outputs disabled)
         invalid_config = self.create_test_config("simple")
-        invalid_config["output_control"] = {
+        invalid_config["output"] = {
             "generate_html": False,
             "generate_png": False,
             "generate_reports": False,
@@ -574,3 +573,4 @@ class TestUnifiedOutputIntegration:
 
 if __name__ == "__main__":
     pytest.main([__file__])
+

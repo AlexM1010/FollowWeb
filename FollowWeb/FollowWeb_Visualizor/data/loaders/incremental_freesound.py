@@ -416,7 +416,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 graph=self.graph,
                 processed_ids=self.processed_ids,
                 metadata=checkpoint_metadata,
-                sound_cache=getattr(self, '_sound_cache', {})
+                sound_cache=getattr(self, "_sound_cache", {}),
             )
         except Exception as e:
             self.logger.warning(f"GraphCheckpoint.save() failed: {e}")
@@ -848,7 +848,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     downloads < fetch_similar_threshold_downloads
                     or avg_rating < fetch_similar_threshold_rating
                 ):
-                    self.stats["samples_skipped"] = cast(int, self.stats["samples_skipped"]) + 1
+                    self.stats["samples_skipped"] = (
+                        cast(int, self.stats["samples_skipped"]) + 1
+                    )
                     self.logger.debug(
                         f"Skipping expansion for {sample_id}: "
                         f"downloads={downloads} (threshold={fetch_similar_threshold_downloads}), "
@@ -947,7 +949,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                             )
 
                             dormant_nodes_count += 1
-                            self.stats["dormant_nodes_identified"] = cast(int, self.stats["dormant_nodes_identified"]) + 1
+                            self.stats["dormant_nodes_identified"] = (
+                                cast(int, self.stats["dormant_nodes_identified"]) + 1
+                            )
 
                             self.logger.debug(
                                 f"Node {sample_id} marked as dormant (0 new samples discovered), "
@@ -1254,7 +1258,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         )
 
         # Log batch expansion stats
-        if cast(int, self.stats["user_edges_created"]) > 0 or cast(int, self.stats["pack_edges_created"]) > 0:
+        if (
+            cast(int, self.stats["user_edges_created"]) > 0
+            or cast(int, self.stats["pack_edges_created"]) > 0
+        ):
             batch_msg = EmojiFormatter.format("info", "Batch Expansion Statistics:")
             self.logger.info(batch_msg)
             self.logger.info(
@@ -1265,7 +1272,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             )
 
         # Log error statistics
-        if cast(int, self.stats["throttle_retries"]) > 0 or cast(int, self.stats["failed_requests"]) > 0:
+        if (
+            cast(int, self.stats["throttle_retries"]) > 0
+            or cast(int, self.stats["failed_requests"]) > 0
+        ):
             error_msg = EmojiFormatter.format("warning", "Error Statistics:")
             self.logger.info(error_msg)
             self.logger.info(
