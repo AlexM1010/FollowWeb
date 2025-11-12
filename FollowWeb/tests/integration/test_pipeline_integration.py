@@ -85,10 +85,6 @@ class TestFreesoundPipelineIntegration:
         }
 
         config_obj = load_config_from_dict(config)
-        orchestrator = PipelineOrchestrator(config_obj)
-
-        # Loader should be None until strategy phase
-        assert orchestrator.graph_loader is None
 
         # Mock the loader initialization and graph loading
         mock_graph = nx.DiGraph()
@@ -100,6 +96,11 @@ class TestFreesoundPipelineIntegration:
             mock_loader = Mock()
             mock_loader.load.return_value = mock_graph
             mock_loader_class.return_value = mock_loader
+
+            orchestrator = PipelineOrchestrator(config_obj)
+
+            # Loader should be None until strategy phase
+            assert orchestrator.graph_loader is None
 
             # Execute strategy phase (will initialize loader)
             with patch.object(
