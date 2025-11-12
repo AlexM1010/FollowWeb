@@ -207,6 +207,7 @@ class MetricsCalculator:
                 # Continue with empty metrics if even this fails
                 # Log the error for debugging but don't crash
                 import logging
+
                 logging.debug(f"Failed to create fallback metrics: {e}")
 
             return fallback_metrics

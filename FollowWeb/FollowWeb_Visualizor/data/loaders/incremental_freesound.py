@@ -203,7 +203,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 import pickle
 
                 with open(topology_path, "rb") as f:
-                    self.graph = pickle.load(f)
+                    # nosec B301 - Loading our own checkpoint data, not untrusted input
+                    self.graph = pickle.load(f)  # nosec
 
                 # Connect to metadata cache
                 self.metadata_cache = MetadataCache(str(metadata_db_path), self.logger)
