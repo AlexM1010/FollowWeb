@@ -111,6 +111,9 @@ class MetadataCache:
         Returns:
             Metadata dictionary or None if not found
         """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+        
         cursor = self._conn.execute(
             "SELECT data FROM metadata WHERE sample_id = ?", (sample_id,)
         )
@@ -154,6 +157,9 @@ class MetadataCache:
         if not self._pending_writes:
             return
 
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+
         # Batch insert/update
         self._conn.executemany(
             """
@@ -176,6 +182,9 @@ class MetadataCache:
         Args:
             metadata_dict: Dictionary mapping sample_id to metadata
         """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+        
         timestamp = datetime.now(timezone.utc).isoformat()
 
         rows = []
@@ -219,6 +228,9 @@ class MetadataCache:
         Returns:
             True if metadata exists, False otherwise
         """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+        
         cursor = self._conn.execute(
             "SELECT 1 FROM metadata WHERE sample_id = ? LIMIT 1", (sample_id,)
         )
@@ -231,6 +243,9 @@ class MetadataCache:
         Returns:
             List of sample IDs
         """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+        
         cursor = self._conn.execute("SELECT sample_id FROM metadata")
         return [row[0] for row in cursor.fetchall()]
 
@@ -241,6 +256,9 @@ class MetadataCache:
         Returns:
             Number of samples
         """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+        
         cursor = self._conn.execute("SELECT COUNT(*) FROM metadata")
         return cursor.fetchone()[0]
 
@@ -251,6 +269,9 @@ class MetadataCache:
         Args:
             sample_id: Sample ID to delete
         """
+        if self._conn is None:
+            RuntimeError("Database connection not initialized")
+        
         self._conn.execute("DELETE FROM metadata WHERE sample_id = ?", (sample_id,))
         self._conn.commit()
 
@@ -264,6 +285,9 @@ class MetadataCache:
         Returns:
             Sample ID of best seed, or None if no non-dormant samples exist
         """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+        
         cursor = self._conn.execute("""
             SELECT sample_id
             FROM metadata

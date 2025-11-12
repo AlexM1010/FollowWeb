@@ -69,14 +69,17 @@ try:
     )
     from .visualization.metrics import MetricsCalculator
     from .visualization.renderers import (
-        InteractiveRenderer,
-        StaticRenderer,
+        PyvisRenderer,
+        SigmaRenderer,
+        MatplotlibRenderer,
     )
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
     ColorScheme = None  # type: ignore
     EdgeMetric = None  # type: ignore
-    InteractiveRenderer = None  # type: ignore
+    PyvisRenderer = None  # type: ignore
+    SigmaRenderer = None  # type: ignore
+    MatplotlibRenderer = None  # type: ignore
     MetricsCalculator = None  # type: ignore
     NodeMetric = None  # type: ignore
     StaticRenderer = None  # type: ignore
@@ -204,8 +207,9 @@ try:
     )
     from .visualization.metrics import MetricsCalculator
     from .visualization.renderers import (
-        InteractiveRenderer,
-        StaticRenderer,
+        PyvisRenderer,
+        SigmaRenderer,
+        MatplotlibRenderer,
     )
 except ImportError:
     # Graceful handling if visualization module is not fully implemented

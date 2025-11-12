@@ -35,6 +35,17 @@ def mock_sound():
     sound.previews = {
         'preview-hq-mp3': 'https://freesound.org/preview.mp3'
     }
+    # Mock as_dict() to return a proper dictionary
+    sound.as_dict.return_value = {
+        'id': 12345,
+        'name': "test_sound.wav",
+        'tags': ["drum", "percussion"],
+        'duration': 2.5,
+        'username': "test_user",
+        'previews': {
+            'preview_hq_mp3': 'https://freesound.org/preview.mp3'
+        }
+    }
     return sound
 
 
