@@ -206,55 +206,59 @@ def get_scalability_k_values(dataset_name: str = "full_anonymized") -> dict[str,
 @pytest.fixture
 def sample_data_file() -> str:
     """Fixture providing path to sample data file - using tiny test dataset for fastest tests."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "tiny_real.json")
+    # Use path relative to this conftest.py file location
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "tiny_real.json")
 
 
 @pytest.fixture
 def sample_data_exists(sample_data_file: str) -> bool:
-    """Fixture checking if sample data file exists."""
-    return os.path.exists(sample_data_file)
+    """
+    Fixture checking if sample data file exists.
+    
+    Note: Test data should always be committed to the repository.
+    If this returns False, it indicates a repository issue, not a test skip condition.
+    """
+    exists = os.path.exists(sample_data_file)
+    if not exists:
+        # Fail the test instead of allowing skip - test data must exist
+        pytest.fail(f"Test data file missing: {sample_data_file}. Test data must be committed to repository.")
+    return exists
 
 
 @pytest.fixture
 def tiny_real_data() -> str:
     """Fixture providing tiny real test dataset for very fast testing (5% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "tiny_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "tiny_real.json")
 
 
 @pytest.fixture
 def small_real_data() -> str:
     """Fixture providing small real test dataset for fast testing (15% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "small_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "small_real.json")
 
 
 @pytest.fixture
 def medium_real_data() -> str:
     """Fixture providing medium real test dataset for integration testing (33% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "medium_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "medium_real.json")
 
 
 @pytest.fixture
 def large_real_data() -> str:
     """Fixture providing large real test dataset for performance testing (66% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "large_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "large_real.json")
 
 
 @pytest.fixture
 def full_test_data() -> str:
     """Fixture providing full anonymized dataset for comprehensive testing (100% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "full_anonymized.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "full_anonymized.json")
 
 
 @pytest.fixture
