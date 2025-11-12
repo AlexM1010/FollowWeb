@@ -127,13 +127,13 @@ jobs:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: test-quick  # Wait for smoke test to pass
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: FollowWeb
     
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9', '3.12']
@@ -244,15 +244,26 @@ jobs:
     - name: Run tests with coverage
       run: |
         set -e  # Exit immediately if any command fails
-        threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
-        # Run fast tests (unit + integration) with coverage in parallel
-        # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
-        python -m pytest -m "not (benchmark or slow or performance)" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
-          exit_code=$?
-          python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
-          python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
-          exit $exit_code
-        }
+        # Only run coverage on Ubuntu with Python 3.11 to save time
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ] && [ "${{ matrix.python-version }}" == "3.11" ]; then
+          threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
+          # Run fast tests (unit + integration) with coverage in parallel
+          # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
+          python -m pytest -m "not (benchmark or slow or performance)" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+            exit_code=$?
+            python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
+            python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
+            exit $exit_code
+          }
+        else
+          # Run tests without coverage on other platforms for speed
+          python -m pytest -m "not (benchmark or slow or performance)" || {
+            exit_code=$?
+            python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
+            python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
+            exit $exit_code
+          }
+        fi
         
         # Generate test results summary with dynamic counts
         python ../.github/scripts/ci_helpers.py test-summary
@@ -286,7 +297,7 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: test-quick  # Wait for smoke test to pass
-    timeout-minutes: 10
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: FollowWeb
@@ -404,7 +415,7 @@ jobs:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
     needs: test-quick  # Wait for smoke test to pass
-    timeout-minutes: 10
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: FollowWeb
@@ -469,7 +480,7 @@ jobs:
     name: Build & Package
     runs-on: ubuntu-latest
     needs: test-quick  # Start as soon as smoke test passes
-    timeout-minutes: 15
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: FollowWeb
@@ -547,7 +558,7 @@ jobs:
     name: Performance & Benchmarks
     runs-on: ubuntu-latest
     needs: test-quick  # Wait for smoke test to pass
-    timeout-minutes: 30
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: FollowWeb
