@@ -296,7 +296,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [test-quick, test]  # Wait for smoke test and full test matrix to pass
     timeout-minutes: 5
     defaults:
       run:
@@ -414,7 +414,7 @@ jobs:
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [test-quick, test]  # Wait for smoke test and full test matrix to pass
     timeout-minutes: 5
     defaults:
       run:
@@ -479,7 +479,7 @@ jobs:
   build:
     name: Build & Package
     runs-on: ubuntu-latest
-    needs: test-quick  # Start as soon as smoke test passes
+    needs: [test-quick, test]  # Wait for smoke test and full test matrix to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -557,7 +557,7 @@ jobs:
   performance:
     name: Performance & Benchmarks
     runs-on: ubuntu-latest
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [test-quick, test]  # Wait for smoke test and full test matrix to pass
     timeout-minutes: 20
     defaults:
       run:
@@ -655,10 +655,10 @@ jobs:
         retention-days: 30
         if-no-files-found: ignore
   
-  # Documentation pipeline - runs after smoke test passes
+  # Documentation pipeline - runs after all tests pass
   documentation:
     name: Documentation
-    needs: test-quick
+    needs: [test-quick, test]
     uses: ./.github/workflows/docs.yml
   
   # All checks must pass - no exceptions

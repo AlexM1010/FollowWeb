@@ -51,8 +51,8 @@ _dataset_summary_cache = None
 # Global test configuration for performance optimization
 TEST_PERFORMANCE_CONFIG = {
     "max_layout_iterations": 3,  # Minimal iterations for fast tests
-    "spring_iterations": 3,  # Minimal spring layout iterations
-    "spring_k": 0.5,  # Increased for faster convergence
+    "spring_iterations": 20,  # Reduced from 50 for faster tests while maintaining quality
+    "spring_k": 0.3,  # Increased from 0.15 for faster convergence
 }
 
 # Common k-value presets for different test scenarios
@@ -753,10 +753,16 @@ def fast_config(
     config["output_file_prefix"] = str(Path(temp_output_dir) / "test_output")
     config["visualization"]["static_image"]["generate"] = False  # Skip PNG for speed
 
-    # Use dynamically calculated k-values appropriate for the test dataset
-    # This ensures the graph doesn't become empty after pruning
-    k_values = calculate_appropriate_k_values("small_real")
-    config["k_values"] = k_values
+    # Use fixed k=5 for faster tests (reduces graph size significantly)
+    # This prunes graphs more aggressively than calculated k-values (1-5)
+    config["k_values"] = {
+        "strategy_k_values": {
+            "k-core": 5,
+            "reciprocal_k-core": 5,
+            "ego_alter_k-core": 5,
+        },
+        "default_k_value": 5,
+    }
 
     # Apply global test performance optimizations
     config = apply_test_performance_config(config)

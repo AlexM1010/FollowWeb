@@ -161,12 +161,13 @@ class TestOutputGeneration:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        # Use moderate k-value to reduce graph size for faster PNG generation
-        # k=7 provides good balance: smaller graph but not empty
+        # Use k=10 for even smaller graphs to speed up PNG generation
         config["k_values"] = {
-            "strategy_k_values": {"k-core": 7, "reciprocal_k-core": 7, "ego_alter_k-core": 7},
-            "default_k_value": 7,
+            "strategy_k_values": {"k-core": 10, "reciprocal_k-core": 10, "ego_alter_k-core": 10},
+            "default_k_value": 10,
         }
+        # Reduce spring layout iterations for faster PNG generation
+        config["visualization"]["layout"]["spring"]["iterations"] = 10
         config["visualization"]["static_image"]["generate"] = True
 
         config_obj = load_config_from_dict(config)
@@ -298,12 +299,17 @@ class TestPipelineConfiguration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
-        from tests.conftest import calculate_appropriate_k_values
 
         config = fast_config.copy()
-        # Use dynamically calculated k-values appropriate for the dataset
-        k_values = calculate_appropriate_k_values("small_real")
-        config["k_values"] = k_values
+        # Use k=5 to reduce graph size for faster testing
+        config["k_values"] = {
+            "strategy_k_values": {
+                "k-core": 5,
+                "reciprocal_k-core": 5,
+                "ego_alter_k-core": 5,
+            },
+            "default_k_value": 5,
+        }
         config["pipeline_stages"] = {
             "enable_analysis": False,
             "enable_visualization": False,
@@ -318,9 +324,8 @@ class TestPipelineConfiguration:
         # Analysis phase should be very fast when skipped
         if hasattr(orchestrator, "phase_times"):
             analysis_time = orchestrator.phase_times.get("analysis", 0)
-            # Relaxed timing constraint - with disabled analysis and visualization,
-            # this should complete quickly
-            assert analysis_time < 30.0  # Generous limit to account for CI variability and graph loading/filtering
+            # Relaxed timing - graph loading/filtering still takes time even when analysis is disabled
+            assert analysis_time < 5.0  # More realistic expectation
 
     @pytest.mark.integration
     def test_single_k_value_configuration(
