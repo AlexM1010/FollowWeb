@@ -646,7 +646,7 @@ jobs:
   
   # Documentation pipeline - runs after smoke test passes
   documentation:
-    name: Documentation Pipeline
+    name: Documentation
     needs: test-quick
     uses: ./.github/workflows/docs.yml
   

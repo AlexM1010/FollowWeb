@@ -7,7 +7,7 @@ on:
 jobs:
   # Job 1: Documentation Structure (CRITICAL - Pipeline fails if this fails)
   documentation-structure:
-    name: Documentation Structure
+    name: Structure
     runs-on: ubuntu-latest
     
     steps:
