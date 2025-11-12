@@ -5,6 +5,14 @@ This module provides visualization components for both interactive HTML and stat
 It includes metric calculation, rendering, and legend generation functionality.
 """
 
+from .color_palette import (
+    NodeGroupColors,
+    UIColors,
+    darken_color,
+    generate_extended_palette,
+    hex_to_rgba,
+    lighten_color,
+)
 from .colors import get_community_colors, get_scaled_size
 from .legends import LegendGenerator
 from .metrics import (
@@ -28,4 +36,10 @@ __all__ = [
     "LegendGenerator",
     "get_community_colors",
     "get_scaled_size",
+    "NodeGroupColors",
+    "UIColors",
+    "darken_color",
+    "lighten_color",
+    "hex_to_rgba",
+    "generate_extended_palette",
 ]

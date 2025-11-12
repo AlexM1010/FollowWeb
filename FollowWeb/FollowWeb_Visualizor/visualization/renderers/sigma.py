@@ -125,6 +125,13 @@ class SigmaRenderer(Renderer):
                         "show_tooltips", sigma_config.get("show_tooltips", True)
                     ),
                     "enable_audio": sigma_config.get("enable_audio_player", False),
+                    "ui_background_color": vis_settings.get(
+                        "ui_background_color", "#2d333c"
+                    ),
+                    "ui_highlight_color": vis_settings.get(
+                        "ui_highlight_color", "#415a76"
+                    ),
+                    "ui_text_color": vis_settings.get("ui_text_color", "#b6e0fe"),
                 }
                 tracker.update(3)
 

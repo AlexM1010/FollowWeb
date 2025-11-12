@@ -32,8 +32,8 @@
         }
         
         #controls-toggle {
-            background: #4CAF50;
-            color: white;
+            background: {{ config.ui_highlight_color }};
+            color: {{ config.ui_text_color }};
             border: none;
             padding: 8px 12px;
             border-radius: 6px;
@@ -46,22 +46,22 @@
         }
         
         #controls-toggle:hover {
-            background: #45a049;
+            background: {{ config.ui_highlight_color }}dd;
         }
         
         #controls-toggle:active {
-            background: #3d8b40;
+            background: {{ config.ui_highlight_color }}bb;
         }
         
         #controls {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid #ddd;
+            background: {{ config.ui_background_color }}f2;
+            border: 1px solid {{ config.ui_highlight_color }};
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 1000;
             max-width: 300px;
             transition: transform 0.3s ease, opacity 0.3s ease;
@@ -82,7 +82,7 @@
             margin: 0;
             font-size: 16px;
             font-weight: 600;
-            color: #333;
+            color: {{ config.ui_text_color }};
             flex: 1;
         }
         
@@ -93,8 +93,8 @@
         #controls button {
             margin: 5px 5px 5px 0;
             padding: 8px 14px;
-            background: #4CAF50;
-            color: white;
+            background: {{ config.ui_highlight_color }};
+            color: {{ config.ui_text_color }};
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -103,36 +103,38 @@
         }
         
         #controls button:hover {
-            background: #45a049;
+            background: {{ config.ui_highlight_color }}dd;
         }
         
         #controls button:active {
-            background: #3d8b40;
+            background: {{ config.ui_highlight_color }}bb;
         }
         
         #search-input {
             width: 100%;
             padding: 8px;
             margin-top: 8px;
-            border: 1px solid #ddd;
+            background: {{ config.ui_background_color }};
+            color: {{ config.ui_text_color }};
+            border: 1px solid {{ config.ui_highlight_color }};
             border-radius: 4px;
             font-size: 13px;
         }
         
         #search-input:focus {
             outline: none;
-            border-color: #4CAF50;
+            border-color: {{ config.ui_text_color }};
         }
         
         #audio-player {
             position: absolute;
             bottom: 10px;
             right: 10px;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid #ddd;
+            background: {{ config.ui_background_color }}f2;
+            border: 1px solid {{ config.ui_highlight_color }};
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 1000;
             min-width: 320px;
             max-width: calc(100vw - 20px);
@@ -147,7 +149,7 @@
             margin: 0 0 10px 0;
             font-size: 14px;
             font-weight: 600;
-            color: #333;
+            color: {{ config.ui_text_color }};
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -162,8 +164,8 @@
         
         .player-controls button {
             padding: 8px 12px;
-            background: #4CAF50;
-            color: white;
+            background: {{ config.ui_highlight_color }};
+            color: {{ config.ui_text_color }};
             border: none;
             border-radius: 4px;
             cursor: pointer;
@@ -172,11 +174,11 @@
         }
         
         .player-controls button:hover {
-            background: #45a049;
+            background: {{ config.ui_highlight_color }}dd;
         }
         
         .player-controls button.active {
-            background: #ff9800;
+            background: #FFB242;
         }
         
         #timeline-container {
@@ -186,7 +188,7 @@
         #timeline {
             width: 100%;
             height: 6px;
-            background: #ddd;
+            background: {{ config.ui_background_color }};
             border-radius: 3px;
             cursor: pointer;
             position: relative;
@@ -194,7 +196,7 @@
         
         #timeline-progress {
             height: 100%;
-            background: #4CAF50;
+            background: {{ config.ui_highlight_color }};
             border-radius: 3px;
             width: 0%;
             transition: width 0.1s linear;
@@ -202,12 +204,12 @@
         
         #time-display {
             font-size: 11px;
-            color: #666;
+            color: {{ config.ui_text_color }}cc;
             margin-top: 4px;
         }
         
         #error-message {
-            color: #f44336;
+            color: #F15668;
             font-size: 12px;
             margin-top: 8px;
             display: none;
@@ -468,7 +470,7 @@
                 if (!node.originalColor) {
                     graph.setNodeAttribute(nodeId, 'originalColor', node.color);
                 }
-                graph.setNodeAttribute(nodeId, 'color', '#ff9800');
+                graph.setNodeAttribute(nodeId, 'color', '#FFB242');
             }
             
             currentNodeId = nodeId;
@@ -638,7 +640,7 @@
                             if (!attributes.originalColor) {
                                 graph.setNodeAttribute(nodeId, 'originalColor', attributes.color);
                             }
-                            graph.setNodeAttribute(nodeId, 'color', '#2196F3');
+                            graph.setNodeAttribute(nodeId, 'color', '#47BEE1');
                         }
                     }
                 });
