@@ -458,20 +458,9 @@ class MetricsCalculator:
                 "iterations", 200
             )  # Increased for better physics
 
-        # Calculate spring layout with fixed seed for reproducibility
-        k = spring_config.get("k", None)
-        seed = spring_config.get("seed", 42)
-
-        try:
-            layout = nx.spring_layout(graph, k=k, iterations=iterations, seed=seed)
-            return layout
-        except Exception as e:
-            self.logger.warning(
-                f"Spring layout calculation failed: {e}, using random layout"
-            )
-            # Fallback to random layout
-            return nx.random_layout(graph, seed=seed)
+        # Get k value and seed
         k_value = spring_config.get("k", 0.15)
+        seed = spring_config.get("seed", 42)
 
         # Create params for caching
         params = {"iterations": iterations, "k": k_value, "layout_type": "spring"}
@@ -496,7 +485,7 @@ class MetricsCalculator:
         ) as tracker:
             # Use the chunked spring layout implementation for accurate progress
             pos = self._run_chunked_spring_layout(
-                graph, k_value, iterations, 123, tracker
+                graph, k_value, iterations, seed, tracker
             )
 
         # Cache the results using centralized cache

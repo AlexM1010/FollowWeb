@@ -243,15 +243,18 @@ class TestMetricsCalculator:
         color_schemes = self.calculator._calculate_color_schemes(G)
 
         assert isinstance(color_schemes, ColorScheme)
-        assert color_schemes.hex_colors == {0: "#440154", 1: "#fde724"}
+        # Updated to match new color palette (Teal and Coral)
+        assert color_schemes.hex_colors == {0: "#4ECDC4", 1: "#FF6B6B"}
         # Check RGBA colors with approximate comparison due to numpy float precision
         assert len(color_schemes.rgba_colors) == 2
-        assert abs(color_schemes.rgba_colors[0][0] - 0.267004) < 0.001
-        assert abs(color_schemes.rgba_colors[0][1] - 0.004874) < 0.001
-        assert abs(color_schemes.rgba_colors[0][2] - 0.329415) < 0.001
-        assert abs(color_schemes.rgba_colors[1][0] - 0.993248) < 0.001
-        assert abs(color_schemes.rgba_colors[1][1] - 0.906157) < 0.001
-        assert abs(color_schemes.rgba_colors[1][2] - 0.143936) < 0.001
+        # Teal RGB: (78, 205, 196) -> (0.306, 0.804, 0.769)
+        assert abs(color_schemes.rgba_colors[0][0] - 0.306) < 0.001
+        assert abs(color_schemes.rgba_colors[0][1] - 0.804) < 0.001
+        assert abs(color_schemes.rgba_colors[0][2] - 0.769) < 0.001
+        # Coral RGB: (255, 107, 107) -> (1.0, 0.420, 0.420)
+        assert abs(color_schemes.rgba_colors[1][0] - 1.0) < 0.001
+        assert abs(color_schemes.rgba_colors[1][1] - 0.420) < 0.001
+        assert abs(color_schemes.rgba_colors[1][2] - 0.420) < 0.001
         assert color_schemes.bridge_color == "#6e6e6e"
         assert color_schemes.intra_community_color == "#c0c0c0"
 

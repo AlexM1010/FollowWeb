@@ -79,7 +79,25 @@ class TestPipelineExecution:
         if graph.number_of_nodes() == 0:
             pytest.skip("No nodes available for ego-alter analysis")
 
-        ego_username = list(graph.nodes())[0]
+        # Find an ego user with alters (followers who follow each other)
+        ego_username = None
+        for node in graph.nodes():
+            # Get followers of this node
+            followers = list(graph.predecessors(node))
+            if len(followers) >= 2:
+                # Check if any followers follow each other
+                for i, f1 in enumerate(followers):
+                    for f2 in followers[i+1:]:
+                        if graph.has_edge(f1, f2) or graph.has_edge(f2, f1):
+                            ego_username = node
+                            break
+                    if ego_username:
+                        break
+            if ego_username:
+                break
+        
+        if not ego_username:
+            pytest.skip("No suitable ego user with alters found in test data")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
@@ -391,7 +409,7 @@ class TestTimeLoggingIntegration:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        config["output_control"] = {
+        config["output"] = {
             "enable_timing_logs": True,
             "generate_html": True,
             "generate_png": True,
@@ -426,7 +444,7 @@ class TestTimeLoggingIntegration:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        config["output_control"] = {
+        config["output"] = {
             "enable_timing_logs": False,
             "generate_html": True,
             "generate_png": True,
@@ -763,7 +781,7 @@ class TestPipelineSuccessValidation:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        config["output_control"] = {
+        config["output"] = {
             "generate_html": True,
             "generate_png": True,
             "generate_reports": True,
@@ -925,3 +943,4 @@ class TestLoadingIndicatorIntegration:
             # Progress tracking overhead should be minimal
             overhead = abs(total_duration - phase_sum) / total_duration
             assert overhead < 0.5  # Less than 50% overhead
+
