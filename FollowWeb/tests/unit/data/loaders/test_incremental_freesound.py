@@ -546,7 +546,7 @@ class TestIncrementalFreesoundLoaderIntegration:
         """Test complete incremental loading workflow."""
         import tempfile
         
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 'api_key': 'test_key',
                 'checkpoint_dir': tmpdir,
@@ -598,7 +598,7 @@ class TestIncrementalFreesoundLoaderIntegration:
             'sound_cache': {}
         }
         
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 'api_key': 'test_key',
                 'checkpoint_dir': tmpdir
