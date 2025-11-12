@@ -1,0 +1,1137 @@
+{
+  "analysis_timestamp": "2025-11-12T15:30:04.943490",
+  "project_root": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb",
+  "summary": {
+    "files_analyzed": 84,
+    "test_files_analyzed": 9,
+    "total_issues_found": 425,
+    "ai_language_issues": 38,
+    "total_tests": 142,
+    "duplicate_test_groups": 43,
+    "refactoring_opportunities": 41
+  },
+  "source_code_analysis": {
+    "files_with_issues": 59,
+    "issue_breakdown": {
+      "ai_language": 38,
+      "import_issues": 141,
+      "dead_code": 238,
+      "error_handling": 2,
+      "duplication": 6
+    },
+    "total_lines_of_code": 22192,
+    "average_complexity": 32.82142857142857
+  },
+  "test_code_analysis": {
+    "files_with_duplicates": 8,
+    "total_unused_fixtures": 3,
+    "total_redundant_imports": 15,
+    "test_efficiency_score": 57.04
+  },
+  "optimization_recommendations": [
+    {
+      "priority": "High",
+      "category": "Language Cleanup",
+      "description": "Remove 38 AI-generated language artifacts",
+      "impact": "Improves code professionalism and readability",
+      "effort": "Low"
+    },
+    {
+      "priority": "Medium",
+      "category": "Code Deduplication",
+      "description": "Address code duplication in 5 files",
+      "impact": "Reduces maintenance burden and improves consistency",
+      "effort": "Medium"
+    },
+    {
+      "priority": "Medium",
+      "category": "Test Optimization",
+      "description": "Consolidate 43 duplicate test groups",
+      "impact": "Improves test suite efficiency and maintainability",
+      "effort": "Low"
+    }
+  ],
+  "file_operations": {
+    "cleanup_operations": {
+      "test_outputs": []
+    },
+    "delete_operations": {}
+  },
+  "detailed_results": {
+    "source_files": [
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\analyze_color_differences.py",
+        "issue_count": 5,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 129,
+          "complexity_score": 20,
+          "function_count": 7,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\check_checkpoint_audio.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 24,
+          "complexity_score": 4,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\check_color_similarity.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 87,
+          "complexity_score": 9,
+          "function_count": 2,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\cleanup_old_backups.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 123,
+          "complexity_score": 11,
+          "function_count": 4,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\fetch_freesound_data.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 301,
+          "complexity_score": 15,
+          "function_count": 5,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\fix_audio_urls.py",
+        "issue_count": 4,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 64,
+          "complexity_score": 9,
+          "function_count": 2,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\generate_freesound_visualization.py",
+        "issue_count": 6,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 253,
+          "complexity_score": 18,
+          "function_count": 5,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\generate_k7_sigma.py",
+        "issue_count": 4,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 59,
+          "complexity_score": 5,
+          "function_count": 1,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\generate_metrics_dashboard.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 186,
+          "complexity_score": 17,
+          "function_count": 4,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\migrate_checkpoint.py",
+        "issue_count": 8,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 137,
+          "complexity_score": 16,
+          "function_count": 4,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\validate_freesound_samples.py",
+        "issue_count": 10,
+        "ai_language_count": 2,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 531,
+          "complexity_score": 42,
+          "function_count": 12,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\verify_complete_data.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 26,
+          "complexity_score": 6,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\verify_improved_palette.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 0,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\visualize_freesound.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 0,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\visualize_from_checkpoint.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 84,
+          "complexity_score": 7,
+          "function_count": 2,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\workflow_orchestrator.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 357,
+          "complexity_score": 34,
+          "function_count": 10,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\ai_language_scanner.py",
+        "issue_count": 9,
+        "ai_language_count": 3,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 557,
+          "complexity_score": 60,
+          "function_count": 15,
+          "class_count": 3
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\analyzer.py",
+        "issue_count": 22,
+        "ai_language_count": 5,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 877,
+          "complexity_score": 118,
+          "function_count": 37,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\ast_utils.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 72,
+          "complexity_score": 19,
+          "function_count": 4,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\code_analyzer.py",
+        "issue_count": 14,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 664,
+          "complexity_score": 143,
+          "function_count": 19,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\cross_platform_analyzer.py",
+        "issue_count": 8,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 546,
+          "complexity_score": 77,
+          "function_count": 16,
+          "class_count": 5
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\duplication_detector.py",
+        "issue_count": 8,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 528,
+          "complexity_score": 96,
+          "function_count": 16,
+          "class_count": 5
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\models.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 92,
+          "complexity_score": 11,
+          "function_count": 0,
+          "class_count": 11
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\pattern_detector.py",
+        "issue_count": 4,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 243,
+          "complexity_score": 36,
+          "function_count": 11,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\similarity_utils.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 92,
+          "complexity_score": 14,
+          "function_count": 7,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 23,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\analysis_tools\\__main__.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 50,
+          "complexity_score": 6,
+          "function_count": 1,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\examples\\generate_instagram_sigma.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 69,
+          "complexity_score": 9,
+          "function_count": 2,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\main.py",
+        "issue_count": 9,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 1399,
+          "complexity_score": 152,
+          "function_count": 18,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\__init__.py",
+        "issue_count": 29,
+        "ai_language_count": 2,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 230,
+          "complexity_score": 5,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\__main__.py",
+        "issue_count": 9,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 1399,
+          "complexity_score": 152,
+          "function_count": 18,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\conftest.py",
+        "issue_count": 35,
+        "ai_language_count": 5,
+        "refactoring_opportunities": 2,
+        "metrics": {
+          "lines_of_code": 666,
+          "complexity_score": 115,
+          "function_count": 44,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\run_tests.py",
+        "issue_count": 4,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 282,
+          "complexity_score": 42,
+          "function_count": 7,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 6,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\analysis\\centrality.py",
+        "issue_count": 12,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 2,
+        "metrics": {
+          "lines_of_code": 179,
+          "complexity_score": 25,
+          "function_count": 6,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\analysis\\connectivity.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 182,
+          "complexity_score": 15,
+          "function_count": 2,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\analysis\\fame.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 96,
+          "complexity_score": 12,
+          "function_count": 2,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\analysis\\network.py",
+        "issue_count": 9,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 286,
+          "complexity_score": 39,
+          "function_count": 10,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\analysis\\paths.py",
+        "issue_count": 5,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 322,
+          "complexity_score": 45,
+          "function_count": 6,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\analysis\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 29,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\core\\config.py",
+        "issue_count": 24,
+        "ai_language_count": 2,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 1661,
+          "complexity_score": 212,
+          "function_count": 78,
+          "class_count": 27
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\core\\exceptions.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 18,
+          "complexity_score": 4,
+          "function_count": 0,
+          "class_count": 4
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\core\\types.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 78,
+          "complexity_score": 4,
+          "function_count": 0,
+          "class_count": 4
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\core\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 79,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\cache.py",
+        "issue_count": 8,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 2,
+        "metrics": {
+          "lines_of_code": 477,
+          "complexity_score": 61,
+          "function_count": 27,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\checkpoint.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 119,
+          "complexity_score": 11,
+          "function_count": 5,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\processors.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 107,
+          "complexity_score": 13,
+          "function_count": 4,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\strategies.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 110,
+          "complexity_score": 11,
+          "function_count": 4,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 44,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\output\\formatters.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 121,
+          "complexity_score": 17,
+          "function_count": 12,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\output\\logging.py",
+        "issue_count": 8,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 273,
+          "complexity_score": 57,
+          "function_count": 24,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\output\\managers.py",
+        "issue_count": 18,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 874,
+          "complexity_score": 119,
+          "function_count": 28,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\output\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 20,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\files.py",
+        "issue_count": 12,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 2,
+        "metrics": {
+          "lines_of_code": 376,
+          "complexity_score": 69,
+          "function_count": 13,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\math.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 127,
+          "complexity_score": 19,
+          "function_count": 6,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\parallel.py",
+        "issue_count": 19,
+        "ai_language_count": 3,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 422,
+          "complexity_score": 75,
+          "function_count": 18,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\progress.py",
+        "issue_count": 4,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 207,
+          "complexity_score": 30,
+          "function_count": 9,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\rate_limiter.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 161,
+          "complexity_score": 20,
+          "function_count": 6,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\validation.py",
+        "issue_count": 3,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 366,
+          "complexity_score": 59,
+          "function_count": 22,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\utils\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 111,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\colors.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 111,
+          "complexity_score": 14,
+          "function_count": 3,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\color_palette.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 269,
+          "complexity_score": 27,
+          "function_count": 4,
+          "class_count": 2
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\legends.py",
+        "issue_count": 4,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 244,
+          "complexity_score": 24,
+          "function_count": 5,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\metrics.py",
+        "issue_count": 9,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 401,
+          "complexity_score": 34,
+          "function_count": 8,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 42,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\loaders\\base.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 148,
+          "complexity_score": 10,
+          "function_count": 5,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\loaders\\freesound.py",
+        "issue_count": 5,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 489,
+          "complexity_score": 57,
+          "function_count": 11,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\loaders\\incremental_freesound.py",
+        "issue_count": 41,
+        "ai_language_count": 7,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 1616,
+          "complexity_score": 202,
+          "function_count": 29,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\loaders\\instagram.py",
+        "issue_count": 2,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 180,
+          "complexity_score": 25,
+          "function_count": 4,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\loaders\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 21,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\storage\\metadata_cache.py",
+        "issue_count": 1,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 248,
+          "complexity_score": 31,
+          "function_count": 15,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\data\\storage\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 7,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\renderers\\base.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 177,
+          "complexity_score": 16,
+          "function_count": 9,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\renderers\\matplotlib.py",
+        "issue_count": 6,
+        "ai_language_count": 1,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 585,
+          "complexity_score": 74,
+          "function_count": 16,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\renderers\\pyvis.py",
+        "issue_count": 1,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 274,
+          "complexity_score": 20,
+          "function_count": 5,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\renderers\\sigma.py",
+        "issue_count": 4,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 1,
+        "metrics": {
+          "lines_of_code": 358,
+          "complexity_score": 38,
+          "function_count": 7,
+          "class_count": 1
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\FollowWeb_Visualizor\\visualization\\renderers\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 10,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\integration\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 1,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\performance\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 5,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\unit\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 1,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\unit\\data\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 1,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\unit\\visualization\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 1,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\unit\\data\\loaders\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 1,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      },
+      {
+        "file_path": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\FollowWeb\\tests\\unit\\visualization\\renderers\\__init__.py",
+        "issue_count": 0,
+        "ai_language_count": 0,
+        "refactoring_opportunities": 0,
+        "metrics": {
+          "lines_of_code": 1,
+          "complexity_score": 0,
+          "function_count": 0,
+          "class_count": 0
+        }
+      }
+    ],
+    "test_files": [
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\integration\\test_freesound_connectivity.py",
+        "test_count": 12,
+        "duplicate_groups": 22,
+        "unused_fixtures": 0,
+        "redundant_imports": 2
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\integration\\test_freesound_nightly_pipeline.py",
+        "test_count": 11,
+        "duplicate_groups": 1,
+        "unused_fixtures": 0,
+        "redundant_imports": 7
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\integration\\test_validation_workflow.py",
+        "test_count": 10,
+        "duplicate_groups": 1,
+        "unused_fixtures": 2,
+        "redundant_imports": 2
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\integration\\test_workflow_coordination.py",
+        "test_count": 16,
+        "duplicate_groups": 2,
+        "unused_fixtures": 1,
+        "redundant_imports": 0
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\unit\\test_cleanup_old_backups.py",
+        "test_count": 11,
+        "duplicate_groups": 2,
+        "unused_fixtures": 0,
+        "redundant_imports": 3
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\unit\\test_connectivity.py",
+        "test_count": 18,
+        "duplicate_groups": 5,
+        "unused_fixtures": 0,
+        "redundant_imports": 0
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\unit\\test_field_parameters.py",
+        "test_count": 24,
+        "duplicate_groups": 4,
+        "unused_fixtures": 0,
+        "redundant_imports": 0
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\unit\\test_sample_validator.py",
+        "test_count": 0,
+        "duplicate_groups": 0,
+        "unused_fixtures": 0,
+        "redundant_imports": 0
+      },
+      {
+        "test_file": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb\\tests\\unit\\test_workflow_orchestrator.py",
+        "test_count": 40,
+        "duplicate_groups": 6,
+        "unused_fixtures": 0,
+        "redundant_imports": 1
+      }
+    ]
+  }
+}

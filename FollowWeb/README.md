@@ -1,5 +1,7 @@
 # FollowWeb Network Analysis Package
 
+[![Freesound Nightly Pipeline](https://github.com/alexmeckes/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/alexmeckes/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml)
+
 A network analysis tool for Instagram follower/following relationships using graph theory and network analysis techniques. Transform social connection data into interactive visualizations with automatic community detection and influence metrics.
 
 ---

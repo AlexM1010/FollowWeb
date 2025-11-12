@@ -1,59 +1,57 @@
 name: Documentation
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'FollowWeb/docs/**'
-      - '*.md'
-      - 'FollowWeb/FollowWeb_Visualizor/**/*.py'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'FollowWeb/docs/**'
-      - '*.md'
-      - 'FollowWeb/FollowWeb_Visualizor/**/*.py'
+  # Only triggered by CI workflow after smoke test passes
+  workflow_call:
 
 jobs:
-  docs-check:
-    name: Documentation Check
+  # Job 1: Documentation Structure (CRITICAL - Pipeline fails if this fails)
+  documentation-structure:
+    name: Structure
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
+    
+    - name: Restore CI prebuild cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/pip
+          FollowWeb/.venv
+          FollowWeb/tests/test_data
+          .pytest_cache
+          .mypy_cache
+          .ruff_cache
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
+        restore-keys: |
+          prebuild-${{ runner.os }}-py3.12-
     
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install -r FollowWeb/requirements.txt
-        python -m pip install -r FollowWeb/requirements-test.txt
-        python .github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
-    
-    - name: Check docstring coverage
       working-directory: FollowWeb
       run: |
-        python -m pip install interrogate
-        python ../.github/scripts/ci_helpers.py info "**Docstring Coverage Analysis**" --summary-only
-        python ../.github/scripts/ci_helpers.py info "Analyzing docstring coverage across all modules..." --summary-only
-        
-        # Run interrogate with detailed output (don't fail on low coverage, just report)
-        if interrogate -v FollowWeb_Visualizor/ --fail-under=50 2>&1 | tee interrogate_output.txt; then
-          python ../.github/scripts/ci_helpers.py success "Docstring coverage analysis completed" --summary-only
+        # Use cached environment if available
+        if [ -d ".venv" ]; then
+          echo "Using prebuild cache"
+          source .venv/bin/activate
+          # Verify installation
+          python -c "import FollowWeb_Visualizor" || pip install -e .
+          # Export venv path for subsequent steps
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
         else
-          python ../.github/scripts/ci_helpers.py warning "Docstring coverage below threshold - consider improving documentation" --summary-only
+          echo "Installing dependencies fresh"
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-test.txt -e .
         fi
-        
-        # Add detailed results to summary
-        python ../.github/scripts/ci_helpers.py info "**Detailed Coverage Results:**" --summary-only
-        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-        cat interrogate_output.txt >> $GITHUB_STEP_SUMMARY || true
-        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-      continue-on-error: true  # Don't fail the entire pipeline on docstring coverage issues
+        python ../.github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
     
     - name: Validate documentation structure
       working-directory: FollowWeb
@@ -233,25 +231,250 @@ jobs:
           fi
         done
     
-    - name: Generate documentation summary
-      working-directory: FollowWeb
-      run: |
-        python ../.github/scripts/ci_helpers.py completion "**DOCUMENTATION PIPELINE COMPLETED - ALL CHECKS PASSED!**" --summary-only
-        python ../.github/scripts/ci_helpers.py info "**Documentation Quality Assurance:**" --summary-only
-        python ../.github/scripts/ci_helpers.py success "- **Documentation Structure** (All required files present)" --summary-only
-        python ../.github/scripts/ci_helpers.py success "- **Docstring Coverage** (Code documentation analysis)" --summary-only
-        python ../.github/scripts/ci_helpers.py success "- **README Quality** (Comprehensive user documentation)" --summary-only
-        python ../.github/scripts/ci_helpers.py success "- **User Guides** (Installation and configuration guides)" --summary-only
-        python ../.github/scripts/ci_helpers.py success "- **Code Maintenance** (TODO/FIXME comment analysis)" --summary-only
-        python ../.github/scripts/ci_helpers.py info "**Documentation pipeline ensures comprehensive project documentation**"
-    
-    - name: Upload documentation reports
+    - name: Upload documentation structure reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: documentation-reports
+        name: documentation-structure-reports
         path: |
-          FollowWeb/interrogate_output.txt
           FollowWeb/todo_comments.txt
           FollowWeb/broken_links.txt
         retention-days: 30
+    
+    - name: Generate documentation structure summary
+      working-directory: FollowWeb
+      run: |
+        python ../.github/scripts/ci_helpers.py completion "**DOCUMENTATION STRUCTURE CHECK COMPLETED!**" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Documentation Structure Validation:**" --summary-only
+        python ../.github/scripts/ci_helpers.py success "- **Required Files** (All essential documentation present)" --summary-only
+        python ../.github/scripts/ci_helpers.py success "- **README Quality** (Comprehensive user documentation)" --summary-only
+        python ../.github/scripts/ci_helpers.py success "- **User Guides** (Installation and configuration guides)" --summary-only
+        python ../.github/scripts/ci_helpers.py success "- **Code Maintenance** (TODO/FIXME comment analysis)" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Critical documentation files validated successfully**"
+  
+  # Job 2: Docstring Coverage (CRITICAL - Pipeline fails if this fails)
+  docstring-coverage:
+    name: Docstring Coverage
+    runs-on: ubuntu-latest
+    needs: documentation-structure
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
+    
+    - name: Restore CI prebuild cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/pip
+          FollowWeb/.venv
+          FollowWeb/tests/test_data
+          .pytest_cache
+          .mypy_cache
+          .ruff_cache
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
+        restore-keys: |
+          prebuild-${{ runner.os }}-py3.12-
+    
+    - name: Install dependencies
+      working-directory: FollowWeb
+      run: |
+        # Use cached environment if available
+        if [ -d ".venv" ]; then
+          echo "Using CI prebuild cache"
+          source .venv/bin/activate
+          # Ensure interrogate is installed
+          pip list | grep interrogate || pip install interrogate
+        else
+          echo "Installing dependencies fresh"
+          python -m pip install --upgrade pip
+          python -m pip install interrogate
+        fi
+        python ../.github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
+    
+    - name: Check docstring coverage
+      working-directory: FollowWeb
+      run: |
+        python ../.github/scripts/ci_helpers.py info "**Docstring Coverage Analysis**" --summary-only
+        python ../.github/scripts/ci_helpers.py info "Analyzing docstring coverage across all modules..." --summary-only
+        
+        # Run interrogate with detailed output
+        if interrogate -v FollowWeb_Visualizor/ --fail-under=50 2>&1 | tee interrogate_output.txt; then
+          python ../.github/scripts/ci_helpers.py success "Docstring coverage meets minimum threshold (50%)" --summary-only
+        else
+          python ../.github/scripts/ci_helpers.py error "Docstring coverage below threshold - documentation required" --summary-only
+          exit 1
+        fi
+        
+        # Add detailed results to summary
+        python ../.github/scripts/ci_helpers.py info "**Detailed Coverage Results:**" --summary-only
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
+        cat interrogate_output.txt >> $GITHUB_STEP_SUMMARY || true
+        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
+    
+    - name: Upload docstring coverage reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: docstring-coverage-reports
+        path: |
+          FollowWeb/interrogate_output.txt
+        retention-days: 30
+    
+    - name: Generate docstring coverage summary
+      working-directory: FollowWeb
+      run: |
+        python ../.github/scripts/ci_helpers.py completion "**DOCSTRING COVERAGE CHECK COMPLETED!**" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Code Documentation Quality:**" --summary-only
+        python ../.github/scripts/ci_helpers.py success "- **Docstring Coverage** (Meets minimum 50% threshold)" --summary-only
+        python ../.github/scripts/ci_helpers.py success "- **Module Documentation** (All modules analyzed)" --summary-only
+        python ../.github/scripts/ci_helpers.py info "**Code documentation standards validated successfully**"
+  
+  # Job 3: Conventional Commits (NON-CRITICAL - Pipeline passes even if this fails)
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    needs: docstring-coverage
+    continue-on-error: true  # This job won't fail the pipeline
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for commit validation
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Validate PR title follows conventional commits
+      if: github.event_name == 'pull_request'
+      uses: amannn/action-semantic-pull-request@v5
+      continue-on-error: true  # Don't fail on PR title issues
+      with:
+        types: |
+          feat
+          fix
+          docs
+          style
+          refactor
+          perf
+          test
+          build
+          ci
+          chore
+          revert
+          security
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Validate conventional commit messages
+      if: github.event_name == 'pull_request'
+      continue-on-error: true  # Don't fail the pipeline on commit message issues
+      run: |
+        python .github/scripts/ci_helpers.py info "**Conventional Commit Messages Validation**" --summary-only
+        
+        # Get the base branch commit
+        git fetch origin ${{ github.base_ref }}
+        base_commit=$(git merge-base origin/${{ github.base_ref }} HEAD)
+        
+        # Get all commits in this PR
+        commits=$(git log --format="%H" $base_commit..HEAD)
+        
+        if [ -z "$commits" ]; then
+          python .github/scripts/ci_helpers.py warning "No commits found to validate" --summary-only
+          exit 0
+        fi
+        
+        # Conventional commit pattern
+        # Matches: type(scope): description or type: description
+        # Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security
+        pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security)(\(.+\))?: .+"
+        
+        invalid_commits=""
+        valid_count=0
+        total_count=0
+        
+        echo "Checking commits for conventional commit format..." | tee -a $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        for commit in $commits; do
+          total_count=$((total_count + 1))
+          message=$(git log --format=%s -n 1 $commit)
+          short_hash=$(git log --format=%h -n 1 $commit)
+          
+          if echo "$message" | grep -qE "$pattern"; then
+            valid_count=$((valid_count + 1))
+            echo "✅ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          else
+            invalid_commits="$invalid_commits\n❌ $short_hash: $message"
+            echo "❌ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -n "$invalid_commits" ]; then
+          python .github/scripts/ci_helpers.py warning "Found $((total_count - valid_count)) commit(s) not following conventional commit format" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Conventional Commit Format:**" --summary-only
+          python .github/scripts/ci_helpers.py info "\`type(scope): description\` or \`type: description\`" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Valid types:** feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Examples:**" --summary-only
+          python .github/scripts/ci_helpers.py info "- \`feat(api): add new endpoint\`" --summary-only
+          python .github/scripts/ci_helpers.py info "- \`fix: resolve memory leak\`" --summary-only
+          python .github/scripts/ci_helpers.py info "- \`docs: update README\`" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Note:** This is a non-critical check and won't fail the pipeline" --summary-only
+        else
+          python .github/scripts/ci_helpers.py success "All $valid_count commit(s) follow conventional commit format" --summary-only
+        fi
+    
+    - name: Validate commit messages for push events
+      if: github.event_name == 'push'
+      continue-on-error: true  # Don't fail the pipeline on commit message issues
+      run: |
+        python .github/scripts/ci_helpers.py info "**Conventional Commit Messages Validation (Push Event)**" --summary-only
+        
+        # Get the last commit message
+        message=$(git log --format=%s -n 1 HEAD)
+        short_hash=$(git log --format=%h -n 1 HEAD)
+        
+        # Conventional commit pattern
+        pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security)(\(.+\))?: .+"
+        
+        echo "Checking latest commit for conventional commit format..." | tee -a $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if echo "$message" | grep -qE "$pattern"; then
+          echo "✅ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          python .github/scripts/ci_helpers.py success "Latest commit follows conventional commit format" --summary-only
+        else
+          echo "❌ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          python .github/scripts/ci_helpers.py warning "Latest commit does not follow conventional commit format" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Conventional Commit Format:**" --summary-only
+          python .github/scripts/ci_helpers.py info "\`type(scope): description\` or \`type: description\`" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Valid types:** feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, security" --summary-only
+          python .github/scripts/ci_helpers.py info "" --summary-only
+          python .github/scripts/ci_helpers.py info "**Note:** This is a non-critical check and won't fail the pipeline" --summary-only
+        fi
+    
+    - name: Generate conventional commits summary
+      if: always()
+      run: |
+        python .github/scripts/ci_helpers.py completion "**CONVENTIONAL COMMITS CHECK COMPLETED!**" --summary-only
+        python .github/scripts/ci_helpers.py info "**Commit Message Quality:**" --summary-only
+        python .github/scripts/ci_helpers.py info "- **Format Validation** (Conventional commits standard)" --summary-only
+        python .github/scripts/ci_helpers.py info "- **Best Practices** (Semantic versioning support)" --summary-only
+        python .github/scripts/ci_helpers.py warning "**Note:** This is a non-critical check - pipeline passes regardless of result" --summary-only
+        python .github/scripts/ci_helpers.py info "**Conventional commits improve changelog generation and semantic versioning**"

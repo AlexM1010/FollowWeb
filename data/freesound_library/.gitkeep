@@ -1,0 +1,20 @@
+# Freesound Library - Persistent Data Storage
+
+This directory contains the persistent Freesound sample library that grows over time.
+
+## Files:
+- `freesound_library.pkl` - Main library checkpoint (graph + cache)
+- `freesound_library_backup_*.pkl` - Automatic backups
+
+## Purpose:
+This data is committed to Git so the library persists across:
+- PC crashes
+- System reinstalls
+- Team collaboration
+- CI/CD runs
+
+## Size Management:
+If files get too large for Git, consider:
+- Git LFS (Large File Storage)
+- Cloud storage with download script
+- Incremental snapshots

@@ -21,9 +21,156 @@ from FollowWeb_Visualizor.core.config import get_configuration_manager
 # Add the FollowWeb_Visualizor package to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Ensure UTF-8 encoding for Unicode characters on Windows (for progress bars with emojis)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError):
+        # Fallback: continue with default encoding
+        pass
+
+
+def pytest_runtest_teardown(item, nextitem):
+    """Clean up memory after each test to prevent accumulation."""
+    import gc
+
+    # Force garbage collection after each test
+    gc.collect()
+
+    # Additional cleanup for integration tests (which create larger objects)
+    if any(marker.name == "integration" for marker in item.iter_markers()):
+        # More aggressive cleanup for integration tests
+        gc.collect(generation=2)  # Full collection including oldest generation
+
 
 # Cache for dataset summary to avoid repeated file reads
 _dataset_summary_cache = None
+
+
+# Global test configuration for performance optimization
+TEST_PERFORMANCE_CONFIG = {
+    "max_layout_iterations": 3,  # Minimal iterations for fast tests
+    "spring_iterations": 3,  # Minimal spring layout iterations
+    "spring_k": 0.5,  # Increased for faster convergence
+}
+
+# Common k-value presets for different test scenarios
+TEST_K_VALUE_PRESETS = {
+    "minimal": {  # For very fast tests or small graphs
+        "strategy_k_values": {
+            "k-core": 1,
+            "reciprocal_k-core": 1,
+            "ego_alter_k-core": 1,
+        },
+        "default_k_value": 1,
+    },
+    "small": {  # For ego-alter or small graph tests
+        "strategy_k_values": {
+            "k-core": 2,
+            "reciprocal_k-core": 2,
+            "ego_alter_k-core": 2,
+        },
+        "default_k_value": 2,
+    },
+    "moderate": {  # For PNG generation or moderate complexity tests
+        "strategy_k_values": {
+            "k-core": 7,
+            "reciprocal_k-core": 7,
+            "ego_alter_k-core": 7,
+        },
+        "default_k_value": 7,
+    },
+}
+
+# Common pipeline stage presets
+TEST_PIPELINE_PRESETS = {
+    "strategy_only": {  # Only run strategy phase (for I/O tests)
+        "enable_analysis": False,
+        "enable_visualization": False,
+    },
+    "no_visualization": {  # Skip visualization (for analysis tests)
+        "enable_analysis": True,
+        "enable_visualization": False,
+    },
+}
+
+
+def apply_test_performance_config(config: dict[str, Any]) -> dict[str, Any]:
+    """Apply global test performance optimizations to a config dict.
+
+    This ensures consistent performance settings across all tests without
+    needing to manually set them in each test.
+
+    Args:
+        config: Configuration dictionary to optimize
+
+    Returns:
+        Modified configuration dictionary with performance optimizations applied
+    """
+    # Apply spring layout optimizations
+    if "visualization" not in config:
+        config["visualization"] = {}
+    if "layout" not in config["visualization"]:
+        config["visualization"]["layout"] = {}
+    if "spring" not in config["visualization"]["layout"]:
+        config["visualization"]["layout"]["spring"] = {}
+
+    config["visualization"]["layout"]["spring"]["iterations"] = TEST_PERFORMANCE_CONFIG[
+        "spring_iterations"
+    ]
+    config["visualization"]["layout"]["spring"]["k"] = TEST_PERFORMANCE_CONFIG[
+        "spring_k"
+    ]
+
+    # Apply analysis mode optimizations
+    if "analysis_mode" not in config:
+        config["analysis_mode"] = {}
+    config["analysis_mode"]["max_layout_iterations"] = TEST_PERFORMANCE_CONFIG[
+        "max_layout_iterations"
+    ]
+
+    return config
+
+
+def apply_k_value_preset(
+    config: dict[str, Any], preset: str = "moderate"
+) -> dict[str, Any]:
+    """Apply a k-value preset to a config dict.
+
+    Args:
+        config: Configuration dictionary
+        preset: One of "minimal", "small", or "moderate"
+
+    Returns:
+        Modified configuration dictionary
+    """
+    if preset not in TEST_K_VALUE_PRESETS:
+        raise ValueError(
+            f"Unknown k-value preset: {preset}. Choose from {list(TEST_K_VALUE_PRESETS.keys())}"
+        )
+
+    config["k_values"] = TEST_K_VALUE_PRESETS[preset].copy()
+    return config
+
+
+def apply_pipeline_preset(config: dict[str, Any], preset: str) -> dict[str, Any]:
+    """Apply a pipeline stage preset to a config dict.
+
+    Args:
+        config: Configuration dictionary
+        preset: One of "strategy_only" or "no_visualization"
+
+    Returns:
+        Modified configuration dictionary
+    """
+    if preset not in TEST_PIPELINE_PRESETS:
+        raise ValueError(
+            f"Unknown pipeline preset: {preset}. Choose from {list(TEST_PIPELINE_PRESETS.keys())}"
+        )
+
+    config["pipeline_stages"] = TEST_PIPELINE_PRESETS[preset].copy()
+    return config
 
 
 def _load_dataset_summary() -> dict[str, Any]:
@@ -98,14 +245,18 @@ def calculate_appropriate_k_values(dataset_name: str = "small_real") -> dict[str
     base_k = min(degree_based_k, avg_based_k, density_adjusted_k)
 
     # Apply dataset size-based constraints for optimal test performance
-    if nodes <= 10:  # Small dataset - conservative k-values
-        k_core = max(1, min(base_k, 3))
-        k_reciprocal = max(1, min(base_k - 1, 2))
-        k_ego = max(1, min(base_k - 1, 2))
-    elif nodes <= 25:  # Medium dataset - moderate k-values
-        k_core = max(2, min(base_k, 6))
-        k_reciprocal = max(1, min(base_k - 1, 4))
-        k_ego = max(1, min(base_k - 1, 4))
+    if nodes <= 10:  # Very small dataset - minimal k-values to avoid empty graphs
+        k_core = max(0, min(base_k, 1))
+        k_reciprocal = max(0, min(base_k, 1))
+        k_ego = max(0, min(base_k, 1))
+    elif nodes <= 25:  # Small dataset - conservative k-values
+        k_core = max(1, min(base_k, 2))
+        k_reciprocal = max(1, min(base_k, 2))
+        k_ego = max(1, min(base_k, 2))
+    elif nodes <= 50:  # Medium dataset - moderate k-values
+        k_core = max(2, min(base_k, 4))
+        k_reciprocal = max(1, min(base_k, 3))
+        k_ego = max(1, min(base_k, 3))
     else:  # Large dataset - higher k-values allowed
         k_core = max(3, min(base_k, 10))
         k_reciprocal = max(2, min(base_k - 1, 7))
@@ -183,56 +334,64 @@ def get_scalability_k_values(dataset_name: str = "full_anonymized") -> dict[str,
 
 @pytest.fixture
 def sample_data_file() -> str:
-    """Fixture providing path to sample data file - using tiny test dataset for fastest tests."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "tiny_real.json")
+    """Fixture providing path to sample data file - using small test dataset for reliable tests."""
+    # Use path relative to this conftest.py file location
+    # Changed from tiny_real.json to small_real.json because tiny has only 1 node
+    # which results in empty graphs after k-core pruning
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "small_real.json")
 
 
 @pytest.fixture
 def sample_data_exists(sample_data_file: str) -> bool:
-    """Fixture checking if sample data file exists."""
-    return os.path.exists(sample_data_file)
+    """
+    Fixture checking if sample data file exists.
+
+    Note: Test data should always be committed to the repository.
+    If this returns False, it indicates a repository issue, not a test skip condition.
+    """
+    exists = os.path.exists(sample_data_file)
+    if not exists:
+        # Fail the test instead of allowing skip - test data must exist
+        pytest.fail(
+            f"Test data file missing: {sample_data_file}. Test data must be committed to repository."
+        )
+    return exists
 
 
 @pytest.fixture
 def tiny_real_data() -> str:
     """Fixture providing tiny real test dataset for very fast testing (5% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "tiny_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "tiny_real.json")
 
 
 @pytest.fixture
 def small_real_data() -> str:
     """Fixture providing small real test dataset for fast testing (15% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "small_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "small_real.json")
 
 
 @pytest.fixture
 def medium_real_data() -> str:
     """Fixture providing medium real test dataset for integration testing (33% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "medium_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "medium_real.json")
 
 
 @pytest.fixture
 def large_real_data() -> str:
     """Fixture providing large real test dataset for performance testing (66% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "large_real.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "large_real.json")
 
 
 @pytest.fixture
 def full_test_data() -> str:
     """Fixture providing full anonymized dataset for comprehensive testing (100% of original data)."""
-    from pathlib import Path
-
-    return str(Path("tests") / "test_data" / "full_anonymized.json")
+    conftest_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(conftest_dir, "test_data", "full_anonymized.json")
 
 
 @pytest.fixture
@@ -404,8 +563,8 @@ def ci_optimized_config(
 
     config = default_config.copy()
     config["input_file"] = str(
-        Path("tests") / "test_data" / "tiny_real.json"
-    )  # Use smallest dataset in CI
+        Path("tests") / "test_data" / "small_real.json"
+    )  # Use small dataset in CI (tiny is too small with only 1 node)
     config["output_file_prefix"] = str(Path(temp_output_dir) / "ci_test_output")
 
     # CI-specific optimizations
@@ -462,7 +621,7 @@ def ci_optimized_config(
                 )
     else:
         # Local development - use appropriate k-values
-        k_values = calculate_appropriate_k_values("tiny_real")
+        k_values = calculate_appropriate_k_values("small_real")
         config["k_values"] = k_values
 
     return config
@@ -594,9 +753,13 @@ def fast_config(
     config["output_file_prefix"] = str(Path(temp_output_dir) / "test_output")
     config["visualization"]["static_image"]["generate"] = False  # Skip PNG for speed
 
-    # Calculate appropriate k-values based on tiny dataset statistics
-    k_values = calculate_appropriate_k_values("tiny_real")
+    # Use dynamically calculated k-values appropriate for the test dataset
+    # This ensures the graph doesn't become empty after pruning
+    k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
+
+    # Apply global test performance optimizations
+    config = apply_test_performance_config(config)
 
     return config
 
@@ -627,25 +790,15 @@ def empty_json_file() -> Generator[str, None, None]:
         os.unlink(temp_file)
 
 
-def pytest_configure(config):
-    """Configure pytest with custom markers and parallel execution strategies."""
-    config.addinivalue_line(
-        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
-    )
-    config.addinivalue_line("markers", "integration: marks tests as integration tests")
-    config.addinivalue_line("markers", "unit: marks tests as unit tests")
-
-    # Configure category-specific parallel execution
-    _configure_parallel_execution(config)
-
-
 def _configure_parallel_execution(config):
-    """Configure category-specific parallel execution strategies with CI environment detection."""
-    from FollowWeb_Visualizor.utils import (
-        detect_ci_environment,
-        get_optimal_worker_count,
-    )
+    """
+    Configure memory-aware parallel execution using pytest-xdist.
 
+    Automatically adapts to any device by:
+    1. Using pytest-xdist's 'auto' for CPU detection
+    2. Limiting workers based on available memory
+    3. Using appropriate distribution strategies per test type
+    """
     # Check for environment variable override to disable parallel execution
     env_disable = os.environ.get("PYTEST_PARALLEL_DISABLE", "").lower() in (
         "1",
@@ -658,125 +811,157 @@ def _configure_parallel_execution(config):
         config.option.dist = "no"
         return
 
-    # Detect CI environment for optimized configuration
-    ci_info = detect_ci_environment()
-
     # Determine test category from markers
     markers = config.getoption("-m", default="")
-    test_category = "all"  # Default
 
-    if "benchmark" in markers:
-        test_category = "benchmark"
-    elif "unit" in markers and "integration" not in markers and "slow" not in markers:
-        test_category = "unit"
-    elif "integration" in markers and "unit" not in markers and "slow" not in markers:
-        test_category = "integration"
-    elif "slow" in markers or "performance" in markers:
-        test_category = "performance"
-
-    # Handle benchmark tests - always sequential
-    if test_category == "benchmark":
-        config.option.numprocesses = 1
-        config.option.dist = "no"
-        return
-
-    # CI-specific optimizations
-    if ci_info["is_ci"]:
-        # Reduce worker count in CI to avoid resource contention
-        if test_category == "performance":
-            # Force sequential execution for performance tests in CI
-            config.option.numprocesses = 1
+    # Benchmark and performance tests always run sequentially
+    # But NOT if we're explicitly excluding benchmarks with "not benchmark"
+    if markers and "not benchmark" not in markers:
+        if "benchmark" in markers or "performance" in markers or "slow" in markers:
+            config.option.numprocesses = 0
             config.option.dist = "no"
+            if hasattr(config.option, "cov"):
+                config.option.cov = None  # Disable coverage for accurate timing
             return
-        elif ci_info["provider"] == "github_actions":
-            # GitHub Actions specific optimizations
-            if os.environ.get("RUNNER_OS") == "Windows":
-                # Windows runners are slower, use ~50% of cores
-                max_workers = max(1, int((os.cpu_count() or 2) * 0.5))
-            else:
-                # Linux/macOS runners can handle more, use ~75% of cores
-                max_workers = max(1, int((os.cpu_count() or 2) * 0.75))
+
+    # Check if running benchmark tests by examining test paths
+    # This catches cases like: pytest tests/performance/test_benchmarks.py
+    test_args = config.args
+    if test_args:
+        for arg in test_args:
+            # Check if any test path contains benchmark-related keywords
+            if any(
+                keyword in arg.lower()
+                for keyword in ["benchmark", "test_benchmarks.py"]
+            ):
+                # Check if we're not explicitly excluding benchmarks
+                if "not benchmark" not in markers:
+                    config.option.numprocesses = 0
+                    config.option.dist = "no"
+                    if hasattr(config.option, "cov"):
+                        config.option.cov = None
+                    return
+
+    # Let pytest-xdist auto-detect CPU count, then apply memory limits
+    # This works on any device without hardcoded values
+    if not hasattr(config.option, "numprocesses") or config.option.numprocesses is None:
+        config.option.numprocesses = "auto"  # Let pytest-xdist decide based on CPUs
+
+    # Apply memory-based limits to prevent overflow
+    try:
+        import psutil
+
+        available_memory_gb = psutil.virtual_memory().available / (1024**3)
+
+        # Estimate memory per worker based on test type
+        if "integration" in markers:
+            memory_per_worker_gb = 0.5  # Integration tests use more memory
+            test_type = "integration"
+        elif "unit" in markers:
+            memory_per_worker_gb = 0.2  # Unit tests are lighter
+            test_type = "unit"
         else:
-            # Other CI providers - conservative approach, use ~50% of cores
-            max_workers = max(1, int((os.cpu_count() or 2) * 0.5))
+            memory_per_worker_gb = 0.3  # Mixed tests
+            test_type = "mixed"
+
+        # Leave 2GB for system, calculate max workers based on available memory
+        max_workers_by_memory = max(
+            1, int((available_memory_gb - 2) / memory_per_worker_gb)
+        )
+
+        # If numprocesses is 'auto', pytest-xdist will resolve it
+        # We'll apply the memory limit in pytest_configure hook after resolution
+        config._memory_limit = max_workers_by_memory
+        config._test_type = test_type
+
+    except ImportError:
+        # psutil not available, let pytest-xdist handle it
+        config._memory_limit = None
+        config._test_type = "unknown"
+
+    # Choose distribution strategy based on test type
+    # Note: Test order is already optimized in pytest_collection_modifyitems
+    # (longest tests first) for optimal parallel execution
+    if "unit" in markers:
+        config.option.dist = (
+            "worksteal"  # Best for fast unit tests - dynamic work stealing
+        )
+    elif "integration" in markers:
+        config.option.dist = "loadscope"  # Respects test ordering (longest first)
     else:
-        max_workers = None  # No limit for local development
+        config.option.dist = "loadscope"  # Balanced for mixed workloads
 
-    # Get optimal worker count using CI-aware detection
-    worker_count = get_optimal_worker_count(test_category)
 
-    # Apply CI limits if applicable
-    if max_workers and worker_count > max_workers:
-        worker_count = max_workers
+def pytest_configure(config):
+    """
+    Configure pytest with custom markers and memory-aware parallel execution.
 
-    # Configure pytest-xdist based on test category and environment
-    config.option.numprocesses = worker_count
+    This hook runs after pytest-xdist resolves 'auto' to actual worker count,
+    allowing us to apply memory-based limits.
+    """
+    config.addinivalue_line(
+        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "unit: marks tests as unit tests")
 
-    if test_category == "unit":
-        # Use worksteal distribution for better load balancing with fast unit tests
-        config.option.dist = "worksteal"
-    elif test_category == "integration":
-        # Use loadgroup distribution to handle resource conflicts better
-        config.option.dist = "loadgroup"
-    elif test_category == "performance" or test_category == "benchmark":
-        # Sequential execution for timing accuracy
-        config.option.dist = "no"
-        # Disable coverage for performance tests to avoid measurement interference
-        if hasattr(config.option, "cov"):
-            config.option.cov = None
-    else:
-        # Mixed workload - use loadscope for balanced distribution
-        config.option.dist = "loadscope"
+    # Configure parallel execution with memory awareness
+    _configure_parallel_execution(config)
+
+    # Apply memory limit if pytest-xdist resolved 'auto' to a number
+    if hasattr(config, "_memory_limit") and config._memory_limit:
+        if hasattr(config.option, "numprocesses") and isinstance(
+            config.option.numprocesses, int
+        ):
+            if config.option.numprocesses > config._memory_limit:
+                original = config.option.numprocesses
+                config.option.numprocesses = config._memory_limit
+                print(
+                    f"\n💾 Memory limit: Reduced workers from {original} to {config._memory_limit}"
+                )
 
 
 def pytest_sessionstart(session):
     """Log parallel execution configuration at session start."""
-    from FollowWeb_Visualizor.utils import detect_ci_environment
-
     config = session.config
     markers = config.getoption("-m", default="")
-    ci_info = detect_ci_environment()
-
-    # Log CI environment information
-    if ci_info["is_ci"]:
-        ci_msg = f"[CI Environment] Detected {ci_info['provider']}"
-        if ci_info["build_id"]:
-            ci_msg += f" (Build: {ci_info['build_id']})"
-        print(f"\n{ci_msg}")
 
     if hasattr(config.option, "numprocesses") and config.option.numprocesses:
         worker_count = config.option.numprocesses
         dist_mode = getattr(config.option, "dist", "loadscope")
 
         if worker_count == 1:
-            if "benchmark" in markers:
-                print(
-                    "[Parallel Execution] Sequential mode for benchmark tests (pytest-benchmark compatibility)"
-                )
-            elif "slow" in markers or "performance" in markers:
-                print(
-                    "[Parallel Execution] Sequential mode for performance tests (timing accuracy)"
-                )
+            if "benchmark" in markers or "performance" in markers:
+                print("[Parallel Execution] Sequential mode for accurate timing")
             else:
                 print("[Parallel Execution] Sequential mode")
         else:
-            test_type = (
-                "unit"
-                if "unit" in markers
-                else "integration"
-                if "integration" in markers
-                else "mixed"
-            )
-            env_context = "CI-optimized" if ci_info["is_ci"] else "local development"
+            test_type = getattr(config, "_test_type", "mixed")
+            try:
+                import psutil
+
+                mem_gb = psutil.virtual_memory().available / (1024**3)
+                mem_info = f", {mem_gb:.1f} GB available"
+            except ImportError:
+                mem_info = ""
+
             print(
-                f"[Parallel Execution] Using {worker_count} workers for {test_type} tests ('{dist_mode}' distribution, {env_context})"
+                f"[Parallel Execution] {worker_count} workers for {test_type} tests "
+                f"('{dist_mode}' distribution{mem_info})"
             )
     else:
-        print("[Parallel Execution] Running in sequential mode")
+        print("[Parallel Execution] Sequential mode")
 
 
 def pytest_collection_modifyitems(config, items):
-    """Modify test collection to add markers based on test names."""
+    """
+    Modify test collection to add markers and sort by expected duration.
+
+    Sorts tests so longest-running tests start first, allowing them to run
+    throughout the entire test session while shorter tests fill in gaps.
+    This minimizes the "long tail" problem in parallel execution.
+    """
+    # First, add markers based on test names
     for item in items:
         # Mark integration tests
         if "integration" in item.nodeid or "pipeline" in item.nodeid:
@@ -792,6 +977,85 @@ def pytest_collection_modifyitems(config, items):
         ):
             item.add_marker(pytest.mark.unit)
 
+    # Check if any collected items have benchmark marker - disable xdist if so
+    has_benchmarks = any(
+        any(marker.name == "benchmark" for marker in item.iter_markers())
+        for item in items
+    )
+
+    if has_benchmarks:
+        # Check if we're explicitly excluding benchmarks
+        markers = config.getoption("-m", default="")
+        if "not benchmark" not in markers:
+            # Disable parallel execution for benchmark tests
+            config.option.numprocesses = 0
+            config.option.dist = "no"
+            print(
+                "\n[Parallel Execution] Sequential mode for benchmark tests (accurate timing required)"
+            )
+
+    # Sort tests by expected duration (longest first) for optimal parallel execution
+    # This ensures long-running tests start immediately and run throughout the session
+    # while shorter tests fill in the gaps, minimizing idle worker time
+    def get_test_priority(item):
+        """
+        Calculate test priority (lower number = run first).
+
+        Priority order:
+        1. Slow tests with PNG generation (longest)
+        2. Slow tests without PNG
+        3. Integration tests with PNG
+        4. Integration tests without PNG
+        5. Unit tests (shortest)
+        """
+        nodeid = item.nodeid.lower()
+
+        # Check for slow marker
+        is_slow = any(marker.name == "slow" for marker in item.iter_markers())
+
+        # Check for integration marker
+        is_integration = any(
+            marker.name == "integration" for marker in item.iter_markers()
+        )
+
+        # Check for PNG generation (very slow)
+        has_png = any(
+            keyword in nodeid
+            for keyword in ["png", "static_image", "layout_options", "spring_layout"]
+        )
+
+        # Check for other slow operations
+        has_slow_ops = any(
+            keyword in nodeid
+            for keyword in [
+                "ego_alter",
+                "performance",
+                "timing",
+                "loading_indicator",
+                "metrics_report",
+                "comprehensive",
+            ]
+        )
+
+        # Assign priority (lower = run first)
+        if is_slow and has_png:
+            return 1  # Slowest - run first
+        elif is_slow and has_slow_ops:
+            return 2
+        elif is_slow:
+            return 3
+        elif is_integration and has_png:
+            return 4
+        elif is_integration and has_slow_ops:
+            return 5
+        elif is_integration:
+            return 6
+        else:
+            return 7  # Unit tests - run last (fastest)
+
+    # Sort items by priority (longest tests first)
+    items.sort(key=get_test_priority)
+
 
 @pytest.fixture
 def tiny_config(default_config: dict[str, Any], temp_output_dir: str) -> dict[str, Any]:
@@ -800,14 +1064,26 @@ def tiny_config(default_config: dict[str, Any], temp_output_dir: str) -> dict[st
 
     config = default_config.copy()
     config["input_file"] = str(
-        Path("tests") / "test_data" / "tiny_real.json"
+        Path("tests") / "test_data" / "small_real.json"
     )  # Use tiny test dataset
     config["output_file_prefix"] = str(Path(temp_output_dir) / "test_output")
     config["visualization"]["static_image"]["generate"] = False  # Skip PNG for speed
 
-    # Calculate appropriate k-values based on tiny dataset statistics
-    k_values = calculate_appropriate_k_values("tiny_real")
+    # Calculate appropriate k-values based on small dataset statistics
+    k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
+
+    # Optimize for speed - reduce spring layout iterations
+    if "analysis_mode" not in config:
+        config["analysis_mode"] = {}
+    config["analysis_mode"]["max_layout_iterations"] = 10
+    if "visualization" not in config:
+        config["visualization"] = {}
+    if "layout" not in config["visualization"]:
+        config["visualization"]["layout"] = {}
+    if "spring" not in config["visualization"]["layout"]:
+        config["visualization"]["layout"]["spring"] = {}
+    config["visualization"]["layout"]["spring"]["iterations"] = 10
 
     return config
 
@@ -829,6 +1105,18 @@ def small_config(
     # Calculate appropriate k-values based on small dataset statistics
     k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
+
+    # Optimize for speed - reduce spring layout iterations
+    if "analysis_mode" not in config:
+        config["analysis_mode"] = {}
+    config["analysis_mode"]["max_layout_iterations"] = 10
+    if "visualization" not in config:
+        config["visualization"] = {}
+    if "layout" not in config["visualization"]:
+        config["visualization"]["layout"] = {}
+    if "spring" not in config["visualization"]["layout"]:
+        config["visualization"]["layout"]["spring"] = {}
+    config["visualization"]["layout"]["spring"]["iterations"] = 10
 
     return config
 

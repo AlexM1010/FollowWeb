@@ -20,7 +20,7 @@ Control which major phases of the pipeline are executed:
 
 ```json
 {
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,      // Graph loading and filtering (required)
     "enable_analysis": true,      // Network analysis algorithms
     "enable_visualization": true, // HTML/PNG generation
@@ -66,7 +66,7 @@ Fine-grained control over output file generation:
 ```json
 {
   "output_control": {
-    "generate_html": true,        // Interactive Pyvis visualization
+    "generate_html": true,        // Interactive Sigma.js visualization
     "generate_png": true,         // Static matplotlib image
     "generate_reports": true,     // Text metrics and statistics
     "enable_timing_logs": false,  // Detailed timing information

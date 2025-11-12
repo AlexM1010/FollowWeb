@@ -1,0 +1,79 @@
+name: Codespaces Prebuild
+
+on:
+  # This workflow is called by other workflows, not triggered directly
+  workflow_call:
+    outputs:
+      cache-key:
+        description: "Cache key for the prebuild environment"
+        value: ${{ jobs.prebuild.outputs.cache-key }}
+      python-version:
+        description: "Python version used in prebuild"
+        value: ${{ jobs.prebuild.outputs.python-version }}
+  
+  # Also allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  prebuild:
+    name: Prebuild Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      cache-key: ${{ steps.cache-info.outputs.cache-key }}
+      python-version: ${{ steps.cache-info.outputs.python-version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'FollowWeb/requirements-ci.txt'
+      
+      - name: Generate cache key
+        id: cache-info
+        run: |
+          CACHE_KEY="prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}"
+          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
+          echo "python-version=3.12" >> $GITHUB_OUTPUT
+          echo "Generated cache key: $CACHE_KEY"
+      
+      - name: Cache prebuild environment
+        id: cache-prebuild
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            FollowWeb/.venv
+            FollowWeb/tests/test_data
+            .pytest_cache
+            .mypy_cache
+            .ruff_cache
+          key: ${{ steps.cache-info.outputs.cache-key }}
+          restore-keys: |
+            prebuild-${{ runner.os }}-py3.12-
+      
+      - name: Install dependencies
+        if: steps.cache-prebuild.outputs.cache-hit != 'true'
+        working-directory: FollowWeb
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -e ".[dev]"
+          pip install -r requirements-ci.txt
+          echo "✅ Dependencies installed and cached"
+      
+      - name: Verify prebuild
+        working-directory: FollowWeb
+        run: |
+          if [ -d ".venv" ]; then
+            source .venv/bin/activate
+          fi
+          python -c "import FollowWeb_Visualizor; print('✅ Package imports successfully')"
+          echo "📦 Prebuild environment ready"
+          echo "🚀 Cache key: ${{ steps.cache-info.outputs.cache-key }}"

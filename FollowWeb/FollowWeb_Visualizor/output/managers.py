@@ -36,7 +36,7 @@ class OutputManager:
             config: Complete configuration dictionary containing output control settings
         """
         self.config = config
-        self.output_control = config.get("output_control", {})
+        self.output = config.get("output", {})
         self.logger = logging.getLogger(__name__)
 
         # Initialize visualization components
@@ -44,9 +44,13 @@ class OutputManager:
 
         # Import here to avoid circular imports
         from ..visualization.metrics import MetricsCalculator
-        from ..visualization.renderers import InteractiveRenderer, StaticRenderer
+        from ..visualization.renderers import (
+            MatplotlibRenderer,
+            PyvisRenderer,
+            SigmaRenderer,
+        )
 
-        # Initialize static renderer with performance config
+        # Initialize renderers with performance config
         performance_config = vis_config.get("performance", {})
         analysis_mode = config.get("analysis_mode", {})
         if analysis_mode.get("max_layout_iterations") is not None:
@@ -57,11 +61,31 @@ class OutputManager:
             performance_config["fast_mode"] = analysis_mode["enable_fast_algorithms"]
 
         self.metrics_calculator = MetricsCalculator(vis_config, performance_config)
-        self.interactive_renderer = InteractiveRenderer(
-            vis_config, self.metrics_calculator
-        )
 
-        self.static_renderer = StaticRenderer(vis_config, performance_config)
+        # Get renderer configuration
+        renderer_config = config.get("renderer", {})
+        self.renderer_type = renderer_config.get("renderer_type", "pyvis")
+
+        # Initialize renderers based on configuration
+        self.pyvis_renderer = None
+        self.sigma_renderer = None
+        self.matplotlib_renderer = MatplotlibRenderer(vis_config, performance_config)
+
+        if self.renderer_type in ["pyvis", "all"]:
+            self.pyvis_renderer = PyvisRenderer(vis_config, self.metrics_calculator)
+
+        if self.renderer_type in ["sigma", "all"]:
+            self.logger.info(f"renderer_config: {renderer_config}")
+            template_name = renderer_config.get(
+                "template_name", "sigma_visualization.html"
+            )
+            self.logger.info(
+                f"Initializing SigmaRenderer with template: {template_name}"
+            )
+            self.sigma_renderer = SigmaRenderer(
+                vis_config, self.metrics_calculator, template_name
+            )
+
         self.metrics_reporter = MetricsReporter(vis_config)
 
         # Initialize unified logger for this pipeline run
@@ -143,32 +167,6 @@ class OutputManager:
 
         shared_metrics = self.metrics_calculator.calculate_all_metrics(graph)
 
-        # Extract metrics for PNG renderer (which still needs dict format)
-        node_metrics = {}
-        edge_metrics: dict[tuple[str, str], dict[str, Any]] = {}
-
-        for node, node_metric in shared_metrics.node_metrics.items():
-            node_metrics[node] = {
-                "size": node_metric.size,
-                "community": node_metric.community,
-                "color_hex": node_metric.color_hex,
-                "color_rgba": node_metric.color_rgba,
-                "degree": node_metric.centrality_values["degree"],
-                "betweenness": node_metric.centrality_values["betweenness"],
-                "eigenvector": node_metric.centrality_values["eigenvector"],
-            }
-
-        for edge, edge_metric in shared_metrics.edge_metrics.items():
-            edge_metrics[edge] = {
-                "width": edge_metric.width,
-                "color": edge_metric.color,
-                "is_mutual": edge_metric.is_mutual,
-                "is_bridge": edge_metric.is_bridge,
-                "common_neighbors": edge_metric.common_neighbors,
-                "u_comm": edge_metric.u_comm,
-                "v_comm": edge_metric.v_comm,
-            }
-
         # Generate output filenames with shared run_id
         from ..utils.files import ensure_output_directory, generate_output_filename
 
@@ -196,27 +194,13 @@ class OutputManager:
 
         # Generate HTML visualization if enabled
         if self.should_generate_html():
-            if self.unified_logger:
-                self.unified_logger.log_progress(
-                    "Generating interactive HTML visualization..."
-                )
-            else:
-                progress_msg = EmojiFormatter.format(
-                    "progress", "Generating interactive HTML visualization..."
-                )
-                self.logger.info(progress_msg)
-            results["html"] = self.interactive_renderer.generate_html(
-                graph, html_filename, shared_metrics
+            results.update(
+                self._generate_html_visualizations(graph, html_filename, shared_metrics)
             )
         else:
-            if self.unified_logger:
-                self.unified_logger.info(
-                    "ℹ️  Interactive HTML generation disabled in configuration"
-                )
-            else:
-                self.logger.info(
-                    "ℹ️  Interactive HTML generation disabled in configuration"
-                )
+            self._log_message(
+                "ℹ️  Interactive HTML generation disabled in configuration"
+            )
 
         # Generate PNG visualization if enabled
         if self.should_generate_png():
@@ -229,8 +213,8 @@ class OutputManager:
                     "progress", "Generating static PNG visualization..."
                 )
                 self.logger.info(progress_msg)
-            results["png"] = self.static_renderer.generate_png(
-                graph, png_filename, node_metrics, edge_metrics, shared_metrics
+            results["png"] = self.matplotlib_renderer.generate_visualization(
+                graph, png_filename, shared_metrics
             )
         else:
             if self.unified_logger:
@@ -284,21 +268,117 @@ class OutputManager:
 
         return results
 
+    def _log_message(self, message: str) -> None:
+        """Log a message using unified logger or standard logger."""
+        if self.unified_logger:
+            self.unified_logger.info(message)
+        else:
+            self.logger.info(message)
+
+    def _log_progress(self, message: str) -> None:
+        """Log a progress message using unified logger or standard logger."""
+        if self.unified_logger:
+            self.unified_logger.log_progress(message)
+        else:
+            progress_msg = EmojiFormatter.format("progress", message)
+            self.logger.info(progress_msg)
+
+    def _log_error(self, message: str) -> None:
+        """Log an error message using unified logger or standard logger."""
+        if self.unified_logger:
+            self.unified_logger.error(message)
+        else:
+            self.logger.error(message)
+
+    def _generate_html_visualizations(
+        self, graph: nx.DiGraph, html_filename: str, shared_metrics: Any
+    ) -> dict[str, bool]:
+        """
+        Generate HTML visualizations based on renderer_type configuration.
+
+        Args:
+            graph: Graph to visualize
+            html_filename: Base filename for HTML output
+            shared_metrics: Pre-calculated visualization metrics
+
+        Returns:
+            Dictionary with results for each renderer
+        """
+        results = {}
+
+        # Define renderer configurations
+        renderers_to_run: list[tuple[str, Any, str]] = []
+
+        if self.renderer_type == "pyvis":
+            renderers_to_run.append(("pyvis", self.pyvis_renderer, html_filename))
+        elif self.renderer_type == "sigma":
+            sigma_filename = html_filename.replace(".html", "_sigma.html")
+            renderers_to_run.append(("sigma", self.sigma_renderer, sigma_filename))
+        elif self.renderer_type == "all":
+            pyvis_filename = html_filename.replace(".html", "_pyvis.html")
+            sigma_filename = html_filename.replace(".html", "_sigma.html")
+            renderers_to_run.append(("pyvis", self.pyvis_renderer, pyvis_filename))
+            renderers_to_run.append(("sigma", self.sigma_renderer, sigma_filename))
+        else:
+            self._log_error(f"Invalid renderer type: {self.renderer_type}")
+            results["html"] = False
+            return results
+
+        # Generate visualizations for each renderer
+        for renderer_name, renderer, filename in renderers_to_run:
+            if renderer is None:
+                self._log_error(
+                    f"{renderer_name.capitalize()} renderer not initialized"
+                )
+                results[f"html_{renderer_name}"] = False
+                continue
+
+            self._log_progress(
+                f"Generating {renderer_name.capitalize()} interactive HTML visualization..."
+            )
+
+            try:
+                success = renderer.generate_visualization(
+                    graph, filename, shared_metrics
+                )
+                results[f"html_{renderer_name}"] = success
+            except Exception as e:
+                self._log_error(
+                    f"Failed to generate {renderer_name} visualization: {e}"
+                )
+                results[f"html_{renderer_name}"] = False
+
+        # Set backward compatibility result
+        if self.renderer_type == "all":
+            # For "all", succeed if at least one renderer succeeded
+            results["html"] = any(
+                results.get(f"html_{name}", False) for name, _, _ in renderers_to_run
+            )
+        else:
+            # For single renderer, use its result
+            single_renderer_name = renderers_to_run[0][0] if renderers_to_run else None
+            if single_renderer_name:
+                results["html"] = results.get(f"html_{single_renderer_name}", False)
+            else:
+                results["html"] = False
+
+        return results
+
     def should_generate_html(self) -> bool:
         """Check if HTML generation is enabled."""
-        return self.output_control.get("generate_html", True)
+        return self.output.get("generate_html", True)
 
     def should_generate_png(self) -> bool:
         """Check if PNG generation is enabled."""
-        return self.output_control.get("generate_png", True)
+        return self.output.get("generate_png", True)
 
     def should_generate_reports(self) -> bool:
         """Check if report generation is enabled."""
-        return self.output_control.get("generate_reports", True)
+        return self.output.get("generate_reports", True)
 
     def should_generate_timing_logs(self) -> bool:
         """Check if timing log generation is enabled."""
-        return self.output_control.get("enable_timing_logs", False)
+        return self.output.get("enable_timing_logs", False)
 
     def get_enabled_formats(self) -> list[str]:
         """Get list of enabled output formats."""
@@ -404,16 +484,12 @@ class OutputManager:
         log_lines.append(f"Analysis Mode: {mode_value}")
 
         # Pipeline stages
-        pipeline_stages = self.config.get("pipeline_stages", {})
+        pipeline = self.config.get("pipeline", {})
         log_lines.append("Enabled Stages:")
+        log_lines.append(f"  - Strategy: {pipeline.get('enable_strategy', True)}")
+        log_lines.append(f"  - Analysis: {pipeline.get('enable_analysis', True)}")
         log_lines.append(
-            f"  - Strategy: {pipeline_stages.get('enable_strategy', True)}"
-        )
-        log_lines.append(
-            f"  - Analysis: {pipeline_stages.get('enable_analysis', True)}"
-        )
-        log_lines.append(
-            f"  - Visualization: {pipeline_stages.get('enable_visualization', True)}"
+            f"  - Visualization: {pipeline.get('enable_visualization', True)}"
         )
 
         # Output formats
@@ -458,8 +534,8 @@ class OutputManager:
         """
         try:
             return (
-                config_dict.get("output_control", {})
-                .get("output_formatting", {})
+                config_dict.get("output", {})
+                .get("formatting", {})
                 .get("emoji", {})
                 .get("fallback_level", "full")
             )
@@ -610,12 +686,12 @@ class MetricsReporter:
         )
 
         # Pipeline stages
-        pipeline_stages = config.get("pipeline_stages", {})
+        pipeline = config.get("pipeline", {})
         lines.append("")
         lines.append("ENABLED STAGES:")
-        strategy_enabled = pipeline_stages.get("enable_strategy", True)
-        analysis_enabled = pipeline_stages.get("enable_analysis", True)
-        viz_enabled = pipeline_stages.get("enable_visualization", True)
+        strategy_enabled = pipeline.get("enable_strategy", True)
+        analysis_enabled = pipeline.get("enable_analysis", True)
+        viz_enabled = pipeline.get("enable_visualization", True)
 
         strategy_msg = EmojiFormatter.format(
             "success" if strategy_enabled else "error",
@@ -634,9 +710,9 @@ class MetricsReporter:
         if analysis_enabled:
             lines.append("")
             lines.append("ANALYSIS COMPONENTS:")
-            community_enabled = pipeline_stages.get("enable_community_detection", True)
-            centrality_enabled = pipeline_stages.get("enable_centrality_analysis", True)
-            path_enabled = pipeline_stages.get("enable_path_analysis", True)
+            community_enabled = pipeline.get("enable_community_detection", True)
+            centrality_enabled = pipeline.get("enable_centrality_analysis", True)
+            path_enabled = pipeline.get("enable_path_analysis", True)
 
             community_msg = EmojiFormatter.format(
                 "success" if community_enabled else "error",
@@ -981,17 +1057,17 @@ class MetricsReporter:
         """Generate output generation summary section."""
         lines: list[str] = []
 
-        output_control = config.get("output_control", {})
+        output = config.get("output", {})
 
         output_msg = EmojiFormatter.format("completion", "OUTPUT GENERATION SUMMARY")
         lines.append(output_msg)
         lines.append("-" * 40)
 
         # Output formats
-        html_enabled = output_control.get("generate_html", True)
-        png_enabled = output_control.get("generate_png", True)
-        reports_enabled = output_control.get("generate_reports", True)
-        timing_enabled = output_control.get("enable_timing_logs", False)
+        html_enabled = output.get("generate_html", True)
+        png_enabled = output.get("generate_png", True)
+        reports_enabled = output.get("generate_reports", True)
+        timing_enabled = output.get("enable_timing_logs", False)
 
         html_msg = EmojiFormatter.format(
             "success" if html_enabled else "error", f"Interactive HTML: {html_enabled}"

@@ -12,3 +12,33 @@ TestOutput*.txt
 # PyPI Credentials
 .pypirc
 */.pypirc
+
+# Environment Variables
+.env
+.env.local
+
+# Temporary checkpoints (old location - not persistent)
+checkpoints/
+
+# Freesound Nightly Pipeline
+# NOTE: Checkpoint files are stored in GitHub Actions Cache, NOT Git
+# Only visualizations are committed to Git
+data/freesound_library/*.pkl
+data/freesound_library/*.db
+data/freesound_library/*.gpickle
+logs/pipeline_*.log
+
+# Workflow Orchestration
+.workflow_locks/
+*.lock
+
+# Temporary test scripts (root level)
+test_*.py
+*_test.py
+test_skip_report.txt
+skip_summary.txt
+
+# Log files (root level)
+*.log
+!FollowWeb/**/*.log
+

@@ -92,11 +92,14 @@ class TestKValueGraphPruning:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
+        from FollowWeb_Visualizor.data.loaders import InstagramLoader
+        from FollowWeb_Visualizor.data.strategies import GraphStrategy
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         original_graph = loader.load_from_json(sample_data_file)
-        pruned_graph = loader.prune_graph(original_graph, 0)
+        
+        strategy = GraphStrategy()
+        pruned_graph = strategy.prune_graph(original_graph, 0)
 
         # k=0 should return the original graph
         assert pruned_graph.number_of_nodes() == original_graph.number_of_nodes()
@@ -110,23 +113,26 @@ class TestKValueGraphPruning:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
+        from FollowWeb_Visualizor.data.loaders import InstagramLoader
+        from FollowWeb_Visualizor.data.strategies import GraphStrategy
 
-        loader = GraphLoader()
+        loader = InstagramLoader()
         original_graph = loader.load_from_json(sample_data_file)
 
         if original_graph.number_of_nodes() == 0:
             pytest.skip("Need non-empty graph for boundary testing")
 
+        strategy = GraphStrategy()
+        
         # Test very high k-value (should result in empty or very small graph)
         very_high_k = original_graph.number_of_nodes() + 100
-        pruned_graph = loader.prune_graph(original_graph, very_high_k)
+        pruned_graph = strategy.prune_graph(original_graph, very_high_k)
 
         # Very high k should result in smaller or equal graph
         assert pruned_graph.number_of_nodes() <= original_graph.number_of_nodes()
 
         # Test negative k-value (should return original graph)
-        negative_k_graph = loader.prune_graph(original_graph, -5)
+        negative_k_graph = strategy.prune_graph(original_graph, -5)
         assert negative_k_graph.number_of_nodes() == original_graph.number_of_nodes()
 
 

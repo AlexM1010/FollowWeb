@@ -1,0 +1,448 @@
+# Freesound Quick Validation Workflow
+#
+# Weekly quick validation workflow that checks the 300 oldest samples (by existence check age)
+# to ensure they still exist on Freesound. This provides frequent validation with minimal
+# API usage (only 2 API requests).
+#
+# Features:
+# - Scheduled execution at 3 AM UTC every Sunday
+# - Manual trigger capability
+# - Validates only 300 oldest samples (partial mode)
+# - API-efficient: Only ~2 API requests per run
+# - Skips if full validation ran on the same day
+# - Validation report generation with 30-day retention
+# - Automatic checkpoint update if changes made
+# - Comprehensive logging and monitoring
+
+name: Freesound Quick Validation
+
+on:
+  schedule:
+    # Run at 3 AM UTC every Sunday
+    - cron: '0 3 * * 0'
+  
+  workflow_dispatch:
+    # Allow manual triggering
+
+# Cancel in-progress runs for the same workflow
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false  # Don't cancel - let validation complete
+
+jobs:
+  quick-validate:
+    name: Quick Validate Freesound Samples (300 oldest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Quick validation should complete in <30 minutes
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for proper Git operations
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Check for workflow conflicts
+      id: orchestration
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python -c "
+        from workflow_orchestrator import WorkflowOrchestrator
+        import os
+        import sys
+        
+        orchestrator = WorkflowOrchestrator(
+            github_token=os.environ['GITHUB_TOKEN'],
+            repository='${{ github.repository }}'
+        )
+        
+        can_proceed, reason = orchestrator.check_and_wait_for_conflicts(
+            current_workflow='freesound-quick-validation',
+            timeout=7200  # 2 hours
+        )
+        
+        # Set output for subsequent steps to check
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'can_proceed={str(can_proceed).lower()}\n')
+            f.write(f'skip_reason={reason}\n')
+        
+        if not can_proceed:
+            print(f'⚠️ SKIPPING EXECUTION: {reason}')
+            # Write to GitHub Actions step summary
+            with open(os.environ.get('GITHUB_STEP_SUMMARY', '/dev/null'), 'a') as f:
+                f.write(f'## ⚠️ Execution Skipped\n\n')
+                f.write(f'**Reason:** {reason}\n\n')
+                f.write(f'The workflow will retry on the next scheduled run.\n')
+        "
+    
+    - name: Validate secrets
+      if: steps.orchestration.outputs.can_proceed == 'true'
+      env:
+        FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "**🔐 Secret Validation**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check FREESOUND_API_KEY (required)
+        if [ -z "$FREESOUND_API_KEY" ]; then
+          echo "::error::FREESOUND_API_KEY not configured"
+          echo "- ❌ FREESOUND_API_KEY: Not configured" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        else
+          echo "- ✅ FREESOUND_API_KEY: Configured" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check BACKUP_PAT (optional but recommended)
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "::warning::BACKUP_PAT not configured - checkpoint operations may be limited"
+          echo "- ⚠️ BACKUP_PAT: Not configured" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ✅ BACKUP_PAT: Configured" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Check if full validation ran today
+      if: steps.orchestration.outputs.can_proceed == 'true'
+      id: check_full
+      run: |
+        # Get today's date in UTC
+        today=$(date -u +%Y-%m-%d)
+        
+        # Check if full validation workflow ran today
+        full_validation_today=$(gh run list \
+          --workflow=freesound-full-validation.yml \
+          --created="$today" \
+          --status=completed \
+          --json conclusion \
+          --jq 'length')
+        
+        if [ "$full_validation_today" -gt 0 ]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "Full validation already ran today ($today), skipping quick validation"
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+          echo "No full validation today, proceeding with quick validation"
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Skip validation message
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'true'
+      run: |
+        echo "**⏭️ Skipping Quick Validation**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Full validation already ran today. Quick validation is not needed." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Reason:** Full validation validates all samples, making quick validation redundant." >> $GITHUB_STEP_SUMMARY
+    
+    - name: Configure Git
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git config --global init.defaultBranch main
+        git config --global advice.detachedHead false
+    
+    - name: Set up Python 3.11
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements.txt'
+    
+    - name: Display Python environment info
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      run: |
+        python --version
+        python -c "import sys; print(f'Python executable: {sys.executable}')"
+        python -c "import platform; print(f'Platform: {platform.platform()}')"
+        pip --version
+    
+    - name: Install dependencies
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r FollowWeb/requirements.txt
+        pip install -e FollowWeb/
+    
+    - name: Verify installation
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      run: |
+        python -c "import FollowWeb_Visualizor"
+        echo "✅ FollowWeb package imported successfully"
+        python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader"
+        echo "✅ IncrementalFreesoundLoader available"
+        python -c "from FollowWeb_Visualizor.utils.files import ErrorRecoveryManager"
+        echo "✅ ErrorRecoveryManager available"
+    
+    - name: Set validation parameters
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      id: params
+      run: |
+        # Generate execution ID
+        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+    
+    - name: Display validation configuration
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      run: |
+        echo "**🔍 Freesound Quick Validation**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Validation Mode: \`partial\` (300 oldest samples)" >> $GITHUB_STEP_SUMMARY
+        echo "- API Requests: \`~2 requests\` (highly efficient)" >> $GITHUB_STEP_SUMMARY
+        echo "- Checkpoint Directory: \`data/freesound_library\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Schedule: \`Weekly (Sunday 3 AM UTC)\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Run quick validation
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      id: validation
+      env:
+        FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+      run: |
+        echo "**🔍 Phase 1: Quick Sample Validation**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run the validation script in partial mode
+        python validate_freesound_samples.py \
+          --checkpoint-dir data/freesound_library \
+          --mode partial \
+          2>&1 | tee validation_${{ steps.params.outputs.execution_id }}.log
+        
+        # Capture exit code
+        validation_exit_code=${PIPESTATUS[0]}
+        
+        if [ $validation_exit_code -eq 0 ]; then
+          echo "✅ Quick validation completed successfully"
+          echo "validation_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Validation failed with exit code: $validation_exit_code"
+          echo "validation_status=failed" >> $GITHUB_OUTPUT
+          exit $validation_exit_code
+        fi
+    
+    - name: Extract validation statistics
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false' && steps.validation.outputs.validation_status == 'success'
+      id: stats
+      run: |
+        # Extract statistics from log file
+        log_file="validation_${{ steps.params.outputs.execution_id }}.log"
+        
+        # Extract validation statistics (matching actual log format)
+        total_samples=$(grep -oP "(?<=Total samples in checkpoint: )\d+" "$log_file" | tail -1 || echo "N/A")
+        validated_samples=$(grep -oP "(?<=Validated samples: )\d+" "$log_file" | tail -1 || echo "N/A")
+        metadata_refreshed=$(grep -oP "(?<=Metadata refreshed: )\d+" "$log_file" | tail -1 || echo "N/A")
+        deleted_samples=$(grep -oP "(?<=Deleted samples: )\d+" "$log_file" | tail -1 || echo "0")
+        api_errors=$(grep -oP "(?<=API errors: )\d+" "$log_file" | tail -1 || echo "0")
+        edges_removed=$(grep -oP "(?<=Edges removed: )\d+" "$log_file" | tail -1 || echo "0")
+        
+        # Find validation report JSON file
+        report_file=$(ls -t logs/validation_*.json 2>/dev/null | head -1 || echo "")
+        
+        # Calculate execution time (from job start to now)
+        start_time="${{ steps.params.outputs.execution_id }}"
+        start_epoch=$(date -d "${start_time:0:8} ${start_time:9:2}:${start_time:11:2}:${start_time:13:2}" +%s 2>/dev/null || echo "0")
+        current_epoch=$(date +%s)
+        duration_seconds=$((current_epoch - start_epoch))
+        duration_minutes=$((duration_seconds / 60))
+        
+        echo "total_samples=$total_samples" >> $GITHUB_OUTPUT
+        echo "validated_samples=$validated_samples" >> $GITHUB_OUTPUT
+        echo "metadata_refreshed=$metadata_refreshed" >> $GITHUB_OUTPUT
+        echo "deleted_samples=$deleted_samples" >> $GITHUB_OUTPUT
+        echo "api_errors=$api_errors" >> $GITHUB_OUTPUT
+        echo "edges_removed=$edges_removed" >> $GITHUB_OUTPUT
+        echo "report_file=$report_file" >> $GITHUB_OUTPUT
+        echo "duration_seconds=$duration_seconds" >> $GITHUB_OUTPUT
+        echo "duration_minutes=$duration_minutes" >> $GITHUB_OUTPUT
+        
+        # Determine if changes were made
+        if [ "$deleted_samples" -gt 0 ]; then
+          echo "changes_made=true" >> $GITHUB_OUTPUT
+        else
+          echo "changes_made=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Upload validation report
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false' && steps.validation.outputs.validation_status == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: quick-validation-report-${{ steps.params.outputs.execution_id }}
+        path: |
+          logs/validation_*.json
+        retention-days: 30
+        if-no-files-found: warn
+    
+    - name: Commit and push changes
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false' && steps.validation.outputs.validation_status == 'success' && steps.stats.outputs.changes_made == 'true'
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**💾 Phase 2: Git Persistence**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Add checkpoint files
+        git add data/freesound_library/
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "ℹ️ No changes to commit"
+          echo "- No samples were deleted" >> $GITHUB_STEP_SUMMARY
+        else
+          # Create commit message with statistics
+          commit_msg="Quick validation: $(date +'%Y-%m-%d') - Removed ${{ steps.stats.outputs.deleted_samples }} deleted samples (300 checked)"
+          
+          git commit -m "$commit_msg"
+          git push
+          
+          echo "✅ Changes committed and pushed"
+          echo "- Commit: \`$commit_msg\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Files: Updated checkpoint with validation timestamps" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Generate orchestration skip summary
+      if: always() && steps.orchestration.outputs.can_proceed == 'false'
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Quick Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ⏭️ Status: Skipped (Workflow Conflict)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Reason:** ${{ steps.orchestration.outputs.skip_reason }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time." >> $GITHUB_STEP_SUMMARY
+        echo "The workflow will retry on the next scheduled run." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Generate execution summary
+      if: always() && steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Quick Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.validation.outputs.validation_status }}" = "success" ]; then
+          echo "### ✅ Status: Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Execution time
+          duration_min="${{ steps.stats.outputs.duration_minutes }}"
+          duration_sec="${{ steps.stats.outputs.duration_seconds }}"
+          if [ "$duration_min" != "N/A" ] && [ "$duration_min" -gt 0 ]; then
+            echo "**⏱️ Execution Time:** ${duration_min} minutes (${duration_sec} seconds)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**⏱️ Execution Time:** ${duration_sec} seconds" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Validation statistics
+          echo "### 🔍 Validation Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Validation Mode** | \`Partial (300 oldest samples)\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total Samples in Library** | \`${{ steps.stats.outputs.total_samples }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Samples Validated** | \`${{ steps.stats.outputs.validated_samples }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Metadata Refreshed** | \`${{ steps.stats.outputs.metadata_refreshed }}\` (zero-cost bonus!) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deleted Samples** | \`${{ steps.stats.outputs.deleted_samples }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **API Errors** | \`${{ steps.stats.outputs.api_errors }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Edges Removed** | \`${{ steps.stats.outputs.edges_removed }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **API Requests Used** | \`~2 requests\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Validation result
+          if [ "${{ steps.stats.outputs.deleted_samples }}" -gt 0 ]; then
+            echo "**⚠️ Action Taken:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Removed \`${{ steps.stats.outputs.deleted_samples }}\` samples that no longer exist on Freesound" >> $GITHUB_STEP_SUMMARY
+            echo "- Removed \`${{ steps.stats.outputs.edges_removed }}\` edges connected to deleted samples" >> $GITHUB_STEP_SUMMARY
+            echo "- Updated checkpoint committed to repository" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**✅ Result:**" >> $GITHUB_STEP_SUMMARY
+            echo "- All validated samples are still accessible on Freesound" >> $GITHUB_STEP_SUMMARY
+            echo "- Checkpoint updated with validation timestamps" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Validation report
+          if [ -n "${{ steps.stats.outputs.report_file }}" ]; then
+            echo "**📄 Validation Report:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Path: \`${{ steps.stats.outputs.report_file }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Available as workflow artifact (30-day retention)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Efficiency note
+          echo "### ⚡ Efficiency" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Budget:** Only ~2 API requests used (highly efficient!)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage:** Validates 300 oldest samples by existence check age" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bonus:** Metadata refresh at zero additional cost" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frequency:** Weekly validation ensures recent checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Next validation
+          echo "### 📅 Next Validations" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Next Quick Validation:** Next Sunday at 3 AM UTC" >> $GITHUB_STEP_SUMMARY
+          echo "- **Next Full Validation:** 1st of next month at 4 AM UTC" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+        else
+          echo "### ❌ Status: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The validation execution failed. Please check the logs for error details." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
+          echo "- API key not configured or invalid" >> $GITHUB_STEP_SUMMARY
+          echo "- API rate limit exceeded" >> $GITHUB_STEP_SUMMARY
+          echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
+          echo "- Checkpoint file corruption" >> $GITHUB_STEP_SUMMARY
+          echo "- No checkpoint file exists" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Execution details (always shown)
+        echo "### 📋 Execution Details" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Artifacts
+        echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Validation logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
+        echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Upload validation logs
+      if: always() && steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: quick-validation-logs-${{ steps.params.outputs.execution_id }}
+        path: |
+          validation_*.log
+          logs/validation_*.log
+        retention-days: 30
+        if-no-files-found: ignore
+    
+    - name: Upload checkpoint files (on failure)
+      if: failure() && steps.orchestration.outputs.can_proceed == 'true' && steps.check_full.outputs.skip == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: checkpoint-backup-${{ steps.params.outputs.execution_id }}
+        path: |
+          data/freesound_library/*.pkl
+        retention-days: 7
+        if-no-files-found: ignore

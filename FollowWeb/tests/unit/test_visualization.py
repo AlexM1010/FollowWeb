@@ -12,14 +12,14 @@ import networkx as nx
 
 from FollowWeb_Visualizor.output.managers import MetricsReporter
 from FollowWeb_Visualizor.visualization import (
-    InteractiveRenderer,
+    MatplotlibRenderer,
     MetricsCalculator,
-    StaticRenderer,
+    PyvisRenderer,
 )
 
 
-class TestInteractiveRenderer:
-    """Test InteractiveRenderer functionality."""
+class TestPyvisRenderer:
+    """Test PyvisRenderer functionality."""
 
     def test_generate_html_basic(self, temp_output_dir: str):
         """Test basic HTML generation."""
@@ -50,7 +50,7 @@ class TestInteractiveRenderer:
             },
         }
 
-        renderer = InteractiveRenderer(vis_config)
+        renderer = PyvisRenderer(vis_config)
 
         # Create test graph
         graph = nx.DiGraph()
@@ -62,7 +62,7 @@ class TestInteractiveRenderer:
         # Create a MetricsCalculator to generate proper metrics
         calculator = MetricsCalculator(vis_config)
         shared_metrics = calculator.calculate_all_metrics(graph)
-        success = renderer.generate_html(graph, output_path, shared_metrics)
+        success = renderer.generate_visualization(graph, output_path, shared_metrics)
 
         assert success is True
         assert os.path.exists(output_path)
@@ -105,9 +105,9 @@ class TestInteractiveRenderer:
             "intra_community_color": "#c0c0c0",
         }
 
-        # Create MetricsCalculator and InteractiveRenderer
+        # Create MetricsCalculator and PyvisRenderer
         metrics_calculator = MetricsCalculator(vis_config)
-        renderer = InteractiveRenderer(vis_config, metrics_calculator)
+        renderer = PyvisRenderer(vis_config, metrics_calculator)
 
         # Create test graph with node attributes
         graph = nx.DiGraph()
@@ -133,7 +133,7 @@ class TestInteractiveRenderer:
         shared_metrics = metrics_calculator.calculate_all_metrics(graph)
 
         output_path = os.path.join(temp_output_dir, "test_shared_metrics.html")
-        success = renderer.generate_html(graph, output_path, shared_metrics)
+        success = renderer.generate_visualization(graph, output_path, shared_metrics)
 
         assert success is True
         assert os.path.exists(output_path)
@@ -161,7 +161,7 @@ class TestInteractiveRenderer:
             },
         }
 
-        renderer = InteractiveRenderer(vis_config)
+        renderer = PyvisRenderer(vis_config)
 
         # Create empty graph
         graph = nx.DiGraph()
@@ -170,7 +170,7 @@ class TestInteractiveRenderer:
         # Create metrics for empty graph
         calculator = MetricsCalculator(vis_config)
         shared_metrics = calculator.calculate_all_metrics(graph)
-        success = renderer.generate_html(graph, output_path, shared_metrics)
+        success = renderer.generate_visualization(graph, output_path, shared_metrics)
 
         assert success is True
         assert os.path.exists(output_path)
@@ -181,12 +181,12 @@ class TestInteractiveRenderer:
         import networkx as nx
 
         from FollowWeb_Visualizor.core.config import get_configuration_manager
-        from FollowWeb_Visualizor.visualization import InteractiveRenderer
+        from FollowWeb_Visualizor.visualization import PyvisRenderer
 
         config_manager = get_configuration_manager()
         config_obj = config_manager.load_configuration()
         config_dict = config_manager.serialize_configuration(config_obj)
-        renderer = InteractiveRenderer(config_dict["visualization"])
+        renderer = PyvisRenderer(config_dict["visualization"])
 
         # Test with a graph that has nodes but no edges (edge case)
         graph = nx.DiGraph()
@@ -198,7 +198,7 @@ class TestInteractiveRenderer:
         # Create metrics for the isolated node
         calculator = MetricsCalculator(config_dict["visualization"])
         shared_metrics = calculator.calculate_all_metrics(graph)
-        success = renderer.generate_html(graph, output_path, shared_metrics)
+        success = renderer.generate_visualization(graph, output_path, shared_metrics)
 
         assert success is True
         assert os.path.exists(output_path)
@@ -210,8 +210,8 @@ class TestInteractiveRenderer:
             assert "html" in content.lower()
 
 
-class TestStaticRenderer:
-    """Test StaticRenderer functionality."""
+class TestMatplotlibRenderer:
+    """Test MatplotlibRenderer functionality."""
 
     def test_generate_png_basic(self, temp_output_dir: str):
         """Test basic PNG generation."""
@@ -237,7 +237,7 @@ class TestStaticRenderer:
             }
         }
 
-        renderer = StaticRenderer(vis_config)
+        renderer = MatplotlibRenderer(vis_config)
 
         # Create test graph
         graph = nx.DiGraph()
@@ -281,7 +281,7 @@ class TestStaticRenderer:
         }
 
         output_path = os.path.join(temp_output_dir, "test_output.png")
-        success = renderer.generate_png(graph, output_path, node_metrics, edge_metrics)
+        success = renderer.generate_visualization(graph, output_path, None)
 
         assert success is True
         assert os.path.exists(output_path)
@@ -316,7 +316,7 @@ class TestStaticRenderer:
                 }
             }
 
-            renderer = StaticRenderer(vis_config)
+            renderer = MatplotlibRenderer(vis_config)
 
             # Create test graph
             graph = nx.DiGraph()
@@ -329,7 +329,7 @@ class TestStaticRenderer:
             }
 
             output_path = os.path.join(temp_output_dir, f"test_{layout}.png")
-            success = renderer.generate_png(graph, output_path, node_metrics, {})
+            success = renderer.generate_visualization(graph, output_path, None)
 
             assert success is True
             assert os.path.exists(output_path)
@@ -417,3 +417,7 @@ class TestMetricsReporter:
         assert success is False
 
     # test_calculate_edge_metrics_networkx_error removed - MetricsCalculator no longer exists
+
+
+
+

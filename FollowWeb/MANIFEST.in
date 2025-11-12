@@ -9,6 +9,12 @@ include *.template
 # Include Python files in root directory
 include *.py
 
+# Include all Python files in the package
+recursive-include FollowWeb_Visualizor *.py
+
+# Include HTML templates for visualization renderers
+recursive-include FollowWeb_Visualizor *.html
+
 # Include configuration files
 include pyproject.toml
 include pytest.ini

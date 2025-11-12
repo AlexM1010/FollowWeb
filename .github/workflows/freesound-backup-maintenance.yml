@@ -1,0 +1,85 @@
+name: Freesound Backup Maintenance
+
+on:
+  schedule:
+    # Weekly on Sunday at 5 AM UTC (after validation workflows)
+    - cron: '0 5 * * 0'
+  
+  workflow_dispatch:
+    # Allow manual trigger
+
+# Prevent concurrent maintenance operations
+concurrency:
+  group: freesound-backup-maintenance
+  cancel-in-progress: false
+
+jobs:
+  git-gc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout private backup repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BACKUP_REPO }}  # e.g., "username/freesound-backup"
+          token: ${{ secrets.BACKUP_PAT }}
+          fetch-depth: 0  # Full history for gc
+      
+      - name: Get repository size before cleanup
+        id: size_before
+        run: |
+          SIZE_BEFORE=$(du -sh .git | cut -f1)
+          echo "size=$SIZE_BEFORE" >> $GITHUB_OUTPUT
+          echo "📦 Repository size before cleanup: $SIZE_BEFORE"
+      
+      - name: Run git gc (garbage collection)
+        run: |
+          echo "🧹 Running git garbage collection..."
+          git gc --prune=now --aggressive
+          echo "✅ Git gc completed"
+      
+      - name: Get repository size after cleanup
+        id: size_after
+        run: |
+          SIZE_AFTER=$(du -sh .git | cut -f1)
+          echo "size=$SIZE_AFTER" >> $GITHUB_OUTPUT
+          echo "📦 Repository size after cleanup: $SIZE_AFTER"
+      
+      - name: Push changes
+        run: |
+          # Push any changes made by gc (packed refs, etc.)
+          git push origin --all
+          git push origin --tags
+          echo "✅ Changes pushed to remote"
+      
+      - name: Generate step summary
+        run: |
+          echo "## 🧹 Backup Repository Maintenance" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Status:** Git garbage collection completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Size Before:** ${{ steps.size_before.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Size After:** ${{ steps.size_after.outputs.size }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔧 **Operation:** \`git gc --prune=now --aggressive\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **Purpose:** Compact repository and optimize storage" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Notify on failure
+        if: failure() && vars.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST ${{ vars.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "❌ Freesound backup maintenance failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Freesound Backup Maintenance Failed*\n\nWorkflow: `${{ github.workflow }}`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                }
+              ]
+            }'

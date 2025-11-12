@@ -45,12 +45,12 @@ class TestPipelineOrchestrator:
         """Test PipelineOrchestrator with configuration using ConfigurationManager."""
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
-        test_config = {"strategy": "reciprocal_k-core"}
+        test_config = {"pipeline": {"strategy": "reciprocal_k-core"}}
 
         # Should load successfully with enhanced configuration manager
         config_obj = load_config_from_dict(test_config)
         orchestrator = PipelineOrchestrator(config_obj)
-        assert orchestrator.config.strategy == "reciprocal_k-core"
+        assert orchestrator.config.pipeline.strategy == "reciprocal_k-core"
 
     def test_orchestrator_logging_setup(self, default_config: dict[str, Any]):
         """Test unified logging setup in orchestrator."""
@@ -113,7 +113,7 @@ class TestConfigurationLoading:
     def test_load_config_with_invalid_configuration(self, temp_output_dir: str):
         """Test loading file with invalid configuration."""
         invalid_config = {
-            "strategy": "invalid_strategy"  # Invalid strategy should cause validation error
+            "pipeline": {"strategy": "invalid_strategy"}  # Invalid strategy should cause validation error
         }
         config_file = os.path.join(temp_output_dir, "invalid_config.json")
 
@@ -178,7 +178,7 @@ class TestCommandLineInterface:
         assert args.k_reciprocal == 3
         assert args.k_ego_alter == 3
 
-    def test_argument_parser_output_control(self):
+    def test_argument_parser_output(self):
         """Test argument parser handles output control flags."""
         parser = create_argument_parser()
 
@@ -314,7 +314,7 @@ class TestMainFunction:
     def test_main_keyboard_interrupt(self):
         """Test main function handling keyboard interrupt."""
         with patch(
-            "FollowWeb_Visualizor.main.PipelineOrchestrator"
+            "FollowWeb_Visualizor.__main__.PipelineOrchestrator"
         ) as mock_orchestrator:
             mock_orchestrator.side_effect = KeyboardInterrupt()
 
@@ -326,9 +326,7 @@ class TestMainFunction:
                 with patch("sys.argv", ["followweb"]):
                     exit_code = main()
 
-                captured_output.getvalue()
-                assert exit_code == 1
-                # Note: KeyboardInterrupt handling may vary in test environment
+                # KeyboardInterrupt should be caught and return exit code 1
                 assert exit_code == 1
 
             finally:
@@ -337,7 +335,7 @@ class TestMainFunction:
     def test_main_unexpected_error(self):
         """Test main function handling unexpected errors."""
         with patch(
-            "FollowWeb_Visualizor.main.get_configuration_manager"
+            "FollowWeb_Visualizor.__main__.get_configuration_manager"
         ) as mock_config:
             mock_config.side_effect = RuntimeError("Unexpected error")
 
@@ -508,7 +506,7 @@ class TestEnhancedCLIInterface:
         args = parser.parse_args(["--analysis-only"])
         assert args.analysis_only is True
 
-    def test_output_control_flags(self):
+    def test_output_flags(self):
         """Test output control flags."""
         parser = create_argument_parser()
 
@@ -625,7 +623,7 @@ class TestEnhancedConfigurationIntegration:
         assert orchestrator.config == config
         assert hasattr(orchestrator.config, "pipeline_stages")
         assert hasattr(orchestrator.config, "analysis_mode")
-        assert hasattr(orchestrator.config, "output_control")
+        assert hasattr(orchestrator.config, "output")
 
     def test_configuration_validation_integration(self):
         """Test configuration validation integration."""
@@ -659,3 +657,4 @@ class TestEnhancedConfigurationIntegration:
 
         assert orchestrator1.config.input_file == orchestrator2.config.input_file
         assert orchestrator1.config.strategy == orchestrator2.config.strategy
+

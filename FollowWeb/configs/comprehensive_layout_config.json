@@ -1,12 +1,29 @@
 {
   "input_file": "examples/followers_following.json",
   "output_file_prefix": "Output/FollowWeb",
+  "data_source": {
+    "source": "instagram",
+    "freesound": {
+      "api_key": null,
+      "query": null,
+      "tags": null,
+      "max_samples": 1000,
+      "include_similar": true
+    }
+  },
+  "renderer": {
+    "renderer_type": "sigma",
+    "template_name": "sigma_instagram.html",
+    "sigma_interactive": {
+      "height": "100vh",
+      "width": "100%",
+      "enable_webgl": true,
+      "enable_audio_player": false
+    }
+  },
   "pipeline": {
     "strategy": "k-core",
-    "skip_analysis": false,
-    "ego_username": null
-  },
-  "pipeline_stages": {
+    "ego_username": null,
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,
@@ -18,7 +35,8 @@
     "mode": "full",
     "sampling_threshold": 5000,
     "max_layout_iterations": null,
-    "enable_fast_algorithms": false
+    "enable_fast_algorithms": false,
+    "skip_path_analysis": false
   },
 
   "fame_analysis": {
@@ -36,12 +54,13 @@
     "default_k_value": 10,
     "allow_cli_override": true
   },
-  "output_control": {
+  "output": {
+    "custom_output_directory": null,
     "generate_html": true,
     "generate_png": true,
     "generate_reports": true,
     "enable_timing_logs": true,
-    "output_formatting": {
+    "formatting": {
       "indent_size": 2,
       "group_related_settings": true,
       "highlight_key_values": true,
@@ -63,31 +82,30 @@
     "edge_width_scaling": "logarithmic",
     "intra_community_color": "#c0c0c0",
     "bridge_color": "#6e6e6e",
+    "ui_background_color": "#2d333c",
+    "ui_highlight_color": "#415a76",
+    "ui_text_color": "#b6e0fe",
+    "show_labels": true,
+    "show_tooltips": true,
+    "show_legend": true,
+    "font_size": 8,
+    "node_alpha": 0.9,
+    "edge_alpha": 0.4,
     "pyvis_interactive": {
       "width": "100%",
       "height": "90vh",
       "bgcolor": "#ffffff",
       "font_color": "#000000",
-      "notebook": false,
-      "show_labels": true,
-      "show_tooltips": true,
       "physics_solver": "forceAtlas2Based"
     },
     "static_image": {
-      "generate": true,
-      "layout": "spring",
       "width": 2400,
       "height": 2400,
       "dpi": 300,
-      "with_labels": false,
-      "font_size": 8,
-      "show_legend": true,
-      "node_alpha": 0.9,
-      "edge_alpha": 0.4,
       "edge_arrow_size": 8
     },
-    "png_layout": {
-      "force_spring_layout": true,
+    "layout": {
+      "algorithm": "spring",
       "align_with_html": false,
       "spring": {
         "k": 0.8,
@@ -97,50 +115,17 @@
         "repulsion_strength": 1.2,
         "attraction_strength": 0.8,
         "center_gravity": 0.02,
-        "gravity_x": 0.0,
-        "gravity_y": 0.0,
         "damping": 0.85,
         "min_velocity": 0.005,
         "max_displacement": 15.0,
-        "enable_multistage": true,
-        "initial_k_multiplier": 2.0,
-        "final_k_multiplier": 0.7
-      },
-      "kamada_kawai": {
-        "max_iterations": 1500,
-        "tolerance": 1e-7,
-        "distance_scale": 1.2,
-        "spring_strength": 1.5,
-        "pos_tolerance": 1e-5,
-        "weight_function": "path"
-      },
-      "circular": {
-        "radius": null,
-        "center": null,
-        "start_angle": 0.0,
-        "angular_spacing": "uniform",
-        "group_by_community": true,
-        "community_separation": 0.3
-      },
-      "shell": {
-        "shell_spacing": 1.5,
-        "center_shell_radius": 0.3,
-        "arrange_by_community": true,
-        "arrange_by_centrality": false,
-        "centrality_metric": "degree",
-        "max_shells": 8,
-        "nodes_per_shell": null
+        "enable_multistage": true
       }
-    },
-    "performance": {
-      "fast_mode": false,
-      "skip_path_analysis": false,
-      "max_layout_iterations": null,
-      "use_sampling_threshold": 5000
     }
   },
-  "output": {
-    "custom_output_directory": null,
-    "enable_time_logging": true
+  "checkpoint": {
+    "checkpoint_dir": "checkpoints",
+    "checkpoint_interval": 50,
+    "max_runtime_hours": null,
+    "verify_existing_sounds": false
   }
 }

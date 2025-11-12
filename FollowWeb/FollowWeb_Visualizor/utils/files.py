@@ -66,7 +66,8 @@ class ErrorRecoveryManager:
                     )
 
         # If we reach here, all attempts failed and we have the last exception
-        assert last_exception is not None, "Expected exception to be set in retry loop"
+        if last_exception is None:
+            raise RuntimeError("Expected exception to be set in retry loop")
         raise last_exception
 
     def safe_execute(

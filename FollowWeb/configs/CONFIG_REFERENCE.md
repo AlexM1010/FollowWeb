@@ -44,7 +44,7 @@ This document provides comprehensive documentation for all FollowWeb configurati
 
 ```json
 {
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,

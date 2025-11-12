@@ -67,13 +67,13 @@ jobs:
         
         # Run a quick smoke test
         python -c "import FollowWeb_Visualizor"
-        python ci_helpers.py success "Package imports successfully with latest dependencies"
+        python ../ci_helpers.py success "Package imports successfully with latest dependencies"
         
-        # Run core unit tests only (not full suite)
-        python tests/run_tests.py unit -x --tb=short
+        # Run core unit tests only (not full suite) - use pytest directly
+        python -m pytest -m unit -x --tb=short --maxfail=5
         
         deactivate
-        python ci_helpers.py success "Core functionality verified with latest dependencies" --summary-only
+        python ../ci_helpers.py success "Core functionality verified with latest dependencies" --summary-only
       shell: bash
       continue-on-error: true  # Don't fail nightly if latest deps break something
       env:
@@ -116,8 +116,8 @@ jobs:
     
     - name: Run core functionality tests
       run: |
-        # Only run essential tests to catch ecosystem breakage
-        python tests/run_tests.py unit -k "not slow" --tb=short
-        python ci_helpers.py success "Core tests passed on ${{ matrix.os }} Python ${{ matrix.python-version }}" --summary-only
+        # Only run essential tests to catch ecosystem breakage - use pytest directly
+        python -m pytest -m unit -k "not slow" --tb=short --maxfail=5
+        python ../ci_helpers.py success "Core tests passed on ${{ matrix.os }} Python ${{ matrix.python-version }}" --summary-only
       env:
         MPLBACKEND: Agg

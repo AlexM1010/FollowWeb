@@ -92,9 +92,9 @@ class FollowWebConfig:
     find_paths_to_all_famous: bool = True
     
     # Nested configuration sections
-    pipeline_stages: PipelineStagesConfig
+    pipeline: PipelineConfig
     analysis_mode: AnalysisModeConfig
-    output_control: OutputControlConfig
+    output: OutputConfig
     k_values: KValueConfig
     visualization: VisualizationConfig
 ```
@@ -113,12 +113,23 @@ class EnhancedConfigurationManager:
 
 Core network analysis algorithms and graph processing operations.
 
-### `GraphLoader`
+### `DataLoader` (Abstract Base Class)
 
-Class for loading and parsing JSON network data.
+Abstract base class defining the interface for all data loaders.
 
 ```python
-class GraphLoader:
+class DataLoader(ABC):
+    @abstractmethod
+    def load_from_json(self, filepath: str) -> nx.DiGraph:
+        """Load network data from JSON file."""
+```
+
+### `InstagramLoader`
+
+Concrete implementation for loading Instagram follower/following network data.
+
+```python
+class InstagramLoader(DataLoader):
     def __init__(self) -> None
 ```
 
@@ -126,7 +137,7 @@ class GraphLoader:
 Load a directed graph from a JSON file with comprehensive error handling.
 
 **Parameters:**
-- `filepath`: Path to JSON file containing network data
+- `filepath`: Path to JSON file containing Instagram network data
 
 **Returns:**
 - `nx.DiGraph`: Loaded directed graph with node and edge attributes
@@ -573,12 +584,12 @@ else:
 
 ### Custom Analysis Example
 ```python
-from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import InstagramLoader
 from FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
 from FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
 
 # Load graph
-loader = GraphLoader()
+loader = InstagramLoader()
 graph = loader.load_from_json('data.json')
 
 # Analyze network

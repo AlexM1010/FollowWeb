@@ -17,7 +17,6 @@ from FollowWeb_Visualizor.core.config import (
     FameAnalysisConfig,
     KValueConfig,
     OutputConfig,
-    OutputControlConfig,
     PipelineConfig,
     PipelineStagesConfig,
     PyvisInteractiveConfig,
@@ -35,10 +34,10 @@ class TestPipelineConfig:
     def test_valid_pipeline_config(self):
         """Test creation of valid PipelineConfig."""
         config = PipelineConfig(
-            strategy="k-core", skip_analysis=False, ego_username=None
+            strategy="k-core", enable_analysis=True, ego_username=None
         )
         assert config.strategy == "k-core"
-        assert config.skip_analysis is False
+        assert config.enable_analysis is True
         assert config.ego_username is None
 
     def test_invalid_strategy_rejection(self):
@@ -160,27 +159,29 @@ class TestStaticImageConfig:
     def test_valid_static_config(self):
         """Test creation of valid StaticImageConfig."""
         config = StaticImageConfig()
-        assert config.layout in ["spring", "kamada_kawai", "circular", "shell"]
         assert config.dpi > 0
-        # Test that spring is now the default layout
-        assert config.layout == "spring"
+        assert config.width > 0
+        assert config.height > 0
 
     def test_spring_layout_default(self):
-        """Test that spring layout is the default."""
-        config = StaticImageConfig()
-        assert config.layout == "spring"
+        """Test that spring layout is the default (now in LayoutConfig)."""
+        from FollowWeb_Visualizor.core.config import LayoutConfig
+        config = LayoutConfig()
+        assert config.algorithm == "spring"
 
     def test_all_valid_layouts(self):
-        """Test all valid layout options."""
+        """Test all valid layout options (now in LayoutConfig)."""
+        from FollowWeb_Visualizor.core.config import LayoutConfig
         valid_layouts = ["spring", "kamada_kawai", "circular", "random"]
         for layout in valid_layouts:
-            config = StaticImageConfig(layout=layout)
-            assert config.layout == layout
+            config = LayoutConfig(algorithm=layout)
+            assert config.algorithm == layout
 
     def test_invalid_layout_rejection(self):
-        """Test rejection of invalid layout."""
-        with pytest.raises(ValueError, match="layout must be one of"):
-            StaticImageConfig(layout="invalid_layout")
+        """Test rejection of invalid layout (now in LayoutConfig)."""
+        from FollowWeb_Visualizor.core.config import LayoutConfig
+        with pytest.raises(ValueError, match="algorithm must be one of"):
+            LayoutConfig(algorithm="invalid_layout")
 
     def test_image_dimensions_configuration(self):
         """Test image dimensions configuration."""
@@ -203,17 +204,16 @@ class TestConfigurationValidation:
     def test_invalid_strategy_in_dict_rejection(self, default_config: dict[str, Any]):
         """Test handling of strategy in configuration dict."""
         config = default_config.copy()
-        config["strategy"] = "reciprocal_k-core"
+        config["pipeline"] = {"strategy": "reciprocal_k-core"}
 
         # Verify the configuration loads with valid strategy
         config_obj = load_config_from_dict(config)
-        assert config_obj.strategy == "reciprocal_k-core"
+        assert config_obj.pipeline.strategy == "reciprocal_k-core"
 
     def test_missing_ego_username_rejection(self, default_config: dict[str, Any]):
         """Test rejection when ego_username is missing for ego_alter_k-core."""
         config = default_config.copy()
-        config["strategy"] = "ego_alter_k-core"
-        config["ego_username"] = None
+        config["pipeline"] = {"strategy": "ego_alter_k-core", "ego_username": None}
 
         # Should raise validation error
         with pytest.raises(ValueError, match="ego_username is required"):
@@ -253,17 +253,17 @@ class TestOutputConfig:
     def test_valid_output_config(self):
         """Test creation of valid OutputConfig."""
         config = OutputConfig()
-        assert config.enable_time_logging is False  # Default
+        assert config.enable_timing_logs is False  # Default
         assert config.custom_output_directory is None  # Default
         # create_directories is now hardcoded as True
 
     def test_enable_time_logging_option(self):
         """Test time logging configuration option."""
-        config = OutputConfig(enable_time_logging=True)
-        assert config.enable_time_logging is True
+        config = OutputConfig(enable_timing_logs=True)
+        assert config.enable_timing_logs is True
 
-        config = OutputConfig(enable_time_logging=False)
-        assert config.enable_time_logging is False
+        config = OutputConfig(enable_timing_logs=False)
+        assert config.enable_timing_logs is False
 
     def test_custom_output_directory_option(self):
         """Test custom output directory configuration."""
@@ -321,7 +321,7 @@ class TestConfigurationRoundTrip:
     def test_output_config_round_trip(self, default_config: dict[str, Any]):
         """Test round-trip of output configuration options."""
         config = default_config.copy()
-        config["output_control"] = {
+        config["output"] = {
             "enable_timing_logs": True,
             "generate_html": True,
             "generate_png": False,
@@ -332,15 +332,15 @@ class TestConfigurationRoundTrip:
         # Configuration is already validated by load_config_from_dict
 
         # Verify values are preserved
-        assert config_obj.output_control.enable_timing_logs is True
-        assert config_obj.output_control.generate_html is True
-        assert config_obj.output_control.generate_png is False
-        assert config_obj.output_control.generate_reports is True
+        assert config_obj.output.enable_timing_logs is True
+        assert config_obj.output.generate_html is True
+        assert config_obj.output.generate_png is False
+        assert config_obj.output.generate_reports is True
 
     def test_spring_layout_default_config(self, default_config: dict[str, Any]):
         """Test that spring layout is default in configuration."""
         config_obj = load_config_from_dict(default_config)
-        assert config_obj.visualization.static_image.layout == "spring"
+        assert config_obj.visualization.layout.algorithm == "spring"
 
 
 class TestConfigurationManager:
@@ -361,9 +361,9 @@ class TestConfigurationManager:
 
         # Verify configuration structure
         assert hasattr(config, "input_file")
-        assert hasattr(config, "pipeline_stages")
+        assert hasattr(config, "pipeline")
         assert hasattr(config, "analysis_mode")
-        assert hasattr(config, "output_control")
+        assert hasattr(config, "output")
         assert hasattr(config, "k_values")
 
     def test_configuration_validation_success(self):
@@ -489,37 +489,6 @@ class TestAnalysisModeConfig:
             AnalysisModeConfig(max_layout_iterations=0)
 
 
-class TestOutputControlConfig:
-    """Test OutputControlConfig dataclass."""
-
-    def test_default_output_control(self):
-        """Test default output control configuration."""
-        config = OutputControlConfig()
-
-        assert config.generate_html is True
-        assert config.generate_png is True
-        assert config.generate_reports is True
-        assert config.enable_timing_logs is False
-
-    def test_all_outputs_disabled_rejection(self):
-        """Test rejection when all output formats are disabled."""
-        with pytest.raises(
-            ValueError, match="At least one output format must be enabled"
-        ):
-            OutputControlConfig(
-                generate_html=False, generate_png=False, generate_reports=False
-            )
-
-    def test_partial_output_control(self):
-        """Test partial output control configuration."""
-        config = OutputControlConfig(generate_png=False, enable_timing_logs=True)
-
-        assert config.generate_html is True
-        assert config.generate_png is False
-        assert config.generate_reports is True
-        assert config.enable_timing_logs is True
-
-
 class TestKValueConfigDefaults:
     """Test KValueConfig dataclass defaults."""
 
@@ -622,7 +591,7 @@ class TestCLIParameterValidation:
         """Test handling of CLI parameters."""
         config_manager = get_configuration_manager()
 
-        cli_overrides = {"strategy": "reciprocal_k-core"}
+        cli_overrides = {"pipeline": {"strategy": "reciprocal_k-core"}}
 
         base_config = config_manager.load_configuration()
         base_dict = config_manager.serialize_configuration(base_config)
@@ -631,7 +600,7 @@ class TestCLIParameterValidation:
 
         # Should load successfully
         config_obj = load_config_from_dict(merged)
-        assert config_obj.strategy == "reciprocal_k-core"
+        assert config_obj.pipeline.strategy == "reciprocal_k-core"
 
 
 class TestPipelineStageControlIntegration:
@@ -643,7 +612,7 @@ class TestPipelineStageControlIntegration:
 
         # Test configuration with visualization enabled but analysis disabled
         config_dict = {
-            "pipeline_stages": {"enable_analysis": False, "enable_visualization": True}
+            "pipeline": {"enable_analysis": False, "enable_visualization": True}
         }
 
         base_config = config_manager.load_configuration()
@@ -652,15 +621,15 @@ class TestPipelineStageControlIntegration:
 
         # Should be able to load (dependency validation happens at runtime)
         config_obj = load_config_from_dict(merged)
-        assert config_obj.pipeline_stages.enable_analysis is False
-        assert config_obj.pipeline_stages.enable_visualization is True
+        assert config_obj.pipeline.enable_analysis is False
+        assert config_obj.pipeline.enable_visualization is True
 
     def test_analysis_component_control(self):
         """Test individual analysis component control."""
         config_manager = get_configuration_manager()
 
         config_dict = {
-            "pipeline_stages": {
+            "pipeline": {
                 "enable_community_detection": False,
                 "enable_path_analysis": False,
                 "enable_centrality_analysis": True,
@@ -672,6 +641,7 @@ class TestPipelineStageControlIntegration:
         merged = config_manager.merge_configurations(base_dict, config_dict)
 
         config_obj = load_config_from_dict(merged)
-        assert config_obj.pipeline_stages.enable_community_detection is False
-        assert config_obj.pipeline_stages.enable_path_analysis is False
-        assert config_obj.pipeline_stages.enable_centrality_analysis is True
+        assert config_obj.pipeline.enable_community_detection is False
+        assert config_obj.pipeline.enable_path_analysis is False
+        assert config_obj.pipeline.enable_centrality_analysis is True
+

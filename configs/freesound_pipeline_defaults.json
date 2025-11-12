@@ -1,0 +1,7 @@
+{
+  "seed_sample_id": null,
+  "recursive_depth": 3,
+  "max_requests": 1950,
+  "page_size": 150,
+  "checkpoint_interval": 1
+}

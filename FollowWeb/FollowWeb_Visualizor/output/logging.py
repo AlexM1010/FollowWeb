@@ -94,8 +94,12 @@ class Logger:
             if hasattr(self, "text_file_handle") and self.text_file_handle:
                 try:
                     self.text_file_handle.close()
-                except BaseException:
-                    pass
+                except BaseException as e:
+                    # Ignore errors during cleanup - file may already be closed
+                    if hasattr(self, "console_logger"):
+                        self.console_logger.debug(
+                            f"Ignoring error during file handle cleanup: {e}"
+                        )
             self.text_file_handle = None
 
     def _write_file_header(self) -> None:
@@ -360,6 +364,7 @@ class Logger:
             try:
                 self.text_file_handle.close()
             except BaseException:
+                # Ignore errors during destructor - logging may not be available
                 pass
 
     def __enter__(self) -> "Logger":

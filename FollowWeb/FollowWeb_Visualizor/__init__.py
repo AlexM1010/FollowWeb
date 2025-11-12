@@ -20,8 +20,8 @@ Modules:
     progress: Progress tracking for long-running operations
 
 Example:
-    >>> from FollowWeb_Visualizor.main import PipelineOrchestrator
-    >>> from FollowWeb_Visualizor.config import get_configuration_manager
+    >>> from FollowWeb_Visualizor.__main__ import PipelineOrchestrator
+    >>> from FollowWeb_Visualizor.core.config import get_configuration_manager
     >>>
     >>> config_manager = get_configuration_manager()
     >>> config = config_manager.load_configuration()
@@ -38,12 +38,12 @@ __url__ = ""  # Add repository URL if available
 # Core imports for public API
 
 # Core components
+from .__main__ import PipelineOrchestrator
 from .core.config import (
     FollowWebConfig,
     get_configuration_manager,
     load_config_from_dict,
 )
-from .main import PipelineOrchestrator
 from .utils import ProgressTracker
 
 # Analysis components
@@ -51,37 +51,13 @@ try:
     from .analysis.fame import FameAnalyzer
     from .analysis.network import NetworkAnalyzer
     from .analysis.paths import PathAnalyzer
-    from .data.loaders import GraphLoader
+    from .data.loaders import InstagramLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
     FameAnalyzer = None  # type: ignore
-    GraphLoader = None  # type: ignore
+    InstagramLoader = None  # type: ignore
     NetworkAnalyzer = None  # type: ignore
     PathAnalyzer = None  # type: ignore
-
-# Visualization components
-try:
-    from .core.types import (
-        ColorScheme,
-        EdgeMetric,
-        NodeMetric,
-        VisualizationMetrics,
-    )
-    from .visualization.metrics import MetricsCalculator
-    from .visualization.renderers import (
-        InteractiveRenderer,
-        StaticRenderer,
-    )
-except ImportError:
-    # Graceful handling if visualization module is not fully implemented
-    ColorScheme = None  # type: ignore
-    EdgeMetric = None  # type: ignore
-    InteractiveRenderer = None  # type: ignore
-    MetricsCalculator = None  # type: ignore
-    NodeMetric = None  # type: ignore
-    StaticRenderer = None  # type: ignore
-    VisualizationMetrics = None  # type: ignore
-
 
 # Error handling utilities
 # Unified output system
@@ -185,12 +161,12 @@ try:
     from .analysis.fame import FameAnalyzer
     from .analysis.network import NetworkAnalyzer
     from .analysis.paths import PathAnalyzer
-    from .data.loaders import GraphLoader
+    from .data.loaders import InstagramLoader
 except ImportError:
     # Graceful handling if analysis module is not fully implemented
     # Setting to None for graceful degradation - mypy cannot infer conditional class/None types
     FameAnalyzer = None  # type: ignore[assignment,misc]
-    GraphLoader = None  # type: ignore[assignment,misc]
+    InstagramLoader = None  # type: ignore[assignment,misc]
     NetworkAnalyzer = None  # type: ignore[assignment,misc]
     PathAnalyzer = None  # type: ignore[assignment,misc]
 
@@ -203,10 +179,6 @@ try:
         VisualizationMetrics,
     )
     from .visualization.metrics import MetricsCalculator
-    from .visualization.renderers import (
-        InteractiveRenderer,
-        StaticRenderer,
-    )
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
     # Setting to None for graceful degradation - mypy expects type objects, not None
@@ -236,7 +208,7 @@ __all__ = [
     "get_configuration_manager",
     "load_config_from_dict",
     # Analysis classes (if available)
-    "GraphLoader",
+    "InstagramLoader",
     "NetworkAnalyzer",
     "PathAnalyzer",
     "FameAnalyzer",
