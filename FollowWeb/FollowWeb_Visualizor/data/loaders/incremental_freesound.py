@@ -27,7 +27,7 @@ Two-Pass Processing:
 import heapq
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Union, cast
 
 import networkx as nx
 
@@ -140,7 +140,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self.max_requests = self.config.get("max_requests", 1950)
 
         # Statistics tracking
-        self.stats = {
+        self.stats: dict[str, Union[int, list[int]]] = {
             "api_requests_saved": 0,
             "samples_skipped": 0,
             "new_samples_per_expansion": [],
@@ -375,7 +375,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Create a new graph with only edges (more memory efficient than copy + clear)
         import networkx as nx
 
-        graph_clean = nx.DiGraph()
+        graph_clean: nx.DiGraph = nx.DiGraph()
         graph_clean.add_edges_from(self.graph.edges())
 
         topology_path = checkpoint_dir / "graph_topology.gpickle"
@@ -506,7 +506,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             "eta_minutes": eta_minutes,
         }
 
-    def fetch_data(
+    def fetch_data(  # type: ignore[override]
         self,
         query: Optional[str] = None,
         tags: Optional[list[str]] = None,
@@ -565,7 +565,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Process samples incrementally with progress tracking
         processed_samples = []
-        relationships = {"similar": {}}
+        relationships: dict[str, dict[int, list[int]]] = {"similar": {}}
 
         # Use recursive processing if depth > 0
         if recursive_depth > 0:
@@ -701,7 +701,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Priority queue processes highest priority samples first (lower value = higher priority)
         # Counter ensures stable ordering for samples with same priority
         # Priority = negative of calculated score (for max-heap behavior)
-        priority_queue = []
+        priority_queue: list[tuple[float, int, dict[str, Any]]] = []
         counter = 0
         for sample in seed_samples:
             # Calculate intelligent priority score
@@ -836,7 +836,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     downloads < fetch_similar_threshold_downloads
                     or avg_rating < fetch_similar_threshold_rating
                 ):
-                    self.stats["samples_skipped"] += 1
+                    self.stats["samples_skipped"] = cast(int, self.stats["samples_skipped"]) + 1
                     self.logger.debug(
                         f"Skipping expansion for {sample_id}: "
                         f"downloads={downloads} (threshold={fetch_similar_threshold_downloads}), "
@@ -915,7 +915,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                                 )
 
                     # Track expansion statistics
-                    self.stats["new_samples_per_expansion"].append(
+                    cast(list, self.stats["new_samples_per_expansion"]).append(
                         new_samples_discovered
                     )
 
@@ -935,7 +935,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                             )
 
                             dormant_nodes_count += 1
-                            self.stats["dormant_nodes_identified"] += 1
+                            self.stats["dormant_nodes_identified"] = cast(int, self.stats["dormant_nodes_identified"]) + 1
 
                             self.logger.debug(
                                 f"Node {sample_id} marked as dormant (0 new samples discovered), "
@@ -1180,7 +1180,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 "error", f"Max throttling retries ({max_attempts}) reached"
             )
             self.logger.error(error_msg)
-            self.stats["failed_requests"] += 1
+            self.stats["failed_requests"] = cast(int, self.stats["failed_requests"]) + 1
             return False
 
         # Exponential backoff: 2s, 4s, 8s
@@ -1197,7 +1197,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         )
         self.logger.warning(warning_msg)
 
-        self.stats["throttle_retries"] += 1
+        self.stats["throttle_retries"] = cast(int, self.stats["throttle_retries"]) + 1
         time.sleep(actual_delay)
         return True
 
@@ -1232,10 +1232,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         )
 
         # Log frontier expansion stats
-        if self.stats["new_samples_per_expansion"]:
-            avg_new_samples = sum(self.stats["new_samples_per_expansion"]) / len(
-                self.stats["new_samples_per_expansion"]
-            )
+        expansion_list = cast(list, self.stats["new_samples_per_expansion"])
+        if expansion_list:
+            avg_new_samples = sum(expansion_list) / len(expansion_list)
             self.logger.info(f"  Avg new samples per expansion: {avg_new_samples:.1f}")
 
         self.logger.info(
@@ -1243,7 +1242,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         )
 
         # Log batch expansion stats
-        if self.stats["user_edges_created"] > 0 or self.stats["pack_edges_created"] > 0:
+        if cast(int, self.stats["user_edges_created"]) > 0 or cast(int, self.stats["pack_edges_created"]) > 0:
             batch_msg = EmojiFormatter.format("info", "Batch Expansion Statistics:")
             self.logger.info(batch_msg)
             self.logger.info(
@@ -1254,7 +1253,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             )
 
         # Log error statistics
-        if self.stats["throttle_retries"] > 0 or self.stats["failed_requests"] > 0:
+        if cast(int, self.stats["throttle_retries"]) > 0 or cast(int, self.stats["failed_requests"]) > 0:
             error_msg = EmojiFormatter.format("warning", "Error Statistics:")
             self.logger.info(error_msg)
             self.logger.info(
@@ -1439,7 +1438,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 )
 
                 # Group samples by username
-                samples_by_user = {}
+                samples_by_user: dict[str, list[Any]] = {}
                 for sound in results:
                     username = sound.username if hasattr(sound, "username") else None
                     if username:
@@ -1542,7 +1541,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 )
 
                 # Group samples by pack
-                samples_by_pack = {}
+                samples_by_pack: dict[str, list[Any]] = {}
                 for sound in results:
                     pack = sound.pack if hasattr(sound, "pack") else None
                     if pack:
@@ -1820,7 +1819,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             f"Updating metadata for {len(nodes_to_update)} nodes (mode={mode})..."
         )
 
-        stats = {
+        stats: dict[str, Union[int, set[str]]] = {
             "nodes_updated": 0,
             "nodes_failed": 0,
             "fields_added": set(),
@@ -1850,9 +1849,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         # Merge: add new fields, update existing
                         for key, value in new_metadata.items():
                             if key not in current_attrs:
-                                stats["fields_added"].add(key)
+                                cast(set, stats["fields_added"]).add(key)
                             elif current_attrs.get(key) != value:
-                                stats["fields_updated"].add(key)
+                                cast(set, stats["fields_updated"]).add(key)
 
                             self.graph.nodes[node_id][key] = value
 
@@ -1865,11 +1864,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     # Update metadata refresh timestamp
                     self.graph.nodes[node_id]["last_metadata_update_at"] = now
 
-                    stats["nodes_updated"] += 1
+                    stats["nodes_updated"] = cast(int, stats["nodes_updated"]) + 1
 
                 except Exception as e:
                     self.logger.warning(f"Failed to update metadata for {node_id}: {e}")
-                    stats["nodes_failed"] += 1
+                    stats["nodes_failed"] = cast(int, stats["nodes_failed"]) + 1
 
                 tracker.update(i + 1)
 
@@ -1879,8 +1878,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self.logger.info(
             f"Metadata update complete: {stats['nodes_updated']} updated, "
             f"{stats['nodes_failed']} failed, "
-            f"{len(stats['fields_added'])} new fields, "
-            f"{len(stats['fields_updated'])} fields updated"
+            f"{len(cast(set, stats['fields_added']))} new fields, "
+            f"{len(cast(set, stats['fields_updated']))} fields updated"
         )
 
         return stats
@@ -1912,7 +1911,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         from datetime import datetime, timedelta, timezone
 
         # Build list of (sample_id, last_check_timestamp) tuples
-        samples_with_age = []
+        samples_with_age: list[tuple[str, Optional[datetime]]] = []
 
         for node_id in self.graph.nodes():
             last_check = self.graph.nodes[node_id].get("last_existence_check_at")
@@ -1984,7 +1983,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         from datetime import datetime, timedelta, timezone
 
         # Build list of (sample_id, last_update_timestamp) tuples
-        samples_with_age = []
+        samples_with_age: list[tuple[str, Optional[datetime]]] = []
 
         for node_id in self.graph.nodes():
             last_update = self.graph.nodes[node_id].get("last_metadata_update_at")
@@ -2055,7 +2054,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             "num_comments,comments,similar_sounds,analysis,ac_analysis"
         )
 
-        samples = []
+        samples: list[Any] = []
         now = datetime.now(timezone.utc).isoformat()
 
         try:
@@ -2132,7 +2131,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
     def _fetch_sample_metadata(
         self, sample_id: int, return_sound: bool = False
-    ) -> dict[str, Any]:
+    ) -> Union[dict[str, Any], tuple[dict[str, Any], Any]]:
         """
         Override parent method to track API requests and set metadata timestamp.
 
@@ -2154,12 +2153,21 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         now = datetime.now(timezone.utc).isoformat()
 
         if return_sound:
-            metadata, sound = result
-            metadata["last_metadata_update_at"] = now
-            return metadata, sound
+            if isinstance(result, tuple):
+                metadata, sound = result
+                metadata["last_metadata_update_at"] = now
+                return metadata, sound
+            else:
+                # Shouldn't happen but handle gracefully
+                result["last_metadata_update_at"] = now
+                return result
         else:
-            result["last_metadata_update_at"] = now
-            return result
+            if isinstance(result, dict):
+                result["last_metadata_update_at"] = now
+                return result
+            else:
+                # Shouldn't happen but handle gracefully
+                return result
 
     def _fetch_similar_sounds_for_sample(
         self, sample_id: int

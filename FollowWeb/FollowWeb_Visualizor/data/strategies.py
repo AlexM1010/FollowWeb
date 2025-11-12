@@ -88,7 +88,7 @@ class GraphStrategy:
         Returns:
             nx.DiGraph: New graph with only mutual connections, or empty graph if none exist
         """
-        reciprocal_graph = nx.DiGraph()
+        reciprocal_graph: nx.DiGraph = nx.DiGraph()
 
         # Keep only edges where the reverse edge also exists
         reciprocal_edges = [

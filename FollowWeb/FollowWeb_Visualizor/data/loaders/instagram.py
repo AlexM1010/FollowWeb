@@ -58,7 +58,7 @@ class InstagramLoader(DataLoader):
         """
         super().__init__(config)
 
-    def fetch_data(self, filepath: str) -> dict[str, Any]:
+    def fetch_data(self, filepath: str) -> dict[str, Any]:  # type: ignore[override]
         """
         Load Instagram network data from a JSON file.
 
@@ -129,7 +129,7 @@ class InstagramLoader(DataLoader):
         users_data = data.get("users", [])
 
         # Initialize graph
-        graph = nx.DiGraph()
+        graph: nx.DiGraph = nx.DiGraph()
 
         # Handle empty data
         if len(users_data) == 0:

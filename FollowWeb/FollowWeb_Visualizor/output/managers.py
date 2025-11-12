@@ -36,7 +36,7 @@ class OutputManager:
             config: Complete configuration dictionary containing output control settings
         """
         self.config = config
-        self.output_control = config.get("output_control", {})
+        self.output = config.get("output", {})
         self.logger = logging.getLogger(__name__)
 
         # Initialize visualization components
@@ -307,7 +307,7 @@ class OutputManager:
         results = {}
 
         # Define renderer configurations
-        renderers_to_run = []
+        renderers_to_run: list[tuple[str, Any, str]] = []
 
         if self.renderer_type == "pyvis":
             renderers_to_run.append(("pyvis", self.pyvis_renderer, html_filename))
@@ -363,19 +363,19 @@ class OutputManager:
 
     def should_generate_html(self) -> bool:
         """Check if HTML generation is enabled."""
-        return self.output_control.get("generate_html", True)
+        return self.output.get("generate_html", True)
 
     def should_generate_png(self) -> bool:
         """Check if PNG generation is enabled."""
-        return self.output_control.get("generate_png", True)
+        return self.output.get("generate_png", True)
 
     def should_generate_reports(self) -> bool:
         """Check if report generation is enabled."""
-        return self.output_control.get("generate_reports", True)
+        return self.output.get("generate_reports", True)
 
     def should_generate_timing_logs(self) -> bool:
         """Check if timing log generation is enabled."""
-        return self.output_control.get("enable_timing_logs", False)
+        return self.output.get("enable_timing_logs", False)
 
     def get_enabled_formats(self) -> list[str]:
         """Get list of enabled output formats."""
@@ -535,8 +535,8 @@ class OutputManager:
         """
         try:
             return (
-                config_dict.get("output_control", {})
-                .get("output_formatting", {})
+                config_dict.get("output", {})
+                .get("formatting", {})
                 .get("emoji", {})
                 .get("fallback_level", "full")
             )
@@ -1058,17 +1058,17 @@ class MetricsReporter:
         """Generate output generation summary section."""
         lines: list[str] = []
 
-        output_control = config.get("output_control", {})
+        output = config.get("output", {})
 
         output_msg = EmojiFormatter.format("completion", "OUTPUT GENERATION SUMMARY")
         lines.append(output_msg)
         lines.append("-" * 40)
 
         # Output formats
-        html_enabled = output_control.get("generate_html", True)
-        png_enabled = output_control.get("generate_png", True)
-        reports_enabled = output_control.get("generate_reports", True)
-        timing_enabled = output_control.get("enable_timing_logs", False)
+        html_enabled = output.get("generate_html", True)
+        png_enabled = output.get("generate_png", True)
+        reports_enabled = output.get("generate_reports", True)
+        timing_enabled = output.get("enable_timing_logs", False)
 
         html_msg = EmojiFormatter.format(
             "success" if html_enabled else "error", f"Interactive HTML: {html_enabled}"

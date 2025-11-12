@@ -125,7 +125,7 @@ class PipelineOrchestrator:
     def _log_timer(self, message: str, section: Optional[str] = None) -> None:
         """Log timing information with standardized format."""
         # Only log timing information if timing logs are enabled
-        if self.config.output_control.enable_timing_logs:
+        if self.config.output.enable_timing_logs:
             self.logger.log_timer(message, section)
 
     def _log_success(self, message: str, section: Optional[str] = None) -> None:
@@ -332,6 +332,7 @@ class PipelineOrchestrator:
             self.logger.info("-" * 30)
             try:
                 if data_source == "instagram":
+                    assert isinstance(self.graph_loader, InstagramLoader)
                     graph = self.graph_loader.load_from_json(self.config.input_file)
                 elif data_source == "freesound":
                     # For Freesound, use the load() method with query parameters
@@ -984,7 +985,7 @@ class PipelineOrchestrator:
             self.logger.info("")
 
         # Log output formats
-        output = self.config.output_control
+        output = self.config.output
         self.logger.info("OUTPUT FORMATS")
         self.logger.info("-" * 14)
         html_msg = EmojiFormatter.format(
@@ -1514,7 +1515,7 @@ def main() -> int:
             logger.info(success_msg)
 
         # Apply emoji configuration
-        emoji_level = config.output_control.formatting.emoji.fallback_level
+        emoji_level = config.output.formatting.emoji.fallback_level
         EmojiFormatter.set_fallback_level(emoji_level)
 
         # Apply command-line overrides
@@ -1563,18 +1564,18 @@ def main() -> int:
                 cli_overrides["k_values"] = {"strategy_k_values": k_values_overrides}
 
             # Output control flags
-            output_control_overrides = {}
+            output_overrides = {}
             if args.no_png:
-                output_control_overrides["generate_png"] = False
+                output_overrides["generate_png"] = False
             if args.no_html:
-                output_control_overrides["generate_html"] = False
+                output_overrides["generate_html"] = False
             if args.no_reports:
-                output_control_overrides["generate_reports"] = False
+                output_overrides["generate_reports"] = False
             if args.enable_timing_logs:
-                output_control_overrides["enable_timing_logs"] = True
+                output_overrides["enable_timing_logs"] = True
 
-            if output_control_overrides:
-                cli_overrides["output_control"] = output_control_overrides
+            if output_overrides:
+                cli_overrides["output"] = output_overrides
 
             # Pipeline stage control flags
             pipeline_stages_overrides = {}
@@ -1610,13 +1611,11 @@ def main() -> int:
 
             # Emoji configuration
             if args.emoji_level:
-                cli_overrides["output_control"] = cli_overrides.get(
-                    "output_control", {}
+                cli_overrides["output"] = cli_overrides.get("output", {})
+                cli_overrides["output"]["formatting"] = cli_overrides["output"].get(
+                    "formatting", {}
                 )
-                cli_overrides["output_control"]["output_formatting"] = cli_overrides[
-                    "output_control"
-                ].get("output_formatting", {})
-                cli_overrides["output_control"]["output_formatting"]["emoji"] = {
+                cli_overrides["output"]["formatting"]["emoji"] = {
                     "fallback_level": args.emoji_level
                 }
 

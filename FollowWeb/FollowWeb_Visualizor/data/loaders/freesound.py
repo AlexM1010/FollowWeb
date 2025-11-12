@@ -8,7 +8,7 @@ data from the Freesound API with rate limiting, caching, and error handling.
 # Standard library imports
 import os
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 # Third-party imports
 import freesound
@@ -83,7 +83,7 @@ class FreesoundLoader(DataLoader):
 
         # Persistent cache to avoid re-fetching same samples across runs
         # This will be loaded from checkpoint in IncrementalFreesoundLoader
-        self._sound_cache = {}
+        self._sound_cache: dict[int, Any] = {}
         self._cache_hits = 0
         self._cache_misses = 0
 
@@ -160,7 +160,7 @@ class FreesoundLoader(DataLoader):
         # Should never reach here, but just in case
         raise DataProcessingError(f"Failed after {max_retries} retries")
 
-    def fetch_data(
+    def fetch_data(  # type: ignore[override]
         self,
         query: Optional[str] = None,
         tags: Optional[list[str]] = None,
@@ -270,7 +270,7 @@ class FreesoundLoader(DataLoader):
             results = self._retry_with_backoff(_do_search)
 
             # Collect sample IDs from first page
-            sample_ids = []
+            sample_ids: list[int] = []
             for sound in results:
                 if len(sample_ids) >= max_samples:
                     break
@@ -472,7 +472,7 @@ class FreesoundLoader(DataLoader):
 
     def _fetch_sample_metadata(
         self, sample_id: int, return_sound: bool = False
-    ) -> dict[str, Any]:
+    ) -> Union[dict[str, Any], tuple[dict[str, Any], Any]]:
         """
         Fetch metadata for a single sample by ID with caching.
 
@@ -618,7 +618,7 @@ class FreesoundLoader(DataLoader):
             self.logger.info(f"Using {len(samples)} recursively discovered samples")
 
         # Initialize graph
-        graph = nx.DiGraph()
+        graph: nx.DiGraph = nx.DiGraph()
 
         # Handle empty data
         if not samples:
