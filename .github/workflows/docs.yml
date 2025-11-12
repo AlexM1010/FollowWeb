@@ -40,18 +40,20 @@ jobs:
           prebuild-${{ runner.os }}-py3.12-
     
     - name: Install dependencies
+      working-directory: FollowWeb
       run: |
         # Use cached environment if available
-        if [ -d "FollowWeb/.venv" ]; then
+        if [ -d ".venv" ]; then
           echo "Using prebuild cache"
-          cd FollowWeb && source .venv/bin/activate && cd ..
+          source .venv/bin/activate
+          # Verify installation
+          python -c "import FollowWeb_Visualizor" || pip install -e .
         else
           echo "Installing dependencies fresh"
           python -m pip install --upgrade pip
-          python -m pip install -r FollowWeb/requirements.txt
-          python -m pip install -r FollowWeb/requirements-test.txt
+          python -m pip install -r requirements.txt -r requirements-test.txt -e .
         fi
-        python .github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
+        python ../.github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
     
     - name: Validate documentation structure
       working-directory: FollowWeb
@@ -283,17 +285,20 @@ jobs:
           prebuild-${{ runner.os }}-py3.12-
     
     - name: Install dependencies
+      working-directory: FollowWeb
       run: |
         # Use cached environment if available
-        if [ -d "FollowWeb/.venv" ]; then
+        if [ -d ".venv" ]; then
           echo "Using CI prebuild cache"
-          cd FollowWeb && source .venv/bin/activate && cd ..
+          source .venv/bin/activate
+          # Ensure interrogate is installed
+          pip list | grep interrogate || pip install interrogate
         else
           echo "Installing dependencies fresh"
           python -m pip install --upgrade pip
           python -m pip install interrogate
         fi
-        python .github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
+        python ../.github/scripts/ci_helpers.py success "Dependencies installed successfully" --summary-only
     
     - name: Check docstring coverage
       working-directory: FollowWeb
