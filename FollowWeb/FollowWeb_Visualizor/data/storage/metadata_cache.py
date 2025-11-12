@@ -270,7 +270,7 @@ class MetadataCache:
             sample_id: Sample ID to delete
         """
         if self._conn is None:
-            RuntimeError("Database connection not initialized")
+            raise RuntimeError("Database connection not initialized")
 
         self._conn.execute("DELETE FROM metadata WHERE sample_id = ?", (sample_id,))
         self._conn.commit()

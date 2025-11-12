@@ -1946,7 +1946,9 @@ Configuration values are resolved in this order (highest to lowest priority):
 - **Format**: Joblib-serialized dictionary
 - **Contents**: NetworkX graph, processed IDs, sound cache, metadata
 - **Size**: ~10 KB per sample (metadata only, no audio files)
-- **Git-tracked**: Yes (committed after every run)
+- **Git-tracked**: No (stored in private repository only, NOT in public Git)
+- **Storage**: Split checkpoint in private backup repository as release asset
+- **Privacy**: TOS-required private storage; data never exposed publicly
 
 **Backup checkpoints:**
 - **Location**: `data/freesound_library/freesound_library_backup_*nodes_*.pkl`
