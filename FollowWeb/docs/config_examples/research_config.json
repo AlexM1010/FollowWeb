@@ -10,7 +10,7 @@
   "min_followers_in_network": 10,
   "min_fame_ratio": 8.0,
   
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,

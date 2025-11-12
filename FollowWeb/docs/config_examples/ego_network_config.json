@@ -9,7 +9,7 @@
   "contact_path_target": "friend_user",
   "find_paths_to_all_famous": false,
   
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,

@@ -952,7 +952,7 @@ class PipelineOrchestrator:
         self.logger.info("")
 
         # Log enabled stages
-        stages = self.config.pipeline_stages
+        stages = self.config.pipeline
         self.logger.info("ENABLED STAGES")
         self.logger.info("-" * 14)
         strategy_msg = EmojiFormatter.format(
@@ -1581,24 +1581,24 @@ def main() -> int:
                 cli_overrides["output"] = output_overrides
 
             # Pipeline stage control flags
-            pipeline_stages_overrides = {}
+            pipeline_overrides = {}
             if args.skip_analysis or args.analysis_only:
                 # Handle mutually exclusive stage control
                 if args.skip_analysis:
-                    pipeline_stages_overrides["enable_analysis"] = False
+                    pipeline_overrides["enable_analysis"] = False
                 if args.analysis_only or args.skip_visualization:
-                    pipeline_stages_overrides["enable_visualization"] = False
+                    pipeline_overrides["enable_visualization"] = False
 
             # Analysis component control
             if args.skip_path_analysis:
-                pipeline_stages_overrides["enable_path_analysis"] = False
+                pipeline_overrides["enable_path_analysis"] = False
             if args.skip_community_detection:
-                pipeline_stages_overrides["enable_community_detection"] = False
+                pipeline_overrides["enable_community_detection"] = False
             if args.skip_centrality_analysis:
-                pipeline_stages_overrides["enable_centrality_analysis"] = False
+                pipeline_overrides["enable_centrality_analysis"] = False
 
-            if pipeline_stages_overrides:
-                cli_overrides["pipeline_stages"] = pipeline_stages_overrides
+            if pipeline_overrides:
+                cli_overrides["pipeline"] = pipeline_overrides
 
             # Performance options
             analysis_mode_overrides = cli_overrides.get("analysis_mode", {})

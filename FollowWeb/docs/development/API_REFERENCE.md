@@ -92,9 +92,9 @@ class FollowWebConfig:
     find_paths_to_all_famous: bool = True
     
     # Nested configuration sections
-    pipeline_stages: PipelineStagesConfig
+    pipeline: PipelineConfig
     analysis_mode: AnalysisModeConfig
-    output_control: OutputControlConfig
+    output: OutputConfig
     k_values: KValueConfig
     visualization: VisualizationConfig
 ```

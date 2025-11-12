@@ -436,7 +436,7 @@ config_dict = {
     'output_control': {
         'generate_png': False
     },
-    'pipeline_stages': {
+    'pipeline': {
         'enable_analysis': False  # Skip detailed analysis
     }
 }
@@ -525,7 +525,7 @@ config_dict = {
         }
     },
     'find_paths_to_all_famous': False,  # Skip path analysis
-    'pipeline_stages': {
+    'pipeline': {
         'enable_analysis': False  # Skip detailed analysis
     }
 }

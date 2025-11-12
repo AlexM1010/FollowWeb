@@ -481,16 +481,16 @@ class OutputManager:
         log_lines.append(f"Analysis Mode: {mode_value}")
 
         # Pipeline stages
-        pipeline_stages = self.config.get("pipeline_stages", {})
+        pipeline = self.config.get("pipeline", {})
         log_lines.append("Enabled Stages:")
         log_lines.append(
-            f"  - Strategy: {pipeline_stages.get('enable_strategy', True)}"
+            f"  - Strategy: {pipeline.get('enable_strategy', True)}"
         )
         log_lines.append(
-            f"  - Analysis: {pipeline_stages.get('enable_analysis', True)}"
+            f"  - Analysis: {pipeline.get('enable_analysis', True)}"
         )
         log_lines.append(
-            f"  - Visualization: {pipeline_stages.get('enable_visualization', True)}"
+            f"  - Visualization: {pipeline.get('enable_visualization', True)}"
         )
 
         # Output formats
@@ -687,12 +687,12 @@ class MetricsReporter:
         )
 
         # Pipeline stages
-        pipeline_stages = config.get("pipeline_stages", {})
+        pipeline = config.get("pipeline", {})
         lines.append("")
         lines.append("ENABLED STAGES:")
-        strategy_enabled = pipeline_stages.get("enable_strategy", True)
-        analysis_enabled = pipeline_stages.get("enable_analysis", True)
-        viz_enabled = pipeline_stages.get("enable_visualization", True)
+        strategy_enabled = pipeline.get("enable_strategy", True)
+        analysis_enabled = pipeline.get("enable_analysis", True)
+        viz_enabled = pipeline.get("enable_visualization", True)
 
         strategy_msg = EmojiFormatter.format(
             "success" if strategy_enabled else "error",
@@ -711,9 +711,9 @@ class MetricsReporter:
         if analysis_enabled:
             lines.append("")
             lines.append("ANALYSIS COMPONENTS:")
-            community_enabled = pipeline_stages.get("enable_community_detection", True)
-            centrality_enabled = pipeline_stages.get("enable_centrality_analysis", True)
-            path_enabled = pipeline_stages.get("enable_path_analysis", True)
+            community_enabled = pipeline.get("enable_community_detection", True)
+            centrality_enabled = pipeline.get("enable_centrality_analysis", True)
+            path_enabled = pipeline.get("enable_path_analysis", True)
 
             community_msg = EmojiFormatter.format(
                 "success" if community_enabled else "error",

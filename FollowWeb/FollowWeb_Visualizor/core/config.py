@@ -603,10 +603,7 @@ class FollowWebConfig:
         """Get ego_username from pipeline config."""
         return self.pipeline.ego_username
 
-    @property
-    def pipeline_stages(self) -> PipelineConfig:
-        """Get pipeline stages config (alias for pipeline)."""
-        return self.pipeline
+
 
 
 def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
@@ -629,7 +626,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         output_dict = config_dict.get("output", {})
         k_values_dict = config_dict.get("k_values", {})
 
-        # Create pipeline config (merged with stages)
+        # Create pipeline config
         pipeline_config = PipelineConfig(
             strategy=pipeline_dict.get("strategy", "k-core"),
             ego_username=pipeline_dict.get("ego_username"),
@@ -909,14 +906,6 @@ class ConfigurationManager:
             # Map of canonical parameter names to their aliases
             "k_values.default_k_value": ["pruning.default_k_value", "default_k"],
             "k_values.strategy_k_values": ["pruning.k_values", "strategy_k_values"],
-            "pipeline_stages.enable_analysis": [
-                "pipeline.enable_analysis",
-                "enable_analysis",
-            ],
-            "pipeline_stages.enable_visualization": [
-                "pipeline.enable_visualization",
-                "enable_visualization",
-            ],
             "output.generate_html": ["html_output"],
             "output.generate_png": ["png_output"],
             "output.generate_reports": ["text_output"],

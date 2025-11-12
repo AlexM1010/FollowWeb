@@ -361,7 +361,7 @@ class TestConfigurationManager:
 
         # Verify configuration structure
         assert hasattr(config, "input_file")
-        assert hasattr(config, "pipeline_stages")
+        assert hasattr(config, "pipeline")
         assert hasattr(config, "analysis_mode")
         assert hasattr(config, "output")
         assert hasattr(config, "k_values")

@@ -103,7 +103,7 @@ All configuration files follow the same hierarchical structure:
   "output_file_prefix": "Output/Prefix",
   "strategy": "k-core|reciprocal_k-core|ego_alter_k-core",
   
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,
@@ -186,7 +186,7 @@ Choose the configuration that best matches your use case:
     "sampling_threshold": 1000,
     "max_layout_iterations": 100
   },
-  "pipeline_stages": {
+  "pipeline": {
     "enable_path_analysis": false
   }
 }
@@ -218,7 +218,7 @@ Choose the configuration that best matches your use case:
     "generate_png": false,
     "generate_reports": true
   },
-  "pipeline_stages": {
+  "pipeline": {
     "enable_path_analysis": false
   }
 }

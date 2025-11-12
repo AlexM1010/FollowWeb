@@ -20,7 +20,7 @@ Control which major phases of the pipeline are executed:
 
 ```json
 {
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,      // Graph loading and filtering (required)
     "enable_analysis": true,      // Network analysis algorithms
     "enable_visualization": true, // HTML/PNG generation

@@ -6,7 +6,7 @@
   "output_file_prefix": "Output/FastAnalysis",
   "strategy": "k-core",
   
-  "pipeline_stages": {
+  "pipeline": {
     "enable_strategy": true,
     "enable_analysis": true,
     "enable_visualization": true,
