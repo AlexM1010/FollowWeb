@@ -17,7 +17,36 @@ from pathlib import Path
 followweb_path = Path(__file__).parent.parent.parent / "FollowWeb"
 sys.path.insert(0, str(followweb_path))
 
-from FollowWeb_Visualizor.output.formatters import EmojiFormatter  # noqa: E402
+# Lazy import to avoid importing before dependencies are installed
+EmojiFormatter = None
+
+def _get_emoji_formatter():
+    """Lazy load EmojiFormatter to avoid importing before dependencies are installed."""
+    global EmojiFormatter
+    if EmojiFormatter is None:
+        try:
+            from FollowWeb_Visualizor.output.formatters import EmojiFormatter as _EmojiFormatter  # noqa: E402
+            EmojiFormatter = _EmojiFormatter
+        except ImportError:
+            # If import fails, use a simple fallback
+            class SimpleFallback:
+                @staticmethod
+                def set_fallback_level(level):
+                    pass
+                @staticmethod
+                def format(emoji_key, message):
+                    prefixes = {
+                        "success": "✅ ",
+                        "error": "❌ ",
+                        "warning": "⚠️ ",
+                        "info": "ℹ️ ",
+                        "completion": "🎉 ",
+                        "progress": "⏳ "
+                    }
+                    prefix = prefixes.get(emoji_key, "")
+                    return f"{prefix}{message}"
+            EmojiFormatter = SimpleFallback
+    return EmojiFormatter
 
 def _setup_ci_emoji_config():
     """
@@ -26,16 +55,17 @@ def _setup_ci_emoji_config():
     Uses 'text' fallback for Windows to avoid encoding issues,
     'full' for other platforms.
     """
+    formatter = _get_emoji_formatter()
     # Detect if we're on Windows or in a CI environment that might have encoding issues
     is_windows = platform.system() == "Windows"
     is_ci = os.getenv("CI", "").lower() == "true"
     
     if is_windows and is_ci:
         # Use text fallbacks for Windows CI to avoid encoding issues
-        EmojiFormatter.set_fallback_level("text")
+        formatter.set_fallback_level("text")
     else:
         # Use full emojis for other platforms
-        EmojiFormatter.set_fallback_level("full")
+        formatter.set_fallback_level("full")
 
 
 def _ci_format(emoji_key: str, message: str) -> str:
@@ -50,7 +80,8 @@ def _ci_format(emoji_key: str, message: str) -> str:
         Formatted message with appropriate emoji
     """
     _setup_ci_emoji_config()
-    return EmojiFormatter.format(emoji_key, message)
+    formatter = _get_emoji_formatter()
+    return formatter.format(emoji_key, message)
 
 
 def _ci_print(emoji_key: str, message: str):
@@ -68,7 +99,8 @@ def _ci_print(emoji_key: str, message: str):
         print(formatted_message)
     except UnicodeEncodeError:
         # Fallback to text-only mode if encoding fails
-        EmojiFormatter.set_fallback_level("text")
+        formatter = _get_emoji_formatter()
+        formatter.set_fallback_level("text")
         formatted_message = _ci_format(emoji_key, message)
         print(formatted_message)
 
@@ -98,7 +130,8 @@ def _ci_write_summary(emoji_key: str, message: str):
         formatted_message = f"{prefix}{message}"
     else:
         _setup_ci_emoji_config()
-        formatted_message = EmojiFormatter.format(emoji_key, message)
+        formatter = _get_emoji_formatter()
+        formatted_message = formatter.format(emoji_key, message)
     
     summary_file = os.getenv('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'a', encoding='utf-8') as f:

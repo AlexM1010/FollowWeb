@@ -5,10 +5,12 @@ on:
   workflow_call:
 
 jobs:
-  # Job 1: Documentation Structure (CRITICAL - Pipeline fails if this fails)
+  # Documentation Structure (CRITICAL - Pipeline fails if this fails)
+  # Runs in parallel with docstring-coverage
   documentation-structure:
     name: Structure
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
     - uses: actions/checkout@v4
@@ -252,11 +254,12 @@ jobs:
         python ../.github/scripts/ci_helpers.py success "- **Code Maintenance** (TODO/FIXME comment analysis)" --summary-only
         python ../.github/scripts/ci_helpers.py info "**Critical documentation files validated successfully**"
   
-  # Job 2: Docstring Coverage (CRITICAL - Pipeline fails if this fails)
+  # Docstring Coverage (CRITICAL - Pipeline fails if this fails)
+  # Runs in parallel with documentation-structure
   docstring-coverage:
     name: Docstring Coverage
     runs-on: ubuntu-latest
-    needs: documentation-structure
+    timeout-minutes: 10
     
     steps:
     - uses: actions/checkout@v4
@@ -336,11 +339,12 @@ jobs:
         python ../.github/scripts/ci_helpers.py success "- **Module Documentation** (All modules analyzed)" --summary-only
         python ../.github/scripts/ci_helpers.py info "**Code documentation standards validated successfully**"
   
-  # Job 3: Conventional Commits (NON-CRITICAL - Pipeline passes even if this fails)
+  # Conventional Commits (NON-CRITICAL - Pipeline passes even if this fails)
+  # Runs in parallel with other documentation jobs but doesn't block pipeline
   conventional-commits:
     name: Conventional Commits
     runs-on: ubuntu-latest
-    needs: docstring-coverage
+    timeout-minutes: 5
     continue-on-error: true  # This job won't fail the pipeline
     
     steps:

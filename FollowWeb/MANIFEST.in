@@ -1,54 +1,55 @@
-# Include the README and other documentation files
+# Include essential documentation
 include README.md
-include LICENSE*
-include CHANGELOG*
-# include CONTRIBUTING* (file doesn't exist)
-include *.md
-include *.template
-
-# Include Python files in root directory
-include *.py
-
-# Include all Python files in the package
-recursive-include FollowWeb_Visualizor *.py
-
-# Include HTML templates for visualization renderers
-recursive-include FollowWeb_Visualizor *.html
+include LICENSE
+include CHANGELOG.md
+include INSTALL_GUIDE.md
 
 # Include configuration files
-include pyproject.toml
-include pytest.ini
-include Makefile
+recursive-include configs *.json
 
-# Include requirements files
-include requirements*.txt
+# Include example data (but not generated cache files)
+recursive-include examples *.json *.txt
+recursive-include examples/sample_data *.json
 
-# Include configuration directories
-recursive-include configs *.json *.md
+# Include documentation
+recursive-include docs *.md *.rst
 
-# Include analysis tools
-recursive-include analysis_tools *.py *.md
+# Include test data (anonymized datasets only)
+recursive-include tests/test_data *.json
 
-# Include test suite
-recursive-include tests *.py *.json *.md *.bat
-
-# Include example data and documentation
-recursive-include examples *
-recursive-include docs *
-
-# Exclude development and build artifacts
+# Exclude generated files and caches
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
 global-exclude __pycache__
-global-exclude *.py[co]
 global-exclude *.so
+global-exclude *.db
+global-exclude *.gpickle
+global-exclude *.pkl
+global-exclude *.log
 global-exclude .DS_Store
-prune .git
-prune .github
-prune .pytest_cache
-prune .mypy_cache
-prune .ruff_cache
-prune dist
-prune build
-prune *.egg-info
-prune Output
-prune tests/Output
-prune .benchmarks
+global-exclude *.egg-info
+
+# Exclude development and CI files
+exclude .gitignore
+exclude .gitattributes
+exclude mypy_errors.txt
+recursive-exclude .github *
+recursive-exclude .kiro *
+recursive-exclude tests/Output *
+recursive-exclude Output *
+recursive-exclude checkpoints *
+recursive-exclude custom_checkpoints *
+recursive-exclude data/freesound_library *.db *.gpickle *.pkl
+
+# Exclude IDE and editor files
+global-exclude .vscode
+global-exclude .idea
+global-exclude *.swp
+global-exclude *.swo
+global-exclude *~
+
+# Exclude build artifacts
+global-exclude build
+global-exclude dist
+global-exclude *.egg-info
