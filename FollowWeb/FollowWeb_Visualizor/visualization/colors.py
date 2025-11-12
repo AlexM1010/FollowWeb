@@ -7,8 +7,6 @@ This module handles community color generation and scaling utilities for visuali
 import math
 from typing import TypedDict
 
-import matplotlib.pyplot as plt
-
 from ..core.exceptions import VisualizationError
 from ..data.cache import get_cache_manager
 from ..utils.validation import (
@@ -16,6 +14,7 @@ from ..utils.validation import (
     validate_multiple_non_negative,
     validate_range,
 )
+from .color_palette import generate_extended_palette, hex_to_rgba
 
 
 class CommunityColors(TypedDict):
@@ -54,43 +53,24 @@ def get_community_colors(
 
     try:
         if num_communities > 0:
-            # Use matplotlib colormap with error handling
+            # Use centralized color palette instead of matplotlib colormap
             try:
-                palette = plt.colormaps.get_cmap("viridis").resampled(num_communities)
-                colors = palette(range(num_communities))
+                hex_palette = generate_extended_palette(num_communities)
             except Exception as e:
                 raise VisualizationError(
-                    f"Failed to generate colormap for {num_communities} communities: {e}"
+                    f"Failed to generate color palette for {num_communities} communities: {e}"
                 ) from e
 
             # Generate color dictionaries with validation
             hex_colors = {}
             rgba_colors = {}
 
-            for i, color in enumerate(colors):
+            for i, hex_color in enumerate(hex_palette):
                 try:
-                    # Validate color tuple has at least 3 components (RGB)
-                    if len(color) < 3:
-                        raise VisualizationError(
-                            f"invalid color format for community {i}"
-                        )
-
-                    # Convert to hex with bounds checking
-                    r, g, b = color[0], color[1], color[2]
-                    if not all(0 <= val <= 1 for val in [r, g, b]):
-                        raise VisualizationError(
-                            f"color values out of range for community {i}"
-                        )
-
-                    hex_color = (
-                        f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
-                    )
+                    # Convert hex to RGBA using centralized function
+                    rgba_color = hex_to_rgba(hex_color)
                     hex_colors[i] = hex_color
-                    # Ensure RGBA tuple has exactly 4 components
-                    if len(color) >= 4:
-                        rgba_colors[i] = (color[0], color[1], color[2], color[3])
-                    else:
-                        rgba_colors[i] = (color[0], color[1], color[2], 1.0)
+                    rgba_colors[i] = rgba_color
 
                 except Exception as e:
                     raise VisualizationError(
