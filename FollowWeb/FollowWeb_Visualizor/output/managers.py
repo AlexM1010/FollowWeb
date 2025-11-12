@@ -356,11 +356,9 @@ class OutputManager:
             )
         else:
             # For single renderer, use its result
-            renderer_name: str | None = (
-                renderers_to_run[0][0] if renderers_to_run else None
-            )
-            if renderer_name:
-                results["html"] = results.get(f"html_{renderer_name}", False)
+            single_renderer_name = renderers_to_run[0][0] if renderers_to_run else None
+            if single_renderer_name:
+                results["html"] = results.get(f"html_{single_renderer_name}", False)
             else:
                 results["html"] = False
 
