@@ -27,7 +27,7 @@ Two-Pass Processing:
 import heapq
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional, Tuple, Union, cast
+from typing import Any, Optional, Union, cast
 
 import networkx as nx
 
@@ -714,7 +714,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Counter ensures stable ordering for samples with same priority
         # Priority = negative of calculated score (for max-heap behavior)
         # Tuple format: (priority, counter, sample_dict, depth)
-        priority_queue: list[Tuple[float, int, dict[str, Any], int]] = []
+        priority_queue: list[tuple[float, int, dict[str, Any], int]] = []
         counter = 0
         for sample in seed_samples:
             # Calculate intelligent priority score
