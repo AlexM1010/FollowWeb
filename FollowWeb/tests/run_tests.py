@@ -208,7 +208,7 @@ def run_all_tests_optimally(extra_args: list[str], no_parallel: bool = False) ->
 def run_tests_safely(test_args: list[str], test_type: Optional[str] = None) -> int:
     """Run tests with safe resource management."""
     import time
-    
+
     start_time = time.time()
 
     # Ensure we're running from the FollowWeb package directory
@@ -286,7 +286,7 @@ def run_tests_safely(test_args: list[str], test_type: Optional[str] = None) -> i
     # Run the tests
     try:
         result = subprocess.run(cmd, check=False, capture_output=False, text=True)
-        
+
         # Report execution time
         elapsed = time.time() - start_time
         minutes = int(elapsed // 60)
@@ -295,7 +295,7 @@ def run_tests_safely(test_args: list[str], test_type: Optional[str] = None) -> i
             print(f"\n⏱️  Test execution completed in {minutes}m {seconds:.1f}s")
         else:
             print(f"\n⏱️  Test execution completed in {seconds:.1f}s")
-        
+
         return result.returncode
     except KeyboardInterrupt:
         print("\nTest execution interrupted by user")
@@ -324,7 +324,9 @@ def main():
         print("  system-info              - Show system resources and worker counts")
         print()
         print("Options:")
-        print("  --fast                   - Skip benchmark tests with aggressive parallelization")
+        print(
+            "  --fast                   - Skip benchmark tests with aggressive parallelization"
+        )
         print()
         print("Examples:")
         print("  python run_tests.py unit")
@@ -338,10 +340,10 @@ def main():
 
     # Check for --fast flag and remove it from argv
     fast_mode = "--fast" in sys.argv
-    
+
     # Check for --no-parallel flag
     no_parallel = "--no-parallel" in sys.argv
-    
+
     # Remove flags from sys.argv before extracting extra_args
     if fast_mode:
         sys.argv = [arg for arg in sys.argv if arg != "--fast"]
