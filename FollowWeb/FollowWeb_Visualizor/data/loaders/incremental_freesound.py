@@ -27,7 +27,7 @@ Two-Pass Processing:
 import heapq
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Tuple, Union, cast
 
 import networkx as nx
 
@@ -713,7 +713,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Priority queue processes highest priority samples first (lower value = higher priority)
         # Counter ensures stable ordering for samples with same priority
         # Priority = negative of calculated score (for max-heap behavior)
-        priority_queue: list[tuple[float, int, dict[str, Any]]] = []
+        # Tuple format: (priority, counter, sample_dict, depth)
+        priority_queue: list[Tuple[float, int, dict[str, Any], int]] = []
         counter = 0
         for sample in seed_samples:
             # Calculate intelligent priority score
@@ -897,8 +898,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                             and self.graph.number_of_nodes() < max_total_samples
                         ):
                             try:
-                                # Fetch metadata for the similar sample
-                                similar_sample = self._fetch_sample_metadata(similar_id)
+                                # Fetch metadata for the similar sample (return_sound=False by default)
+                                similar_sample = cast(
+                                    dict[str, Any],
+                                    self._fetch_sample_metadata(similar_id),
+                                )
 
                                 # Count as new sample discovered
                                 new_samples_discovered += 1
