@@ -223,7 +223,7 @@ class TestSigmaRendererPipelineIntegration:
         # Verify renderer type is set correctly
         assert orchestrator.config.renderer.renderer_type == "sigma"
 
-    @patch("FollowWeb_Visualizor.main.InstagramLoader")
+    @patch("FollowWeb_Visualizor.__main__.InstagramLoader")
     def test_sigma_visualization_output(self, mock_loader_class, fast_config):
         """Test that Sigma renderer generates HTML output."""
         # Create mock graph
@@ -576,7 +576,7 @@ class TestPipelineErrorHandling:
 class TestMultipleRenderersPipeline:
     """Test pipeline with multiple renderers."""
 
-    @patch("FollowWeb_Visualizor.main.InstagramLoader")
+    @patch("FollowWeb_Visualizor.__main__.InstagramLoader")
     def test_all_renderers_configuration(self, mock_loader_class, fast_config):
         """Test pipeline with renderer_type='all' generates multiple outputs."""
         mock_graph = nx.DiGraph()
@@ -729,6 +729,7 @@ class TestPipelineOutputGeneration:
             with open(report_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "FOLLOWWEB" in content or "GRAPH" in content
+
 
 
 
