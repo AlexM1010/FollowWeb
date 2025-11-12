@@ -120,14 +120,18 @@ def calculate_appropriate_k_values(dataset_name: str = "small_real") -> dict[str
     base_k = min(degree_based_k, avg_based_k, density_adjusted_k)
 
     # Apply dataset size-based constraints for optimal test performance
-    if nodes <= 10:  # Small dataset - conservative k-values
-        k_core = max(1, min(base_k, 3))
-        k_reciprocal = max(1, min(base_k - 1, 2))
-        k_ego = max(1, min(base_k - 1, 2))
-    elif nodes <= 25:  # Medium dataset - moderate k-values
-        k_core = max(2, min(base_k, 6))
-        k_reciprocal = max(1, min(base_k - 1, 4))
-        k_ego = max(1, min(base_k - 1, 4))
+    if nodes <= 10:  # Very small dataset - minimal k-values to avoid empty graphs
+        k_core = max(0, min(base_k, 1))
+        k_reciprocal = max(0, min(base_k, 1))
+        k_ego = max(0, min(base_k, 1))
+    elif nodes <= 25:  # Small dataset - conservative k-values
+        k_core = max(1, min(base_k, 2))
+        k_reciprocal = max(1, min(base_k, 2))
+        k_ego = max(1, min(base_k, 2))
+    elif nodes <= 50:  # Medium dataset - moderate k-values
+        k_core = max(2, min(base_k, 4))
+        k_reciprocal = max(1, min(base_k, 3))
+        k_ego = max(1, min(base_k, 3))
     else:  # Large dataset - higher k-values allowed
         k_core = max(3, min(base_k, 10))
         k_reciprocal = max(2, min(base_k - 1, 7))
@@ -205,10 +209,12 @@ def get_scalability_k_values(dataset_name: str = "full_anonymized") -> dict[str,
 
 @pytest.fixture
 def sample_data_file() -> str:
-    """Fixture providing path to sample data file - using tiny test dataset for fastest tests."""
+    """Fixture providing path to sample data file - using small test dataset for reliable tests."""
     # Use path relative to this conftest.py file location
+    # Changed from tiny_real.json to small_real.json because tiny has only 1 node
+    # which results in empty graphs after k-core pruning
     conftest_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(conftest_dir, "test_data", "tiny_real.json")
+    return os.path.join(conftest_dir, "test_data", "small_real.json")
 
 
 @pytest.fixture
@@ -430,8 +436,8 @@ def ci_optimized_config(
 
     config = default_config.copy()
     config["input_file"] = str(
-        Path("tests") / "test_data" / "tiny_real.json"
-    )  # Use smallest dataset in CI
+        Path("tests") / "test_data" / "small_real.json"
+    )  # Use small dataset in CI (tiny is too small with only 1 node)
     config["output_file_prefix"] = str(Path(temp_output_dir) / "ci_test_output")
 
     # CI-specific optimizations
@@ -488,7 +494,7 @@ def ci_optimized_config(
                 )
     else:
         # Local development - use appropriate k-values
-        k_values = calculate_appropriate_k_values("tiny_real")
+        k_values = calculate_appropriate_k_values("small_real")
         config["k_values"] = k_values
 
     return config
@@ -620,8 +626,8 @@ def fast_config(
     config["output_file_prefix"] = str(Path(temp_output_dir) / "test_output")
     config["visualization"]["static_image"]["generate"] = False  # Skip PNG for speed
 
-    # Calculate appropriate k-values based on tiny dataset statistics
-    k_values = calculate_appropriate_k_values("tiny_real")
+    # Calculate appropriate k-values based on small dataset statistics
+    k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
 
     return config
@@ -817,13 +823,13 @@ def tiny_config(default_config: dict[str, Any], temp_output_dir: str) -> dict[st
 
     config = default_config.copy()
     config["input_file"] = str(
-        Path("tests") / "test_data" / "tiny_real.json"
+        Path("tests") / "test_data" / "small_real.json"
     )  # Use tiny test dataset
     config["output_file_prefix"] = str(Path(temp_output_dir) / "test_output")
     config["visualization"]["static_image"]["generate"] = False  # Skip PNG for speed
 
-    # Calculate appropriate k-values based on tiny dataset statistics
-    k_values = calculate_appropriate_k_values("tiny_real")
+    # Calculate appropriate k-values based on small dataset statistics
+    k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
 
     return config
