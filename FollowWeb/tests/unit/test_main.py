@@ -314,7 +314,7 @@ class TestMainFunction:
     def test_main_keyboard_interrupt(self):
         """Test main function handling keyboard interrupt."""
         with patch(
-            "FollowWeb_Visualizor.main.PipelineOrchestrator"
+            "FollowWeb_Visualizor.__main__.PipelineOrchestrator"
         ) as mock_orchestrator:
             mock_orchestrator.side_effect = KeyboardInterrupt()
 

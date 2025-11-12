@@ -604,8 +604,6 @@ class FollowWebConfig:
         return self.pipeline.ego_username
 
 
-
-
 def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
     """
     Creates a FollowWebConfig instance from a dictionary.

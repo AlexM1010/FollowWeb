@@ -1,0 +1,1565 @@
+<!-- 
+    Jinja2 Template File
+    This file contains Jinja2 template syntax that will be processed server-side.
+    IDE warnings about template syntax are expected and can be ignored.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Visualization - 8 nodes</title>
+    <script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+    <!-- ForceAtlas2 layout from graphology-library -->
+    <script src="https://cdn.jsdelivr.net/npm/graphology-library/dist/graphology-library.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%);
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 320px;
+            max-width: calc(100vw - 40px);
+            z-index: 1000;
+            max-height: 90vh;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #controls.hidden {
+            max-height: 60px;
+            width: fit-content;
+            min-width: auto;
+            overflow: hidden;
+        }
+        
+        #controls-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(108, 142, 255, 0.1);
+            border-radius: 12px 12px 0 0;
+            transition: background 0.2s ease;
+            min-height: 60px;
+            box-sizing: border-box;
+        }
+        
+        #controls-header:hover {
+            background: rgba(108, 142, 255, 0.15);
+        }
+        
+        #controls-toggle {
+            background: transparent;
+            color: #6c8eff;
+            border: none;
+            padding: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            line-height: 1;
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        
+        #controls-toggle-icon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+        
+        #controls.hidden #controls-toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        #controls h2 {
+            margin: 0;
+            padding-right: 28px;
+            font-size: 18px;
+            color: #6c8eff;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        #controls-content {
+            padding: 0 20px 20px 20px;
+            max-height: calc(90vh - 60px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        
+        #controls.hidden #controls-content {
+            display: none;
+        }
+        
+        /* Custom scrollbar for controls content */
+        #controls-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #controls-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        #controls-content::-webkit-scrollbar-thumb {
+            background: rgba(108, 142, 255, 0.5);
+            border-radius: 4px;
+        }
+        
+        #controls-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(108, 142, 255, 0.7);
+        }
+        
+        /* Firefox scrollbar */
+        #controls-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(108, 142, 255, 0.5) rgba(255, 255, 255, 0.05);
+        }
+
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 200px;
+            z-index: 1000;
+        }
+
+        #stats h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #6c8eff;
+            font-weight: 600;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+        }
+
+        .stat-value {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #a0a0a0;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #6c8eff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #controls-content button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: linear-gradient(135deg, #6c8eff 0%, #5a7de8 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #controls-content button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 142, 255, 0.4);
+        }
+
+        #controls-content button:active {
+            transform: translateY(0);
+        }
+
+        #controls-content button.secondary {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+        }
+
+        #controls-content button.secondary:hover {
+            box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6c8eff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #5a7de8;
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6c8eff;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #5a7de8;
+            transform: scale(1.2);
+        }
+
+        .slider-value {
+            float: right;
+            color: #6c8eff;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .physics-controls {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .physics-controls h3 {
+            font-size: 14px;
+            color: #6c8eff;
+            margin-bottom: 12px;
+        }
+
+        #controls-content button.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        #controls-content button.danger:hover {
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+        #controls-content button.success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        #controls-content button.success:hover {
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+        }
+
+        #node-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 350px;
+            display: none;
+            z-index: 1001;
+        }
+        
+        #node-audio-player {
+            margin-top: 12px;
+            width: 100%;
+        }
+        
+        #node-audio-player audio {
+            width: 100%;
+            height: 32px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        #node-audio-player audio::-webkit-media-controls-panel {
+            background: rgba(108, 142, 255, 0.2);
+        }
+        
+        #node-info-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: #a0a0a0;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        #node-info-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        #node-info h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #6c8eff;
+            word-break: break-all;
+        }
+
+        #node-info p {
+            margin: 6px 0;
+            font-size: 13px;
+            color: #a0a0a0;
+        }
+
+        #node-info strong {
+            color: #ffffff;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 30, 63, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        #legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #6c8eff;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 2000;
+            display: none;
+            max-width: 250px;
+            line-height: 1.5;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #tooltip.visible {
+            display: block;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px 40px;
+            border-radius: 12px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #6c8eff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive: Hide title text on narrow screens to prevent overlap with stats */
+        @media (max-width: 768px) {
+            /* Hide title when collapsed */
+            #controls.hidden .controls-title-text {
+                display: none;
+            }
+            
+            /* Hide the entire h2 when collapsed to remove its space */
+            #controls.hidden h2 {
+                display: none;
+            }
+            
+            /* Show title when expanded */
+            #controls:not(.hidden) .controls-title-text {
+                display: inline;
+            }
+            
+            #controls {
+                width: calc(100vw - 40px) !important;
+                max-width: 100% !important;
+                left: 20px;
+                right: auto;
+            }
+            
+            #controls.hidden {
+                width: fit-content !important;
+                min-width: auto !important;
+                padding: 0 !important;
+            }
+            
+            #controls-header {
+                padding: 12px 16px;
+                min-width: auto;
+                width: 100%;
+                justify-content: center;
+                gap: 0;
+            }
+            
+            /* When expanded, show title with proper gap */
+            #controls:not(.hidden) #controls-header {
+                gap: 12px;
+                justify-content: flex-start;
+                padding: 12px 16px;
+            }
+            
+            #controls.hidden #controls-header {
+                width: fit-content;
+                padding: 16px;
+                border-radius: 12px;
+            }
+            
+            #controls-content {
+                padding: 0 15px 15px 15px;
+            }
+            
+            input[type="text"],
+            #controls-content button {
+                font-size: 13px;
+            }
+            
+            /* Mobile-friendly node info panel */
+            #node-info {
+                left: 50%;
+                bottom: 10px;
+                transform: translateX(-50%);
+                max-width: calc(100vw - 40px);
+                width: 90%;
+            }
+            
+            /* Hide other panels when settings are expanded on mobile */
+            #controls:not(.hidden) ~ #stats,
+            #controls:not(.hidden) ~ #node-info,
+            #controls:not(.hidden) ~ #legend {
+                display: none !important;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            #controls {
+                top: 10px;
+                left: 10px;
+                right: auto;
+                width: calc(100vw - 20px) !important;
+                max-width: 100% !important;
+            }
+            
+            #stats {
+                top: 10px;
+                right: 10px;
+                padding: 12px;
+                min-width: 150px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Mobile hint for tapping nodes */
+        @media (hover: none) and (pointer: coarse) {
+            #container::after {
+                content: '👆 Tap a node to see details';
+                position: absolute;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(108, 142, 255, 0.9);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 12px;
+                pointer-events: none;
+                animation: fadeOut 4s forwards;
+                z-index: 999;
+            }
+            
+            @keyframes fadeOut {
+                0%, 70% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Applying layout...</p>
+        </div>
+
+        <div id="controls">
+            <div id="controls-header">
+                <button id="controls-toggle" aria-label="Toggle controls">
+                    <span id="controls-toggle-icon">☰</span>
+                </button>
+                <h2><span class="controls-title-text">⚙️ Network Controls</span></h2>
+            </div>
+            <div id="controls-content">
+            <div class="control-group">
+                <label for="search">Search Sample:</label>
+                <input type="text" id="search" placeholder="Enter sample name...">
+            </div>
+            <button onclick="highlightNode()">Highlight Sample</button>
+            <button onclick="resetView()" class="secondary">Reset View</button>
+            <button onclick="startLayout()" class="success" id="startLayoutBtn">▶ Start Physics</button>
+            <button onclick="stopLayout()" class="danger" id="stopLayoutBtn" style="display:none;">⏸ Stop Physics</button>
+            
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="showLabels" checked onchange="toggleLabels()" style="width: auto; margin-right: 8px;">
+                    Show Node Labels
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="showTooltips" checked onchange="toggleTooltips()" style="width: auto; margin-right: 8px;">
+                    Show Tooltips on Hover
+                </label>
+            </div>
+            
+            <div class="physics-controls">
+                <h3>⚙️ Physics Settings</h3>
+                
+                <div class="control-group">
+                    <label for="linLogMode">
+                        <input type="checkbox" id="linLogMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        LinLog Mode
+                    </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Enables logarithmic attraction for better clustering
+                    </small>
+                </div>
+                
+                <div class="control-group" id="gravityControl">
+                    <label for="gravity">
+                        <span id="gravityLabel">Gravity</span>: <span class="slider-value" id="gravityValue">1.0</span>
+                    </label>
+                    <input type="range" id="gravity" min="0" max="100" step="1" value="50" oninput="handleGravityInput()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;" id="gravityHint">
+                        Pulls nodes toward center
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="scalingRatio">
+                        Physics Scale: <span class="slider-value" id="scalingValue">10</span>
+                    </label>
+                    <input type="range" id="scalingRatio" min="1" max="200" step="1" value="10" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Controls force calculation spacing
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="visualScale">
+                        Visual Scale: <span class="slider-value" id="visualScaleValue">0.5</span>
+                    </label>
+                    <input type="range" id="visualScale" min="0.1" max="5" step="0.1" value="0.5" oninput="updateVisualScale()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Adjusts node sizes in viewport
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="edgeWeightInfluence">
+                        Edge Weight: <span class="slider-value" id="edgeWeightValue">1.0</span>
+                    </label>
+                    <input type="range" id="edgeWeightInfluence" min="0" max="2" step="0.1" value="1.0" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        How much edge weights affect layout
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="slowDown">
+                        Slow Down: <span class="slider-value" id="slowDownValue">5.0</span>
+                    </label>
+                    <input type="range" id="slowDown" min="0" max="100" step="1" value="50" oninput="handleSlowDownInput()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Higher = slower, more stable convergence
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="outboundAttractionDistribution">
+                        <input type="checkbox" id="outboundAttractionDistribution" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Outbound Attraction
+                    </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Hubs attract more strongly
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="adjustSizes">
+                        <input type="checkbox" id="adjustSizes" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Adjust Sizes (Prevent Overlap)
+                    </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Prevents large nodes from overlapping
+                    </small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="barnesHutOptimize">
+                        <input type="checkbox" id="barnesHutOptimize" checked onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
+                        Barnes-Hut Optimize
+                    </label>
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Faster computation for large graphs
+                    </small>
+                </div>
+                
+                <div class="control-group" id="barnesHutThetaControl">
+                    <label for="barnesHutTheta">
+                        Barnes-Hut θ: <span class="slider-value" id="barnesHutThetaValue">0.5</span>
+                    </label>
+                    <input type="range" id="barnesHutTheta" min="0.1" max="1.5" step="0.1" value="0.5" oninput="updatePhysics()">
+                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                        Lower = more accurate, higher = faster
+                    </small>
+                </div>
+            </div>
+            
+            <button onclick="exportView()" class="secondary">Export View</button>
+            </div>
+        </div>
+
+        <div id="stats">
+            <h3>📊 Network Stats</h3>
+            <div class="stat-item">
+                <span class="stat-label">Nodes:</span>
+                <span class="stat-value" id="node-count">8</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Edges:</span>
+                <span class="stat-value" id="edge-count">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Avg Degree:</span>
+                <span class="stat-value" id="avg-degree">0.00</span>
+            </div>
+            
+        </div>
+
+        <div id="node-info">
+            <button id="node-info-close" onclick="closeNodeInfo()" aria-label="Close">×</button>
+            <h3 id="node-name"></h3>
+            <p><strong>User:</strong> <span id="node-user">-</span></p>
+            <p><strong>Duration:</strong> <span id="node-duration">0s</span></p>
+            <p><strong>Tags:</strong> <span id="node-tags">-</span></p>
+            <p><strong>Downloads:</strong> <span id="node-downloads">0</span></p>
+            <p><strong>Rating:</strong> <span id="node-rating">-</span></p>
+            <p><strong>Connections:</strong> <span id="node-degree">0</span></p>
+            
+            <p><strong>Centrality:</strong> <span id="node-centrality">0</span></p>
+            
+            
+            <p><strong>Community:</strong> <span id="node-community">-</span></p>
+            
+            <div id="node-audio-player"></div>
+        </div>
+
+        <div id="legend">
+            <h4>Node Colors</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b9d;"></div>
+                <span>High similarity</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4ecdc4;"></div>
+                <span>Medium similarity</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6c8eff;"></div>
+                <span>Low similarity</span>
+            </div>
+        </div>
+
+        <div id="tooltip"></div>
+    </div>
+
+    <script>
+        // Graph data from Jinja2 template
+        const graphData = {"edges": [], "nodes": [{"attributes": {"audio_url": "https://cdn.freesound.org/previews/24/24940_113878-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 6.98667, "eigenvector": 0.0, "label": "24940", "name": "The Winstons - Amen Brother - Full solo (4 Bars).wav", "size": 10.0, "tags": ["138bpm", "amen", "amen-brother", "beat", "break", "classic", "drumloop", "jungle", "oldskool", "solo", "the-winstons"], "user": "VEXST", "x": 2.8381983948304663, "y": 100.0}, "key": "24940"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/212/212764_71257-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 6.55973, "eigenvector": 0.0, "label": "212764", "name": "Lion Roar", "size": 10.0, "tags": ["angry", "animal", "beast", "cat", "creature", "exotic", "fake", "feline", "growl", "growling", "horror", "jungle", "lion", "monster", "roar", "scare", "scary", "scream"], "user": "qubodup", "x": 97.67884008329423, "y": -2.2798938494995813}, "key": "212764"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/122/122767_1933077-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 366.724, "eigenvector": 0.0, "label": "122767", "name": "yucatan jungle.mp3", "size": 10.0, "tags": ["jungle", "maya", "mexico", "sounds", "yucatan"], "user": "folkart films", "x": -72.30125508029062, "y": -75.17705898712103}, "key": "122767"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/30/30167_129090-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 66.4453, "eigenvector": 0.0, "label": "30167", "name": "TribalDrums.wav", "size": 10.0, "tags": ["drum", "drums", "energy", "jungle", "mallet", "rhythm", "tom", "toms", "track", "tribal"], "user": "HerbertBoland", "x": -98.01918308549598, "y": 4.447066371939538}, "key": "30167"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/26/26903_113878-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 0.37712, "eigenvector": 0.0, "label": "26903", "name": "Snare 4.wav", "size": 10.0, "tags": ["amen", "beat", "break", "drum", "hat", "hi", "hit", "jungle", "kick", "kit", "reverse", "sliced", "snare"], "user": "VEXST", "x": 67.85420841450511, "y": 64.93352157171401}, "key": "26903"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/182/182102_2132540-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 152.884, "eigenvector": 0.0, "label": "182102", "name": "Jungle Yuwientsa Equador 10.8.wav", "size": 10.0, "tags": ["alone", "animals", "atmo", "ecuador", "equador", "field-recording", "insects", "jungle", "Mike-Woloszyn", "night", "primary-rainforest", "rainforest", "stereo", "The-Tunk", "Tunk", "Woloszy", "Woloszyn-Mike"], "user": "TheTunk", "x": -72.95677305242216, "y": 79.01267952929265}, "key": "182102"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/328/328296_1661766-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 180.565, "eigenvector": 0.0, "label": "328296", "name": "Forest at dawn with birds, crickets and insects in the Sian Ka\u0027an Biosphere Reserve", "size": 10.0, "tags": ["4006", "BIO151028T02-AB", "Biosphere", "bird", "birds", "blume", "Bruel", "cicada", "cricket", "dawn", "dpa", "felix", "field-recording", "forest", "Forest", "insect", "insects", "Kjaer", "mexican", "mexico", "mosquito", "omnidirectional", "owl", "Residency", "road", "Santa", "some", "Soundscapes", "stereo", "Teresa"], "user": "felix.blume", "x": 75.3944103480659, "y": -76.26087654325465}, "key": "328296"}, {"attributes": {"audio_url": "https://cdn.freesound.org/previews/24/24930_113878-hq.mp3", "betweenness": 0.0, "color": "#808080", "community": 0, "degree": 1, "duration": 5.92599, "eigenvector": 0.0, "label": "24930", "name": "Basic Break.wav", "size": 10.0, "tags": ["162bpm", "amen", "beat", "break", "dnb", "jungle", "loop"], "user": "VEXST", "x": -0.48844602248695673, "y": -94.67543809307094}, "key": "24930"}]};
+        const config = {"enable_audio": true, "show_labels": true, "show_tooltips": true};
+        
+        let graph, renderer, layoutRunning = false, layoutWorker = null;
+        
+        // Track previous state of labels/tooltips before physics
+        let labelsBeforePhysics = true;
+        let tooltipsBeforePhysics = true;
+        
+        // Physics settings - ForceAtlas2 parameters
+        let physicsSettings = {
+            gravity: 1.0,
+            scalingRatio: 10,
+            edgeWeightInfluence: 1.0,
+            slowDown: 5.0,
+            linLogMode: false,
+            outboundAttractionDistribution: false,
+            adjustSizes: false,
+            barnesHutOptimize: true,
+            barnesHutTheta: 0.5,
+            strongGravityMode: true
+        };
+        
+        // Track which mode gravity is controlling and store separate values for each mode
+        let gravityControlsStrongMode = true; // Start with strong gravity mode
+        
+        // Separate settings for LinLog mode vs Normal mode
+        // Store as slider positions (0-100) for logarithmic mapping
+        let linLogSettings = {
+            gravitySlider: 30,  // Maps to ~0.1
+            slowDownSlider: 30, // Maps to ~0.1
+            scalingRatio: 10,
+            edgeWeightInfluence: 1.0
+        };
+        
+        let normalSettings = {
+            gravitySlider: 20,  // Maps to ~0.0025
+            slowDownSlider: 100, // Maps to 10
+            scalingRatio: 10,
+            edgeWeightInfluence: 1.0
+        };
+        
+        // Logarithmic mapping functions for progressive control
+        // Maps slider position (0-100) to actual value (0.0001-10)
+        function sliderToValue(sliderPos) {
+            // Logarithmic scale: 0.0001 to 10
+            // Position 0 = 0.0001, Position 50 = ~0.1, Position 100 = 10
+            const minLog = Math.log(0.0001);
+            const maxLog = Math.log(10);
+            const scale = (maxLog - minLog) / 100;
+            return Math.exp(minLog + scale * sliderPos);
+        }
+        
+        // Maps actual value (0.0001-10) to slider position (0-100)
+        function valueToSlider(value) {
+            const minLog = Math.log(0.0001);
+            const maxLog = Math.log(10);
+            const scale = (maxLog - minLog) / 100;
+            return Math.round((Math.log(Math.max(0.0001, value)) - minLog) / scale);
+        }
+
+        function initGraph() {
+            // Initialize Graphology graph
+            graph = new graphology.DirectedGraph();
+
+            // Add nodes
+            graphData.nodes.forEach(node => {
+                graph.addNode(node.key, node.attributes);
+            });
+
+            // Add edges
+            graphData.edges.forEach(edge => {
+                try {
+                    if (!graph.hasEdge(edge.source, edge.target)) {
+                        graph.addEdge(edge.source, edge.target, edge.attributes || {});
+                    }
+                } catch (e) {
+                    console.warn('Failed to add edge:', edge, e);
+                }
+            });
+
+            return graph;
+        }
+
+        function initRenderer() {
+            const container = document.getElementById('container');
+            
+            renderer = new Sigma(graph, container, {
+                renderEdgeLabels: config.renderEdgeLabels || false,
+                renderLabels: config.show_labels !== false,
+                defaultNodeColor: config.defaultNodeColor || '#6c8eff',
+                defaultEdgeColor: config.defaultEdgeColor || 'rgba(108, 142, 255, 0.2)',
+                labelSize: config.labelSize || 12,
+                labelColor: { color: config.labelColor || '#ffffff' },
+                labelWeight: config.labelWeight || '600',
+                minCameraRatio: config.minCameraRatio || 0.1,
+                maxCameraRatio: config.maxCameraRatio || 10,
+                enableEdgeEvents: true
+            });
+
+            // Track touch/click state for mobile support
+            let touchState = {
+                node: null,
+                startX: 0,
+                startY: 0,
+                startTime: 0,
+                moved: false,
+                timeout: null
+            };
+            
+            // Add click event for desktop
+            renderer.on('clickNode', ({ node }) => {
+                showNodeInfo(node);
+            });
+
+            // Track touch start on node
+            renderer.on('downNode', ({ node, event }) => {
+                // Clear any existing timeout
+                if (touchState.timeout) {
+                    clearTimeout(touchState.timeout);
+                }
+                
+                // Record touch start
+                touchState.node = node;
+                touchState.startX = event.x;
+                touchState.startY = event.y;
+                touchState.startTime = Date.now();
+                touchState.moved = false;
+                
+                console.log('Touch start on node:', node);
+            });
+            
+            // Track camera movement (indicates dragging)
+            let lastCameraState = null;
+            renderer.getCamera().on('updated', () => {
+                if (touchState.node) {
+                    const currentState = renderer.getCamera().getState();
+                    
+                    if (lastCameraState) {
+                        // Check if camera moved significantly
+                        const dx = Math.abs(currentState.x - lastCameraState.x);
+                        const dy = Math.abs(currentState.y - lastCameraState.y);
+                        const dr = Math.abs(currentState.ratio - lastCameraState.ratio);
+                        
+                        if (dx > 0.001 || dy > 0.001 || dr > 0.001) {
+                            touchState.moved = true;
+                            console.log('Camera moved - drag detected');
+                        }
+                    }
+                    
+                    lastCameraState = currentState;
+                }
+            });
+            
+            // Detect tap vs drag on touch end
+            renderer.getMouseCaptor().on('mouseup', (event) => {
+                if (touchState.node) {
+                    const duration = Date.now() - touchState.startTime;
+                    
+                    console.log('Touch end:', {
+                        node: touchState.node,
+                        duration: duration + 'ms',
+                        moved: touchState.moved
+                    });
+                    
+                    // If touch was quick (<400ms) and didn't move, treat as tap
+                    if (!touchState.moved && duration < 400) {
+                        console.log('Tap detected - showing node info');
+                        showNodeInfo(touchState.node);
+                    } else {
+                        console.log('Drag detected - not showing node info');
+                    }
+                    
+                    // Reset state
+                    touchState.node = null;
+                    touchState.moved = false;
+                    lastCameraState = null;
+                }
+            });
+
+            // Add hover events
+            renderer.on('enterNode', ({ node }) => {
+                if (config.show_tooltips !== false) {
+                    showTooltip(node);
+                }
+                const nodeAttributes = graph.getNodeAttributes(node);
+                const currentSize = nodeAttributes.size;
+                // Scale up by 1.5x from current visual size
+                graph.setNodeAttribute(node, 'size', currentSize * 1.5);
+                graph.setNodeAttribute(node, 'hovering', true);
+                renderer.refresh();
+            });
+
+            renderer.on('leaveNode', ({ node }) => {
+                if (config.show_tooltips !== false) {
+                    hideTooltip();
+                }
+                const nodeAttributes = graph.getNodeAttributes(node);
+                if (nodeAttributes.hovering) {
+                    // Restore to base size with current visual scale
+                    const baseSize = baseNodeSizes.get(node) || 5;
+                    graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale);
+                    graph.setNodeAttribute(node, 'hovering', false);
+                }
+                renderer.refresh();
+            });
+
+            // Mouse move for tooltip positioning
+            renderer.getMouseCaptor().on('mousemove', (e) => {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip.classList.contains('visible')) {
+                    tooltip.style.left = (e.x + 15) + 'px';
+                    tooltip.style.top = (e.y + 15) + 'px';
+                }
+            });
+
+            renderer.refresh();
+        }
+
+        function showNodeInfo(nodeId) {
+            const attributes = graph.getNodeAttributes(nodeId);
+            document.getElementById('node-name').textContent = attributes.name || attributes.label || nodeId;
+            document.getElementById('node-user').textContent = attributes.user || '-';
+            
+            // Format duration
+            const duration = attributes.duration || 0;
+            const durationText = duration > 0 ? duration.toFixed(1) + 's' : '-';
+            document.getElementById('node-duration').textContent = durationText;
+            
+            // Format tags
+            const tags = attributes.tags || [];
+            const tagsText = Array.isArray(tags) && tags.length > 0 ? tags.slice(0, 5).join(', ') : '-';
+            document.getElementById('node-tags').textContent = tagsText;
+            
+            // Popularity metrics
+            const downloads = attributes.num_downloads || 0;
+            document.getElementById('node-downloads').textContent = downloads.toLocaleString();
+            
+            const avgRating = attributes.avg_rating || 0;
+            const numRatings = attributes.num_ratings || 0;
+            const ratingText = numRatings > 0 ? `${avgRating.toFixed(1)}/5 (${numRatings} ratings)` : 'No ratings';
+            document.getElementById('node-rating').textContent = ratingText;
+            
+            document.getElementById('node-degree').textContent = graph.degree(nodeId);
+            
+            
+            const centralityElem = document.getElementById('node-centrality');
+            if (centralityElem && attributes.centrality !== undefined) {
+                centralityElem.textContent = attributes.centrality.toFixed(4);
+            }
+            
+            
+            
+            const communityElem = document.getElementById('node-community');
+            if (communityElem && attributes.community !== undefined) {
+                communityElem.textContent = attributes.community;
+            }
+            
+            
+            // Add audio player if audio_url is available
+            const audioPlayerDiv = document.getElementById('node-audio-player');
+            audioPlayerDiv.innerHTML = ''; // Clear previous player
+            
+            if (attributes.audio_url && attributes.audio_url.trim() !== '') {
+                const audioElement = document.createElement('audio');
+                audioElement.controls = true;
+                audioElement.preload = 'auto';
+                audioElement.src = attributes.audio_url;
+                audioPlayerDiv.appendChild(audioElement);
+                
+                // Auto-play the audio when node is clicked
+                audioElement.play().catch(err => {
+                    console.log('Auto-play prevented by browser:', err);
+                    // Browser may block auto-play, user will need to click play button
+                });
+            }
+            
+            document.getElementById('node-info').style.display = 'block';
+        }
+        
+        function closeNodeInfo() {
+            // Stop any playing audio
+            const audioPlayerDiv = document.getElementById('node-audio-player');
+            const audioElement = audioPlayerDiv.querySelector('audio');
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            }
+            
+            document.getElementById('node-info').style.display = 'none';
+        }
+
+        function showTooltip(nodeId) {
+            const attributes = graph.getNodeAttributes(nodeId);
+            const tooltip = document.getElementById('tooltip');
+            
+            let content = `<strong>${attributes.name || attributes.label || nodeId}</strong><br>`;
+            content += `User: ${attributes.user || '-'}<br>`;
+            
+            const duration = attributes.duration || 0;
+            if (duration > 0) {
+                content += `Duration: ${duration.toFixed(1)}s<br>`;
+            }
+            
+            content += `Connections: ${graph.degree(nodeId)}`;
+            
+            
+            if (attributes.centrality !== undefined) {
+                content += `<br>Centrality: ${attributes.centrality.toFixed(4)}`;
+            }
+            
+            
+            
+            if (attributes.community !== undefined) {
+                content += `<br>Community: ${attributes.community}`;
+            }
+            
+            
+            tooltip.innerHTML = content;
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').classList.remove('visible');
+        }
+
+        function highlightNode() {
+            const searchTerm = document.getElementById('search').value.toLowerCase().trim();
+            if (!searchTerm) {
+                alert('Please enter a sample name to search');
+                return;
+            }
+
+            let found = false;
+            graph.forEachNode((node, attributes) => {
+                const label = (attributes.name || attributes.label || node).toLowerCase();
+                if (label.includes(searchTerm)) {
+                    // Store original color if not already stored
+                    if (!attributes.originalColor) {
+                        graph.setNodeAttribute(node, 'originalColor', attributes.color);
+                    }
+                    
+                    // Highlight the node
+                    graph.setNodeAttribute(node, 'color', '#ffff00');
+                    graph.setNodeAttribute(node, 'highlighted', true);
+                    
+                    // Make it 2x larger than current visual size
+                    const baseSize = baseNodeSizes.get(node) || 5;
+                    graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale * 2);
+                    
+                    // Center camera on node
+                    const nodePosition = renderer.getNodeDisplayData(node);
+                    if (nodePosition) {
+                        renderer.getCamera().animate(nodePosition, {
+                            duration: 500
+                        });
+                    }
+                    
+                    showNodeInfo(node);
+                    found = true;
+                    return false; // Stop iteration
+                }
+            });
+
+            if (!found) {
+                alert('Sample not found!');
+            } else {
+                renderer.refresh();
+            }
+        }
+
+        function resetView() {
+            // Reset all node colors and sizes
+            graph.forEachNode((node, attributes) => {
+                if (attributes.originalColor) {
+                    graph.setNodeAttribute(node, 'color', attributes.originalColor);
+                    graph.setNodeAttribute(node, 'originalColor', undefined);
+                }
+                if (attributes.highlighted) {
+                    // Restore to base size with current visual scale
+                    const baseSize = baseNodeSizes.get(node) || 5;
+                    graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale);
+                    graph.setNodeAttribute(node, 'highlighted', false);
+                }
+            });
+
+            renderer.getCamera().animate({ x: 0.5, y: 0.5, ratio: 1 }, { duration: 500 });
+            document.getElementById('node-info').style.display = 'none';
+            document.getElementById('search').value = '';
+            renderer.refresh();
+        }
+
+        function toggleLabels() {
+            const showLabels = document.getElementById('showLabels').checked;
+            renderer.setSetting('renderLabels', showLabels);
+            renderer.refresh();
+            console.log('Labels:', showLabels ? 'enabled' : 'disabled');
+        }
+
+        function toggleTooltips() {
+            const showTooltips = document.getElementById('showTooltips').checked;
+            config.show_tooltips = showTooltips;
+            console.log('Tooltips:', showTooltips ? 'enabled' : 'disabled');
+        }
+
+        // Format value with appropriate precision
+        function formatValue(val) {
+            if (val < 0.001) return val.toFixed(4);
+            if (val < 0.01) return val.toFixed(3);
+            if (val < 0.1) return val.toFixed(2);
+            return val.toFixed(1);
+        }
+
+        // Logarithmic gravity slider handler
+        function handleGravityInput() {
+            const slider = document.getElementById('gravity');
+            const sliderPos = parseInt(slider.value);
+            const actualValue = sliderToValue(sliderPos);
+            
+            // Save to current mode settings
+            const linLogMode = document.getElementById('linLogMode').checked;
+            if (linLogMode) {
+                linLogSettings.gravitySlider = sliderPos;
+            } else {
+                normalSettings.gravitySlider = sliderPos;
+            }
+            
+            // Update physics with actual value
+            physicsSettings.gravity = actualValue;
+            
+            // Update display
+            document.getElementById('gravityValue').textContent = formatValue(actualValue);
+            
+            console.log(`Gravity slider: ${sliderPos} → value: ${actualValue.toFixed(4)}`);
+        }
+
+        // Logarithmic slowDown slider handler
+        function handleSlowDownInput() {
+            const slider = document.getElementById('slowDown');
+            const sliderPos = parseInt(slider.value);
+            const actualValue = sliderToValue(sliderPos);
+            
+            // Save to current mode settings
+            const linLogMode = document.getElementById('linLogMode').checked;
+            if (linLogMode) {
+                linLogSettings.slowDownSlider = sliderPos;
+            } else {
+                normalSettings.slowDownSlider = sliderPos;
+            }
+            
+            // Update physics with actual value
+            physicsSettings.slowDown = actualValue;
+            
+            // Update display
+            document.getElementById('slowDownValue').textContent = formatValue(actualValue);
+            
+            console.log(`SlowDown slider: ${sliderPos} → value: ${actualValue.toFixed(4)}`);
+        }
+        
+        // Visual scale handler (affects node sizes in viewport)
+        let baseNodeSizes = new Map(); // Store original node sizes
+        let currentVisualScale = 0.5;
+        
+        function updateVisualScale() {
+            const visualScale = parseFloat(document.getElementById('visualScale').value);
+            document.getElementById('visualScaleValue').textContent = visualScale.toFixed(1);
+            
+            if (!graph) return;
+            
+            // Store base sizes on first call
+            if (baseNodeSizes.size === 0) {
+                graph.forEachNode((node, attributes) => {
+                    baseNodeSizes.set(node, attributes.size || 5);
+                });
+            }
+            
+            // Apply visual scale to all node sizes
+            graph.forEachNode((node, attributes) => {
+                const baseSize = baseNodeSizes.get(node) || attributes.size || 5;
+                graph.setNodeAttribute(node, 'size', baseSize * visualScale);
+            });
+            
+            currentVisualScale = visualScale;
+            
+            if (renderer) {
+                renderer.refresh();
+            }
+            
+            console.log(`Visual scale: ${visualScale} (node sizes multiplied)`);
+        }
+
+        function updatePhysics() {
+            const linLogMode = document.getElementById('linLogMode').checked;
+            const barnesHutOptimize = document.getElementById('barnesHutOptimize').checked;
+            
+            // Get slider elements
+            const gravitySlider = document.getElementById('gravity');
+            const slowDownSlider = document.getElementById('slowDown');
+            const scalingSlider = document.getElementById('scalingRatio');
+            const edgeWeightSlider = document.getElementById('edgeWeightInfluence');
+            
+            // Check if mode changed (checkbox was toggled)
+            const modeChanged = (linLogMode && gravityControlsStrongMode) || (!linLogMode && !gravityControlsStrongMode);
+            
+            if (modeChanged) {
+                // Mode switched - restore all settings for the new mode
+                if (linLogMode) {
+                    // Switching TO LinLog mode - restore LinLog settings
+                    gravitySlider.value = linLogSettings.gravitySlider;
+                    slowDownSlider.value = linLogSettings.slowDownSlider;
+                    scalingSlider.value = linLogSettings.scalingRatio;
+                    edgeWeightSlider.value = linLogSettings.edgeWeightInfluence;
+                    
+                    physicsSettings.strongGravityMode = false;
+                    gravityControlsStrongMode = false;
+                    
+                    document.getElementById('gravityLabel').textContent = 'Gravity';
+                    document.getElementById('gravityHint').textContent = 'Pulls nodes toward center (LinLog Mode)';
+                    document.getElementById('gravityHint').style.color = '#4ecdc4';
+                } else {
+                    // Switching TO Normal mode - restore Normal settings
+                    gravitySlider.value = normalSettings.gravitySlider;
+                    slowDownSlider.value = normalSettings.slowDownSlider;
+                    scalingSlider.value = normalSettings.scalingRatio;
+                    edgeWeightSlider.value = normalSettings.edgeWeightInfluence;
+                    
+                    physicsSettings.strongGravityMode = true;
+                    gravityControlsStrongMode = true;
+                    
+                    document.getElementById('gravityLabel').textContent = 'Gravity (Strong)';
+                    document.getElementById('gravityHint').textContent = 'Pulls nodes toward center (Strong Mode)';
+                    document.getElementById('gravityHint').style.color = '#6c8eff';
+                }
+                
+                // Trigger input handlers to update actual values
+                handleGravityInput();
+                handleSlowDownInput();
+            } else {
+                // No mode change - save regular slider values to current mode
+                if (linLogMode) {
+                    linLogSettings.scalingRatio = parseFloat(scalingSlider.value);
+                    linLogSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
+                } else {
+                    normalSettings.scalingRatio = parseFloat(scalingSlider.value);
+                    normalSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
+                }
+            }
+            
+            // Apply current slider values to physics settings
+            // Gravity and slowDown are handled by their input handlers
+            physicsSettings.scalingRatio = parseFloat(scalingSlider.value);
+            physicsSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
+            physicsSettings.barnesHutTheta = parseFloat(document.getElementById('barnesHutTheta').value);
+            physicsSettings.linLogMode = linLogMode;
+            physicsSettings.outboundAttractionDistribution = document.getElementById('outboundAttractionDistribution').checked;
+            physicsSettings.adjustSizes = document.getElementById('adjustSizes').checked;
+            physicsSettings.barnesHutOptimize = barnesHutOptimize;
+            
+            // Show/hide Barnes-Hut theta control based on optimization setting
+            const barnesHutThetaControl = document.getElementById('barnesHutThetaControl');
+            barnesHutThetaControl.style.display = barnesHutOptimize ? 'block' : 'none';
+            
+            // Update display values for non-logarithmic sliders
+            document.getElementById('scalingValue').textContent = physicsSettings.scalingRatio.toFixed(0);
+            document.getElementById('edgeWeightValue').textContent = physicsSettings.edgeWeightInfluence.toFixed(1);
+            document.getElementById('barnesHutThetaValue').textContent = physicsSettings.barnesHutTheta.toFixed(1);
+            
+            // Settings will be applied on next animation frame if layout is running
+            console.log('Physics settings updated:', physicsSettings);
+            console.log('Mode:', linLogMode ? 'LinLog' : 'Normal (Strong Gravity)');
+        }
+
+        function startLayout() {
+            if (layoutRunning) {
+                console.log('Layout is already running');
+                return;
+            }
+
+            // Save current state of labels and tooltips
+            labelsBeforePhysics = document.getElementById('showLabels').checked;
+            tooltipsBeforePhysics = document.getElementById('showTooltips').checked;
+            
+            // Disable labels and tooltips for better performance
+            if (labelsBeforePhysics) {
+                document.getElementById('showLabels').checked = false;
+                toggleLabels();
+            }
+            if (tooltipsBeforePhysics) {
+                document.getElementById('showTooltips').checked = false;
+                toggleTooltips();
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('startLayoutBtn').style.display = 'none';
+            document.getElementById('stopLayoutBtn').style.display = 'block';
+            layoutRunning = true;
+
+            try {
+                // Use graphology-library ForceAtlas2
+                if (!window.graphologyLibrary || !window.graphologyLibrary.layoutForceAtlas2) {
+                    throw new Error('graphology-library not loaded');
+                }
+                
+                console.log('Using ForceAtlas2 from graphology-library');
+                
+                // Infer base settings from graph structure
+                const inferredSettings = window.graphologyLibrary.layoutForceAtlas2.inferSettings(graph);
+                
+                // Run layout with animation
+                let iteration = 0;
+                const maxIterations = 500;
+                
+                const animate = () => {
+                    if (!layoutRunning || iteration >= maxIterations) {
+                        stopLayout();
+                        return;
+                    }
+                    
+                    // Merge inferred settings with current user settings (allows live updates)
+                    const currentSettings = Object.assign({}, inferredSettings, physicsSettings);
+                    
+                    // Run one iteration and assign positions to graph
+                    window.graphologyLibrary.layoutForceAtlas2.assign(graph, {
+                        iterations: 1,
+                        settings: currentSettings
+                    });
+                    
+                    iteration++;
+                    
+                    // Refresh renderer every 3 iterations for smooth performance
+                    if (iteration % 3 === 0) {
+                        renderer.refresh();
+                    }
+                    
+                    // Continue animation
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+                console.log('ForceAtlas2 layout started');
+            } catch (e) {
+                console.error('Layout error:', e);
+                alert('Failed to start layout: ' + e.message);
+                stopLayout();
+            }
+        }
+
+        function stopLayout() {
+            layoutRunning = false;
+            layoutWorker = null;
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('startLayoutBtn').style.display = 'block';
+            document.getElementById('stopLayoutBtn').style.display = 'none';
+            
+            // Restore previous state of labels and tooltips
+            if (labelsBeforePhysics) {
+                document.getElementById('showLabels').checked = true;
+                toggleLabels();
+            }
+            if (tooltipsBeforePhysics) {
+                document.getElementById('showTooltips').checked = true;
+                toggleTooltips();
+            }
+            
+            renderer.refresh();
+            console.log('Layout stopped');
+        }
+
+        function exportView() {
+            // Get current camera state
+            const camera = renderer.getCamera();
+            const state = camera.getState();
+            
+            const exportData = {
+                camera: state,
+                timestamp: new Date().toISOString(),
+                stats: {
+                    nodes: graph.order,
+                    edges: graph.size
+                }
+            };
+            
+            console.log('Current view state:', exportData);
+            alert('View state exported to console. Check browser developer tools.');
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                initGraph();
+                
+                // Store base node sizes before any scaling
+                graph.forEachNode((node, attributes) => {
+                    baseNodeSizes.set(node, attributes.size || 5);
+                });
+                
+                initRenderer();
+                
+                // Set checkbox states based on config
+                document.getElementById('showLabels').checked = config.show_labels !== false;
+                document.getElementById('showTooltips').checked = config.show_tooltips !== false;
+                
+                // Initialize logarithmic sliders with default values
+                handleGravityInput();
+                handleSlowDownInput();
+                
+                // Initialize visual scale (apply 0.5 default)
+                updateVisualScale();
+                
+                // Initialize physics UI state
+                updatePhysics();
+                
+                // Initialize controls toggle - hidden by default
+                const controlsHeader = document.getElementById('controls-header');
+                const controls = document.getElementById('controls');
+                let controlsVisible = false;
+                
+                // Hide controls by default on all devices
+                controls.classList.add('hidden');
+                
+                controlsHeader.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    controlsVisible = !controlsVisible;
+                    if (controlsVisible) {
+                        controls.classList.remove('hidden');
+                    } else {
+                        controls.classList.add('hidden');
+                    }
+                });
+                
+                console.log('Sigma.js visualization initialized');
+                console.log('Nodes:', graph.order);
+                console.log('Edges:', graph.size);
+                
+                // Check if graphology-library is available
+                if (window.graphologyLibrary && window.graphologyLibrary.layoutForceAtlas2) {
+                    console.log('✓ graphology-library loaded with ForceAtlas2');
+                } else {
+                    console.error('✗ graphology-library failed to load');
+                }
+            } catch (e) {
+                console.error('Initialization error:', e);
+                alert('Failed to initialize visualization: ' + e.message);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.getElementById('search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                highlightNode();
+            }
+        });
+
+        // Prevent context menu on container
+        document.getElementById('container').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>

@@ -221,14 +221,16 @@ def sample_data_file() -> str:
 def sample_data_exists(sample_data_file: str) -> bool:
     """
     Fixture checking if sample data file exists.
-    
+
     Note: Test data should always be committed to the repository.
     If this returns False, it indicates a repository issue, not a test skip condition.
     """
     exists = os.path.exists(sample_data_file)
     if not exists:
         # Fail the test instead of allowing skip - test data must exist
-        pytest.fail(f"Test data file missing: {sample_data_file}. Test data must be committed to repository.")
+        pytest.fail(
+            f"Test data file missing: {sample_data_file}. Test data must be committed to repository."
+        )
     return exists
 
 

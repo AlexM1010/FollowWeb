@@ -35,6 +35,8 @@ logs/pipeline_*.log
 # Temporary test scripts (root level)
 test_*.py
 *_test.py
+test_skip_report.txt
+skip_summary.txt
 
 # Log files (root level)
 *.log
