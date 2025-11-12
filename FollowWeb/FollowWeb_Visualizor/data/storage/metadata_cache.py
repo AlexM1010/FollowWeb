@@ -113,7 +113,7 @@ class MetadataCache:
         """
         if self._conn is None:
             raise RuntimeError("Database connection not initialized")
-        
+
         cursor = self._conn.execute(
             "SELECT data FROM metadata WHERE sample_id = ?", (sample_id,)
         )
@@ -184,7 +184,7 @@ class MetadataCache:
         """
         if self._conn is None:
             raise RuntimeError("Database connection not initialized")
-        
+
         timestamp = datetime.now(timezone.utc).isoformat()
 
         rows = []
@@ -230,7 +230,7 @@ class MetadataCache:
         """
         if self._conn is None:
             raise RuntimeError("Database connection not initialized")
-        
+
         cursor = self._conn.execute(
             "SELECT 1 FROM metadata WHERE sample_id = ? LIMIT 1", (sample_id,)
         )
@@ -245,7 +245,7 @@ class MetadataCache:
         """
         if self._conn is None:
             raise RuntimeError("Database connection not initialized")
-        
+
         cursor = self._conn.execute("SELECT sample_id FROM metadata")
         return [row[0] for row in cursor.fetchall()]
 
@@ -258,7 +258,7 @@ class MetadataCache:
         """
         if self._conn is None:
             raise RuntimeError("Database connection not initialized")
-        
+
         cursor = self._conn.execute("SELECT COUNT(*) FROM metadata")
         return cursor.fetchone()[0]
 
@@ -271,7 +271,7 @@ class MetadataCache:
         """
         if self._conn is None:
             RuntimeError("Database connection not initialized")
-        
+
         self._conn.execute("DELETE FROM metadata WHERE sample_id = ?", (sample_id,))
         self._conn.commit()
 
@@ -287,7 +287,7 @@ class MetadataCache:
         """
         if self._conn is None:
             raise RuntimeError("Database connection not initialized")
-        
+
         cursor = self._conn.execute("""
             SELECT sample_id
             FROM metadata
