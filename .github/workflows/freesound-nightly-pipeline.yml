@@ -88,6 +88,32 @@ jobs:
         pip install -r FollowWeb/requirements.txt
         pip install -e FollowWeb/
     
+    - name: Validate secrets
+      env:
+        FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "**🔐 Secret Validation**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check FREESOUND_API_KEY (required)
+        if [ -z "$FREESOUND_API_KEY" ]; then
+          echo "::error::FREESOUND_API_KEY not configured"
+          echo "- ❌ FREESOUND_API_KEY: Not configured" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        else
+          echo "- ✅ FREESOUND_API_KEY: Configured" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check BACKUP_PAT (optional but recommended)
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "::warning::BACKUP_PAT not configured - checkpoint backups will be skipped"
+          echo "- ⚠️ BACKUP_PAT: Not configured (backups disabled)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ✅ BACKUP_PAT: Configured" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
     - name: Verify installation
       run: |
         python -c "import FollowWeb_Visualizor"
@@ -485,7 +511,17 @@ jobs:
           fi
           
           git commit -m "$commit_msg"
-          git push
+          
+          # Push with retry logic
+          git push || {
+            echo "⚠️ Push failed, attempting rebase..."
+            git pull --rebase
+            git push || {
+              echo "::error::Failed to push changes after rebase"
+              echo "- ❌ Git push failed after retry" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            }
+          }
           
           echo "✅ Changes committed and pushed"
           echo "- Commit: \`$commit_msg\`" >> $GITHUB_STEP_SUMMARY

@@ -54,8 +54,9 @@ on:
   pull_request:
     branches: [ main, develop ]
   schedule:
-    # Run tests weekly on Sundays at 2 AM UTC to catch dependency issues
-    - cron: '0 2 * * 0'
+    # Run tests weekly on Saturdays at 2 AM UTC to catch dependency issues
+    # Changed from Sunday to avoid collision with nightly workflow
+    - cron: '0 2 * * 6'
   workflow_dispatch:
     # Allow manual triggering of the workflow
 
@@ -184,7 +185,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-reports
+        name: coverage-reports-${{ matrix.os }}-${{ matrix.python-version }}
         path: |
           FollowWeb/coverage.xml
           FollowWeb/htmlcov/
@@ -285,7 +286,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: security-reports
+        name: security-reports-ubuntu-latest
         path: |
           FollowWeb/bandit-report.json
           FollowWeb/pip-audit-report.json
