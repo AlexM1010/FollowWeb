@@ -727,11 +727,9 @@ class TestPipelineSuccessValidation:
 
         config = fast_config.copy()
         # Skip visualization phase
-        config["pipeline_stages"] = {
-            "enable_strategy": True,
-            "enable_analysis": True,
-            "enable_visualization": False,
-        }
+        if "pipeline" not in config:
+            config["pipeline"] = {}
+        config["pipeline"]["enable_visualization"] = False
 
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)

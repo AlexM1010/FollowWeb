@@ -67,7 +67,7 @@ class NodeGroupColors:
 
 class UIColors:
     """UI color palette for visualization interfaces.
-    
+
     Original UI colors designed for FollowWeb, inspired by dark mode
     interface aesthetics but with distinct color values.
     """
