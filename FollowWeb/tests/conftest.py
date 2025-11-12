@@ -51,22 +51,34 @@ _dataset_summary_cache = None
 # Global test configuration for performance optimization
 TEST_PERFORMANCE_CONFIG = {
     "max_layout_iterations": 3,  # Minimal iterations for fast tests
-    "spring_iterations": 3,      # Minimal spring layout iterations
-    "spring_k": 0.5,             # Increased for faster convergence
+    "spring_iterations": 3,  # Minimal spring layout iterations
+    "spring_k": 0.5,  # Increased for faster convergence
 }
 
 # Common k-value presets for different test scenarios
 TEST_K_VALUE_PRESETS = {
     "minimal": {  # For very fast tests or small graphs
-        "strategy_k_values": {"k-core": 1, "reciprocal_k-core": 1, "ego_alter_k-core": 1},
+        "strategy_k_values": {
+            "k-core": 1,
+            "reciprocal_k-core": 1,
+            "ego_alter_k-core": 1,
+        },
         "default_k_value": 1,
     },
     "small": {  # For ego-alter or small graph tests
-        "strategy_k_values": {"k-core": 2, "reciprocal_k-core": 2, "ego_alter_k-core": 2},
+        "strategy_k_values": {
+            "k-core": 2,
+            "reciprocal_k-core": 2,
+            "ego_alter_k-core": 2,
+        },
         "default_k_value": 2,
     },
     "moderate": {  # For PNG generation or moderate complexity tests
-        "strategy_k_values": {"k-core": 7, "reciprocal_k-core": 7, "ego_alter_k-core": 7},
+        "strategy_k_values": {
+            "k-core": 7,
+            "reciprocal_k-core": 7,
+            "ego_alter_k-core": 7,
+        },
         "default_k_value": 7,
     },
 }
@@ -86,13 +98,13 @@ TEST_PIPELINE_PRESETS = {
 
 def apply_test_performance_config(config: dict[str, Any]) -> dict[str, Any]:
     """Apply global test performance optimizations to a config dict.
-    
+
     This ensures consistent performance settings across all tests without
     needing to manually set them in each test.
-    
+
     Args:
         config: Configuration dictionary to optimize
-        
+
     Returns:
         Modified configuration dictionary with performance optimizations applied
     """
@@ -103,48 +115,60 @@ def apply_test_performance_config(config: dict[str, Any]) -> dict[str, Any]:
         config["visualization"]["layout"] = {}
     if "spring" not in config["visualization"]["layout"]:
         config["visualization"]["layout"]["spring"] = {}
-    
-    config["visualization"]["layout"]["spring"]["iterations"] = TEST_PERFORMANCE_CONFIG["spring_iterations"]
-    config["visualization"]["layout"]["spring"]["k"] = TEST_PERFORMANCE_CONFIG["spring_k"]
-    
+
+    config["visualization"]["layout"]["spring"]["iterations"] = TEST_PERFORMANCE_CONFIG[
+        "spring_iterations"
+    ]
+    config["visualization"]["layout"]["spring"]["k"] = TEST_PERFORMANCE_CONFIG[
+        "spring_k"
+    ]
+
     # Apply analysis mode optimizations
     if "analysis_mode" not in config:
         config["analysis_mode"] = {}
-    config["analysis_mode"]["max_layout_iterations"] = TEST_PERFORMANCE_CONFIG["max_layout_iterations"]
-    
+    config["analysis_mode"]["max_layout_iterations"] = TEST_PERFORMANCE_CONFIG[
+        "max_layout_iterations"
+    ]
+
     return config
 
 
-def apply_k_value_preset(config: dict[str, Any], preset: str = "moderate") -> dict[str, Any]:
+def apply_k_value_preset(
+    config: dict[str, Any], preset: str = "moderate"
+) -> dict[str, Any]:
     """Apply a k-value preset to a config dict.
-    
+
     Args:
         config: Configuration dictionary
         preset: One of "minimal", "small", or "moderate"
-        
+
     Returns:
         Modified configuration dictionary
     """
     if preset not in TEST_K_VALUE_PRESETS:
-        raise ValueError(f"Unknown k-value preset: {preset}. Choose from {list(TEST_K_VALUE_PRESETS.keys())}")
-    
+        raise ValueError(
+            f"Unknown k-value preset: {preset}. Choose from {list(TEST_K_VALUE_PRESETS.keys())}"
+        )
+
     config["k_values"] = TEST_K_VALUE_PRESETS[preset].copy()
     return config
 
 
 def apply_pipeline_preset(config: dict[str, Any], preset: str) -> dict[str, Any]:
     """Apply a pipeline stage preset to a config dict.
-    
+
     Args:
         config: Configuration dictionary
         preset: One of "strategy_only" or "no_visualization"
-        
+
     Returns:
         Modified configuration dictionary
     """
     if preset not in TEST_PIPELINE_PRESETS:
-        raise ValueError(f"Unknown pipeline preset: {preset}. Choose from {list(TEST_PIPELINE_PRESETS.keys())}")
-    
+        raise ValueError(
+            f"Unknown pipeline preset: {preset}. Choose from {list(TEST_PIPELINE_PRESETS.keys())}"
+        )
+
     config["pipeline_stages"] = TEST_PIPELINE_PRESETS[preset].copy()
     return config
 
@@ -733,7 +757,7 @@ def fast_config(
     # This ensures the graph doesn't become empty after pruning
     k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
-    
+
     # Apply global test performance optimizations
     config = apply_test_performance_config(config)
 
@@ -799,14 +823,17 @@ def _configure_parallel_execution(config):
             if hasattr(config.option, "cov"):
                 config.option.cov = None  # Disable coverage for accurate timing
             return
-    
+
     # Check if running benchmark tests by examining test paths
     # This catches cases like: pytest tests/performance/test_benchmarks.py
     test_args = config.args
     if test_args:
         for arg in test_args:
             # Check if any test path contains benchmark-related keywords
-            if any(keyword in arg.lower() for keyword in ["benchmark", "test_benchmarks.py"]):
+            if any(
+                keyword in arg.lower()
+                for keyword in ["benchmark", "test_benchmarks.py"]
+            ):
                 # Check if we're not explicitly excluding benchmarks
                 if "not benchmark" not in markers:
                     config.option.numprocesses = 0
@@ -856,7 +883,9 @@ def _configure_parallel_execution(config):
     # Note: Test order is already optimized in pytest_collection_modifyitems
     # (longest tests first) for optimal parallel execution
     if "unit" in markers:
-        config.option.dist = "worksteal"  # Best for fast unit tests - dynamic work stealing
+        config.option.dist = (
+            "worksteal"  # Best for fast unit tests - dynamic work stealing
+        )
     elif "integration" in markers:
         config.option.dist = "loadscope"  # Respects test ordering (longest first)
     else:
@@ -927,7 +956,7 @@ def pytest_sessionstart(session):
 def pytest_collection_modifyitems(config, items):
     """
     Modify test collection to add markers and sort by expected duration.
-    
+
     Sorts tests so longest-running tests start first, allowing them to run
     throughout the entire test session while shorter tests fill in gaps.
     This minimizes the "long tail" problem in parallel execution.
@@ -947,13 +976,13 @@ def pytest_collection_modifyitems(config, items):
             marker.name in ["integration", "slow"] for marker in item.iter_markers()
         ):
             item.add_marker(pytest.mark.unit)
-    
+
     # Check if any collected items have benchmark marker - disable xdist if so
     has_benchmarks = any(
         any(marker.name == "benchmark" for marker in item.iter_markers())
         for item in items
     )
-    
+
     if has_benchmarks:
         # Check if we're explicitly excluding benchmarks
         markers = config.getoption("-m", default="")
@@ -961,15 +990,17 @@ def pytest_collection_modifyitems(config, items):
             # Disable parallel execution for benchmark tests
             config.option.numprocesses = 0
             config.option.dist = "no"
-            print("\n[Parallel Execution] Sequential mode for benchmark tests (accurate timing required)")
-    
+            print(
+                "\n[Parallel Execution] Sequential mode for benchmark tests (accurate timing required)"
+            )
+
     # Sort tests by expected duration (longest first) for optimal parallel execution
     # This ensures long-running tests start immediately and run throughout the session
     # while shorter tests fill in the gaps, minimizing idle worker time
     def get_test_priority(item):
         """
         Calculate test priority (lower number = run first).
-        
+
         Priority order:
         1. Slow tests with PNG generation (longest)
         2. Slow tests without PNG
@@ -978,24 +1009,34 @@ def pytest_collection_modifyitems(config, items):
         5. Unit tests (shortest)
         """
         nodeid = item.nodeid.lower()
-        
+
         # Check for slow marker
         is_slow = any(marker.name == "slow" for marker in item.iter_markers())
-        
+
         # Check for integration marker
-        is_integration = any(marker.name == "integration" for marker in item.iter_markers())
-        
+        is_integration = any(
+            marker.name == "integration" for marker in item.iter_markers()
+        )
+
         # Check for PNG generation (very slow)
-        has_png = any(keyword in nodeid for keyword in [
-            "png", "static_image", "layout_options", "spring_layout"
-        ])
-        
+        has_png = any(
+            keyword in nodeid
+            for keyword in ["png", "static_image", "layout_options", "spring_layout"]
+        )
+
         # Check for other slow operations
-        has_slow_ops = any(keyword in nodeid for keyword in [
-            "ego_alter", "performance", "timing", "loading_indicator",
-            "metrics_report", "comprehensive"
-        ])
-        
+        has_slow_ops = any(
+            keyword in nodeid
+            for keyword in [
+                "ego_alter",
+                "performance",
+                "timing",
+                "loading_indicator",
+                "metrics_report",
+                "comprehensive",
+            ]
+        )
+
         # Assign priority (lower = run first)
         if is_slow and has_png:
             return 1  # Slowest - run first
@@ -1011,7 +1052,7 @@ def pytest_collection_modifyitems(config, items):
             return 6
         else:
             return 7  # Unit tests - run last (fastest)
-    
+
     # Sort items by priority (longest tests first)
     items.sort(key=get_test_priority)
 
@@ -1031,7 +1072,7 @@ def tiny_config(default_config: dict[str, Any], temp_output_dir: str) -> dict[st
     # Calculate appropriate k-values based on small dataset statistics
     k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
-    
+
     # Optimize for speed - reduce spring layout iterations
     if "analysis_mode" not in config:
         config["analysis_mode"] = {}
@@ -1064,7 +1105,7 @@ def small_config(
     # Calculate appropriate k-values based on small dataset statistics
     k_values = calculate_appropriate_k_values("small_real")
     config["k_values"] = k_values
-    
+
     # Optimize for speed - reduce spring layout iterations
     if "analysis_mode" not in config:
         config["analysis_mode"] = {}

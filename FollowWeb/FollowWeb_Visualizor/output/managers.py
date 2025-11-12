@@ -356,8 +356,13 @@ class OutputManager:
             )
         else:
             # For single renderer, use its result
-            renderer_name = renderers_to_run[0][0] if renderers_to_run else None
-            results["html"] = results.get(f"html_{renderer_name}", False)
+            renderer_name: str | None = (
+                renderers_to_run[0][0] if renderers_to_run else None
+            )
+            if renderer_name:
+                results["html"] = results.get(f"html_{renderer_name}", False)
+            else:
+                results["html"] = False
 
         return results
 
@@ -483,12 +488,8 @@ class OutputManager:
         # Pipeline stages
         pipeline = self.config.get("pipeline", {})
         log_lines.append("Enabled Stages:")
-        log_lines.append(
-            f"  - Strategy: {pipeline.get('enable_strategy', True)}"
-        )
-        log_lines.append(
-            f"  - Analysis: {pipeline.get('enable_analysis', True)}"
-        )
+        log_lines.append(f"  - Strategy: {pipeline.get('enable_strategy', True)}")
+        log_lines.append(f"  - Analysis: {pipeline.get('enable_analysis', True)}")
         log_lines.append(
             f"  - Visualization: {pipeline.get('enable_visualization', True)}"
         )
