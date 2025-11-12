@@ -163,17 +163,18 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        $threshold = python ../.github/scripts/ci_helpers.py coverage-threshold-value
-        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold
-        if ($LASTEXITCODE -ne 0) {
+        set -e  # Exit immediately if any command fails
+        threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
+        python tests/run_tests.py all --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+          exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
-          python ../.github/scripts/ci_helpers.py info "**Exit Code:** $LASTEXITCODE" --summary-only
-          exit $LASTEXITCODE
+          python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
+          exit $exit_code
         }
         
         # Generate test results summary with dynamic counts
         python ../.github/scripts/ci_helpers.py test-summary
-      shell: pwsh
+      shell: bash
       continue-on-error: false
       env:
         MPLBACKEND: Agg
