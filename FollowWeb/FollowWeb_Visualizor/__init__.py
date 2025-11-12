@@ -59,33 +59,6 @@ except ImportError:
     NetworkAnalyzer = None  # type: ignore
     PathAnalyzer = None  # type: ignore
 
-# Visualization components
-try:
-    from .core.types import (
-        ColorScheme,
-        EdgeMetric,
-        NodeMetric,
-        VisualizationMetrics,
-    )
-    from .visualization.metrics import MetricsCalculator
-    from .visualization.renderers import (
-        PyvisRenderer,
-        SigmaRenderer,
-        MatplotlibRenderer,
-    )
-except ImportError:
-    # Graceful handling if visualization module is not fully implemented
-    ColorScheme = None  # type: ignore
-    EdgeMetric = None  # type: ignore
-    PyvisRenderer = None  # type: ignore
-    SigmaRenderer = None  # type: ignore
-    MatplotlibRenderer = None  # type: ignore
-    MetricsCalculator = None  # type: ignore
-    NodeMetric = None  # type: ignore
-    StaticRenderer = None  # type: ignore
-    VisualizationMetrics = None  # type: ignore
-
-
 # Error handling utilities
 # Unified output system
 from .output.logging import Logger
@@ -206,11 +179,6 @@ try:
         VisualizationMetrics,
     )
     from .visualization.metrics import MetricsCalculator
-    from .visualization.renderers import (
-        PyvisRenderer,
-        SigmaRenderer,
-        MatplotlibRenderer,
-    )
 except ImportError:
     # Graceful handling if visualization module is not fully implemented
     # Setting to None for graceful degradation - mypy expects type objects, not None
