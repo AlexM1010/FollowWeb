@@ -277,7 +277,7 @@ class FreesoundLoader(DataLoader):
                 sample_ids.append(sound.id)
 
             # Fetch additional pages if needed
-            while len(sample_ids) < max_samples and results.more:
+            while len(sample_ids) < max_samples and results.next:
                 self.rate_limiter.acquire()
                 results = self._retry_with_backoff(results.next_page)
 
