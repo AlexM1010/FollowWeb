@@ -55,6 +55,7 @@ dependencies = [
     "pyvis>=0.3.0",
     "nx-parallel>=0.3.0; python_version>='3.11'",
     "typing_extensions>=4.0.0",
+    "freesound-api>=0.3.0",
     # Security-patched dependencies (updated to resolve pip-audit vulnerabilities)
     "jinja2>=3.1.6",
     "requests>=2.32.4",
@@ -94,13 +95,18 @@ packages = [
     "FollowWeb_Visualizor.analysis",
     "FollowWeb_Visualizor.core", 
     "FollowWeb_Visualizor.data",
+    "FollowWeb_Visualizor.data.loaders",
+    "FollowWeb_Visualizor.data.storage",
     "FollowWeb_Visualizor.output",
     "FollowWeb_Visualizor.utils",
-    "FollowWeb_Visualizor.visualization"
+    "FollowWeb_Visualizor.visualization",
+    "FollowWeb_Visualizor.visualization.renderers",
+    "FollowWeb_Visualizor.visualization.renderers.templates"
 ]
 
 [tool.setuptools.package-data]
-FollowWeb_Visualizor = ["py.typed"]
+"FollowWeb_Visualizor" = ["py.typed"]
+"FollowWeb_Visualizor.visualization.renderers" = ["templates/*.html"]
 
 [tool.ruff]
 line-length = 88
