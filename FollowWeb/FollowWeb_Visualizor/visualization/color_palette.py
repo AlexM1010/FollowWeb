@@ -66,16 +66,20 @@ class NodeGroupColors:
 
 
 class UIColors:
-    """UI color palette for visualization interfaces."""
+    """UI color palette for visualization interfaces.
+    
+    Original UI colors designed for FollowWeb, inspired by dark mode
+    interface aesthetics but with distinct color values.
+    """
 
-    # Background colors
-    BACKGROUND_GREY = "#2d333c"
+    # Background colors - darker slate for professional appearance
+    BACKGROUND_GREY = "#1E2530"  # Darker slate (was #2d333c)
 
-    # Highlight colors
-    HIGHLIGHT_BLUE = "#415a76"
+    # Highlight colors - muted blue-grey for subtle emphasis
+    HIGHLIGHT_BLUE = "#4A6B8A"  # Steel blue (was #415a76)
 
-    # Text colors
-    TEXT_LIGHT_BLUE = "#b6e0fe"
+    # Text colors - soft cyan for readability
+    TEXT_LIGHT_BLUE = "#A8D5F2"  # Soft cyan (was #b6e0fe)
 
     # Legacy edge colors (for backward compatibility)
     BRIDGE_COLOR = "#6e6e6e"

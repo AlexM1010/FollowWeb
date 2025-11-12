@@ -39,13 +39,13 @@ These colors are automatically used by `generate_extended_palette()` when more t
 
 ### UI Colors
 
-These colors are used for interface elements:
+These colors are used for interface elements (original colors inspired by dark mode aesthetics):
 
 | Color Name | Hex Code | RGB | Usage |
 |------------|----------|-----|-------|
-| **Background Grey** | `#2d333c` | (45, 51, 60) | Panel backgrounds, control backgrounds |
-| **Highlight Blue** | `#415a76` | (65, 90, 118) | Button backgrounds, active states |
-| **Text Light Blue** | `#b6e0fe` | (182, 224, 254) | Text, labels, icons |
+| **Background Grey** | `#1E2530` | (30, 37, 48) | Panel backgrounds, control backgrounds |
+| **Highlight Blue** | `#4A6B8A` | (74, 107, 138) | Button backgrounds, active states |
+| **Text Light Blue** | `#A8D5F2` | (168, 213, 242) | Text, labels, icons |
 
 ### Edge Colors
 
@@ -157,9 +157,9 @@ palette = generate_extended_palette(num_communities)
 
 ```json
 {
-  "ui_background_color": "#2d333c",
-  "ui_highlight_color": "#415a76",
-  "ui_text_color": "#b6e0fe",
+  "ui_background_color": "#1E2530",
+  "ui_highlight_color": "#4A6B8A",
+  "ui_text_color": "#A8D5F2",
   "bridge_color": "#6e6e6e",
   "intra_community_color": "#c0c0c0"
 }
@@ -274,9 +274,9 @@ Static class containing base node group color definitions.
 Static class containing UI color definitions.
 
 **Attributes:**
-- `BACKGROUND_GREY`: Panel backgrounds (#2d333c)
-- `HIGHLIGHT_BLUE`: Button backgrounds (#415a76)
-- `TEXT_LIGHT_BLUE`: Text and labels (#b6e0fe)
+- `BACKGROUND_GREY`: Panel backgrounds (#1E2530)
+- `HIGHLIGHT_BLUE`: Button backgrounds (#4A6B8A)
+- `TEXT_LIGHT_BLUE`: Text and labels (#A8D5F2)
 - `BRIDGE_COLOR`: Inter-community edges (#6e6e6e)
 - `INTRA_COMMUNITY_COLOR`: Intra-community edges (#c0c0c0)
 
