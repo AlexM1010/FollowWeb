@@ -81,6 +81,20 @@ TEST_K_VALUE_PRESETS = {
         },
         "default_k_value": 7,
     },
+    "png_optimized": {  # Optimized for fast PNG generation tests
+        "strategy_k_values": {
+            "k-core": 10,
+            "reciprocal_k-core": 10,
+            "ego_alter_k-core": 10,
+        },
+        "default_k_value": 10,
+    },
+}
+
+# PNG test optimization settings
+PNG_TEST_CONFIG = {
+    "k_preset": "png_optimized",
+    "spring_iterations": 10,
 }
 
 # Common pipeline stage presets
@@ -170,6 +184,36 @@ def apply_pipeline_preset(config: dict[str, Any], preset: str) -> dict[str, Any]
         )
 
     config["pipeline_stages"] = TEST_PIPELINE_PRESETS[preset].copy()
+    return config
+
+
+def apply_png_test_optimizations(config: dict[str, Any]) -> dict[str, Any]:
+    """Apply optimizations for PNG generation tests.
+
+    Uses centralized PNG_TEST_CONFIG settings to ensure consistent
+    optimization across all PNG generation tests.
+
+    Args:
+        config: Configuration dictionary
+
+    Returns:
+        Modified configuration dictionary with PNG test optimizations
+    """
+    # Apply k-value preset
+    config = apply_k_value_preset(config, PNG_TEST_CONFIG["k_preset"])
+
+    # Apply spring layout optimizations
+    if "visualization" not in config:
+        config["visualization"] = {}
+    if "layout" not in config["visualization"]:
+        config["visualization"]["layout"] = {}
+    if "spring" not in config["visualization"]["layout"]:
+        config["visualization"]["layout"]["spring"] = {}
+
+    config["visualization"]["layout"]["spring"]["iterations"] = PNG_TEST_CONFIG[
+        "spring_iterations"
+    ]
+
     return config
 
 

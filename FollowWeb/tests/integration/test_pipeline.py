@@ -159,15 +159,10 @@ class TestOutputGeneration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
+        from tests.conftest import apply_png_test_optimizations
 
         config = fast_config.copy()
-        # Use k=10 for even smaller graphs to speed up PNG generation
-        config["k_values"] = {
-            "strategy_k_values": {"k-core": 10, "reciprocal_k-core": 10, "ego_alter_k-core": 10},
-            "default_k_value": 10,
-        }
-        # Reduce spring layout iterations for faster PNG generation
-        config["visualization"]["layout"]["spring"]["iterations"] = 10
+        config = apply_png_test_optimizations(config)
         config["visualization"]["static_image"]["generate"] = True
 
         config_obj = load_config_from_dict(config)
@@ -194,13 +189,10 @@ class TestOutputGeneration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
+        from tests.conftest import apply_png_test_optimizations
 
         config = fast_config.copy()
-        # Use moderate k-value to reduce graph size for faster execution
-        config["k_values"] = {
-            "strategy_k_values": {"k-core": 7, "reciprocal_k-core": 7, "ego_alter_k-core": 7},
-            "default_k_value": 7,
-        }
+        config = apply_png_test_optimizations(config)
 
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)
@@ -390,12 +382,10 @@ class TestPipelineConfiguration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
-        from tests.conftest import calculate_appropriate_k_values
+        from tests.conftest import apply_png_test_optimizations
 
         config = fast_config.copy()
-        # Use dynamically calculated k-values appropriate for the dataset
-        k_values = calculate_appropriate_k_values("small_real")
-        config["k_values"] = k_values
+        config = apply_png_test_optimizations(config)
         config["visualization"]["static_image"]["generate"] = True
         config["visualization"]["static_image"]["layout"] = layout
 
@@ -632,12 +622,10 @@ class TestSpringLayoutIntegration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
-        from tests.conftest import calculate_appropriate_k_values
+        from tests.conftest import apply_png_test_optimizations
 
         config = fast_config.copy()
-        # Use dynamically calculated k-values appropriate for the dataset
-        k_values = calculate_appropriate_k_values("small_real")
-        config["k_values"] = k_values
+        config = apply_png_test_optimizations(config)
         config["visualization"]["static_image"]["generate"] = True
         # Don't specify layout - should use spring as default
 
@@ -662,12 +650,10 @@ class TestSpringLayoutIntegration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
-        from tests.conftest import calculate_appropriate_k_values
+        from tests.conftest import apply_png_test_optimizations
 
         config = fast_config.copy()
-        # Use dynamically calculated k-values appropriate for the dataset
-        k_values = calculate_appropriate_k_values("small_real")
-        config["k_values"] = k_values
+        config = apply_png_test_optimizations(config)
         config["visualization"]["static_image"]["generate"] = True
         config["visualization"]["static_image"]["layout"] = "spring"
 
@@ -955,12 +941,10 @@ class TestLoadingIndicatorIntegration:
             pytest.skip("Sample data file not available")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
-
-        from tests.conftest import apply_k_value_preset
+        from tests.conftest import apply_png_test_optimizations
 
         config = fast_config.copy()
-        # Use moderate k-value to reduce graph size for faster PNG generation
-        config = apply_k_value_preset(config, "moderate")
+        config = apply_png_test_optimizations(config)
         config["visualization"]["static_image"]["generate"] = True
 
         config_obj = load_config_from_dict(config)
