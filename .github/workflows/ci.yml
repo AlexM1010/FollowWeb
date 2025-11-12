@@ -75,10 +75,12 @@ jobs:
         working-directory: FollowWeb
     
     strategy:
-      fail-fast: false
+      fail-fast: true  # Stop all tests if any fail
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        # Fast CI on PRs: only test latest Python
+        # Full coverage on main/develop: test all supported versions
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["3.12"]') || fromJSON('["3.9", "3.10", "3.11", "3.12"]') }}
     
     continue-on-error: false
     
