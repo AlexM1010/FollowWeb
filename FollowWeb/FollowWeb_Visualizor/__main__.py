@@ -332,8 +332,9 @@ class PipelineOrchestrator:
             self.logger.info("-" * 30)
             try:
                 if data_source == "instagram":
-                    assert isinstance(self.graph_loader, InstagramLoader)
-                    graph = self.graph_loader.load_from_json(self.config.input_file)
+                    if not hasattr(self.graph_loader, 'load_from_json'):
+                        raise AttributeError("Instagram loader does not have load_from_json method")
+                    graph = self.graph_loader.load_from_json(self.config.input_file)  # type: ignore[union-attr]
                 elif data_source == "freesound":
                     # For Freesound, use the load() method with query parameters
                     freesound_params = {
