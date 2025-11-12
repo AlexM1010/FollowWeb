@@ -5,9 +5,6 @@ This module defines all colors used throughout the visualization system,
 including node group colors, UI colors, and utility functions for color manipulation.
 """
 
-import hashlib
-from typing import Tuple
-
 
 class NodeGroupColors:
     """Base colors for automatic group detection nodes."""
@@ -129,7 +126,7 @@ def lighten_color(hex_color: str, factor: float = 1.3) -> str:
 
 def hex_to_rgba(
     hex_color: str, alpha: float = 1.0
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """
     Convert hex color to RGBA tuple.
 
