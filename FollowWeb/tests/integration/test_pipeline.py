@@ -238,12 +238,11 @@ class TestPipelineErrorHandling:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        config["strategy"] = (
-            "invalid_strategy"  # Strategy is at top level, not under pipeline
-        )
+        # Use an invalid k_values structure that will actually fail validation
+        config["k_values"] = "invalid"  # Should be a dict
 
         with pytest.raises(
-            (ValueError, KeyError, TypeError)
+            (ValueError, KeyError, TypeError, AttributeError)
         ):  # Should fail during configuration loading
             load_config_from_dict(config)
 

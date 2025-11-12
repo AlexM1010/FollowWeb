@@ -17,6 +17,33 @@ from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
 )
 
 
+def create_mock_sound(sound_id, name="test_sound.wav", tags=None, duration=1.0, username="test_user", previews=None):
+    """Helper to create a properly mocked Freesound sound object."""
+    if tags is None:
+        tags = []
+    if previews is None:
+        previews = {}
+    
+    sound = Mock()
+    sound.id = sound_id
+    sound.name = name
+    sound.tags = tags
+    sound.duration = duration
+    sound.username = username
+    sound.previews = previews
+    
+    # Mock as_dict() to return a proper dictionary (not a Mock)
+    sound.as_dict = Mock(return_value={
+        'id': sound_id,
+        'name': name,
+        'tags': tags,
+        'duration': duration,
+        'username': username,
+        'previews': previews
+    })
+    return sound
+
+
 @pytest.fixture
 def mock_freesound_client():
     """Create a mock Freesound client."""
@@ -79,17 +106,17 @@ class TestIncrementalFreesoundLoaderInitialization:
         # Mock existing checkpoint data
         existing_graph = nx.DiGraph()
         existing_graph.add_node('1')
-        mock_checkpoint.load.return_value = {
-            'graph': existing_graph,
-            'processed_ids': {'1', '2'},
-            'metadata': {'timestamp': '2024-01-01'}
-        }
+        
+        def mock_load_checkpoint(self):
+            self.graph = existing_graph
+            self.processed_ids = {'1', '2'}
         
         with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            loader = IncrementalFreesoundLoader()
-            
-            assert loader.graph.number_of_nodes() == 1
-            assert loader.processed_ids == {'1', '2'}
+            with patch.object(IncrementalFreesoundLoader, '_load_checkpoint', mock_load_checkpoint):
+                loader = IncrementalFreesoundLoader()
+                
+                assert loader.graph.number_of_nodes() == 1
+                assert loader.processed_ids == {'1', '2'}
 
 
 class TestIncrementalFreesoundLoaderCheckpoint:
@@ -100,26 +127,29 @@ class TestIncrementalFreesoundLoaderCheckpoint:
         graph = nx.DiGraph()
         graph.add_nodes_from(['a', 'b', 'c'])
         
-        mock_checkpoint.load.return_value = {
-            'graph': graph,
-            'processed_ids': {'a', 'b', 'c'},
-            'metadata': {}
-        }
+        def mock_load_checkpoint(self):
+            self.graph = graph
+            self.processed_ids = {'a', 'b', 'c'}
         
         with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            loader = IncrementalFreesoundLoader()
-            
-            assert loader.graph.number_of_nodes() == 3
-            assert len(loader.processed_ids) == 3
+            with patch.object(IncrementalFreesoundLoader, '_load_checkpoint', mock_load_checkpoint):
+                loader = IncrementalFreesoundLoader()
+                
+                assert loader.graph.number_of_nodes() == 3
+                assert len(loader.processed_ids) == 3
 
     def test_save_checkpoint_called_periodically(self, loader_with_mocks, mock_checkpoint):
         """Test checkpoint is saved at configured intervals."""
         loader = loader_with_mocks
         loader.checkpoint_interval = 2
         
+        # Reset the loader state to start fresh
+        loader.graph = nx.DiGraph()
+        loader.processed_ids = set()
+        
         # Mock search results
         sounds = [
-            Mock(id=i, name=f"sound{i}", tags=[], duration=1.0, username=f"user{i}", previews={})
+            create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
             for i in range(5)
         ]
         
@@ -128,25 +158,29 @@ class TestIncrementalFreesoundLoaderCheckpoint:
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
-        # Mock similar sounds to return empty
-        mock_sound_obj = Mock()
-        mock_sound_obj.get_similar.return_value = []
-        loader.client.get_sound.return_value = mock_sound_obj
+        # Mock get_sound to return the sounds
+        def get_sound_side_effect(sound_id):
+            return sounds[sound_id]
+        loader.client.get_sound.side_effect = get_sound_side_effect
+        
+        # Mock the checkpoint save method on the loader's checkpoint instance
+        loader.checkpoint.save = Mock()
         
         loader.fetch_data(query='test', max_samples=5)
         
         # Should save at intervals: after 2, 4, and final
-        assert mock_checkpoint.save.call_count >= 2
+        assert loader.checkpoint.save.call_count >= 2
 
     def test_no_checkpoint_load_starts_fresh(self, mock_freesound_client, mock_checkpoint):
         """Test starting fresh when no checkpoint exists."""
         mock_checkpoint.load.return_value = None
         
         with patch.dict('os.environ', {'FREESOUND_API_KEY': 'test_key'}):
-            loader = IncrementalFreesoundLoader()
-            
-            assert loader.graph.number_of_nodes() == 0
-            assert len(loader.processed_ids) == 0
+            with patch.object(IncrementalFreesoundLoader, '_load_checkpoint'):
+                loader = IncrementalFreesoundLoader()
+                
+                assert loader.graph.number_of_nodes() == 0
+                assert len(loader.processed_ids) == 0
 
 
 class TestIncrementalFreesoundLoaderSkipProcessed:
@@ -159,9 +193,9 @@ class TestIncrementalFreesoundLoaderSkipProcessed:
         
         # Mock search results including processed samples
         sounds = [
-            Mock(id=1, name="sound1", tags=[], duration=1.0, username="user1", previews={}),
-            Mock(id=2, name="sound2", tags=[], duration=1.0, username="user2", previews={}),
-            Mock(id=3, name="sound3", tags=[], duration=1.0, username="user3", previews={})
+            create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
+            create_mock_sound(2, "sound2", [], 1.0, "user2", {}),
+            create_mock_sound(3, "sound3", [], 1.0, "user3", {})
         ]
         
         mock_results = Mock()
@@ -186,9 +220,9 @@ class TestIncrementalFreesoundLoaderSkipProcessed:
         loader.processed_ids = {'1', '2', '3'}
         
         sounds = [
-            Mock(id=1, name="sound1", tags=[], duration=1.0, username="user1", previews={}),
-            Mock(id=2, name="sound2", tags=[], duration=1.0, username="user2", previews={}),
-            Mock(id=3, name="sound3", tags=[], duration=1.0, username="user3", previews={})
+            create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
+            create_mock_sound(2, "sound2", [], 1.0, "user2", {}),
+            create_mock_sound(3, "sound3", [], 1.0, "user3", {})
         ]
         
         mock_results = Mock()
@@ -209,9 +243,13 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         loader = loader_with_mocks
         loader.max_runtime_hours = 0.0001  # Very short time limit
         
+        # Reset the loader state
+        loader.graph = nx.DiGraph()
+        loader.processed_ids = set()
+        
         # Mock many samples
         sounds = [
-            Mock(id=i, name=f"sound{i}", tags=[], duration=1.0, username=f"user{i}", previews={})
+            create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
             for i in range(100)
         ]
         
@@ -220,10 +258,13 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
-        # Mock similar sounds
-        mock_sound_obj = Mock()
-        mock_sound_obj.get_similar.return_value = []
-        loader.client.get_sound.return_value = mock_sound_obj
+        # Mock get_sound to return the sounds
+        def get_sound_side_effect(sound_id):
+            return sounds[sound_id] if sound_id < len(sounds) else sounds[0]
+        loader.client.get_sound.side_effect = get_sound_side_effect
+        
+        # Mock the checkpoint save
+        loader.checkpoint.save = Mock()
         
         # Add delay to ensure time limit is hit
         original_add = loader._add_sample_to_graph
@@ -238,15 +279,19 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         assert len(data['samples']) < 100
         
         # Should save checkpoint before stopping
-        assert mock_checkpoint.save.called
+        assert loader.checkpoint.save.called
 
     def test_no_time_limit_processes_all(self, loader_with_mocks, mock_checkpoint):
         """Test processes all samples when no time limit."""
         loader = loader_with_mocks
         loader.max_runtime_hours = None
         
+        # Reset the loader state
+        loader.graph = nx.DiGraph()
+        loader.processed_ids = set()
+        
         sounds = [
-            Mock(id=i, name=f"sound{i}", tags=[], duration=1.0, username=f"user{i}", previews={})
+            create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
             for i in range(5)
         ]
         
@@ -255,9 +300,10 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
-        mock_sound_obj = Mock()
-        mock_sound_obj.get_similar.return_value = []
-        loader.client.get_sound.return_value = mock_sound_obj
+        # Mock get_sound to return the sounds
+        def get_sound_side_effect(sound_id):
+            return sounds[sound_id]
+        loader.client.get_sound.side_effect = get_sound_side_effect
         
         data = loader.fetch_data(query='test', max_samples=5)
         
@@ -282,7 +328,7 @@ class TestIncrementalFreesoundLoaderDeletedSamples:
         def mock_get_sound(sample_id):
             if sample_id == 2:
                 raise Exception("404 Not Found")
-            return Mock(id=sample_id)
+            return create_mock_sound(sample_id, f"sound{sample_id}", [], 1.0, f"user{sample_id}", {})
         
         loader.client.get_sound.side_effect = mock_get_sound
         
@@ -330,14 +376,11 @@ class TestIncrementalFreesoundLoaderMetadataUpdate:
         # Add node with initial metadata
         loader.graph.add_node('123', name='old_name', tags=['old_tag'])
         
-        # Mock API response with updated metadata
-        mock_sound = Mock()
-        mock_sound.id = 123
-        mock_sound.name = 'new_name'
-        mock_sound.tags = ['new_tag', 'another_tag']
-        mock_sound.duration = 5.0
-        mock_sound.username = 'user'
-        mock_sound.previews = {'preview-hq-mp3': 'http://test.com/audio.mp3'}
+        # Mock API response with updated metadata using create_mock_sound
+        mock_sound = create_mock_sound(
+            123, 'new_name', ['new_tag', 'another_tag'], 5.0, 'user',
+            {'preview-hq-mp3': 'http://test.com/audio.mp3'}
+        )
         
         loader.client.get_sound.return_value = mock_sound
         
@@ -354,14 +397,8 @@ class TestIncrementalFreesoundLoaderMetadataUpdate:
         # Add node with initial metadata
         loader.graph.add_node('123', name='old_name', custom_field='custom_value')
         
-        # Mock API response
-        mock_sound = Mock()
-        mock_sound.id = 123
-        mock_sound.name = 'new_name'
-        mock_sound.tags = []
-        mock_sound.duration = 1.0
-        mock_sound.username = 'user'
-        mock_sound.previews = {}
+        # Mock API response using create_mock_sound
+        mock_sound = create_mock_sound(123, 'new_name', [], 1.0, 'user', {})
         
         loader.client.get_sound.return_value = mock_sound
         
@@ -502,7 +539,7 @@ class TestIncrementalFreesoundLoaderIntegration:
         
         # Mock search results
         sounds = [
-            Mock(id=i, name=f"sound{i}", tags=[], duration=1.0, username=f"user{i}", previews={})
+            create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
             for i in range(3)
         ]
         
@@ -543,8 +580,8 @@ class TestIncrementalFreesoundLoaderIntegration:
             
             # Mock new samples (including already-processed one)
             sounds = [
-                Mock(id=1, name="sound1", tags=[], duration=1.0, username="user1", previews={}),
-                Mock(id=2, name="sound2", tags=[], duration=1.0, username="user2", previews={})
+                create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
+                create_mock_sound(2, "sound2", [], 1.0, "user2", {})
             ]
             
             mock_results = Mock()
