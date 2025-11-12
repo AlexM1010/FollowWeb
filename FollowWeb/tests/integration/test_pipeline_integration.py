@@ -137,7 +137,7 @@ class TestFreesoundPipelineIntegration:
         mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 "input_file": "dummy.json",
                 "output_file_prefix": os.path.join(tmpdir, "freesound_test"),
@@ -238,7 +238,7 @@ class TestSigmaRendererPipelineIntegration:
         mock_loader.load_from_json.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = fast_config.copy()
             config["output_file_prefix"] = os.path.join(tmpdir, "sigma_test")
             config["renderer"] = {"renderer_type": "sigma"}
@@ -306,7 +306,7 @@ class TestFreesoundSigmaPipelineIntegration:
         mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 "input_file": "dummy.json",
                 "output_file_prefix": os.path.join(tmpdir, "freesound_sigma"),
@@ -401,7 +401,7 @@ class TestFreesoundSigmaPipelineIntegration:
         mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 "input_file": "dummy.json",
                 "output_file_prefix": os.path.join(tmpdir, "test"),
@@ -536,7 +536,7 @@ class TestPipelineErrorHandling:
         mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             # Use an invalid output path to cause visualization to fail
             config = {
                 "input_file": "dummy.json",
@@ -589,7 +589,7 @@ class TestMultipleRenderersPipeline:
         mock_loader.load_from_json.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = fast_config.copy()
             config["output_file_prefix"] = os.path.join(tmpdir, "multi_renderer")
             config["renderer"] = {"renderer_type": "all"}
@@ -632,7 +632,7 @@ class TestPipelineOutputGeneration:
         mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             output_prefix = os.path.join(tmpdir, "freesound_output")
 
             config = {
@@ -686,7 +686,7 @@ class TestPipelineOutputGeneration:
         mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
-        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 "input_file": "dummy.json",
                 "output_file_prefix": os.path.join(tmpdir, "test"),
@@ -729,6 +729,7 @@ class TestPipelineOutputGeneration:
             with open(report_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "FOLLOWWEB" in content or "GRAPH" in content
+
 
 
 
