@@ -254,25 +254,19 @@ def main():
         else:
             logger.info(f"Using provided seed sample ID: {seed_sample_id}")
         
-        # Check if we're starting fresh or resuming
-        if initial_nodes == 0:
-            logger.info(f"Starting new collection from seed sample ID: {seed_sample_id}")
-            data = loader.fetch_data(
-                sample_id=seed_sample_id,
-                max_requests=max_requests,
-                include_similar=True,
-                recursive_depth=depth
-            )
-        else:
-            # Resuming from checkpoint
-            logger.info(f"Resuming from checkpoint with {initial_nodes} existing nodes")
-            # When resuming, we still use seed for priority queue initialization
-            data = loader.fetch_data(
-                sample_id=seed_sample_id,
-                max_requests=max_requests,
-                include_similar=True,
-                recursive_depth=depth
-            )
+        # For incremental loading, we use a broad query and let the loader
+        # handle checkpoint-aware processing. The seed sample is used for
+        # priority scoring, not as a direct fetch parameter.
+        logger.info(f"Fetching Freesound data with recursive discovery (depth={depth})...")
+        
+        # Use a broad query to find samples, loader will skip already-processed ones
+        data = loader.fetch_data(
+            query="*",  # Match all samples
+            max_samples=max_requests,  # Circuit breaker
+            include_similar=True,
+            recursive_depth=depth,
+            max_total_samples=max_requests
+        )
         
         # Build graph
         logger.info(EmojiFormatter.format("progress", "Building graph..."))
