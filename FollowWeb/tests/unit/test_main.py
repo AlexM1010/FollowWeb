@@ -326,9 +326,7 @@ class TestMainFunction:
                 with patch("sys.argv", ["followweb"]):
                     exit_code = main()
 
-                captured_output.getvalue()
-                assert exit_code == 1
-                # Note: KeyboardInterrupt handling may vary in test environment
+                # KeyboardInterrupt should be caught and return exit code 1
                 assert exit_code == 1
 
             finally:

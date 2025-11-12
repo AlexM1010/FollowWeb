@@ -402,8 +402,6 @@ class TestFameAnalyzer:
         if not sample_data_exists:
             pytest.skip("Sample data file not available")
 
-        from FollowWeb_Visualizor.data.loaders import GraphLoader
-
         loader = InstagramLoader()
         graph = loader.load_from_json(sample_data_file)
 
