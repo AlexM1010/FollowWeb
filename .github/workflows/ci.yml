@@ -129,7 +129,7 @@ jobs:
         python ../.github/scripts/ci_helpers.py success "All submodules imported successfully"
         
         # Test basic functionality
-        python -c "from FollowWeb_Visualizor.core.config import ConfigurationManager; from FollowWeb_Visualizor.data.loaders import GraphLoader"
+        python -c "from FollowWeb_Visualizor.core.config import ConfigurationManager; from FollowWeb_Visualizor.data.loaders import DataLoader, InstagramLoader"
         python ../.github/scripts/ci_helpers.py success "Core functionality verified"
         
         # CLI entry point must work

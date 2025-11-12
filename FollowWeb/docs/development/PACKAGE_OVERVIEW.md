@@ -13,8 +13,13 @@ Professional social network analysis package with modular architecture.
 - Default configuration factory
 - Detailed error reporting
 
-### `analysis.py` - Network Analysis
-- `GraphLoader` - JSON data loading
+### `data/loaders/` - Data Loading
+- `DataLoader` - Abstract base class for data loaders
+- `InstagramLoader` - Instagram follower/following data loading
+- `FreesoundLoader` - Freesound audio sample data loading
+- `IncrementalFreesoundLoader` - Freesound loader with checkpoint support
+
+### `analysis/` - Network Analysis
 - `NetworkAnalyzer` - Community detection, centrality metrics
 - `PathAnalyzer` - Shortest paths, connectivity
 - `FameAnalyzer` - Influential account identification
@@ -49,7 +54,7 @@ Professional social network analysis package with modular architecture.
 - Individual influence mapping and social circle analysis
 
 ## Data Flow
-JSON Input → GraphLoader → Strategy Application → Graph Pruning → NetworkAnalyzer → Community Detection → Centrality Calculation → PathAnalyzer → MetricsCalculator (with centralized caching) → Visualization Rendering → HTML/PNG/TXT Outputs
+JSON Input → DataLoader (InstagramLoader/FreesoundLoader) → Strategy Application → Graph Pruning → NetworkAnalyzer → Community Detection → Centrality Calculation → PathAnalyzer → MetricsCalculator (with centralized caching) → Visualization Rendering → HTML/PNG/TXT Outputs
 
 **Caching Integration**: The centralized cache manager optimizes performance throughout the pipeline by eliminating duplicate calculations for graph hashing, undirected conversions, attribute access, layout positions, and community colors.
 

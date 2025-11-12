@@ -87,9 +87,9 @@ FollowWeb expects JSON data with the following structure:
 Before analysis, validate your data:
 
 ```python
-from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import InstagramLoader
 
-loader = GraphLoader()
+loader = InstagramLoader()
 try:
     graph = loader.load_from_json('your_data.json')
     print(f"Successfully loaded {graph.number_of_nodes()} nodes and {graph.number_of_edges()} edges")
@@ -360,13 +360,13 @@ Highest Eigenvector: user789 (eigenvector: 0.34)
 For more control, use individual components:
 
 ```python
-from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import InstagramLoader
 from FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
 from FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
 from FollowWeb_Visualizor.visualization.renderers import InteractiveRenderer
 
 # Load and analyze
-loader = GraphLoader()
+loader = InstagramLoader()
 graph = loader.load_from_json('data.json')
 
 analyzer = NetworkAnalyzer()
@@ -452,11 +452,11 @@ The caching system automatically manages memory usage with:
 Export data for external analysis:
 
 ```python
-from FollowWeb_Visualizor.data.loaders import GraphLoader
+from FollowWeb_Visualizor.data.loaders import InstagramLoader
 import networkx as nx
 
 # Load graph
-loader = GraphLoader()
+loader = InstagramLoader()
 graph = loader.load_from_json('data.json')
 
 # Export to various formats
