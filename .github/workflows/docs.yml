@@ -255,10 +255,11 @@ jobs:
         python ../.github/scripts/ci_helpers.py info "**Critical documentation files validated successfully**"
   
   # Docstring Coverage (CRITICAL - Pipeline fails if this fails)
-  # Runs in parallel with documentation-structure
+  # Runs after documentation-structure
   docstring-coverage:
     name: Docstring Coverage
     runs-on: ubuntu-latest
+    needs: documentation-structure
     timeout-minutes: 10
     
     steps:
@@ -340,10 +341,11 @@ jobs:
         python ../.github/scripts/ci_helpers.py info "**Code documentation standards validated successfully**"
   
   # Conventional Commits (NON-CRITICAL - Pipeline passes even if this fails)
-  # Runs in parallel with other documentation jobs but doesn't block pipeline
+  # Runs after docstring-coverage
   conventional-commits:
     name: Conventional Commits
     runs-on: ubuntu-latest
+    needs: docstring-coverage
     timeout-minutes: 5
     continue-on-error: true  # This job won't fail the pipeline
     
