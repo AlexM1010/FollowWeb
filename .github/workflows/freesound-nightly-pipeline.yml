@@ -9,12 +9,18 @@
 # - Ephemeral Cache: Workflow cache populated from private repo at start, wiped at end
 # - Split Checkpoint: Graph topology (.gpickle) + SQLite metadata (.db) + metadata JSON
 #
+# Backup Strategy (Triple Redundancy):
+# 1. Primary Backup: Private repo with tiered retention (frequent: 14 days, permanent: unlimited)
+# 2. Secondary Backup: Separate private repo with 7-day rolling history (disaster recovery)
+# 3. Workflow Artifacts: 7-day retention for manual recovery (uploaded on every run)
+#
 # Features:
 # - Scheduled execution at 2 AM UTC daily
 # - Manual trigger with configurable parameters
 # - Incremental data collection with checkpoint recovery
 # - Automatic visualization generation
-# - Private repository backup with 14-day rolling retention
+# - Backup on failure (preserves partial progress)
+# - Triple-redundant backup system
 # - Comprehensive logging and monitoring
 
 name: Freesound Nightly Pipeline
@@ -88,6 +94,7 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
       run: |
         echo "### 🔐 Secret Validation" >> $GITHUB_STEP_SUMMARY
         
@@ -107,9 +114,16 @@ jobs:
         
         # Check BACKUP_PAT (optional)
         if [ -z "$BACKUP_PAT" ]; then
-          echo "- ⚠️ BACKUP_PAT: Not configured (backups disabled)" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ BACKUP_PAT: Not configured (primary backups disabled)" >> $GITHUB_STEP_SUMMARY
         else
-          echo "- ✅ BACKUP_PAT: Configured" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ BACKUP_PAT: Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check BACKUP_PAT_SECONDARY (optional)
+        if [ -z "$BACKUP_PAT_SECONDARY" ]; then
+          echo "- ⚠️ BACKUP_PAT_SECONDARY: Not configured (secondary backups disabled)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ✅ BACKUP_PAT_SECONDARY: Configured (secondary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
     
@@ -271,6 +285,7 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
       run: |
         echo "**🔐 Secret Validation**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -286,10 +301,18 @@ jobs:
         
         # Check BACKUP_PAT (optional but recommended)
         if [ -z "$BACKUP_PAT" ]; then
-          echo "::warning::BACKUP_PAT not configured - checkpoint backups will be skipped"
-          echo "- ⚠️ BACKUP_PAT: Not configured (backups disabled)" >> $GITHUB_STEP_SUMMARY
+          echo "::warning::BACKUP_PAT not configured - primary checkpoint backups will be skipped"
+          echo "- ⚠️ BACKUP_PAT: Not configured (primary backups disabled)" >> $GITHUB_STEP_SUMMARY
         else
-          echo "- ✅ BACKUP_PAT: Configured" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ BACKUP_PAT: Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check BACKUP_PAT_SECONDARY (optional but recommended)
+        if [ -z "$BACKUP_PAT_SECONDARY" ]; then
+          echo "::warning::BACKUP_PAT_SECONDARY not configured - secondary checkpoint backups will be skipped"
+          echo "- ⚠️ BACKUP_PAT_SECONDARY: Not configured (secondary backups disabled)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ✅ BACKUP_PAT_SECONDARY: Configured (secondary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
     
@@ -609,7 +632,7 @@ jobs:
         fi
     
     - name: Upload checkpoint to private repository
-      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      if: steps.orchestration.outputs.can_proceed == 'true' && always()
       id: upload_checkpoint
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
@@ -617,6 +640,13 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**💾 Phase 4: Upload Checkpoint to Private Repository**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if checkpoint directory exists
+        if [ ! -d "data/freesound_library" ]; then
+          echo "⚠️ Checkpoint directory not found, skipping backup"
+          echo "- Status: Backup skipped (no checkpoint)" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
         
         # Check if BACKUP_PAT is configured
         if [ -z "$BACKUP_PAT" ]; then
@@ -634,10 +664,19 @@ jobs:
           exit 0
         fi
         
-        echo "Current node count: $node_count"
-        
-        # Determine tier and release tag using Python
-        tier_info=$(python -c "
+        # Check if this is a failure recovery backup
+        pipeline_status="${{ steps.pipeline.outputs.pipeline_status }}"
+        if [ "$pipeline_status" != "success" ]; then
+          echo "⚠️ Pipeline failed - creating recovery backup"
+          echo "- Status: Recovery backup (pipeline failed)" >> $GITHUB_STEP_SUMMARY
+          # Force backup creation regardless of interval
+          tier="recovery"
+          release_tag="v-checkpoint"
+        else
+          echo "Current node count: $node_count"
+          
+          # Determine tier and release tag using Python
+          tier_info=$(python -c "
 import sys
 node_count = $node_count
 backup_interval = 25
@@ -658,15 +697,16 @@ else:
 
 print(f'{tier}|{release_tag}')
 ")
-        
-        tier=$(echo "$tier_info" | cut -d'|' -f1)
-        release_tag=$(echo "$tier_info" | cut -d'|' -f2)
-        
-        # Check if backup should be created
-        if [ "$tier" = "none" ]; then
-          echo "ℹ️ Node count ($node_count) not at backup interval, skipping backup"
-          echo "- Status: Backup skipped (not at interval)" >> $GITHUB_STEP_SUMMARY
-          exit 0
+          
+          tier=$(echo "$tier_info" | cut -d'|' -f1)
+          release_tag=$(echo "$tier_info" | cut -d'|' -f2)
+          
+          # Check if backup should be created
+          if [ "$tier" = "none" ]; then
+            echo "ℹ️ Node count ($node_count) not at backup interval, skipping backup"
+            echo "- Status: Backup skipped (not at interval)" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
         fi
         
         echo "Backup tier: $tier"
@@ -728,9 +768,220 @@ print(f'{tier}|{release_tag}')
         # Store tier info for retention cleanup
         echo "backup_tier=$tier" >> $GITHUB_OUTPUT
         echo "release_tag=$release_tag" >> $GITHUB_OUTPUT
+        echo "backup_uploaded=true" >> $GITHUB_OUTPUT
         
         # Cleanup local backup file
         rm -f "$backup_filename"
+    
+    - name: Verify backup integrity
+      if: steps.upload_checkpoint.outputs.backup_uploaded == 'true'
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**✅ Phase 4a: Verify Backup Integrity**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        release_tag="${{ steps.upload_checkpoint.outputs.release_tag }}"
+        
+        # Get the most recent asset from the release
+        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/${release_tag}")
+        
+        LATEST_ASSET=$(echo "$RELEASE_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
+        
+        if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
+          echo "⚠️ Could not verify backup - asset not found"
+          echo "- Status: Verification skipped" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
+        ASSET_SIZE=$(echo "$LATEST_ASSET" | jq -r '.size')
+        ASSET_STATE=$(echo "$LATEST_ASSET" | jq -r '.state')
+        
+        echo "Verifying backup: $ASSET_NAME"
+        echo "- Size: $(numfmt --to=iec-i --suffix=B $ASSET_SIZE)"
+        echo "- State: $ASSET_STATE"
+        
+        # Verify asset state is 'uploaded'
+        if [ "$ASSET_STATE" != "uploaded" ]; then
+          echo "❌ Backup verification failed - asset state: $ASSET_STATE"
+          echo "- Status: ❌ Verification failed" >> $GITHUB_STEP_SUMMARY
+          echo "- Asset State: \`$ASSET_STATE\`" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Verify asset size is reasonable (> 1KB)
+        if [ "$ASSET_SIZE" -lt 1024 ]; then
+          echo "❌ Backup verification failed - asset too small: $ASSET_SIZE bytes"
+          echo "- Status: ❌ Verification failed" >> $GITHUB_STEP_SUMMARY
+          echo "- Asset Size: \`$ASSET_SIZE bytes\` (too small)" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "✅ Backup verification passed"
+        echo "- Status: ✅ Verified" >> $GITHUB_STEP_SUMMARY
+        echo "- Asset: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> $GITHUB_STEP_SUMMARY
+        echo "- State: \`$ASSET_STATE\`" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Upload checkpoint to secondary backup repository
+      if: steps.orchestration.outputs.can_proceed == 'true' && (steps.pipeline.outputs.pipeline_status == 'success' || failure())
+      id: upload_secondary_backup
+      env:
+        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**💾 Phase 4b: Upload to Secondary Backup Repository (7-Day History)**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if checkpoint directory exists
+        if [ ! -d "data/freesound_library" ]; then
+          echo "⚠️ Checkpoint directory not found, skipping secondary backup"
+          echo "- Status: Backup skipped (no checkpoint)" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        # Check if BACKUP_PAT_SECONDARY is configured
+        if [ -z "$BACKUP_PAT_SECONDARY" ]; then
+          echo "⚠️ BACKUP_PAT_SECONDARY not configured, skipping secondary backup"
+          echo "- Status: Backup skipped (PAT not configured)" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        # Get node count for filename
+        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+          node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
+        else
+          node_count="unknown"
+        fi
+        
+        # Create backup with timestamp for 7-day history tracking
+        timestamp=$(date -u +"%Y%m%d_%H%M%S")
+        backup_filename="checkpoint_backup_${node_count}nodes_${timestamp}_${{ github.run_id }}.tar.gz"
+        echo "Creating secondary backup archive: $backup_filename"
+        tar -czf "$backup_filename" -C data freesound_library/
+        
+        # Get file size
+        backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
+        echo "Backup size: $(numfmt --to=iec-i --suffix=B $backup_size)"
+        
+        # Get repository details
+        REPO_OWNER="${{ github.repository_owner }}"
+        SECONDARY_BACKUP_REPO="${REPO_OWNER}/freesound-backup-secondary"
+        
+        # Get release ID for v-daily tag (7-day rolling history)
+        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT_SECONDARY" \
+          "https://api.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/tags/v-daily")
+        
+        RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
+        
+        if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
+          echo "❌ Release v-daily not found in ${SECONDARY_BACKUP_REPO}"
+          echo "- Status: Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
+          echo "- Note: Create release 'v-daily' in ${SECONDARY_BACKUP_REPO}" >> $GITHUB_STEP_SUMMARY
+          rm -f "$backup_filename"
+          exit 0  # Don't fail the workflow
+        fi
+        
+        # Upload asset
+        echo "Uploading backup to ${SECONDARY_BACKUP_REPO} (release: v-daily)..."
+        UPLOAD_URL="https://uploads.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/${RELEASE_ID}/assets?name=${backup_filename}"
+        
+        UPLOAD_RESPONSE=$(curl -s -X POST \
+          -H "Authorization: token $BACKUP_PAT_SECONDARY" \
+          -H "Content-Type: application/gzip" \
+          --data-binary "@${backup_filename}" \
+          "$UPLOAD_URL")
+        
+        ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
+        
+        if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
+          echo "❌ Failed to upload secondary backup"
+          echo "- Status: Upload failed" >> $GITHUB_STEP_SUMMARY
+          rm -f "$backup_filename"
+          exit 0  # Don't fail the workflow
+        fi
+        
+        echo "✅ Secondary backup uploaded successfully"
+        echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Repository: \`${SECONDARY_BACKUP_REPO}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Release Tag: \`v-daily\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Node Count: \`$node_count\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Retention: \`7 days\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Cleanup local backup file
+        rm -f "$backup_filename"
+    
+    - name: Cleanup secondary backup repository (7-day retention)
+      if: steps.upload_secondary_backup.outcome == 'success'
+      env:
+        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🧹 Phase 4c: Secondary Backup Retention (7-Day Policy)**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        REPO_OWNER="${{ github.repository_owner }}"
+        SECONDARY_BACKUP_REPO="${REPO_OWNER}/freesound-backup-secondary"
+        
+        # Get all assets from v-daily release
+        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT_SECONDARY" \
+          "https://api.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/tags/v-daily")
+        
+        TOTAL_ASSETS=$(echo "$ASSETS_JSON" | jq '.assets | length')
+        echo "Total secondary backups: $TOTAL_ASSETS"
+        
+        # Apply 7-day retention policy
+        CUTOFF_DATE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-7d +%Y-%m-%dT%H:%M:%S 2>/dev/null || echo "")
+        
+        if [ -n "$CUTOFF_DATE" ]; then
+          echo "Cutoff date for secondary backups: $CUTOFF_DATE"
+          
+          # Get assets older than 7 days
+          ASSETS_TO_DELETE=$(echo "$ASSETS_JSON" | jq -r ".assets | map(select(.created_at < \"$CUTOFF_DATE\")) | .[].id")
+          
+          DELETED_COUNT=0
+          for ASSET_ID in $ASSETS_TO_DELETE; do
+            echo "Deleting old secondary backup asset ID: $ASSET_ID"
+            curl -s -X DELETE \
+              -H "Authorization: token $BACKUP_PAT_SECONDARY" \
+              "https://api.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/assets/${ASSET_ID}"
+            
+            if [ $? -eq 0 ]; then
+              DELETED_COUNT=$((DELETED_COUNT + 1))
+            else
+              echo "⚠️ Failed to delete asset $ASSET_ID"
+            fi
+          done
+          
+          RETAINED_COUNT=$((TOTAL_ASSETS - DELETED_COUNT))
+          echo "- Retention: \`7 days\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Backups retained: \`$RETAINED_COUNT\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Backups deleted: \`$DELETED_COUNT\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Could not calculate cutoff date, skipping cleanup"
+          echo "- Status: Cleanup skipped (date calculation failed)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Secondary backup retention cleanup complete"
+    
+    - name: Upload checkpoint files as workflow artifacts
+      if: always() && steps.orchestration.outputs.can_proceed == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: checkpoint-backup-${{ steps.params.outputs.execution_id }}
+        path: |
+          data/freesound_library/*.gpickle
+          data/freesound_library/*.db
+          data/freesound_library/*.json
+        retention-days: 7
+        if-no-files-found: ignore
     
     - name: Cleanup old backups (retention policy)
       if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
