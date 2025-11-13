@@ -65,7 +65,7 @@ class CleanupConfig:
     """
     Configuration for cleanup operations.
     
-    Provides comprehensive configuration for all aspects of the cleanup
+    Provides complete configuration for all aspects of the cleanup
     process, including directory structure, performance settings, and
     scalability options.
     """
@@ -302,7 +302,7 @@ class PhaseResult:
     """
     Result of phase execution.
     
-    Contains comprehensive information about a phase execution including
+    Contains complete information about a phase execution including
     operations performed, validation results, and any errors.
     """
 

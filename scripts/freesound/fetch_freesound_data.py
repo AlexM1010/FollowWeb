@@ -22,7 +22,7 @@ Basic Usage:
     # Fetch drum samples with 2 levels of recursion (100 total samples)
     python fetch_freesound_data.py --query "drum" --depth 2 --max-samples 100
 
-Advanced Usage:
+complex Usage:
     # Custom checkpoint directory for resumable fetching
     python fetch_freesound_data.py --query "ambient" --depth 1 --max-samples 50 \\
         --checkpoint-dir "my_checkpoints"

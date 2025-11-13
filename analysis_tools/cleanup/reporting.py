@@ -1,7 +1,7 @@
 """
 Reporting System for cleanup operations.
 
-This module provides comprehensive reporting capabilities for cleanup operations,
+This module provides complete reporting capabilities for cleanup operations,
 generating phase reports, migration guides, metrics reports, and developer documentation.
 """
 

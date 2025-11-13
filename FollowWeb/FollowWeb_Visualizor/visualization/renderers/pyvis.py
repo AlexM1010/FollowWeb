@@ -347,6 +347,6 @@ class PyvisRenderer(Renderer):
         Pyvis can handle moderately large graphs but not as efficiently as Sigma.js.
 
         Returns:
-            False - Pyvis is not optimized for 10,000+ nodes
+            False - Pyvis is not tuned for 10,000+ nodes
         """
         return False

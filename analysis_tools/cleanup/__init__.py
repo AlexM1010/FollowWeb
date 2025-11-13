@@ -1,7 +1,7 @@
 """
 Cleanup system for repository reorganization and maintenance.
 
-This module provides comprehensive tools for cleaning up and reorganizing
+This module provides complete tools for cleaning up and reorganizing
 repository structure, including file operations, git history preservation,
 workflow updates, and validation.
 """

@@ -95,7 +95,7 @@ class MetricsCalculator:
 
     def calculate_all_metrics(self, graph: nx.DiGraph) -> VisualizationMetrics:
         """
-        Calculate all visualization metrics for the given graph with comprehensive error handling.
+        Calculate all visualization metrics for the given graph with complete error handling.
 
         This method calculates node metrics, edge metrics, layout positions, and color schemes
         in a single pass, caching the results for reuse across different output formats.
@@ -136,7 +136,7 @@ class MetricsCalculator:
 
             # For now, we'll calculate fresh metrics each time since VisualizationMetrics
             # is a complex object that would need special serialization for caching
-            # This could be enhanced in the future with proper serialization
+            # This could be improved in the future with proper serialization
 
             progress_msg = EmojiFormatter.format(
                 "progress", "Calculating shared visualization metrics..."

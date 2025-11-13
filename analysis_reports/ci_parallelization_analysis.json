@@ -1,0 +1,221 @@
+{
+  "timestamp": "2025-11-13T22:23:54.790286",
+  "workflow": "ci.yml",
+  "summary": {
+    "total_jobs": 11,
+    "matrix_jobs": 1,
+    "total_matrix_instances": 6,
+    "bottlenecks_found": 1,
+    "optimization_status": "optimized"
+  },
+  "job_analysis": {
+    "prebuild": {
+      "depends_on": [],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": true
+    },
+    "quality-check": {
+      "depends_on": [],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": true
+    },
+    "test-quick": {
+      "depends_on": [
+        "prebuild",
+        "quality-check"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": true
+    },
+    "test": {
+      "depends_on": [
+        "prebuild",
+        "quality-check"
+      ],
+      "has_matrix": true,
+      "matrix_size": 6,
+      "fail_fast": true,
+      "max_parallel": "unlimited",
+      "can_run_parallel": true
+    },
+    "security": {
+      "depends_on": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": false
+    },
+    "format-check": {
+      "depends_on": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": false
+    },
+    "build": {
+      "depends_on": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": false
+    },
+    "performance": {
+      "depends_on": [
+        "prebuild",
+        "quality-check"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": true
+    },
+    "benchmarks": {
+      "depends_on": [
+        "prebuild",
+        "quality-check"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": true
+    },
+    "documentation": {
+      "depends_on": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": false
+    },
+    "ci-success": {
+      "depends_on": [
+        "prebuild",
+        "quality-check",
+        "test-quick",
+        "test",
+        "security",
+        "format-check",
+        "build",
+        "performance",
+        "benchmarks",
+        "documentation"
+      ],
+      "has_matrix": false,
+      "matrix_size": 0,
+      "fail_fast": false,
+      "max_parallel": "unlimited",
+      "can_run_parallel": false
+    }
+  },
+  "bottlenecks": [
+    {
+      "job": "ci-success",
+      "waits_for": "test",
+      "wait_type": "matrix_job",
+      "impact": "Must wait for all matrix instances to complete"
+    }
+  ],
+  "unnecessary_dependencies": [
+    {
+      "job": "security",
+      "dependencies": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "recommendation": "Consider if all dependencies are necessary"
+    },
+    {
+      "job": "format-check",
+      "dependencies": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "recommendation": "Consider if all dependencies are necessary"
+    },
+    {
+      "job": "build",
+      "dependencies": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "recommendation": "Consider if all dependencies are necessary"
+    },
+    {
+      "job": "documentation",
+      "dependencies": [
+        "prebuild",
+        "quality-check",
+        "test-quick"
+      ],
+      "recommendation": "Consider if all dependencies are necessary"
+    },
+    {
+      "job": "ci-success",
+      "dependencies": [
+        "prebuild",
+        "quality-check",
+        "test-quick",
+        "test",
+        "security",
+        "format-check",
+        "build",
+        "performance",
+        "benchmarks",
+        "documentation"
+      ],
+      "recommendation": "Consider if all dependencies are necessary"
+    }
+  ],
+  "parallelization_metrics": {
+    "matrix_jobs_parallel": true,
+    "independent_jobs": 2,
+    "dependent_jobs": 9
+  },
+  "optimizations": {
+    "fail_fast_enabled": true,
+    "max_parallel_unlimited": true,
+    "minimal_dependencies": false,
+    "matrix_jobs_start_parallel": true
+  },
+  "recommendations": [
+    {
+      "type": "bottleneck",
+      "description": "Some jobs wait for matrix jobs to complete",
+      "impact": "medium",
+      "action": "Consider if dependencies can be reduced"
+    }
+  ]
+}

@@ -384,7 +384,7 @@ class MatplotlibRenderer(Renderer):
     def _calculate_spring_layout(
         self, G_undirected: nx.Graph, graph: nx.DiGraph
     ) -> PositionDict:
-        """Calculate spring layout with comprehensive physics parameters."""
+        """Calculate spring layout with complete physics parameters."""
         num_nodes = G_undirected.number_of_nodes()
         num_edges = G_undirected.number_of_edges()
 
@@ -419,13 +419,13 @@ class MatplotlibRenderer(Renderer):
             total_iterations = max(10, spring_config.get("iterations", 200) // 10)
             k_value = self._get_spring_k_value(spring_config, num_nodes, density) * 2
             self.logger.info(
-                f"Fast mode: Using {total_iterations} iterations with enhanced spacing"
+                f"Fast mode: Using {total_iterations} iterations with improved spacing"
             )
         elif num_nodes > 10000:
             total_iterations = max(50, spring_config.get("iterations", 200) // 4)
             k_value = self._get_spring_k_value(spring_config, num_nodes, density) * 1.5
             self.logger.info(
-                f"Large graph: Using {total_iterations} iterations with enhanced spacing"
+                f"Large graph: Using {total_iterations} iterations with improved spacing"
             )
         elif num_nodes > 5000:
             total_iterations = max(100, spring_config.get("iterations", 200) // 2)
@@ -752,6 +752,6 @@ class MatplotlibRenderer(Renderer):
         Matplotlib can handle large graphs but performance degrades.
 
         Returns:
-            False - Not optimized for 10,000+ nodes
+            False - Not tuned for 10,000+ nodes
         """
         return False

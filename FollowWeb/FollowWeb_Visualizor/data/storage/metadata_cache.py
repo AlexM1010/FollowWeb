@@ -22,7 +22,7 @@ class MetadataCache:
     - WAL mode for concurrent reads during writes
     - Batch writes to reduce I/O overhead (50x improvement)
     - Indexed queries for fast lookups
-    - JSON storage for flexible metadata
+    - JSON storage for adaptable metadata
     - Automatic schema creation and migration
 
     Performance:
@@ -91,7 +91,7 @@ class MetadataCache:
             ON metadata(is_dormant)
         """)
 
-        # Composite index for efficient seed selection (is_dormant, priority_score DESC)
+        # Composite index for fast seed selection (is_dormant, priority_score DESC)
         self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_priority
             ON metadata(is_dormant, priority_score DESC)

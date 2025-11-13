@@ -56,7 +56,7 @@ class TempFileIssue:
 
 @dataclass
 class CrossPlatformReport:
-    """Comprehensive cross-platform compatibility report."""
+    """complete cross-platform compatibility report."""
 
     file_path: str
     platform_issues: list[PlatformIssue]
@@ -184,7 +184,7 @@ class CrossPlatformAnalyzer:
             file_path: Path to the test file to analyze
 
         Returns:
-            CrossPlatformReport: Comprehensive compatibility analysis
+            CrossPlatformReport: complete compatibility analysis
         """
         try:
             with open(file_path, encoding="utf-8") as f:

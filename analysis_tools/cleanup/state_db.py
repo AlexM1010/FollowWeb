@@ -31,7 +31,7 @@ class CleanupStateDB:
     - 50x reduction in I/O operations
     - Scales to 100K+ file operations
     - Prevents file locking issues
-    - Enables efficient progress queries
+    - Enables fast progress queries
 
     Usage:
         db = CleanupStateDB()
@@ -110,7 +110,7 @@ class CleanupStateDB:
             ON file_operations(phase)
         """)
 
-        # Composite index for efficient phase progress queries
+        # Composite index for fast phase progress queries
         self._conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_phase_status
             ON file_operations(phase, status)

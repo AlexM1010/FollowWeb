@@ -550,7 +550,7 @@ class CentralizedCache:
         self, timestamp_key: str, cache_dict: dict
     ) -> Any:
         """Extract the actual cache key from a timestamp key."""
-        # This is a simplified approach - in practice, you might need more sophisticated mapping
+        # This is a simplified approach - in practice, you might need more complex mapping
         for cache_key in cache_dict.keys():
             if str(cache_key) in timestamp_key or (
                 isinstance(cache_key, tuple)

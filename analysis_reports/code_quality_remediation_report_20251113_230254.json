@@ -1,0 +1,113 @@
+{
+  "report_timestamp": "2025-11-13T23:02:54.095914",
+  "analysis_period": {
+    "before": "2025-11-13T22:56:46.669631",
+    "after": "2025-11-13T23:01:42.970772"
+  },
+  "summary": {
+    "files_analyzed": 152,
+    "ai_language_files_before": 97,
+    "ai_language_files_after": 34,
+    "ai_language_improvement": 63,
+    "ai_language_improvement_percent": 64.94845360824742,
+    "total_occurrences_before": 824,
+    "total_occurrences_after": 532,
+    "issues_fixed": 292
+  },
+  "category_breakdown": {
+    "workflow_references": 172,
+    "overused_adjectives": 317,
+    "vague_benefits": 10,
+    "marketing_phrases": 24,
+    "redundant_qualifiers": 9
+  },
+  "files_needing_attention": [
+    {
+      "file": "analysis_tools\\ai_language_scanner.py",
+      "total_matches": 278,
+      "categories": {
+        "overused_adjectives": 249,
+        "marketing_phrases": 12,
+        "redundant_qualifiers": 9,
+        "vague_benefits": 8
+      }
+    },
+    {
+      "file": "scripts\\analysis\\workflow_orchestrator.py",
+      "total_matches": 50,
+      "categories": {
+        "workflow_references": 50
+      }
+    },
+    {
+      "file": "analysis_tools\\cleanup\\workflow_manager.py",
+      "total_matches": 42,
+      "categories": {
+        "workflow_references": 42
+      }
+    },
+    {
+      "file": "analysis_tools\\pattern_detector.py",
+      "total_matches": 33,
+      "categories": {
+        "overused_adjectives": 25,
+        "marketing_phrases": 8
+      }
+    },
+    {
+      "file": "analysis_tools\\cleanup\\exceptions.py",
+      "total_matches": 14,
+      "categories": {
+        "workflow_references": 14
+      }
+    },
+    {
+      "file": "scripts\\cleanup\\validate_workflow_paths.py",
+      "total_matches": 13,
+      "categories": {
+        "workflow_references": 13
+      }
+    },
+    {
+      "file": "analysis_tools\\cleanup\\orchestrator.py",
+      "total_matches": 11,
+      "categories": {
+        "workflow_references": 11
+      }
+    },
+    {
+      "file": "FollowWeb\\FollowWeb_Visualizor\\data\\loaders\\base.py",
+      "total_matches": 10,
+      "categories": {
+        "workflow_references": 10
+      }
+    },
+    {
+      "file": "analysis_tools\\cleanup\\models.py",
+      "total_matches": 9,
+      "categories": {
+        "workflow_references": 9
+      }
+    },
+    {
+      "file": "FollowWeb\\build\\lib\\FollowWeb_Visualizor\\data\\loaders\\base.py",
+      "total_matches": 8,
+      "categories": {
+        "workflow_references": 8
+      }
+    }
+  ],
+  "remediation_actions": [
+    "Replaced overused adjectives (comprehensive, robust, enhanced, etc.) with specific technical terms",
+    "Fixed marketing phrases and vague language in docstrings and comments",
+    "Improved technical precision in user-facing documentation",
+    "Maintained pattern definition files (ai_language_scanner.py, pattern_detector.py) unchanged",
+    "Preserved workflow terminology where technically accurate"
+  ],
+  "recommendations": [
+    "Review remaining workflow references to ensure technical accuracy",
+    "Consider adding linting rules to prevent reintroduction of AI language patterns",
+    "Update documentation style guide to discourage marketing language",
+    "Run periodic scans to maintain code quality standards"
+  ]
+}

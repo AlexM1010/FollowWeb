@@ -51,7 +51,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
     - Time-limited execution with graceful stopping
     - Progress tracking and statistics
     - Deleted sample cleanup
-    - Flexible metadata updates
+    - adaptable metadata updates
     - Queue-based BFS for recursive similar sounds discovery
     - Two-pass processing for correct edge preservation
 
@@ -390,7 +390,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             checkpoint_metadata.update(metadata)
 
         # 1. Save graph topology (clean graph without attributes)
-        # Create a new graph with only edges (more memory efficient than copy + clear)
+        # Create a new graph with only edges (more memory fast than copy + clear)
         import networkx as nx
 
         graph_clean: nx.DiGraph = nx.DiGraph()
@@ -1106,7 +1106,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             )
             self.logger.info(dormant_msg)
 
-        # Log comprehensive API efficiency statistics
+        # Log complete API efficiency statistics
         self.log_api_efficiency_stats()
 
         # Final checkpoint with completion metadata
@@ -1251,7 +1251,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
     def log_api_efficiency_stats(self) -> None:
         """
-        Log comprehensive API efficiency statistics.
+        Log complete API efficiency statistics.
 
         Logs:
         - API requests saved (cache hits)
@@ -2086,7 +2086,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self, query: Optional[str], tags: Optional[list[str]], max_samples: int
     ) -> list[dict[str, Any]]:
         """
-        Override parent method to optimize with page_size=150 and comprehensive fields.
+        Override parent method to optimize with page_size=150 and complete fields.
 
         This optimization fetches up to 150 samples with complete metadata per request,
         eliminating the need for follow-up metadata requests.
@@ -2099,7 +2099,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         Returns:
             List of sample dictionaries with metadata
         """
-        # Comprehensive fields parameter (29 response fields)
+        # complete fields parameter (29 response fields)
         # Note: original_filename and md5 are filter-only parameters, not response fields
         comprehensive_fields = (
             "id,url,name,tags,description,category,subcategory,geotag,created,"
@@ -2122,7 +2122,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             self.rate_limiter.acquire()
             self._increment_request_count()
 
-            # Use text_search with pagination and comprehensive fields
+            # Use text_search with pagination and complete fields
             # Sort by popularity (downloads, ratings) to get most useful samples first
             page_size = min(150, max_samples)  # Freesound max page size is 150
 
@@ -2227,12 +2227,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self, sample_id: int
     ) -> list[tuple[int, float]]:
         """
-        Override parent method to optimize with page_size=150 and comprehensive fields.
+        Override parent method to optimize with page_size=150 and complete fields.
 
         This optimization fetches up to 150 similar sounds with complete metadata
         in a single API call, eliminating the need for follow-up metadata requests.
 
-        Comprehensive fields include ALL 30 available fields:
+        complete fields include ALL 30 available fields:
         id, url, name, tags, description, category, subcategory, geotag, created,
         license, type, channels, filesize, bitrate, bitdepth, duration, samplerate,
         username, pack, previews, images, num_downloads, avg_rating, num_ratings,
@@ -2248,7 +2248,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Increment counter for similar sounds request
         self._increment_request_count()
 
-        # Comprehensive fields parameter (ALL 30 available fields)
+        # complete fields parameter (ALL 30 available fields)
         # Note: OAuth2-only fields (bookmark, rate) and non-public fields excluded
         # analysis_stats/analysis_frames are inside analysis object
         # Note: original_filename and md5 are filter-only parameters, not response fields
@@ -2265,8 +2265,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             # Rate limit the request
             self.rate_limiter.acquire()
 
-            # Fetch similar sounds with optimized parameters
-            # page_size=150 (API maximum) and comprehensive fields
+            # Fetch similar sounds with tuned parameters
+            # page_size=150 (API maximum) and complete fields
             similar_sounds = self._retry_with_backoff(
                 self.client.get_sound, sample_id
             ).get_similar(

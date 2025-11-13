@@ -1384,7 +1384,7 @@ class CleanupOrchestrator:
                         errors.extend(result.errors)
         
         elif phase == CleanupPhase.VALIDATION:
-            # Run comprehensive validation
+            # Run complete validation
             # This would include import validation, test execution, etc.
             pass
         
@@ -1449,12 +1449,12 @@ class CleanupOrchestrator:
     
     def generate_report(self) -> str:
         """
-        Generate comprehensive cleanup report.
+        Generate complete cleanup report.
         
         Returns:
             Path to generated report file
         """
-        self.logger.info("Generating comprehensive cleanup report...")
+        self.logger.info("Generating complete cleanup report...")
         
         # Collect metrics (placeholder - would calculate actual metrics)
         before_metrics = Metrics(

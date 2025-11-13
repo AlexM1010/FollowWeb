@@ -4,7 +4,7 @@ Sigma.js renderer for high-performance interactive HTML network visualizations.
 This module provides the SigmaRenderer class that implements the Renderer interface
 for generating interactive HTML visualizations using the Sigma.js library with WebGL support.
 
-The renderer is optimized for large graphs (10,000+ nodes) and includes features like
+The renderer is tuned for large graphs (10,000+ nodes) and includes features like
 audio playback for Freesound samples, interactive controls, and customizable styling.
 
 Classes:
@@ -683,6 +683,6 @@ class SigmaRenderer(Renderer):
         Sigma.js with WebGL can efficiently handle 10,000+ nodes.
 
         Returns:
-            True - Sigma.js is optimized for large graphs with WebGL rendering
+            True - Sigma.js is tuned for large graphs with WebGL rendering
         """
         return True

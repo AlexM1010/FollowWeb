@@ -10,7 +10,7 @@ Key Features:
 - GitHub API integration for workflow status checks
 - File-based locking as fallback mechanism
 - Exponential backoff for polling
-- Comprehensive logging with EmojiFormatter
+- complete logging with EmojiFormatter
 - Dry-run mode for testing
 
 Example Usage:

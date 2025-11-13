@@ -1,7 +1,7 @@
 """
 Input validation utilities for FollowWeb network analysis.
 
-This module provides comprehensive validation functions for parameters,
+This module provides complete validation functions for parameters,
 file paths, and configuration values used throughout the FollowWeb package.
 """
 

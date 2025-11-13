@@ -42,7 +42,7 @@ class SampleValidator:
     on age - only when they no longer exist on Freesound.
     
     Features:
-    - Efficient batch validation (150 samples per API request)
+    - Fast batch validation (150 samples per API request)
     - Zero-cost metadata refresh (piggybacks on validation)
     - History tracking with timestamps
     - Support for full and partial validation modes
@@ -325,7 +325,7 @@ class SampleValidator:
         at ZERO additional cost. This eliminates the need for a separate metadata
         refresh script.
         
-        This is much more efficient than checking each sample individually.
+        This is much more fast than checking each sample individually.
         Uses text search with ID filter to validate up to 150 samples per request.
         
         Args:
@@ -340,7 +340,7 @@ class SampleValidator:
         id_filter = " OR ".join(sample_ids)
         url = f"{self.api_base_url}/search/text/"
         
-        # OPTIMIZATION: Include comprehensive metadata fields for zero-cost refresh
+        # OPTIMIZATION: Include complete metadata fields for zero-cost refresh
         # Note: original_filename and md5 are filter parameters only, not response fields
         metadata_fields = (
             'id,url,name,tags,description,category,subcategory,geotag,created,'
@@ -373,7 +373,7 @@ class SampleValidator:
                     sound_id = str(sound['id'])
                     existing_ids.add(sound_id)
                     
-                    # Extract all 29 comprehensive metadata fields (zero-cost refresh!)
+                    # Extract all 29 complete metadata fields (zero-cost refresh!)
                     metadata_dict[sound_id] = {
                         'url': sound.get('url'),
                         'name': sound.get('name'),

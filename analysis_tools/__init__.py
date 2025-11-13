@@ -1,9 +1,9 @@
 """
-Analysis tools for comprehensive code quality assessment.
+Analysis tools for complete code quality assessment.
 
 This package provides utilities for analyzing Python code, detecting patterns,
 identifying optimization opportunities, and supporting safe refactoring operations.
-It also includes a comprehensive cleanup system for repository reorganization.
+It also includes a complete cleanup system for repository reorganization.
 """
 
 # Local imports

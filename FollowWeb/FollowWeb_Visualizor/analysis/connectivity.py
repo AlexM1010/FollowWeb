@@ -22,7 +22,7 @@ def calculate_connectivity_metrics(
     graph: nx.Graph, logger: Optional[logging.Logger] = None
 ) -> dict[str, Any]:
     """
-    Calculate comprehensive connectivity metrics for a graph.
+    Calculate complete connectivity metrics for a graph.
 
     This function analyzes the connectivity structure of a graph by calculating:
     - Number of connected components

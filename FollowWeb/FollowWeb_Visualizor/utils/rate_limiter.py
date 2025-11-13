@@ -108,7 +108,7 @@ class RateLimiter:
     - Blocks requests when bucket is empty
     - Allows bursts up to the bucket capacity
 
-    This is more flexible than a simple fixed-rate limiter because it allows
+    This is more adaptable than a simple fixed-rate limiter because it allows
     occasional bursts while still maintaining the average rate over time.
 
     The refill rate is calculated as: rate / 60 tokens per second

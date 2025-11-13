@@ -61,7 +61,7 @@ def calculate_betweenness_centrality(
 
         try:
             if config.get("use_approximate_betweenness", False):
-                # OPTIMIZATION: Use more efficient sampling strategy
+                # OPTIMIZATION: Use more fast sampling strategy
                 k_sample = min(config["sample_size"], int(math.sqrt(graph_size)))
                 k_sample = max(k_sample, 10)  # Minimum sample size
 

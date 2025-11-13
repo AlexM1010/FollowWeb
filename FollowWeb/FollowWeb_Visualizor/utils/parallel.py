@@ -143,7 +143,7 @@ class ParallelProcessingManager:
         override_cores: Optional[Optional[int]] = None,
     ) -> ParallelConfig:
         """
-        Get optimized parallel configuration for a specific operation.
+        Get tuned parallel configuration for a specific operation.
 
         Args:
             operation_type: Type of operation ('analysis', 'testing', 'visualization')
@@ -152,7 +152,7 @@ class ParallelProcessingManager:
             override_cores: Explicit core count override
 
         Returns:
-            ParallelConfig with optimized settings and user notification info
+            ParallelConfig with tuned settings and user notification info
         """
         # Import here to avoid circular imports
         from ..data.cache import get_cache_manager
@@ -307,7 +307,7 @@ class ParallelProcessingManager:
                 "progress", f"Running {config.operation_type} sequentially (1 core)"
             )
             if config.strategy == "sequential":
-                message += " - optimized for accuracy"
+                message += " - tuned for accuracy"
             elif config.cores_available > 1:
                 message += f" - {config.cores_available} cores available but using sequential mode"
         else:
@@ -389,12 +389,12 @@ def get_parallel_manager() -> ParallelProcessingManager:
 def get_analysis_parallel_config(
     graph_size: Optional[Optional[int]] = None,
 ) -> ParallelConfig:
-    """Get parallel configuration optimized for network analysis operations."""
+    """Get parallel configuration tuned for network analysis operations."""
     return get_parallel_manager().get_parallel_config("analysis", graph_size=graph_size)
 
 
 def get_testing_parallel_config(test_category: str = "unit") -> ParallelConfig:
-    """Get parallel configuration optimized for testing operations."""
+    """Get parallel configuration tuned for testing operations."""
     # Set environment variable to help with test category detection
     os.environ["PYTEST_TEST_CATEGORY"] = test_category
     return get_parallel_manager().get_parallel_config("testing")
@@ -403,7 +403,7 @@ def get_testing_parallel_config(test_category: str = "unit") -> ParallelConfig:
 def get_visualization_parallel_config(
     data_size: Optional[Optional[int]] = None,
 ) -> ParallelConfig:
-    """Get parallel configuration optimized for visualization operations."""
+    """Get parallel configuration tuned for visualization operations."""
     return get_parallel_manager().get_parallel_config(
         "visualization", graph_size=data_size
     )

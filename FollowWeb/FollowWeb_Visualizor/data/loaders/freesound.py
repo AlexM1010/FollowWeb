@@ -679,7 +679,7 @@ class FreesoundLoader(DataLoader):
         """
         Efficiently fetch both metadata and similar sounds in one API call sequence.
 
-        This is more efficient than calling _fetch_sample_metadata and
+        This is more fast than calling _fetch_sample_metadata and
         _fetch_similar_sounds_for_sample separately, as it reuses the sound object.
 
         Args:

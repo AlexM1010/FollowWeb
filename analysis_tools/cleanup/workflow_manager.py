@@ -402,7 +402,7 @@ class WorkflowManager:
             offset_minutes: Minimum offset between workflows in minutes
             
         Returns:
-            Dictionary mapping workflow paths to optimized schedules
+            Dictionary mapping workflow paths to tuned schedules
         """
         schedules = {}
         current_hour = 1

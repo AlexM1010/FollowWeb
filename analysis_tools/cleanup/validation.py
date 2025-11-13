@@ -1,7 +1,7 @@
 """
 Validation Engine for cleanup operations.
 
-This module provides comprehensive validation capabilities for cleanup operations,
+This module provides complete validation capabilities for cleanup operations,
 leveraging existing analysis_tools components for code quality checks.
 """
 
@@ -26,7 +26,7 @@ class ValidationEngine:
     """
     Validation engine for cleanup operations.
     
-    Integrates with existing analysis_tools components to provide comprehensive
+    Integrates with existing analysis_tools components to provide complete
     validation of code quality, imports, tests, and workflows.
     """
 
@@ -419,7 +419,7 @@ class ValidationEngine:
         self, results: List[ValidationResult]
     ) -> str:
         """
-        Generate comprehensive validation report.
+        Generate complete validation report.
         
         Args:
             results: List of validation results

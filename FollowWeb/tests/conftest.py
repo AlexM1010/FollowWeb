@@ -81,7 +81,7 @@ TEST_K_VALUE_PRESETS = {
         },
         "default_k_value": 7,
     },
-    "png_optimized": {  # Optimized for fast PNG generation tests
+    "png_optimized": {  # Tuned for fast PNG generation tests
         "strategy_k_values": {
             "k-core": 10,
             "reciprocal_k-core": 10,
@@ -218,7 +218,7 @@ def apply_png_test_optimizations(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def _load_dataset_summary() -> dict[str, Any]:
-    """Load and cache dataset summary for efficient access."""
+    """Load and cache dataset summary for fast access."""
     global _dataset_summary_cache
 
     if _dataset_summary_cache is not None:
@@ -249,7 +249,7 @@ def calculate_appropriate_k_values(dataset_name: str = "small_real") -> dict[str
     1. Appropriate for the dataset size (not too high to result in empty graphs)
     2. Meaningful for testing (not too low to be trivial)
     3. Different for different strategies to test various scenarios
-    4. Efficient (uses cached dataset summary)
+    4. Fast (uses cached dataset summary)
 
     Args:
         dataset_name: Name of dataset from dataset_summary.json
@@ -433,7 +433,7 @@ def large_real_data() -> str:
 
 @pytest.fixture
 def full_test_data() -> str:
-    """Fixture providing full anonymized dataset for comprehensive testing (100% of original data)."""
+    """Fixture providing full anonymized dataset for complete testing (100% of original data)."""
     conftest_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(conftest_dir, "test_data", "full_anonymized.json")
 
@@ -602,7 +602,7 @@ def ci_timeout(ci_environment):
 def ci_optimized_config(
     default_config: dict[str, Any], temp_output_dir: str, ci_environment: dict[str, Any]
 ) -> dict[str, Any]:
-    """Fixture providing CI-optimized configuration with appropriate timeouts and resource limits."""
+    """Fixture providing CI-tuned configuration with appropriate timeouts and resource limits."""
     from pathlib import Path
 
     config = default_config.copy()
@@ -789,7 +789,7 @@ def ci_resource_manager(ci_environment):
 def fast_config(
     default_config: dict[str, Any], temp_output_dir: str, sample_data_file: str
 ) -> dict[str, Any]:
-    """Fixture providing configuration optimized for fast testing using tiny test dataset."""
+    """Fixture providing configuration tuned for fast testing using tiny test dataset."""
     from pathlib import Path
 
     config = default_config.copy()
@@ -941,7 +941,7 @@ def _configure_parallel_execution(config):
         config._test_type = "unknown"
 
     # Choose distribution strategy based on test type
-    # Note: Test order is already optimized in pytest_collection_modifyitems
+    # Note: Test order is already tuned in pytest_collection_modifyitems
     # (longest tests first) for optimal parallel execution
     if "unit" in markers:
         config.option.dist = (
@@ -1098,7 +1098,7 @@ def pytest_collection_modifyitems(config, items):
                 "timing",
                 "loading_indicator",
                 "metrics_report",
-                "comprehensive",
+                "complete",
             ]
         )
 
@@ -1232,7 +1232,7 @@ def large_config(
 def comprehensive_config(
     default_config: dict[str, Any], temp_output_dir: str
 ) -> dict[str, Any]:
-    """Fixture providing configuration for comprehensive testing using full test dataset."""
+    """Fixture providing configuration for complete testing using full test dataset."""
     from pathlib import Path
 
     config = default_config.copy()

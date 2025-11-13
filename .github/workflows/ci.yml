@@ -293,9 +293,10 @@ jobs:
     - name: Run quick smoke tests
       run: |
         set -e
-        # Get CPU count for CI environment (use all cores, no safety margin needed in CI)
+        # Get CPU count - use ALL cores on GitHub Actions (no safety margin)
+        # GitHub Actions runners: ubuntu=4 cores, windows=4 cores, macos=3 cores
         cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
-        echo "Running tests with $cpu_count workers (all available cores)"
+        echo "Running tests with $cpu_count workers (all available cores on GitHub Actions)"
         # Run unit tests only (fast, isolated tests with maximum parallelization)
         # No coverage reporting for smoke test - just validate code works
         # FAIL FAST: Stop immediately on first failure to save CI time

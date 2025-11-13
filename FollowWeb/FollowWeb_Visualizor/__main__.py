@@ -1211,7 +1211,7 @@ Examples:
     mode_group.add_argument(
         "--fast-mode",
         action="store_true",
-        help="FAST mode: Optimized algorithms with reduced precision. "
+        help="FAST mode: Tuned algorithms with reduced precision. "
         "Uses sampling (threshold: 1000 nodes), limited layout iterations (100), "
         "approximate algorithms, and skips expensive computations. "
         "Best for: Large networks (>10K nodes), quick exploration, performance testing.",
@@ -1432,7 +1432,7 @@ Examples:
 
 def setup_logging(verbose: bool = False, quiet: bool = False) -> None:
     """
-    Setup optimized logging configuration.
+    Setup tuned logging configuration.
 
     Args:
         verbose: Enable verbose (DEBUG) logging

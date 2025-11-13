@@ -1,7 +1,7 @@
 """
 Code Duplication Detection for identifying redundant code patterns and validation logic.
 
-This module provides comprehensive analysis of code duplication including:
+This module provides complete analysis of code duplication including:
 - Duplicate validation logic
 - Redundant directory creation and file operations
 - Similar error handling patterns
@@ -57,7 +57,7 @@ class ImportAnalysis:
 
 @dataclass
 class DuplicationReport:
-    """Comprehensive report of code duplication in a file or project."""
+    """complete report of code duplication in a file or project."""
 
     file_path: str
     duplicate_blocks: list[DuplicateCodeBlock]
@@ -137,7 +137,7 @@ class DuplicationDetector:
             file_path: Path to the Python file to analyze
 
         Returns:
-            DuplicationReport: Comprehensive duplication analysis
+            DuplicationReport: complete duplication analysis
         """
         try:
             with open(file_path, encoding="utf-8") as f:

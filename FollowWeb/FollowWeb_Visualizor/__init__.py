@@ -1,15 +1,15 @@
 """
 FollowWeb Network Analysis Package
 
-A comprehensive social network analysis tool for visualizing Instagram follower/following
+A complete social network analysis tool for visualizing Instagram follower/following
 relationships using graph theory and network analysis techniques.
 
 This package provides:
 - Multiple analysis strategies (k-core, reciprocal, ego-alter)
 - Interactive HTML and static PNG visualizations
 - Community detection and centrality analysis
-- Comprehensive metrics reporting
-- Professional modular architecture
+- complete metrics reporting
+- Professional component-based architecture
 
 Modules:
     main: Entry point and pipeline orchestration
@@ -87,7 +87,7 @@ from .utils.validation import (
     ValidationErrorHandler,
 )
 
-# Enhanced metrics reporting
+# improved metrics reporting
 try:
     from .output.managers import MetricsReporter
 except ImportError:
@@ -221,7 +221,7 @@ __all__ = [
     "Logger",
     "OutputConfig",
     "OutputManager",
-    # Enhanced metrics reporting
+    # improved metrics reporting
     "MetricsReporter",
     # Emoji utilities
     "EmojiFormatter",

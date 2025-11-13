@@ -118,7 +118,7 @@ def analyze_palette(colors: List[Tuple[str, str]]) -> None:
 
 def generate_improved_palette() -> List[Tuple[str, str]]:
     """Generate an improved palette with better color separation."""
-    # Optimized palette with maximum perceptual separation
+    # Tuned palette with maximum perceptual separation
     return [
         ("Green", "#2ECC71"),      # Bright green (hue 145°)
         ("Blue", "#3498DB"),       # Bright blue (hue 204°)

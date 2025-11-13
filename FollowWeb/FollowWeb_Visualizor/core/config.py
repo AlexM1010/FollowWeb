@@ -154,7 +154,7 @@ class PipelineStagesConfig:
     def __post_init__(self) -> None:
         """Validate pipeline stages configuration after initialization."""
         # Note: Stage dependency validation is handled by validate_stage_dependencies()
-        # to allow for more flexible validation during configuration loading
+        # to allow for more adaptable validation during configuration loading
         pass
 
 
@@ -249,7 +249,7 @@ class SpringLayoutConfig:
     k: float = 0.15  # Spring constant (node repulsion)
     iterations: int = 50  # Number of layout iterations
 
-    # Advanced physics parameters
+    # complex physics parameters
     spring_length: float = 1.0  # Natural length of springs (edges)
     spring_constant: float = 1.0  # Spring stiffness coefficient
     repulsion_strength: float = 1.0  # Node-to-node repulsion force
@@ -1966,7 +1966,7 @@ class AnalysisModeManager:
             mode: Analysis mode to apply optimizations for
 
         Returns:
-            Dict: Optimized configuration dictionary
+            Dict: Tuned configuration dictionary
         """
         if mode is None:
             mode = self.config.analysis_mode.mode
@@ -2101,7 +2101,7 @@ class AnalysisModeManager:
         )
 
         if mode == AnalysisMode.FAST:
-            self.logger.info("  - Optimized for speed with reduced precision")
+            self.logger.info("  - Tuned for speed with reduced precision")
         elif mode == AnalysisMode.MEDIUM:
             self.logger.info("  - Balanced analysis depth and performance")
         elif mode == AnalysisMode.FULL:
