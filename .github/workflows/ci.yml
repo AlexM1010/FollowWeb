@@ -64,6 +64,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+  # Note: GitHub Actions doesn't support workflow-level fail-fast for jobs
+  # Use job dependencies and continue-on-error: false to control failure behavior
 
 jobs:
   # ============================================================================
@@ -78,6 +80,7 @@ jobs:
     name: "⚡ Smoke Test (Python 3.12 on Ubuntu)"
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    continue-on-error: false
     defaults:
       run:
         working-directory: FollowWeb
@@ -130,7 +133,7 @@ jobs:
   test:
     name: "🧪 Test Python ${{ matrix.python-version }} on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
-    needs: [test-quick, security-quality]
+    needs: test-quick
     timeout-minutes: 15
     defaults:
       run:
@@ -307,6 +310,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-quick
     timeout-minutes: 10
+    continue-on-error: false
     defaults:
       run:
         working-directory: FollowWeb
@@ -444,6 +448,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: security-quality
     timeout-minutes: 30
+    continue-on-error: false
     defaults:
       run:
         working-directory: FollowWeb
@@ -576,6 +581,7 @@ jobs:
   documentation:
     name: "📚 Documentation"
     needs: test-quick
+    continue-on-error: false
     uses: ./.github/workflows/docs.yml
   
   # ============================================================================
@@ -587,6 +593,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test, build-performance, documentation]
     if: always()
+    continue-on-error: false
     
     steps:
     - name: Check all jobs status
