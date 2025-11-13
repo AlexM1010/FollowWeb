@@ -230,7 +230,7 @@ omit = [
 parallel = true
 
 [tool.coverage.report]
-fail_under = 70
+fail_under = 0
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

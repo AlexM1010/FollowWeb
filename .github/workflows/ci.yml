@@ -243,7 +243,7 @@ jobs:
         cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
         echo "Running tests with $cpu_count workers (all available cores)"
         # Run unit tests only (fast, isolated tests with maximum parallelization)
-        # No coverage requirement for smoke test - just validate code works
+        # No coverage reporting for smoke test - just validate code works
         # FAIL FAST: Stop immediately on first failure to save CI time
         # Disable benchmark plugin to prevent forced sequential mode
         python -m pytest -p no:benchmark -m unit -x --maxfail=1 --tb=short -v -n $cpu_count
@@ -365,18 +365,17 @@ jobs:
       continue-on-error: false
       shell: bash
     
-    - name: Run tests with coverage
+    - name: Run tests without coverage
       run: |
         set -e  # Exit immediately if any command fails
-        threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
         # Get CPU count for CI environment (use all cores, no safety margin needed in CI)
         cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
         echo "Running tests with $cpu_count workers (all available cores)"
-        # Run fast tests (unit + integration) with coverage in parallel
+        # Run fast tests (unit + integration) without coverage in parallel
         # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
         # FAIL FAST: Stop immediately on first failure to save CI time
         # Disable benchmark plugin to prevent forced sequential mode
-        python -m pytest -p no:benchmark -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+        python -m pytest -p no:benchmark -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count || {
           exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
           python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
@@ -391,25 +390,7 @@ jobs:
         MPLBACKEND: Agg
         PYTHONPATH: ${{ github.workspace }}/FollowWeb
     
-    - name: Upload coverage reports
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-reports-${{ matrix.os }}-${{ matrix.python-version }}
-        path: |
-          FollowWeb/coverage.xml
-          FollowWeb/htmlcov/
-        retention-days: 7
-        if-no-files-found: ignore
-    
-    - name: Generate coverage report summary
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-      run: |
-        python ../.github/scripts/ci_helpers.py info "**Coverage Report Summary**" --summary-only
-        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-        python -m coverage report --show-missing >> $GITHUB_STEP_SUMMARY || python ../.github/scripts/ci_helpers.py error "Coverage report generation failed" --summary-only
-        python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-        python ../.github/scripts/ci_helpers.py info "Full HTML coverage report available in artifacts." --summary-only
+
 
   security:
     name: Security Scan

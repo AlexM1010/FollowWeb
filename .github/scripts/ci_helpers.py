@@ -257,12 +257,10 @@ def generate_test_summary():
     Generate dynamic test summary with current counts and thresholds.
     """
     counts = _get_test_counts()
-    threshold = _get_coverage_threshold()
     
     _ci_write_summary("info", "**Test Validation Results**")
     _ci_write_summary("success", f"**Unit Tests ({counts['unit']} tests)**")
     _ci_write_summary("success", f"**Integration Tests ({counts['integration']} tests)**")
-    _ci_write_summary("success", f"**Coverage Requirement (>={threshold}%)**")
 
 
 def generate_quality_summary():
@@ -277,7 +275,6 @@ def generate_quality_summary():
     _ci_write_summary("success", f"- **Integration Tests** ({counts['integration']} tests)")
     _ci_write_summary("success", "- **End-to-End Pipeline Tests**")
     _ci_write_summary("success", "- **Performance Tests**")
-    _ci_write_summary("success", f"- **Code Coverage** (>={_get_coverage_threshold()}%)")
     _ci_write_summary("success", "- **Security Scanning** (Bandit + pip-audit)")
     _ci_write_summary("success", "- **Type Checking** (mypy)")
     _ci_write_summary("success", "- **Code Formatting** (ruff)")
