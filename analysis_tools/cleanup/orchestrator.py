@@ -1066,9 +1066,263 @@ class CleanupOrchestrator:
         return content
     
     def _execute_doc_consolidation_phase(self, dry_run: bool = False) -> List[FileOperation]:
-        """Execute documentation consolidation phase."""
-        # Placeholder - would implement doc consolidation logic
-        return []
+        """
+        Execute documentation consolidation phase.
+        
+        Identifies duplicate documentation files, compares and determines best
+        versions, moves best versions and archives older versions, creates
+        docs/README.md index, and updates root README.md.
+        
+        Args:
+            dry_run: If True, simulate without making changes
+            
+        Returns:
+            List of file operations performed
+        """
+        operations = []
+        
+        self.logger.info("Executing documentation consolidation phase...")
+        
+        # Step 1: Find duplicate documentation files
+        import os
+        from collections import defaultdict
+        from pathlib import Path
+        
+        files_by_name = defaultdict(list)
+        
+        # Scan for all .md files (excluding .kiro and .git directories)
+        for root, dirs, files in os.walk(self.project_root):
+            # Skip .kiro and .git directories
+            dirs[:] = [d for d in dirs if d not in ['.kiro', '.git', 'node_modules', '.venv', 'test_env']]
+            
+            for file in files:
+                if file.endswith('.md'):
+                    file_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(file_path, self.project_root)
+                    files_by_name[file].append(rel_path)
+        
+        # Find duplicates
+        duplicates = {name: paths for name, paths in files_by_name.items() if len(paths) > 1}
+        
+        self.logger.info(f"Found {len(duplicates)} duplicate documentation file names")
+        
+        # Step 2: Process duplicates (excluding README.md which is special)
+        consolidated_count = 0
+        archived_count = 0
+        
+        for filename, paths in duplicates.items():
+            # Skip README.md files (they're directory-specific)
+            if filename == 'README.md':
+                self.logger.info(f"Skipping {filename} (directory-specific)")
+                continue
+            
+            # Skip spec files (design.md, requirements.md, tasks.md in .kiro/specs)
+            if filename in ['design.md', 'requirements.md', 'tasks.md']:
+                spec_files = [p for p in paths if '.kiro/specs' in p]
+                if len(spec_files) == len(paths):
+                    self.logger.info(f"Skipping {filename} (spec files)")
+                    continue
+            
+            self.logger.info(f"\nProcessing duplicate: {filename}")
+            self.logger.info(f"  Found in {len(paths)} locations:")
+            for path in paths:
+                self.logger.info(f"    - {path}")
+            
+            # Determine best version (largest file, most recent)
+            best_path = self._select_best_version(paths)
+            
+            self.logger.info(f"  Best version: {best_path}")
+            
+            # Archive other versions
+            for path in paths:
+                if path != best_path:
+                    # Determine archive path
+                    archive_name = f"{Path(path).stem}_archived_{datetime.now().strftime('%Y%m%d')}{Path(path).suffix}"
+                    archive_path = os.path.join('docs', 'archive', archive_name)
+                    
+                    self.logger.info(f"  Archiving: {path} -> {archive_path}")
+                    
+                    if not dry_run:
+                        try:
+                            self.git_manager.git_move(path, archive_path)
+                            
+                            operations.append(FileOperation(
+                                operation="git_mv_archive",
+                                source=path,
+                                destination=archive_path,
+                                timestamp=datetime.now(),
+                                success=True,
+                            ))
+                            
+                            archived_count += 1
+                        except Exception as e:
+                            self.logger.error(f"Failed to archive {path}: {e}")
+            
+            consolidated_count += 1
+        
+        self.logger.info(f"\n✓ Consolidated {consolidated_count} duplicate files")
+        self.logger.info(f"✓ Archived {archived_count} older versions")
+        
+        # Step 3: Create docs/README.md index
+        docs_readme_path = self.project_root / "docs" / "README.md"
+        
+        if not dry_run:
+            self.logger.info("\nCreating docs/README.md index...")
+            
+            readme_content = self._generate_docs_readme()
+            
+            with open(docs_readme_path, 'w') as f:
+                f.write(readme_content)
+            
+            self.logger.info(f"✓ Created docs/README.md")
+            
+            operations.append(FileOperation(
+                operation="create_file",
+                source=str(docs_readme_path),
+                destination=None,
+                timestamp=datetime.now(),
+                success=True,
+            ))
+        
+        # Step 4: Update root README.md (if it exists)
+        root_readme_path = self.project_root / "README.md"
+        
+        if root_readme_path.exists() and not dry_run:
+            self.logger.info("Updating root README.md with docs reference...")
+            
+            # Read existing README
+            with open(root_readme_path, 'r') as f:
+                readme_content = f.read()
+            
+            # Check if docs reference already exists
+            if 'docs/README.md' not in readme_content and '[Documentation]' not in readme_content:
+                # Add reference to docs
+                docs_reference = "\n\n## Documentation\n\nFor detailed documentation, see [docs/README.md](docs/README.md).\n"
+                
+                # Append to end of file
+                with open(root_readme_path, 'a') as f:
+                    f.write(docs_reference)
+                
+                self.logger.info("✓ Updated root README.md with docs reference")
+                
+                operations.append(FileOperation(
+                    operation="update_file",
+                    source=str(root_readme_path),
+                    destination=None,
+                    timestamp=datetime.now(),
+                    success=True,
+                ))
+            else:
+                self.logger.info("✓ Root README.md already references docs")
+        
+        # Step 5: Commit changes
+        if not dry_run and operations:
+            self.logger.info("\nCommitting documentation consolidation changes...")
+            
+            try:
+                commit_sha = self.git_manager.create_commit(
+                    "chore(cleanup): consolidate duplicate documentation\n\n"
+                    f"- Consolidate {consolidated_count} duplicate documentation files\n"
+                    f"- Archive {archived_count} older versions to docs/archive/\n"
+                    f"- Create docs/README.md index\n"
+                    f"- Update root README.md with docs reference"
+                )
+                
+                self.logger.info(f"✓ Changes committed: {commit_sha[:8]}")
+                
+                operations.append(FileOperation(
+                    operation="git_commit",
+                    source="doc_consolidation",
+                    destination=commit_sha,
+                    timestamp=datetime.now(),
+                    success=True,
+                ))
+            except Exception as e:
+                self.logger.error(f"Failed to commit changes: {e}")
+        
+        self.logger.info(f"\n✓ Documentation consolidation phase complete: {len(operations)} operations")
+        
+        return operations
+    
+    def _select_best_version(self, paths: list) -> str:
+        """
+        Select best version of duplicate file.
+        
+        Criteria:
+        1. Largest file size (more complete)
+        2. Most recent modification time
+        3. Prefer docs/ directory over root
+        
+        Args:
+            paths: List of file paths
+            
+        Returns:
+            Path to best version
+        """
+        import os
+        
+        # Get file stats
+        file_stats = []
+        for path in paths:
+            full_path = self.project_root / path
+            if full_path.exists():
+                stat = full_path.stat()
+                file_stats.append({
+                    'path': path,
+                    'size': stat.st_size,
+                    'mtime': stat.st_mtime,
+                    'in_docs': path.startswith('docs/') or path.startswith('Docs/'),
+                })
+        
+        # Sort by: in_docs (prefer docs/), size (larger), mtime (newer)
+        file_stats.sort(key=lambda x: (x['in_docs'], x['size'], x['mtime']), reverse=True)
+        
+        return file_stats[0]['path'] if file_stats else paths[0]
+    
+    def _generate_docs_readme(self) -> str:
+        """
+        Generate README.md content for docs directory.
+        
+        Returns:
+            README.md content as string
+        """
+        import os
+        from pathlib import Path
+        
+        content = "# Documentation\n\n"
+        content += "This directory contains all project documentation organized by category.\n\n"
+        
+        content += "## Directory Structure\n\n"
+        
+        # Scan docs directory
+        docs_path = self.project_root / "docs"
+        
+        if docs_path.exists():
+            # Get subdirectories
+            subdirs = [d for d in docs_path.iterdir() if d.is_dir()]
+            
+            for subdir in sorted(subdirs):
+                subdir_name = subdir.name
+                content += f"### `{subdir_name}/`\n\n"
+                
+                # Get files in subdirectory
+                files = [f for f in subdir.iterdir() if f.is_file() and f.suffix == '.md']
+                
+                if files:
+                    for file in sorted(files):
+                        content += f"- [{file.name}]({subdir_name}/{file.name})\n"
+                    content += "\n"
+            
+            # Get files in root of docs/
+            root_files = [f for f in docs_path.iterdir() if f.is_file() and f.suffix == '.md']
+            
+            if root_files:
+                content += "### Root Documentation\n\n"
+                for file in sorted(root_files):
+                    content += f"- [{file.name}]({file.name})\n"
+                content += "\n"
+        
+        return content
     
     def _execute_branch_cleanup_phase(self, dry_run: bool = False) -> List[FileOperation]:
         """Execute branch cleanup phase."""

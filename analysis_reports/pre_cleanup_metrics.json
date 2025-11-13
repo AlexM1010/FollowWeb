@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-11-13T21:54:31.263417",
-  "root_file_count": 32,
-  "total_size_mb": 656.9043369293213,
+  "timestamp": "2025-11-13T21:56:17.078056",
+  "root_file_count": 12,
+  "total_size_mb": 656.9346103668213,
   "cache_size_mb": 178.61499786376953,
   "documentation_files": 0,
-  "utility_scripts": 22,
+  "utility_scripts": 2,
   "test_pass_rate": 100.0
 }

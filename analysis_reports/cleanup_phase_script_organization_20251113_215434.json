@@ -1,0 +1,214 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "script_organization",
+  "timestamp": "2025-11-13T21:54:34.495120",
+  "success": true,
+  "duration_seconds": 1.4218,
+  "operations": [
+    {
+      "operation": "create_directory",
+      "source": "scripts/freesound",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:33.074796",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "scripts/backup",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:33.075807",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "scripts/validation",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:33.076648",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "scripts/generation",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:33.077659",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "scripts/testing",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:33.077659",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "scripts/analysis",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:33.078829",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "analyze_color_differences.py",
+      "destination": "scripts/analysis\\analyze_color_differences.py",
+      "timestamp": "2025-11-13T21:54:33.144988",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "check_checkpoint_audio.py",
+      "destination": "scripts/backup\\check_checkpoint_audio.py",
+      "timestamp": "2025-11-13T21:54:33.212642",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "check_color_similarity.py",
+      "destination": "scripts/validation\\check_color_similarity.py",
+      "timestamp": "2025-11-13T21:54:33.262128",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "cleanup_old_backups.py",
+      "destination": "scripts/backup\\cleanup_old_backups.py",
+      "timestamp": "2025-11-13T21:54:33.339189",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "detect_milestone.py",
+      "destination": "scripts/analysis\\detect_milestone.py",
+      "timestamp": "2025-11-13T21:54:33.406928",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "fetch_freesound_data.py",
+      "destination": "scripts/freesound\\fetch_freesound_data.py",
+      "timestamp": "2025-11-13T21:54:33.496100",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "fix_audio_urls.py",
+      "destination": "scripts/analysis\\fix_audio_urls.py",
+      "timestamp": "2025-11-13T21:54:33.623374",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "generate_freesound_visualization.py",
+      "destination": "scripts/freesound\\generate_freesound_visualization.py",
+      "timestamp": "2025-11-13T21:54:33.684401",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "generate_k7_sigma.py",
+      "destination": "scripts/generation\\generate_k7_sigma.py",
+      "timestamp": "2025-11-13T21:54:33.742370",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "generate_landing_page.py",
+      "destination": "scripts/generation\\generate_landing_page.py",
+      "timestamp": "2025-11-13T21:54:33.798640",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "generate_metrics_dashboard.py",
+      "destination": "scripts/generation\\generate_metrics_dashboard.py",
+      "timestamp": "2025-11-13T21:54:33.850261",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "generate_user_pack_edges.py",
+      "destination": "scripts/generation\\generate_user_pack_edges.py",
+      "timestamp": "2025-11-13T21:54:33.912552",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "migrate_checkpoint.py",
+      "destination": "scripts/backup\\migrate_checkpoint.py",
+      "timestamp": "2025-11-13T21:54:33.967010",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "monitor_pipeline.py",
+      "destination": "scripts/analysis\\monitor_pipeline.py",
+      "timestamp": "2025-11-13T21:54:34.015733",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "restore_from_backup.py",
+      "destination": "scripts/backup\\restore_from_backup.py",
+      "timestamp": "2025-11-13T21:54:34.060192",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "validate_freesound_samples.py",
+      "destination": "scripts/freesound\\validate_freesound_samples.py",
+      "timestamp": "2025-11-13T21:54:34.097011",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "validate_pipeline_data.py",
+      "destination": "scripts/validation\\validate_pipeline_data.py",
+      "timestamp": "2025-11-13T21:54:34.148721",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "verify_complete_data.py",
+      "destination": "scripts/validation\\verify_complete_data.py",
+      "timestamp": "2025-11-13T21:54:34.195817",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "visualize_from_checkpoint.py",
+      "destination": "scripts/backup\\visualize_from_checkpoint.py",
+      "timestamp": "2025-11-13T21:54:34.248456",
+      "success": true
+    },
+    {
+      "operation": "git_mv",
+      "source": "workflow_orchestrator.py",
+      "destination": "scripts/analysis\\workflow_orchestrator.py",
+      "timestamp": "2025-11-13T21:54:34.302158",
+      "success": true
+    },
+    {
+      "operation": "create_file",
+      "source": "scripts\\README.md",
+      "destination": null,
+      "timestamp": "2025-11-13T21:54:34.303159",
+      "success": true
+    },
+    {
+      "operation": "git_commit",
+      "source": "script_organization",
+      "destination": "2862194e96404ca723edea8f5a1d6721bb9eee40",
+      "timestamp": "2025-11-13T21:54:34.495120",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "script_organization",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}
