@@ -19,6 +19,7 @@ TestOutput*.txt
 
 # Temporary checkpoints (old location - not persistent)
 checkpoints/
+custom_checkpoints/
 
 # Freesound Nightly Pipeline
 # NOTE: Checkpoint files are stored in GitHub Actions Cache, NOT Git
@@ -46,4 +47,9 @@ skip_summary.txt
 __pycache__/
 *.pyc
 *.pyo
+
+# Analysis outputs (temporary)
+unused_imports.json
+detailed_issues.json
+ruff_report.json
 
