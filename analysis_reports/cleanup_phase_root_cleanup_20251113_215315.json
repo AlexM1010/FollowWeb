@@ -1,0 +1,74 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "root_cleanup",
+  "timestamp": "2025-11-13T21:53:15.247017",
+  "success": true,
+  "duration_seconds": 0.328369,
+  "operations": [
+    {
+      "operation": "create_directory",
+      "source": "docs/reports",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.924558",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "docs/guides",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.927395",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "docs/analysis",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.931510",
+      "success": true
+    },
+    {
+      "operation": "create_directory",
+      "source": "docs/archive",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.932513",
+      "success": true
+    },
+    {
+      "operation": "remove_empty",
+      "source": "setup_backup.ps1",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.944908",
+      "success": true
+    },
+    {
+      "operation": "remove_empty",
+      "source": "verify_improved_palette.py",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.946910",
+      "success": true
+    },
+    {
+      "operation": "remove_empty",
+      "source": "visualize_freesound.py",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:14.948915",
+      "success": true
+    },
+    {
+      "operation": "git_commit",
+      "source": "root_cleanup",
+      "destination": "79476ca00303728bbfabc949c846efd2141dd41d",
+      "timestamp": "2025-11-13T21:53:15.246016",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "root_cleanup",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}

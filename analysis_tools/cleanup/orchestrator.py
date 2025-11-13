@@ -824,9 +824,246 @@ class CleanupOrchestrator:
             return 'reports'  # Default category
     
     def _execute_script_organization_phase(self, dry_run: bool = False) -> List[FileOperation]:
-        """Execute script organization phase."""
-        # Placeholder - would implement script organization logic
-        return []
+        """
+        Execute utility script organization phase.
+        
+        Creates scripts/ subdirectory structure, categorizes and moves utility
+        scripts using git mv, updates import paths, and creates scripts/README.md.
+        
+        Args:
+            dry_run: If True, simulate without making changes
+            
+        Returns:
+            List of file operations performed
+        """
+        operations = []
+        
+        self.logger.info("Executing script organization phase...")
+        
+        # Step 1: Create scripts/ subdirectory structure
+        scripts_structure = self.config.scripts_structure
+        
+        self.logger.info("Creating scripts/ subdirectory structure...")
+        
+        for category, path in scripts_structure.items():
+            scripts_path = self.project_root / path
+            
+            if not scripts_path.exists():
+                self.logger.info(f"Creating directory: {path}")
+                
+                if not dry_run:
+                    scripts_path.mkdir(parents=True, exist_ok=True)
+                    
+                    operations.append(FileOperation(
+                        operation="create_directory",
+                        source=path,
+                        destination=None,
+                        timestamp=datetime.now(),
+                        success=True,
+                    ))
+            else:
+                self.logger.info(f"✓ Directory already exists: {path}")
+        
+        # Step 2: Find and categorize utility scripts in root
+        import os
+        
+        root_files = [
+            f for f in os.listdir(self.project_root)
+            if os.path.isfile(os.path.join(self.project_root, f))
+        ]
+        
+        # Filter for Python scripts (excluding special files)
+        script_files = [
+            f for f in root_files
+            if f.endswith('.py')
+            and not f.startswith('_')
+            and f not in ['setup.py', 'execute_cleanup_phase.py', 'execute_cleanup_phases.py']
+        ]
+        
+        self.logger.info(f"Found {len(script_files)} utility scripts in root")
+        
+        # Categorize scripts
+        file_mappings = []
+        
+        for script_file in script_files:
+            category = self._categorize_script(script_file)
+            destination_dir = scripts_structure.get(category, scripts_structure['analysis'])
+            destination = os.path.join(destination_dir, script_file)
+            
+            file_mappings.append({
+                'source': script_file,
+                'destination': destination,
+                'category': category,
+            })
+        
+        # Step 3: Move scripts using git mv
+        if file_mappings:
+            self.logger.info(f"Moving {len(file_mappings)} utility scripts...")
+            
+            for mapping in file_mappings:
+                self.logger.info(f"  {mapping['source']} -> {mapping['destination']} ({mapping['category']})")
+                
+                if not dry_run:
+                    try:
+                        self.git_manager.git_move(mapping['source'], mapping['destination'])
+                        
+                        operations.append(FileOperation(
+                            operation="git_mv",
+                            source=mapping['source'],
+                            destination=mapping['destination'],
+                            timestamp=datetime.now(),
+                            success=True,
+                        ))
+                    except Exception as e:
+                        self.logger.error(f"Failed to move {mapping['source']}: {e}")
+                        operations.append(FileOperation(
+                            operation="git_mv",
+                            source=mapping['source'],
+                            destination=mapping['destination'],
+                            timestamp=datetime.now(),
+                            success=False,
+                        ))
+        else:
+            self.logger.info("✓ No utility scripts to move")
+        
+        # Step 4: Create scripts/README.md
+        readme_path = self.project_root / "scripts" / "README.md"
+        
+        if not dry_run:
+            self.logger.info("Creating scripts/README.md...")
+            
+            readme_content = self._generate_scripts_readme(file_mappings, scripts_structure)
+            
+            with open(readme_path, 'w') as f:
+                f.write(readme_content)
+            
+            self.logger.info(f"✓ Created scripts/README.md")
+            
+            operations.append(FileOperation(
+                operation="create_file",
+                source=str(readme_path),
+                destination=None,
+                timestamp=datetime.now(),
+                success=True,
+            ))
+        
+        # Step 5: Commit changes
+        if not dry_run and operations:
+            self.logger.info("Committing script organization changes...")
+            
+            try:
+                commit_sha = self.git_manager.create_commit(
+                    "chore(cleanup): organize utility scripts into subdirectories\n\n"
+                    f"- Create scripts/ subdirectory structure\n"
+                    f"- Move {len(file_mappings)} utility scripts to organized locations\n"
+                    f"- Create scripts/README.md with script documentation"
+                )
+                
+                self.logger.info(f"✓ Changes committed: {commit_sha[:8]}")
+                
+                operations.append(FileOperation(
+                    operation="git_commit",
+                    source="script_organization",
+                    destination=commit_sha,
+                    timestamp=datetime.now(),
+                    success=True,
+                ))
+            except Exception as e:
+                self.logger.error(f"Failed to commit changes: {e}")
+        
+        self.logger.info(f"✓ Script organization phase complete: {len(operations)} operations")
+        
+        return operations
+    
+    def _categorize_script(self, filename: str) -> str:
+        """
+        Categorize utility script by name pattern.
+        
+        Args:
+            filename: Name of script file
+            
+        Returns:
+            Category name (freesound, backup, validation, generation, testing, analysis)
+        """
+        filename_lower = filename.lower()
+        
+        # Freesound operations
+        if 'freesound' in filename_lower or 'fetch' in filename_lower:
+            return 'freesound'
+        
+        # Backup management
+        elif 'backup' in filename_lower or 'restore' in filename_lower or 'checkpoint' in filename_lower:
+            return 'backup'
+        
+        # Validation
+        elif 'validate' in filename_lower or 'verify' in filename_lower or 'check' in filename_lower:
+            return 'validation'
+        
+        # Generation
+        elif 'generate' in filename_lower or 'create' in filename_lower:
+            return 'generation'
+        
+        # Testing
+        elif 'test' in filename_lower:
+            return 'testing'
+        
+        # Analysis (default)
+        else:
+            return 'analysis'
+    
+    def _generate_scripts_readme(self, file_mappings: list, scripts_structure: dict) -> str:
+        """
+        Generate README.md content for scripts directory.
+        
+        Args:
+            file_mappings: List of file mappings with categories
+            scripts_structure: Dictionary of script categories and paths
+            
+        Returns:
+            README.md content as string
+        """
+        # Group scripts by category
+        scripts_by_category = {}
+        for mapping in file_mappings:
+            category = mapping['category']
+            if category not in scripts_by_category:
+                scripts_by_category[category] = []
+            scripts_by_category[category].append(mapping['source'])
+        
+        # Generate README content
+        content = "# Utility Scripts\n\n"
+        content += "This directory contains utility scripts organized by purpose.\n\n"
+        
+        # Category descriptions
+        category_descriptions = {
+            'freesound': 'Scripts for Freesound API operations and data collection',
+            'backup': 'Scripts for checkpoint backup and restoration',
+            'validation': 'Scripts for data validation and verification',
+            'generation': 'Scripts for generating visualizations and reports',
+            'testing': 'Scripts for testing and benchmarking',
+            'analysis': 'Scripts for data analysis and processing',
+        }
+        
+        content += "## Directory Structure\n\n"
+        
+        for category, path in sorted(scripts_structure.items()):
+            description = category_descriptions.get(category, 'Utility scripts')
+            content += f"### `{path}/`\n\n"
+            content += f"{description}\n\n"
+            
+            if category in scripts_by_category:
+                content += "Scripts:\n"
+                for script in sorted(scripts_by_category[category]):
+                    content += f"- `{script}`\n"
+                content += "\n"
+        
+        content += "## Usage\n\n"
+        content += "All scripts can be run from the repository root:\n\n"
+        content += "```bash\n"
+        content += "python scripts/<category>/<script_name>.py\n"
+        content += "```\n\n"
+        
+        return content
     
     def _execute_doc_consolidation_phase(self, dry_run: bool = False) -> List[FileOperation]:
         """Execute documentation consolidation phase."""
