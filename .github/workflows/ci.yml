@@ -4,7 +4,8 @@
 # - All pytest runs use -x --maxfail=1 to stop on first test failure
 # - Matrix strategy uses fail-fast: true to cancel all jobs on first failure
 # - All jobs depend on quality-check AND test-quick passing
-# - If ANY job fails, ALL remaining jobs are cancelled immediately
+# - Each parallel job checks for failures in sibling jobs before proceeding
+# - If ANY job fails, ALL remaining jobs detect and cancel themselves immediately
 # - Saves CI time and resources by not running unnecessary jobs
 # 
 # This workflow uses only FREE and OPEN-SOURCE tools with permissive licenses:
@@ -401,6 +402,22 @@ jobs:
         working-directory: FollowWeb
     
     steps:
+    - name: Check for failures in parallel jobs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const jobs = await github.rest.actions.listJobsForWorkflowRun({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: context.runId,
+          });
+          const failedJobs = jobs.data.jobs.filter(job => 
+            job.conclusion === 'failure' && job.status === 'completed'
+          );
+          if (failedJobs.length > 0) {
+            core.setFailed(`Cancelling due to failed jobs: ${failedJobs.map(j => j.name).join(', ')}`);
+          }
+    
     - name: Checkout code
       uses: actions/checkout@v4
     
