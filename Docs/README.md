@@ -1,0 +1,29 @@
+# Documentation
+
+This directory contains all project documentation organized by category.
+
+## Directory Structure
+
+### `analysis/`
+
+### `archive/`
+
+- [INSTALL_GUIDE_archived_20251113.md](archive/INSTALL_GUIDE_archived_20251113.md)
+
+### `guides/`
+
+### `reports/`
+
+### Root Documentation
+
+- [FREESOUND_PIPELINE.md](FREESOUND_PIPELINE.md)
+- [LARGE_SCALE_GRAPH_PLAN.md](LARGE_SCALE_GRAPH_PLAN.md)
+- [LARGE_SCALE_PLAN.md](LARGE_SCALE_PLAN.md)
+- [MEMORY_OPTIMIZATION.md](MEMORY_OPTIMIZATION.md)
+- [PACKAGE_EVALUATION.md](PACKAGE_EVALUATION.md)
+- [PLAUSIBLE_ANALYTICS.md](PLAUSIBLE_ANALYTICS.md)
+- [PYTEST_XDIST_MIGRATION.md](PYTEST_XDIST_MIGRATION.md)
+- [SPEC_UPDATE_COMPLETE.md](SPEC_UPDATE_COMPLETE.md)
+- [SPEC_UPDATE_LOCATIONS.md](SPEC_UPDATE_LOCATIONS.md)
+- [VALIDATION_COORDINATION.md](VALIDATION_COORDINATION.md)
+

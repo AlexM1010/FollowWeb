@@ -1,0 +1,32 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "script_organization",
+  "timestamp": "2025-11-13T21:56:18.637485",
+  "success": true,
+  "duration_seconds": 0.118511,
+  "operations": [
+    {
+      "operation": "create_file",
+      "source": "scripts\\README.md",
+      "destination": null,
+      "timestamp": "2025-11-13T21:56:18.521978",
+      "success": true
+    },
+    {
+      "operation": "git_commit",
+      "source": "script_organization",
+      "destination": "ae24610997d117e35cb2fe38ea5fa1e31265b56e",
+      "timestamp": "2025-11-13T21:56:18.637485",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "script_organization",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}
