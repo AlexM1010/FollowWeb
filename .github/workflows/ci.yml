@@ -1,5 +1,12 @@
 # CI Pipeline for FollowWeb
 # 
+# FAIL-FAST STRATEGY:
+# - All pytest runs use -x --maxfail=1 to stop on first test failure
+# - Matrix strategy uses fail-fast: true to cancel all jobs on first failure
+# - All jobs depend on quality-check AND test-quick passing
+# - If ANY job fails, ALL remaining jobs are cancelled immediately
+# - Saves CI time and resources by not running unnecessary jobs
+# 
 # This workflow uses only FREE and OPEN-SOURCE tools with permissive licenses:
 # - GitHub Actions (MIT License)
 # - Python ecosystem tools (Python Software Foundation License)
@@ -64,6 +71,11 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# Global defaults for all jobs
+defaults:
+  run:
+    shell: bash
 
 jobs:
   # Prebuild environment - runs in parallel with smoke test
@@ -226,7 +238,8 @@ Auto-applied by CI quality-check job:
         echo "Running tests with $cpu_count workers (all available cores)"
         # Run unit tests only (fast, isolated tests with maximum parallelization)
         # No coverage requirement for smoke test - just validate code works
-        python -m pytest -m unit --maxfail=5 --tb=short -v -n $cpu_count
+        # FAIL FAST: Stop immediately on first failure to save CI time
+        python -m pytest -m unit -x --maxfail=1 --tb=short -v -n $cpu_count
       shell: bash
       env:
         MPLBACKEND: Agg
@@ -237,14 +250,14 @@ Auto-applied by CI quality-check job:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
     timeout-minutes: 30
     defaults:
       run:
         working-directory: FollowWeb
     
     strategy:
-      fail-fast: false
+      fail-fast: true  # Stop all matrix jobs immediately on first failure
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9', '3.12']
@@ -348,7 +361,8 @@ Auto-applied by CI quality-check job:
         threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
         # Run fast tests (unit + integration) with coverage in parallel
         # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
-        python -m pytest -m "not (benchmark or slow or performance)" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+        # FAIL FAST: Stop immediately on first failure to save CI time
+        python -m pytest -m "not (benchmark or slow or performance)" -x --maxfail=1 --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
           exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
           python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
@@ -386,7 +400,7 @@ Auto-applied by CI quality-check job:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -504,7 +518,7 @@ Auto-applied by CI quality-check job:
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -569,7 +583,7 @@ Auto-applied by CI quality-check job:
   build:
     name: Build & Package
     runs-on: ubuntu-latest
-    needs: test-quick  # Start as soon as smoke test passes
+    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
     timeout-minutes: 15
     defaults:
       run:
@@ -647,7 +661,7 @@ Auto-applied by CI quality-check job:
   performance:
     name: Performance & Benchmarks
     runs-on: ubuntu-latest
-    needs: test-quick  # Wait for smoke test to pass
+    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
     timeout-minutes: 30
     defaults:
       run:
@@ -698,7 +712,8 @@ Auto-applied by CI quality-check job:
         mkdir -p .benchmarks
         # Run slow, performance, and benchmark tests sequentially (no parallelization)
         # These tests are excluded from the main test matrix to prevent timeouts
-        python -m pytest -m "slow or performance or benchmark" -v --tb=short -n 0 --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
+        # FAIL FAST: Stop immediately on first failure to save CI time
+        python -m pytest -m "slow or performance or benchmark" -x --maxfail=1 -v --tb=short -n 0 --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
         
         # Generate performance test summary with proper emoji handling
         python ../.github/scripts/ci_helpers.py success "Performance tests completed - no regressions detected" --print-only
@@ -745,10 +760,10 @@ Auto-applied by CI quality-check job:
         retention-days: 30
         if-no-files-found: ignore
   
-  # Documentation pipeline - runs after smoke test passes
+  # Documentation pipeline - runs after quality check and smoke test pass
   documentation:
     name: Documentation
-    needs: test-quick
+    needs: [quality-check, test-quick]
     uses: ./.github/workflows/docs.yml
   
   # All checks must pass - no exceptions
