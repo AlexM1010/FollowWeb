@@ -117,7 +117,7 @@ def calculate_connectivity_metrics(
                     tracker.update(i + 1)
 
             tracker.update(sample_size)
-            avg_clustering = sum(clustering_values) / len(clustering_values)
+            avg_clustering = sum(clustering_values) / len(clustering_values)  # type: ignore[arg-type]
 
     else:
         # Full calculation for smaller graphs
@@ -209,7 +209,7 @@ def validate_connectivity(
     )
 
     # Find isolated nodes (degree = 0)
-    isolated_nodes = [node for node, degree in graph_undirected.degree() if degree == 0]
+    isolated_nodes = [node for node, degree in graph_undirected.degree() if degree == 0]  # type: ignore[operator]
     num_isolated_nodes = len(isolated_nodes)
 
     # Determine if graph is fully connected

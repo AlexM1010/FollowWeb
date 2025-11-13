@@ -1147,11 +1147,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Calculate degree (number of connections in graph)
         sample_id = str(sample["id"])
-        degree = 0
+        degree: int = 0
         is_dormant = False
 
         if sample_id in self.graph:
-            degree = self.graph.degree(sample_id)
+            degree = self.graph.degree(sample_id)  # type: ignore[operator]
             is_dormant = self.graph.nodes[sample_id].get("is_dormant", False)
 
         # Calculate age in days since collection

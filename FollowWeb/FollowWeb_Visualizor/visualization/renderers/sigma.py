@@ -501,9 +501,9 @@ class SigmaRenderer(Renderer):
 
             if is_instagram and self.template_name == "sigma_instagram.html":
                 # Instagram-specific node attributes
-                degree = graph.degree(node_id)
+                degree = graph.degree(node_id)  # type: ignore[operator]
                 max_degree = (
-                    max(dict(graph.degree()).values())
+                    max(dict(graph.degree()).values())  # type: ignore[operator]
                     if graph.number_of_nodes() > 0
                     else 1
                 )
