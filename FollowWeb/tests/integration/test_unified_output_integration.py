@@ -15,6 +15,8 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.integration, pytest.mark.output]
+
 from FollowWeb_Visualizor.output.formatters import EmojiFormatter
 from FollowWeb_Visualizor.output.managers import OutputManager
 

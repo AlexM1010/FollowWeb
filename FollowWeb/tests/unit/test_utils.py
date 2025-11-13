@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.utils]
+
 from FollowWeb_Visualizor.core.exceptions import (
     ConfigurationError,
     DataProcessingError,

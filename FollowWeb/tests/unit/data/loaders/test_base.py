@@ -9,6 +9,8 @@ from typing import Any, Dict
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
+
 from FollowWeb_Visualizor.core.exceptions import DataProcessingError
 from FollowWeb_Visualizor.data.loaders.base import DataLoader
 

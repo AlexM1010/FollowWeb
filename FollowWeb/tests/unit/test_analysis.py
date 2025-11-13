@@ -10,6 +10,8 @@ import os
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.analysis]
+
 from FollowWeb_Visualizor.analysis import (
     FameAnalyzer,
     NetworkAnalyzer,

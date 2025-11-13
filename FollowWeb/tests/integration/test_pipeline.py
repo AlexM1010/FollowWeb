@@ -12,6 +12,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
+
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 

@@ -16,6 +16,8 @@ from typing import Any
 
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.core]
+
 from FollowWeb_Visualizor.core.config import KValueConfig, get_configuration_manager
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 

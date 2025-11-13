@@ -10,6 +10,8 @@ from typing import Any
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.benchmark, pytest.mark.performance]
+
 from FollowWeb_Visualizor.core.config import load_config_from_dict
 
 

@@ -14,6 +14,8 @@ from pathlib import Path
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.integration, pytest.mark.visualization]
+
 from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
 
 

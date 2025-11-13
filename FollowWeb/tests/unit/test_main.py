@@ -14,6 +14,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.core]
+
 from FollowWeb_Visualizor.core.config import get_configuration_manager
 from FollowWeb_Visualizor.main import (
     PipelineOrchestrator,

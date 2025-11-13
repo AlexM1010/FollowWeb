@@ -9,6 +9,9 @@ import time
 from unittest.mock import patch
 
 import networkx as nx
+import pytest
+
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 # Import the visualization classes
 from FollowWeb_Visualizor.visualization import (

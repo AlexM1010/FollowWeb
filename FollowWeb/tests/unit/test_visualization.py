@@ -9,6 +9,9 @@ import os
 import tempfile
 
 import networkx as nx
+import pytest
+
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 from FollowWeb_Visualizor.output.managers import MetricsReporter
 from FollowWeb_Visualizor.visualization import (

@@ -8,6 +8,8 @@ based on configuration.
 import pytest
 from unittest.mock import Mock, patch
 
+pytestmark = [pytest.mark.integration, pytest.mark.data]
+
 from FollowWeb_Visualizor.core.config import load_config_from_dict
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 

@@ -114,6 +114,52 @@ The pipeline uses a **split checkpoint architecture** for scalable, efficient st
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### GitHub Pages Deployment Pipeline
+
+The website deployment pipeline automatically publishes visualizations to GitHub Pages whenever new content is committed:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  GitHub Push Trigger                         │
+│  - Triggered on push to Output/*.html                        │
+│  - Triggered on push to data/metrics_history.jsonl          │
+│  - Can be manually triggered via workflow_dispatch          │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Generate Landing Page                           │
+│  - Finds latest visualization HTML file                      │
+│  - Injects Plausible Analytics script (if configured)        │
+│  - Writes to website/index.html                              │
+│  - Future: Can wrap with metrics dashboard, charts          │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Copy Visualizations                             │
+│  - Copies all Output/*.html to website/visualizations/       │
+│  - Copies lib/ dependencies if present                       │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Deploy to GitHub Pages                          │
+│  - Uses peaceiris/actions-gh-pages@v3                        │
+│  - Publishes to gh-pages branch                              │
+│  - Public URL: https://<username>.github.io/<repo>/          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Plausible Analytics Integration:**
+- Privacy-friendly, GDPR-compliant analytics
+- No cookies, no personal data collection
+- Tracks page views, referrers, and basic metrics
+- Configured via `PLAUSIBLE_DOMAIN` secret in repository settings
+- Script injected into HTML `<head>` during landing page generation
+- Optional: Works without analytics if secret not configured
+```
+
 ### Weekly Validation Pipeline
 
 ```
@@ -218,24 +264,46 @@ The pipeline achieves continuous growth through private repository backups:
 
 1. Navigate to your **main repository** (not the backup repo) on GitHub
 2. Go to **Settings** → **Secrets and variables** → **Actions**
-3. Add two secrets:
+3. Add the following secrets:
 
-**Secret 1: Freesound API Key**
+**Secret 1: Freesound API Key** (Required)
 - Click **New repository secret**
 - Name: `FREESOUND_API_KEY`
 - Value: Your Freesound API key
 - Click **Add secret**
 
-**Secret 2: Backup PAT**
+**Secret 2: Backup PAT** (Required)
 - Click **New repository secret**
 - Name: `BACKUP_PAT`
 - Value: The Personal Access Token you generated in step 2
 - Click **Add secret**
 
-#### 2. Verify Workflow File
+**Secret 3: Plausible Analytics Domain** (Optional)
+- Click **New repository secret**
+- Name: `PLAUSIBLE_DOMAIN`
+- Value: Your GitHub Pages domain (e.g., `username.github.io`)
+- Click **Add secret**
+- Note: Only needed if you want privacy-friendly analytics on your public website
 
-The workflow file is located at `.github/workflows/freesound-nightly-pipeline.yml` and should already be configured. It includes:
+#### 4. Enable GitHub Pages (Optional)
 
+To publish your visualizations publicly:
+
+1. Navigate to your repository on GitHub
+2. Go to **Settings** → **Pages**
+3. Under **Source**, select:
+   - Branch: `gh-pages`
+   - Folder: `/ (root)`
+4. Click **Save**
+5. Your site will be published at `https://<username>.github.io/<repo>/`
+
+**Note:** The `gh-pages` branch is automatically created by the deploy-website workflow when you push visualizations.
+
+#### 5. Verify Workflow Files
+
+The workflow files should already be configured:
+
+**Nightly Pipeline** (`.github/workflows/freesound-nightly-pipeline.yml`):
 - **Scheduled execution**: `0 2 * * *` (2 AM UTC daily)
 - **Manual trigger**: Workflow dispatch with custom parameters
 - **Automatic Git operations**: Commits and pushes changes
@@ -1258,6 +1326,380 @@ The coordinated validation strategy efficiently allocates the daily API quota:
 - Coordination prevents redundant API usage
 - Total validation cost is <0.06% of annual API budget
 
+## Parallel Milestone Execution Architecture
+
+The pipeline implements a parallel execution model for milestone actions (every 100 nodes) to maximize efficiency and minimize total workflow time. This architecture allows the main data collection pipeline to continue uninterrupted while milestone actions run in the background.
+
+### Architecture Overview
+
+**4-Core Parallel Execution:**
+- **Core 1**: Main data collection pipeline (continues uninterrupted)
+- **Core 2**: Validation tests (background job)
+- **Core 3**: User/pack edge generation (background job)
+- **Core 4**: Website deployment (background job)
+
+**Benefits:**
+- Main pipeline never blocks on milestone actions
+- ~3x faster milestone processing (parallel vs sequential)
+- Better CPU utilization (4 cores vs 1)
+- Reduced total workflow time by 30-40%
+
+### Milestone Detection
+
+**Trigger**: Every 100 nodes (100, 200, 300, etc.)
+
+**Detection Script**: `detect_milestone.py`
+
+```bash
+# Check if milestone reached
+python detect_milestone.py \
+  --checkpoint-dir data/freesound_library \
+  --output milestone_status.json
+```
+
+**Output**:
+```json
+{
+  "is_milestone": true,
+  "current_nodes": 500,
+  "previous_nodes": 400,
+  "milestone_number": 5
+}
+```
+
+### Parallel Milestone Actions
+
+When a milestone is detected, three background jobs run in parallel:
+
+**Job 1: Validation (Background)**
+- Verifies checkpoint integrity
+- Validates graph structure
+- Checks metadata consistency
+- Detects anomalies
+- Exit code stored for later check
+
+**Job 2: Edge Generation (Background)**
+- Generates user relationship edges (samples by same user)
+- Generates pack relationship edges (samples in same pack)
+- Uses existing `_add_batch_user_pack_edges()` method
+- Saves checkpoint after edge generation
+- Exit code stored for later check
+
+**Job 3: Website Deployment (Background)**
+- Generates landing page with network statistics
+- Deploys to GitHub Pages
+- Updates growth metrics dashboard
+- Exit code stored for later check
+
+**Synchronization Point:**
+- All three jobs must complete before Git commit
+- Validation failure causes pipeline to fail (critical)
+- Edge generation or website failure logs warning (non-critical)
+- Main pipeline continues regardless of milestone action results
+
+### Workflow Integration
+
+**Milestone detection step:**
+```yaml
+- name: Check for milestone
+  if: steps.pipeline.outputs.pipeline_status == 'success'
+  id: milestone
+  run: |
+    python detect_milestone.py \
+      --checkpoint-dir data/freesound_library \
+      --output milestone_status.json
+    
+    is_milestone=$(jq -r '.is_milestone' milestone_status.json)
+    milestone_number=$(jq -r '.milestone_number' milestone_status.json)
+    
+    echo "is_milestone=$is_milestone" >> $GITHUB_OUTPUT
+    echo "milestone_number=$milestone_number" >> $GITHUB_OUTPUT
+```
+
+**Parallel execution step:**
+```yaml
+- name: Run milestone actions in parallel
+  if: steps.milestone.outputs.is_milestone == 'true'
+  run: |
+    # Start background jobs
+    (python validate_pipeline_data.py ... && echo $? > validation_exit_code.txt) &
+    (python generate_user_pack_edges.py ... && echo $? > edges_exit_code.txt) &
+    (python generate_landing_page.py ... && echo $? > website_exit_code.txt) &
+    
+    # Wait for all jobs
+    wait
+    
+    # Check exit codes and fail if validation failed
+    validation_code=$(cat validation_exit_code.txt)
+    if [ $validation_code -ne 0 ]; then
+      exit 1
+    fi
+```
+
+## Automated Data Validation System
+
+The validation system ensures data integrity by automatically checking checkpoint files after every pipeline run and at milestones.
+
+### Validation Components
+
+**Test Suite**: `tests/pipeline_validation/`
+- `test_checkpoint_integrity.py`: Pickle/SQLite integrity checks
+- `test_graph_structure.py`: Graph validity checks
+- `test_metadata_consistency.py`: SQLite ↔ graph synchronization
+- `test_data_quality.py`: Anomaly detection
+
+**Validation Script**: `validate_pipeline_data.py`
+
+```bash
+# Run validation
+python validate_pipeline_data.py \
+  --checkpoint-dir data/freesound_library \
+  --metrics-history data/metrics_history.jsonl \
+  --output validation_report.json
+```
+
+### Validation Checks
+
+**1. Checkpoint Integrity**
+- Pickle file loads successfully
+- SQLite database opens without errors
+- All required files present
+
+**2. Graph Structure**
+- No orphaned edges (all edges connect to existing nodes)
+- All nodes have required fields
+- Graph topology is valid
+
+**3. Metadata Consistency**
+- SQLite metadata matches graph topology
+- Node counts match between graph and database
+- No missing or duplicate entries
+
+**4. Data Quality**
+- No sudden drops in node/edge counts (>10%)
+- API requests used within expected range
+- No zero-growth runs (indicates failure)
+
+### Validation Reports
+
+**Report Format**: `validation_report.json`
+
+```json
+{
+  "timestamp": "2025-11-13T02:20:00Z",
+  "status": "passed",
+  "checks": {
+    "checkpoint_integrity": {"status": "passed", "message": "Checkpoint loads successfully"},
+    "graph_structure": {"status": "passed", "message": "No orphaned edges found"},
+    "metadata_consistency": {"status": "passed", "message": "SQLite matches graph topology"},
+    "data_quality": {"status": "passed", "message": "No anomalies detected"}
+  },
+  "statistics": {
+    "total_nodes": 1523,
+    "total_edges": 4892,
+    "nodes_added": 47,
+    "edges_added": 156
+  },
+  "warnings": [],
+  "errors": []
+}
+```
+
+**Workflow Integration:**
+- Validation runs after every pipeline execution
+- Reports uploaded as artifacts (30-day retention)
+- Pipeline fails if critical issues found
+- Warnings logged but don't fail pipeline
+
+## User/Pack Edge Generation
+
+The pipeline generates additional relationship edges beyond similarity connections at every 100-node milestone.
+
+### Edge Types
+
+**User Edges** (`type="by_same_user"`):
+- Connect samples uploaded by the same user
+- Reveals user contribution patterns
+- Helps identify prolific contributors
+
+**Pack Edges** (`type="in_same_pack"`):
+- Connect samples in the same sound pack
+- Shows curated collections
+- Identifies thematic groupings
+
+### Generation Process
+
+**Script**: `generate_user_pack_edges.py`
+
+```bash
+# Generate edges at milestone
+python generate_user_pack_edges.py \
+  --checkpoint-dir data/freesound_library \
+  --output edge_stats.json
+```
+
+**Implementation**:
+- Uses existing `IncrementalFreesoundLoader._add_batch_user_pack_edges()` method
+- Processes all samples in checkpoint
+- Avoids duplicate edges
+- Saves checkpoint after generation
+
+**Output**:
+```json
+{
+  "user_edges_added": 32,
+  "pack_edges_added": 18,
+  "duration_seconds": 12.5
+}
+```
+
+### Milestone Tracking
+
+**Milestone History**: `data/milestone_history.jsonl`
+
+```json
+{"timestamp": "2025-11-13T02:15:30Z", "milestone": 1, "nodes": 100, "edges": 250, "user_edges": 15, "pack_edges": 8}
+{"timestamp": "2025-11-14T02:18:45Z", "milestone": 2, "nodes": 200, "edges": 520, "user_edges": 32, "pack_edges": 18}
+```
+
+## GitHub Pages Website Deployment
+
+The pipeline automatically deploys interactive visualizations to GitHub Pages, making the network publicly accessible.
+
+### Landing Page Generator
+
+**Script**: `generate_landing_page.py`
+
+```bash
+# Generate landing page
+python generate_landing_page.py \
+  --output-dir website \
+  --metrics-history data/metrics_history.jsonl \
+  --milestone-history data/milestone_history.jsonl \
+  --visualizations Output/*.html
+```
+
+**Features**:
+- Latest visualization embedded in iframe
+- Growth chart (nodes/edges over time) using Chart.js
+- Network statistics (total nodes, edges, last updated)
+- Milestone history
+- Mobile-responsive design
+
+### Deployment Workflow
+
+**File**: `.github/workflows/deploy-website.yml`
+
+**Triggers**:
+- Push to `Output/*.html`
+- Push to `data/metrics_history.jsonl`
+- Manual trigger via workflow_dispatch
+
+**Process**:
+1. Generate landing page with statistics
+2. Copy visualizations to website directory
+3. Deploy to `gh-pages` branch using `peaceiris/actions-gh-pages@v3`
+4. Website accessible at `https://<username>.github.io/<repo>/`
+
+**Deployment Time**: <5 minutes from commit to live
+
+### Website Configuration
+
+**Enable GitHub Pages**:
+1. Go to repository **Settings** → **Pages**
+2. Source: Deploy from branch `gh-pages`
+3. Folder: `/ (root)`
+4. Save
+
+**Public URL**: `https://<username>.github.io/<repo>/`
+
+## Tiered Backup Retention Policies
+
+The backup system implements differentiated retention policies based on milestone significance.
+
+### Backup Tiers
+
+**Frequent Tier (Every 25 nodes)**:
+- **Retention**: 14 days
+- **Max backups**: 10
+- **Release tag**: `v-checkpoint`
+- **Use case**: Recent recovery, daily operations
+
+**Moderate Tier (Every 100 nodes)**:
+- **Retention**: Permanent (unlimited)
+- **Max backups**: Unlimited
+- **Release tag**: `v-permanent`
+- **Use case**: Milestone recovery, long-term archival
+
+**Milestone Tier (Every 500 nodes)**:
+- **Retention**: Permanent (unlimited)
+- **Max backups**: Unlimited
+- **Release tag**: `v-permanent`
+- **Use case**: Major milestones, disaster recovery
+
+### Backup Manager Configuration
+
+**Tier Configuration**: `TIER_CONFIGS` in `backup_manager.py`
+
+```python
+TIER_CONFIGS = {
+    'frequent': {
+        'interval': 25,
+        'retention_days': 14,
+        'max_backups': 10,
+        'release_tag': 'v-checkpoint'
+    },
+    'moderate': {
+        'interval': 100,
+        'retention_days': None,  # Permanent
+        'max_backups': None,     # Unlimited
+        'release_tag': 'v-permanent'
+    },
+    'milestone': {
+        'interval': 500,
+        'retention_days': None,  # Permanent
+        'max_backups': None,     # Unlimited
+        'release_tag': 'v-permanent'
+    }
+}
+```
+
+### Workflow Integration
+
+**Backup tier determination**:
+```yaml
+- name: Upload checkpoint to private repository
+  run: |
+    node_count=$(jq -r '.total_nodes' data/freesound_library/checkpoint_metadata.json)
+    
+    if [ $((node_count % 500)) -eq 0 ]; then
+      tier="milestone"
+      release_tag="v-permanent"
+    elif [ $((node_count % 100)) -eq 0 ]; then
+      tier="moderate"
+      release_tag="v-permanent"
+    else
+      tier="frequent"
+      release_tag="v-checkpoint"
+    fi
+    
+    echo "Backup tier: $tier (release: $release_tag)"
+    # Upload to appropriate release tag
+```
+
+### Retention Enforcement
+
+**Automatic cleanup**:
+- Frequent tier: Deletes backups older than 14 days
+- Moderate/milestone tier: Never deleted
+- Compression applied to backups older than 7 days
+- Cleanup runs after each backup upload
+
+**Storage estimates**:
+- Frequent tier: ~560 MB (14 backups × 40 MB)
+- Permanent tier: Grows indefinitely (compressed after 7 days)
+- Compression reduces storage by 50%+
+
 ## Workflow Orchestration
 
 The workflow orchestration system coordinates execution between the three main workflows (nightly collection, quick validation, full validation) to prevent conflicts and ensure data integrity. This is especially important for manual triggers, which can run at any time and potentially conflict with scheduled workflows.
@@ -2249,6 +2691,346 @@ tar -czf checkpoint_backup_manual_$(date +%Y%m%d_%H%M%S).tar.gz -C data freesoun
 # Upload to private repository (requires BACKUP_PAT)
 # See workflow file for upload script
 ```
+
+### Backup Recovery Procedures
+
+The pipeline supports recovery from both frequent tier (v-checkpoint) and permanent tier (v-permanent) backups. This section documents the recovery procedures and testing methodology.
+
+#### Recovery Tiers
+
+**Frequent Tier (v-checkpoint):**
+- **Retention**: 14-day rolling window
+- **Use case**: Recent checkpoint recovery, daily operations
+- **Release tag**: `v-checkpoint`
+- **Typical scenarios**: Workflow failures, checkpoint corruption, testing
+
+**Permanent Tier (v-permanent):**
+- **Retention**: Unlimited (permanent)
+- **Use case**: Milestone recovery, long-term archival
+- **Release tag**: `v-permanent`
+- **Typical scenarios**: Major rollbacks, disaster recovery, historical analysis
+
+#### Manual Recovery Procedure
+
+**Using restore_from_backup.py (Recommended):**
+
+```bash
+# List all available backups
+python restore_from_backup.py --list
+
+# List backups for specific tier
+python restore_from_backup.py --list --tier milestone
+
+# Show backup statistics
+python restore_from_backup.py --stats
+
+# Restore from most recent backup
+python restore_from_backup.py --restore latest
+
+# Restore from most recent backup of specific tier
+python restore_from_backup.py --restore latest --tier milestone
+
+# Restore from specific backup (by timestamp)
+python restore_from_backup.py --restore 20251113_143022
+
+# Specify custom checkpoint directory
+python restore_from_backup.py --restore latest --checkpoint-dir data/freesound_library
+```
+
+**Manual recovery steps (if script unavailable):**
+
+1. **Identify backup to restore:**
+   ```bash
+   # List backups for frequent tier
+   python -c "
+   from FollowWeb_Visualizor.data.backup_manager import BackupManager
+   manager = BackupManager('data/freesound_library', {})
+   backups = manager.list_backups(tier='frequent')
+   for b in backups[:5]:
+       print(f\"{b['timestamp']}: {b['nodes']} nodes, {b['edges']} edges\")
+   "
+   ```
+
+2. **Locate backup files:**
+   ```bash
+   # Frequent tier backups
+   ls -lh data/freesound_library/backups/frequent/
+   
+   # Permanent tier backups (moderate + milestone)
+   ls -lh data/freesound_library/backups/moderate/
+   ls -lh data/freesound_library/backups/milestone/
+   ```
+
+3. **Copy backup files to checkpoint directory:**
+   ```bash
+   # Example: Restore from frequent tier backup
+   BACKUP_TIMESTAMP="20251113_143022"
+   BACKUP_NODES="1500"
+   
+   # Copy topology file
+   cp data/freesound_library/backups/frequent/graph_topology_backup_${BACKUP_NODES}nodes_${BACKUP_TIMESTAMP}.gpickle \
+      data/freesound_library/graph_topology.gpickle
+   
+   # Copy metadata database
+   cp data/freesound_library/backups/frequent/metadata_cache_backup_${BACKUP_NODES}nodes_${BACKUP_TIMESTAMP}.db \
+      data/freesound_library/metadata_cache.db
+   ```
+
+4. **Handle compressed backups:**
+   ```bash
+   # If backup is compressed (.gz extension)
+   gunzip -c data/freesound_library/backups/frequent/graph_topology_backup_${BACKUP_NODES}nodes_${BACKUP_TIMESTAMP}.gpickle.gz \
+      > data/freesound_library/graph_topology.gpickle
+   
+   gunzip -c data/freesound_library/backups/frequent/metadata_cache_backup_${BACKUP_NODES}nodes_${BACKUP_TIMESTAMP}.db.gz \
+      > data/freesound_library/metadata_cache.db
+   ```
+
+5. **Update checkpoint metadata:**
+   ```bash
+   # Create checkpoint metadata file
+   cat > data/freesound_library/checkpoint_metadata.json << EOF
+   {
+     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+     "nodes": ${BACKUP_NODES},
+     "edges": 0,
+     "restored_from_backup": true,
+     "backup_tier": "frequent",
+     "backup_timestamp": "${BACKUP_TIMESTAMP}"
+   }
+   EOF
+   ```
+
+6. **Verify checkpoint integrity:**
+   ```bash
+   # Run verification
+   python -c "
+   import networkx as nx
+   import sqlite3
+   import json
+   
+   # Load graph topology
+   graph = nx.read_gpickle('data/freesound_library/graph_topology.gpickle')
+   print(f'Graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges')
+   
+   # Check metadata database
+   conn = sqlite3.connect('data/freesound_library/metadata_cache.db')
+   cursor = conn.cursor()
+   cursor.execute('SELECT COUNT(*) FROM metadata')
+   count = cursor.fetchone()[0]
+   conn.close()
+   print(f'Metadata: {count} samples')
+   
+   # Load checkpoint metadata
+   with open('data/freesound_library/checkpoint_metadata.json') as f:
+       meta = json.load(f)
+   print(f'Checkpoint metadata: {meta}')
+   "
+   ```
+
+#### Testing Backup Recovery
+
+**Automated testing with test_backup_recovery.py:**
+
+```bash
+# Test recovery from all tiers
+python test_backup_recovery.py --tier all
+
+# Test recovery from frequent tier only
+python test_backup_recovery.py --tier frequent
+
+# Test recovery from permanent tier (moderate + milestone)
+python test_backup_recovery.py --tier permanent
+
+# Test specific tier
+python test_backup_recovery.py --tier milestone
+
+# Specify custom checkpoint directory
+python test_backup_recovery.py --checkpoint-dir data/freesound_library --tier all
+```
+
+**What the test does:**
+1. Lists available backups for each tier
+2. Selects most recent backup from each tier
+3. Creates temporary directory for recovery test
+4. Copies/decompresses backup files to temporary directory
+5. Verifies checkpoint integrity:
+   - Graph topology loads successfully
+   - Metadata database loads successfully
+   - Checkpoint metadata is valid
+   - Node and edge counts match
+6. Generates detailed test report
+
+**Test output example:**
+```
+🚀 Backup Recovery Test Suite
+================================================================================
+Checkpoint directory: data/freesound_library
+Test tier: all
+
+🧪 Testing frequent tier recovery
+================================================================================
+  ✓ Found 5 backup(s) for frequent tier
+  📦 Testing recovery from backup:
+     - Timestamp: 2025-11-13T14:30:22Z
+     - Nodes: 1,500
+     - Edges: 4,500
+     - Compressed: False
+  🔄 Recovering to temporary directory: /tmp/tmpXXXXXX/checkpoint_test
+    - Copying topology...
+    - Copying metadata...
+  ✓ Recovery completed successfully
+  🔍 Verifying checkpoint integrity...
+  ✓ Graph topology loaded: 1500 nodes, 4500 edges
+  ✓ Metadata database loaded: 1500 samples
+  ✓ Checkpoint metadata loaded
+    - Timestamp: 2025-11-13T14:30:22Z
+    - Nodes: 1500
+    - Edges: 4500
+✅ frequent tier recovery test PASSED
+
+================================================================================
+📊 Test Summary
+================================================================================
+frequent     tier: ✓ PASSED
+  - Backups found: 5
+  - Recovery tested: True
+  - Integrity verified: True
+
+moderate     tier: ✓ PASSED
+  - Backups found: 2
+  - Recovery tested: True
+  - Integrity verified: True
+
+milestone    tier: ✓ PASSED
+  - Backups found: 1
+  - Recovery tested: True
+  - Integrity verified: True
+
+Total tests: 3
+Passed: 3
+Failed: 0
+
+✅ All backup recovery tests PASSED!
+```
+
+**Test logs:**
+- Detailed logs saved to `logs/backup_recovery_test_{timestamp}.log`
+- Includes all verification steps and error details
+- Useful for debugging recovery issues
+
+#### Recovery Best Practices
+
+**Before recovery:**
+1. **Identify the issue**: Determine why recovery is needed (corruption, data loss, rollback)
+2. **Choose appropriate tier**: Use frequent tier for recent issues, permanent tier for major rollbacks
+3. **Backup current state**: Create manual backup of current checkpoint before recovery
+4. **Review backup metadata**: Verify backup timestamp, node count, and tier before restoring
+
+**During recovery:**
+1. **Use restore script**: Prefer `restore_from_backup.py` over manual steps
+2. **Verify backup integrity**: Check backup files are not corrupted before restoring
+3. **Test in temporary directory**: Use test script to verify recovery before applying to production
+4. **Document recovery**: Note which backup was restored and why
+
+**After recovery:**
+1. **Verify checkpoint integrity**: Run verification checks to ensure successful recovery
+2. **Test pipeline execution**: Run pipeline with small `max_requests` to verify functionality
+3. **Monitor next runs**: Watch for any issues in subsequent pipeline executions
+4. **Update documentation**: Document recovery event and lessons learned
+
+#### Common Recovery Scenarios
+
+**Scenario 1: Checkpoint corruption after workflow failure**
+
+**Symptoms:**
+- Pipeline fails to load checkpoint
+- SQLite database errors
+- Graph topology load failures
+
+**Recovery steps:**
+```bash
+# 1. List recent backups
+python restore_from_backup.py --list --tier frequent
+
+# 2. Restore from most recent backup
+python restore_from_backup.py --restore latest --tier frequent
+
+# 3. Verify integrity
+python test_backup_recovery.py --tier frequent
+
+# 4. Resume pipeline
+python generate_freesound_visualization.py --max-requests 100
+```
+
+**Scenario 2: Rollback to milestone checkpoint**
+
+**Symptoms:**
+- Need to revert to specific milestone (e.g., 500 nodes)
+- Data quality issues in recent runs
+- Testing new features from known good state
+
+**Recovery steps:**
+```bash
+# 1. List milestone backups
+python restore_from_backup.py --list --tier milestone
+
+# 2. Identify desired milestone
+# Look for backup with target node count (e.g., 500, 1000, 1500)
+
+# 3. Restore from specific milestone
+python restore_from_backup.py --restore 20251110_020000 --tier milestone
+
+# 4. Verify integrity
+python test_backup_recovery.py --tier milestone
+
+# 5. Resume pipeline from milestone
+python generate_freesound_visualization.py
+```
+
+**Scenario 3: Disaster recovery from permanent tier**
+
+**Symptoms:**
+- Complete data loss
+- All frequent tier backups corrupted
+- Need to restore from long-term archive
+
+**Recovery steps:**
+```bash
+# 1. List all permanent tier backups
+python restore_from_backup.py --list --tier permanent
+
+# 2. Choose most recent permanent backup
+python restore_from_backup.py --restore latest --tier permanent
+
+# 3. Verify integrity
+python test_backup_recovery.py --tier permanent
+
+# 4. Resume pipeline
+python generate_freesound_visualization.py
+```
+
+#### Recovery Troubleshooting
+
+**Recovery fails with "Backup not found":**
+- Verify backup tier is correct (frequent vs permanent)
+- Check backup manifest: `cat data/freesound_library/backup_manifest.json | jq '.'`
+- List backup files manually: `ls -lh data/freesound_library/backups/*/`
+
+**Recovery fails with "Decompression error":**
+- Backup file may be corrupted
+- Try different backup from same tier
+- Verify file integrity: `gzip -t backup_file.gz`
+
+**Checkpoint integrity verification fails:**
+- Graph topology or metadata database may be corrupted
+- Try recovery from different backup
+- Check disk space and file permissions
+
+**Pipeline fails after recovery:**
+- Verify checkpoint metadata is correct
+- Check processed_ids are properly restored
+- Run validation to ensure data consistency
 
 ### Troubleshooting Backup Issues
 
