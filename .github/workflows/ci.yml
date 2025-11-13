@@ -130,7 +130,7 @@ jobs:
   test:
     name: "🧪 Test Python ${{ matrix.python-version }} on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
-    needs: test-quick
+    needs: [test-quick, security-quality]
     timeout-minutes: 15
     defaults:
       run:
