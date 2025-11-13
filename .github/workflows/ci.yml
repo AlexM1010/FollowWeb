@@ -197,7 +197,7 @@ jobs:
   test-quick:
     name: Smoke Test (Python 3.12 on Ubuntu)
     runs-on: ubuntu-latest
-    needs: [quality-check]  # Only wait for quality check, run in parallel with performance/benchmarks
+    needs: [prebuild, quality-check]  # Wait for prebuild and quality check
     timeout-minutes: 15
     defaults:
       run:
@@ -221,10 +221,17 @@ jobs:
         cache: 'pip'
         cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
-    - name: Install dependencies
+    - name: Use prebuild environment
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        python -m pip install -r requirements-ci.txt -e .
+        if [ -d ".venv" ]; then
+          echo "✅ Using prebuild cache"
+          source .venv/bin/activate
+          python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
+        else
+          echo "❌ Cache miss - installing fresh"
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements-ci.txt -e .
+        fi
       shell: bash
     
     - name: Run quick smoke tests
@@ -247,7 +254,7 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [quality-check, test-quick]  # Only wait for quality check and smoke test
+    needs: [prebuild, quality-check, test-quick]  # Wait for prebuild, quality check and smoke test
     timeout-minutes: 30
     defaults:
       run:
@@ -302,12 +309,18 @@ jobs:
         python -c "import platform; print(f'Platform: {platform.platform()}')"
         pip --version
     
-    - name: Install dependencies
+    - name: Use prebuild environment
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        # Install dependencies first, then package in editable mode
-        python -m pip install -r requirements-ci.txt
-        python -m pip install -e .
+        if [ -d ".venv" ]; then
+          echo "✅ Using prebuild cache"
+          source .venv/bin/activate
+          python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
+        else
+          echo "❌ Cache miss - installing fresh"
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements-ci.txt
+          python -m pip install -e .
+        fi
       shell: bash
     
     - name: Verify installation
@@ -395,7 +408,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Only wait for quality check and smoke test
+    needs: [prebuild, quality-check, test-quick]  # Wait for prebuild, quality check and smoke test
     timeout-minutes: 10
     defaults:
       run:
@@ -447,14 +460,14 @@ jobs:
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
-    - name: Install security tools
+    - name: Use prebuild environment
       run: |
-        # Use cached environment if available
         if [ -d ".venv" ]; then
-          echo "Using prebuild cache"
+          echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
-          echo "Installing dependencies fresh"
+          echo "❌ Cache miss - installing fresh"
           python -m pip install --upgrade pip
           python -m pip install bandit[toml] pip-audit -r requirements-ci.txt
         fi
@@ -529,7 +542,7 @@ jobs:
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Only wait for quality check and smoke test
+    needs: [prebuild, quality-check, test-quick]  # Wait for prebuild, quality check and smoke test
     timeout-minutes: 10
     defaults:
       run:
@@ -576,14 +589,14 @@ jobs:
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
-    - name: Install dependencies
+    - name: Use prebuild environment
       run: |
-        # Use cached environment if available
         if [ -d ".venv" ]; then
-          echo "Using prebuild cache"
+          echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
-          echo "Installing dependencies fresh"
+          echo "❌ Cache miss - installing fresh"
           python -m pip install --upgrade pip
           python -m pip install -r requirements-minimal.txt
         fi
@@ -610,7 +623,7 @@ jobs:
   build:
     name: Build & Package
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Only wait for quality check and smoke test
+    needs: [prebuild, quality-check, test-quick]  # Wait for prebuild, quality check and smoke test
     timeout-minutes: 15
     defaults:
       run:
@@ -706,7 +719,7 @@ jobs:
   performance:
     name: Performance Tests
     runs-on: ubuntu-latest
-    needs: [quality-check]  # Only wait for quality check, run in parallel with smoke test/benchmarks
+    needs: [prebuild, quality-check]  # Wait for prebuild and quality check, run in parallel with smoke test/benchmarks
     timeout-minutes: 20
     defaults:
       run:
@@ -737,14 +750,14 @@ jobs:
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
-    - name: Install dependencies
+    - name: Use prebuild environment
       run: |
-        # Use cached environment if available
         if [ -d ".venv" ]; then
-          echo "Using prebuild cache"
+          echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
-          echo "Installing dependencies fresh"
+          echo "❌ Cache miss - installing fresh"
           python -m pip install --upgrade pip
           python -m pip install -r requirements-ci.txt -e .
         fi
@@ -774,7 +787,7 @@ jobs:
   benchmarks:
     name: Benchmark Tests
     runs-on: ubuntu-latest
-    needs: [quality-check]  # Only wait for quality check, run in parallel with smoke test/performance
+    needs: [prebuild, quality-check]  # Wait for prebuild and quality check, run in parallel with smoke test/performance
     timeout-minutes: 20
     defaults:
       run:
@@ -805,14 +818,14 @@ jobs:
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
     
-    - name: Install dependencies
+    - name: Use prebuild environment
       run: |
-        # Use cached environment if available
         if [ -d ".venv" ]; then
-          echo "Using prebuild cache"
+          echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
-          echo "Installing dependencies fresh"
+          echo "❌ Cache miss - installing fresh"
           python -m pip install --upgrade pip
           python -m pip install -r requirements-ci.txt -e .
         fi
@@ -871,14 +884,14 @@ jobs:
   # Documentation pipeline - runs after quality check and smoke test pass
   documentation:
     name: Documentation
-    needs: [quality-check, test-quick]
+    needs: [prebuild, quality-check, test-quick]
     uses: ./.github/workflows/docs.yml
   
   # All checks must pass - no exceptions
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick, test, security, format-check, build, performance, benchmarks, documentation]
+    needs: [prebuild, quality-check, test-quick, test, security, format-check, build, performance, benchmarks, documentation]
     if: always()
     
     steps:
