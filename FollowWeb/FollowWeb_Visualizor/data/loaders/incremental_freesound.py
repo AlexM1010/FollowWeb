@@ -1478,7 +1478,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         samples_by_user[username].append(str(sound.id))
 
                 # Paginate if needed
-                while results.more:
+                while results.next:
                     if self._check_circuit_breaker():
                         break
 
@@ -1588,7 +1588,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                             samples_by_pack[pack_name].append(str(sound.id))
 
                 # Paginate if needed
-                while results.more:
+                while results.next:
                     if self._check_circuit_breaker():
                         break
 
@@ -2132,7 +2132,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 samples.append(sample_data)
 
             # Fetch additional pages if needed
-            while len(samples) < max_samples and results.more:
+            while len(samples) < max_samples and results.next:
                 self.rate_limiter.acquire()
                 self._increment_request_count()
                 results = self._retry_with_backoff(results.next_page)
