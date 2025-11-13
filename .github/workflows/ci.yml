@@ -304,17 +304,10 @@ jobs:
     
     - name: Install dependencies
       run: |
-        # Use cached environment if available, otherwise install fresh
-        if [ -d ".venv" ] && [ "${{ matrix.os }}" == "ubuntu-latest" ] && [ "${{ matrix.python-version }}" == "3.12" ]; then
-          echo "Using prebuild cache"
-          source .venv/bin/activate
-        else
-          echo "Installing dependencies fresh"
-          python -m pip install --upgrade pip setuptools wheel
-          # Install dependencies first, then package in editable mode
-          python -m pip install -r requirements-ci.txt
-          python -m pip install -e .
-        fi
+        python -m pip install --upgrade pip setuptools wheel
+        # Install dependencies first, then package in editable mode
+        python -m pip install -r requirements-ci.txt
+        python -m pip install -e .
       shell: bash
     
     - name: Verify installation
