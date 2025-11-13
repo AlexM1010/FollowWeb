@@ -281,15 +281,24 @@ class GitManager:
             branch_name: Name for backup branch
             
         Returns:
-            True if successful
+            True if successful, False if branch already exists
             
         Raises:
-            GitOperationError: If branch creation fails
+            GitOperationError: If branch creation fails for reasons other than already existing
         """
         try:
+            # Check if branch already exists
+            if branch_name in [head.name for head in self.repo.heads]:
+                return False
+            
+            # Create new branch
             self.repo.create_head(branch_name)
             return True
         except Exception as e:
+            # Check if error is due to branch already existing
+            if "already exists" in str(e).lower():
+                return False
+            
             raise GitOperationError(
                 phase=CleanupPhase.BACKUP,
                 message=f"Failed to create backup branch '{branch_name}': {e}",

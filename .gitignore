@@ -91,3 +91,13 @@ FINAL_*.md
 UNCAUGHT_*.md
 BACKWARDS_*.md
 
+
+# Cache and temporary files (added by cleanup)
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+temp_*/
+_temp_*/
+TestOutput-*.txt
+*_viz_*.log
+test_output.log

@@ -74,6 +74,7 @@ class RollbackManager:
             git_commits=[],  # Will be populated during execution
             created_directories=created_directories,
             modified_files=modified_files,
+            timestamp=timestamp,
         )
         
         # Save state to file

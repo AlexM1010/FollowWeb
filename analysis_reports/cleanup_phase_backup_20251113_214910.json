@@ -1,0 +1,25 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "backup",
+  "timestamp": "2025-11-13T21:49:10.055868",
+  "success": true,
+  "duration_seconds": 1.192799,
+  "operations": [
+    {
+      "operation": "git_branch",
+      "source": "main",
+      "destination": "backup/pre-cleanup",
+      "timestamp": "2025-11-13T21:49:10.054866",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "backup",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}

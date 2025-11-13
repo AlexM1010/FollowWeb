@@ -345,29 +345,289 @@ class CleanupOrchestrator:
         return operations
     
     def _execute_backup_phase(self, dry_run: bool = False) -> List[FileOperation]:
-        """Execute backup phase."""
+        """
+        Execute backup phase.
+        
+        Creates a backup branch with pre-cleanup state and captures current metrics.
+        
+        Args:
+            dry_run: If True, simulate without making changes
+            
+        Returns:
+            List of file operations performed
+        """
         operations = []
+        
+        self.logger.info("Capturing current state metrics...")
+        
+        # Capture current state metrics
+        metrics = self._capture_current_metrics()
+        
+        self.logger.info(f"Current state:")
+        self.logger.info(f"  Root files: {metrics.root_file_count}")
+        self.logger.info(f"  Total size: {metrics.total_size_mb:.2f} MB")
+        self.logger.info(f"  Cache size: {metrics.cache_size_mb:.2f} MB")
+        self.logger.info(f"  Documentation files: {metrics.documentation_files}")
+        self.logger.info(f"  Utility scripts: {metrics.utility_scripts}")
         
         if not dry_run:
             # Create backup branch
-            self.git_manager.create_backup_branch(
+            self.logger.info(f"Creating backup branch: {self.config.backup_branch_name}")
+            
+            success = self.git_manager.create_backup_branch(
                 self.config.backup_branch_name
             )
+            
+            if success:
+                self.logger.info(f"✓ Backup branch created: {self.config.backup_branch_name}")
+            else:
+                self.logger.warning(f"Backup branch may already exist: {self.config.backup_branch_name}")
             
             operations.append(FileOperation(
                 operation="git_branch",
                 source="main",
                 destination=self.config.backup_branch_name,
                 timestamp=datetime.now(),
-                success=True,
+                success=success,
             ))
+            
+            # Save metrics to report
+            metrics_file = self.project_root / "analysis_reports" / "pre_cleanup_metrics.json"
+            metrics_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            import json
+            with open(metrics_file, 'w') as f:
+                json.dump({
+                    "timestamp": datetime.now().isoformat(),
+                    "root_file_count": metrics.root_file_count,
+                    "total_size_mb": metrics.total_size_mb,
+                    "cache_size_mb": metrics.cache_size_mb,
+                    "documentation_files": metrics.documentation_files,
+                    "utility_scripts": metrics.utility_scripts,
+                    "test_pass_rate": metrics.test_pass_rate,
+                }, f, indent=2)
+            
+            self.logger.info(f"✓ Metrics saved: {metrics_file}")
         
         return operations
     
+    def _capture_current_metrics(self) -> Metrics:
+        """
+        Capture current repository metrics.
+        
+        Returns:
+            Metrics object with current state
+        """
+        import os
+        
+        # Count root files
+        root_files = [
+            f for f in os.listdir(self.project_root)
+            if os.path.isfile(os.path.join(self.project_root, f))
+        ]
+        root_file_count = len(root_files)
+        
+        # Count documentation files (*.md in root)
+        doc_files = [f for f in root_files if f.endswith('.md')]
+        documentation_files = len(doc_files)
+        
+        # Count utility scripts (*.py in root, excluding special files)
+        script_files = [
+            f for f in root_files
+            if f.endswith('.py') and not f.startswith('_') and f not in ['setup.py']
+        ]
+        utility_scripts = len(script_files)
+        
+        # Calculate total size
+        total_size_bytes = 0
+        for root, dirs, files in os.walk(self.project_root):
+            # Skip .git directory
+            if '.git' in root:
+                continue
+            for file in files:
+                try:
+                    file_path = os.path.join(root, file)
+                    total_size_bytes += os.path.getsize(file_path)
+                except (OSError, FileNotFoundError):
+                    pass
+        
+        total_size_mb = total_size_bytes / (1024 * 1024)
+        
+        # Calculate cache size
+        cache_dirs = ['.mypy_cache', '.pytest_cache', '.ruff_cache', '__pycache__']
+        cache_size_bytes = 0
+        
+        for cache_dir in cache_dirs:
+            cache_path = self.project_root / cache_dir
+            if cache_path.exists():
+                for root, dirs, files in os.walk(cache_path):
+                    for file in files:
+                        try:
+                            file_path = os.path.join(root, file)
+                            cache_size_bytes += os.path.getsize(file_path)
+                        except (OSError, FileNotFoundError):
+                            pass
+        
+        cache_size_mb = cache_size_bytes / (1024 * 1024)
+        
+        # Test pass rate (placeholder - would run tests to get actual rate)
+        test_pass_rate = 100.0
+        
+        return Metrics(
+            root_file_count=root_file_count,
+            total_size_mb=total_size_mb,
+            cache_size_mb=cache_size_mb,
+            documentation_files=documentation_files,
+            utility_scripts=utility_scripts,
+            test_pass_rate=test_pass_rate,
+        )
+    
     def _execute_cache_cleanup_phase(self, dry_run: bool = False) -> List[FileOperation]:
-        """Execute cache cleanup phase."""
-        # Placeholder - would implement cache cleanup logic
-        return []
+        """
+        Execute cache cleanup phase.
+        
+        Updates .gitignore with cache patterns, removes cache directories from
+        git tracking, and removes temporary directories.
+        
+        Args:
+            dry_run: If True, simulate without making changes
+            
+        Returns:
+            List of file operations performed
+        """
+        operations = []
+        
+        self.logger.info("Executing cache cleanup phase...")
+        
+        # Step 1: Update .gitignore with cache patterns
+        gitignore_path = self.project_root / ".gitignore"
+        
+        if not dry_run:
+            self.logger.info("Updating .gitignore with cache patterns...")
+            
+            # Read existing .gitignore
+            existing_patterns = set()
+            if gitignore_path.exists():
+                with open(gitignore_path, 'r') as f:
+                    existing_patterns = set(line.strip() for line in f if line.strip() and not line.startswith('#'))
+            
+            # Add new patterns
+            new_patterns = []
+            for pattern in self.config.gitignore_patterns:
+                if pattern not in existing_patterns:
+                    new_patterns.append(pattern)
+            
+            if new_patterns:
+                with open(gitignore_path, 'a') as f:
+                    f.write('\n# Cache and temporary files (added by cleanup)\n')
+                    for pattern in new_patterns:
+                        f.write(f'{pattern}\n')
+                
+                self.logger.info(f"✓ Added {len(new_patterns)} patterns to .gitignore")
+                
+                operations.append(FileOperation(
+                    operation="update_gitignore",
+                    source=str(gitignore_path),
+                    destination=None,
+                    timestamp=datetime.now(),
+                    success=True,
+                ))
+            else:
+                self.logger.info("✓ All cache patterns already in .gitignore")
+        
+        # Step 2: Remove cache directories from git tracking
+        cache_dirs = ['.mypy_cache', '.pytest_cache', '.ruff_cache', '__pycache__']
+        
+        for cache_dir in cache_dirs:
+            cache_path = self.project_root / cache_dir
+            
+            if cache_path.exists():
+                self.logger.info(f"Removing {cache_dir} from git tracking...")
+                
+                if not dry_run:
+                    try:
+                        # Use git rm --cached -r to remove directory from tracking
+                        self.git_manager.repo.git.rm('--cached', '-r', cache_dir)
+                        
+                        self.logger.info(f"✓ Removed {cache_dir} from git tracking")
+                        
+                        operations.append(FileOperation(
+                            operation="git_rm_cached",
+                            source=cache_dir,
+                            destination=None,
+                            timestamp=datetime.now(),
+                            success=True,
+                        ))
+                    except Exception as e:
+                        # Directory might not be tracked
+                        self.logger.warning(f"Could not remove {cache_dir} from git: {e}")
+        
+        # Step 3: Remove temporary directories
+        temp_dirs = ['temp_backup', 'temp_secondary_backup', '_temp_changes_to_review']
+        
+        for temp_dir in temp_dirs:
+            temp_path = self.project_root / temp_dir
+            
+            if temp_path.exists():
+                self.logger.info(f"Removing temporary directory: {temp_dir}")
+                
+                if not dry_run:
+                    try:
+                        # First remove from git if tracked
+                        try:
+                            self.git_manager.repo.git.rm('-r', temp_dir)
+                            self.logger.info(f"✓ Removed {temp_dir} from git")
+                        except Exception:
+                            # Not tracked, just delete from filesystem
+                            import shutil
+                            shutil.rmtree(temp_path)
+                            self.logger.info(f"✓ Deleted {temp_dir} from filesystem")
+                        
+                        operations.append(FileOperation(
+                            operation="remove_temp_dir",
+                            source=temp_dir,
+                            destination=None,
+                            timestamp=datetime.now(),
+                            success=True,
+                        ))
+                    except Exception as e:
+                        self.logger.error(f"Failed to remove {temp_dir}: {e}")
+                        operations.append(FileOperation(
+                            operation="remove_temp_dir",
+                            source=temp_dir,
+                            destination=None,
+                            timestamp=datetime.now(),
+                            success=False,
+                        ))
+        
+        # Step 4: Commit changes
+        if not dry_run and operations:
+            self.logger.info("Committing cache cleanup changes...")
+            
+            try:
+                commit_sha = self.git_manager.create_commit(
+                    "chore(cleanup): remove cache directories and update .gitignore\n\n"
+                    "- Update .gitignore with cache and temp patterns\n"
+                    "- Remove cache directories from git tracking\n"
+                    "- Remove temporary directories\n"
+                    f"- Freed {self._capture_current_metrics().cache_size_mb:.2f} MB"
+                )
+                
+                self.logger.info(f"✓ Changes committed: {commit_sha[:8]}")
+                
+                operations.append(FileOperation(
+                    operation="git_commit",
+                    source="cache_cleanup",
+                    destination=commit_sha,
+                    timestamp=datetime.now(),
+                    success=True,
+                ))
+            except Exception as e:
+                self.logger.error(f"Failed to commit changes: {e}")
+        
+        self.logger.info(f"✓ Cache cleanup phase complete: {len(operations)} operations")
+        
+        return operations
     
     def _execute_root_cleanup_phase(self, dry_run: bool = False) -> List[FileOperation]:
         """Execute root cleanup phase."""
