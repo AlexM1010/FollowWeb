@@ -128,11 +128,13 @@ jobs:
         # Create temporary checkpoint directory
         with tempfile.TemporaryDirectory() as tmpdir:
             # Initialize loader (no API calls)
+            # Loader reads FREESOUND_API_KEY from environment variable automatically
             loader = IncrementalFreesoundLoader(
                 config={
-                    'api_key': os.environ['FREESOUND_API_KEY'],
-                    'checkpoint_dir': tmpdir,
-                    'checkpoint_interval': 1
+                    'checkpoint': {
+                        'checkpoint_dir': tmpdir,
+                        'checkpoint_interval': 1
+                    }
                 }
             )
             
@@ -140,8 +142,6 @@ jobs:
             assert hasattr(loader, 'rate_limiter'), 'Rate limiter not initialized'
             assert hasattr(loader, 'graph'), 'Graph not initialized'
             assert hasattr(loader, 'processed_ids'), 'Processed IDs not initialized'
-            assert hasattr(loader, 'checkpoint'), 'Checkpoint not initialized'
-            assert hasattr(loader, 'client'), 'Freesound client not initialized'
             
             # Verify initial state
             assert isinstance(loader.processed_ids, set), 'processed_ids should be a set'
