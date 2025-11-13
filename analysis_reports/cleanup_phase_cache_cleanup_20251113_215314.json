@@ -1,0 +1,39 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "cache_cleanup",
+  "timestamp": "2025-11-13T21:53:14.912261",
+  "success": true,
+  "duration_seconds": 2.283371,
+  "operations": [
+    {
+      "operation": "remove_temp_dir",
+      "source": "temp_backup",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:13.187267",
+      "success": false
+    },
+    {
+      "operation": "remove_temp_dir",
+      "source": "temp_secondary_backup",
+      "destination": null,
+      "timestamp": "2025-11-13T21:53:13.312762",
+      "success": false
+    },
+    {
+      "operation": "git_commit",
+      "source": "cache_cleanup",
+      "destination": "1eedd46c75e7d3b00833a66c1a10130f903da7c8",
+      "timestamp": "2025-11-13T21:53:14.911163",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "cache_cleanup",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}
