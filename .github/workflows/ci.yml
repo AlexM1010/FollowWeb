@@ -645,7 +645,7 @@ jobs:
       with:
         python-version: '3.12'
         cache: 'pip'
-        cache-dependency-path: 'requirements-ci.txt'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
     - name: Restore prebuild cache
       uses: actions/cache/restore@v4
@@ -808,7 +808,7 @@ jobs:
       with:
         python-version: '3.12'
         cache: 'pip'
-        cache-dependency-path: 'requirements-ci.txt'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
     - name: Restore prebuild cache
       uses: actions/cache/restore@v4
@@ -883,7 +883,7 @@ jobs:
       with:
         python-version: '3.12'
         cache: 'pip'
-        cache-dependency-path: 'requirements-ci.txt'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
     - name: Restore prebuild cache
       uses: actions/cache/restore@v4
