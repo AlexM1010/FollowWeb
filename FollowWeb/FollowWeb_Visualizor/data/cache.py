@@ -145,7 +145,9 @@ class CentralizedCache:
                 f"{graph.number_of_nodes()}_{graph.number_of_edges()}".encode()
             ).hexdigest()
 
-    def get_cached_undirected_graph(self, graph: Union[nx.Graph, nx.DiGraph]) -> nx.Graph:
+    def get_cached_undirected_graph(
+        self, graph: Union[nx.Graph, nx.DiGraph]
+    ) -> nx.Graph:
         """
         Get cached undirected version of a directed graph.
 
@@ -161,7 +163,7 @@ class CentralizedCache:
         # If already undirected, return as-is
         if not graph.is_directed():
             return graph  # type: ignore
-            
+
         graph_hash = self.calculate_graph_hash(graph)
 
         # Check cache first
