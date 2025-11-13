@@ -2,6 +2,9 @@
 # Combines production, testing, and CI-specific dependencies for faster installation
 # All dependencies use permissive open-source licenses (MIT, BSD, Apache 2.0)
 
+# Security: Ensure pip is updated to fix CVE-2025-8869 (tarfile extraction vulnerability)
+pip>=25.3
+
 # Include production dependencies
 -r requirements.txt
 
