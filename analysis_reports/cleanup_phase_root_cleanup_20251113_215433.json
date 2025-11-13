@@ -1,0 +1,17 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "root_cleanup",
+  "timestamp": "2025-11-13T21:54:33.072320",
+  "success": true,
+  "duration_seconds": 0.00402,
+  "operations": [],
+  "validation": {
+    "phase": "root_cleanup",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}
