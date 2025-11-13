@@ -866,31 +866,42 @@ def _configure_parallel_execution(config):
 
     # Benchmark and performance tests always run sequentially
     # But NOT if we're explicitly excluding benchmarks with "not benchmark"
-    if markers and "not benchmark" not in markers:
-        if "benchmark" in markers or "performance" in markers or "slow" in markers:
+    # Also check if benchmark plugin is disabled with -p no:benchmark
+    benchmark_plugin_disabled = "no:benchmark" in config.option.plugins
+    
+    if markers and "not benchmark" not in markers and not benchmark_plugin_disabled:
+        if "benchmark" in markers:
             config.option.numprocesses = 0
             config.option.dist = "no"
             if hasattr(config.option, "cov"):
                 config.option.cov = None  # Disable coverage for accurate timing
             return
+    
+    # Performance and slow tests can run in parallel with reduced workers
+    # They don't need sequential execution like benchmarks do
+    if markers and ("performance" in markers or "slow" in markers):
+        # Allow parallel execution but with fewer workers for stability
+        pass  # Let the memory-based configuration handle worker count
 
     # Check if running benchmark tests by examining test paths
     # This catches cases like: pytest tests/performance/test_benchmarks.py
-    test_args = config.args
-    if test_args:
-        for arg in test_args:
-            # Check if any test path contains benchmark-related keywords
-            if any(
-                keyword in arg.lower()
-                for keyword in ["benchmark", "test_benchmarks.py"]
-            ):
-                # Check if we're not explicitly excluding benchmarks
-                if "not benchmark" not in markers:
-                    config.option.numprocesses = 0
-                    config.option.dist = "no"
-                    if hasattr(config.option, "cov"):
-                        config.option.cov = None
-                    return
+    # But only if benchmark plugin is not disabled
+    if not benchmark_plugin_disabled:
+        test_args = config.args
+        if test_args:
+            for arg in test_args:
+                # Check if any test path contains benchmark-related keywords
+                if any(
+                    keyword in arg.lower()
+                    for keyword in ["benchmark", "test_benchmarks.py"]
+                ):
+                    # Check if we're not explicitly excluding benchmarks
+                    if "not benchmark" not in markers:
+                        config.option.numprocesses = 0
+                        config.option.dist = "no"
+                        if hasattr(config.option, "cov"):
+                            config.option.cov = None
+                        return
 
     # Let pytest-xdist auto-detect CPU count, then apply memory limits
     # This works on any device without hardcoded values
@@ -1029,9 +1040,11 @@ def pytest_collection_modifyitems(config, items):
 
     # Check if we're explicitly excluding benchmarks first
     markers = config.getoption("-m", default="")
+    benchmark_plugin_disabled = "no:benchmark" in config.option.plugins
 
     # Only check for benchmarks if we're not explicitly excluding them
-    if "not benchmark" not in markers:
+    # and the benchmark plugin is not disabled
+    if "not benchmark" not in markers and not benchmark_plugin_disabled:
         # Check if any collected items have benchmark marker - disable xdist if so
         has_benchmarks = any(
             any(marker.name == "benchmark" for marker in item.iter_markers())
