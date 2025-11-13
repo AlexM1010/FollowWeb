@@ -1,0 +1,51 @@
+{
+  "analysis_timestamp": "2025-11-13T19:01:01.411105",
+  "project_root": "C:\\Users\\alexm\\OneDrive - University of Leeds\\Home\\Old Docs\\Follow Web\\FollowWeb",
+  "optimization_summary": {
+    "ai_language_analysis": {
+      "files_scanned": 92,
+      "files_with_ai_language": 36,
+      "total_patterns_found": 523,
+      "category_breakdown": {
+        "overused_adjectives": 421,
+        "workflow_references": 62,
+        "marketing_phrases": 22,
+        "redundant_qualifiers": 9,
+        "vague_benefits": 9
+      },
+      "recommendations": [
+        "HIGH PRIORITY: Remove 84 marketing phrases - these significantly impact code professionalism",
+        "MEDIUM PRIORITY: Replace 421 overused adjectives with specific technical terms"
+      ]
+    },
+    "duplication_analysis": {
+      "files_analyzed": 143,
+      "files_with_duplication": 98,
+      "validation_duplicates": 1844,
+      "unused_imports": 47,
+      "recommendations": [
+        "HIGH PRIORITY: Extract 215 common validation patterns into shared utilities",
+        "MEDIUM PRIORITY: Consolidate 1844 validation patterns into reusable functions",
+        "LOW PRIORITY: Remove 47 unused import statements to clean up code",
+        "MEDIUM PRIORITY: Refactor 305 duplicate code blocks into shared functions"
+      ]
+    },
+    "cross_platform_analysis": {
+      "test_files_analyzed": 15,
+      "files_with_issues": 6,
+      "average_ci_score": 74.0,
+      "platform_issues": 0,
+      "path_issues": 48,
+      "recommendations": [
+        "HIGH PRIORITY: Replace 48 hardcoded paths with pathlib.Path or os.path.join() for cross-platform compatibility"
+      ]
+    }
+  },
+  "overall_recommendations": [
+    "HIGH PRIORITY: Remove 84 high-severity AI language artifacts (marketing phrases)",
+    "MEDIUM PRIORITY: Consolidate 1844 duplicate validation patterns",
+    "MEDIUM PRIORITY: Fix 48 hardcoded path issues for cross-platform compatibility",
+    "LOW PRIORITY: Remove 47 unused import statements",
+    "LOW PRIORITY: Replace 439 remaining AI language patterns with technical terms"
+  ]
+}
