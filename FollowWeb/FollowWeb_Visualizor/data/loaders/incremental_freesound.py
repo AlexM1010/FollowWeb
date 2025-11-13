@@ -342,6 +342,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         )
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
+        # Define checkpoint file paths
+        topology_path = checkpoint_dir / "graph_topology.gpickle"
+        metadata_db_path = checkpoint_dir / "metadata_cache.db"
+
         # Prepare checkpoint metadata
         checkpoint_metadata = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -392,7 +396,6 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         graph_clean: nx.DiGraph = nx.DiGraph()
         graph_clean.add_edges_from(self.graph.edges())
 
-        topology_path = checkpoint_dir / "graph_topology.gpickle"
         import pickle
 
         with open(topology_path, "wb") as f:
