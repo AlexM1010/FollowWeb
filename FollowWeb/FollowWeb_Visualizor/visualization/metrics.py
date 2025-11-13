@@ -230,7 +230,7 @@ class MetricsCalculator:
         """
         # Handle the case where analysis was skipped (attributes are missing)
         # Use cached node attributes to avoid repeated graph traversals
-        communities_attr = get_cached_node_attributes(graph, "community")
+        communities_attr = self.cache_manager.get_cached_node_attributes(graph, "community")
         if not communities_attr:
             # Set all community IDs to 0 for fallback
             num_communities = 1
@@ -263,7 +263,7 @@ class MetricsCalculator:
         """
         # Handle the case where analysis was skipped (attributes are missing)
         # Use cached node attributes to avoid repeated graph traversals
-        communities_attr = get_cached_node_attributes(graph, "community")
+        communities_attr = self.cache_manager.get_cached_node_attributes(graph, "community")
         if not communities_attr:
             # Set all community IDs to 0
             nx.set_node_attributes(graph, dict.fromkeys(graph.nodes(), 0), "community")
@@ -335,13 +335,13 @@ class MetricsCalculator:
         edge_width_scaling = self.vis_config.get("edge_width_scaling", "logarithmic")
 
         # Use cached undirected graph conversion
-        graph_undirected = get_cached_undirected_graph(graph)
+        graph_undirected = self.cache_manager.get_cached_undirected_graph(graph)
 
         # OPTIMIZATION: Pre-compute edge existence for faster lookups
         directed_edges = set(graph.edges())
 
         # Use cached community attributes to avoid repeated lookups
-        communities_attr = get_cached_node_attributes(graph, "community")
+        communities_attr = self.cache_manager.get_cached_node_attributes(graph, "community")
         if not communities_attr:
             communities_attr = dict.fromkeys(graph.nodes(), 0)
 
