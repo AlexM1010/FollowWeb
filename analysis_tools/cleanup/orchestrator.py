@@ -630,9 +630,198 @@ class CleanupOrchestrator:
         return operations
     
     def _execute_root_cleanup_phase(self, dry_run: bool = False) -> List[FileOperation]:
-        """Execute root cleanup phase."""
-        # Placeholder - would implement root cleanup logic
-        return []
+        """
+        Execute root directory cleanup phase.
+        
+        Creates docs/ subdirectory structure, categorizes and moves documentation
+        files using git mv, removes empty files, and validates root directory
+        file count < 15.
+        
+        Args:
+            dry_run: If True, simulate without making changes
+            
+        Returns:
+            List of file operations performed
+        """
+        operations = []
+        
+        self.logger.info("Executing root directory cleanup phase...")
+        
+        # Step 1: Create docs/ subdirectory structure
+        docs_structure = self.config.docs_structure
+        
+        self.logger.info("Creating docs/ subdirectory structure...")
+        
+        for category, path in docs_structure.items():
+            docs_path = self.project_root / path
+            
+            if not docs_path.exists():
+                self.logger.info(f"Creating directory: {path}")
+                
+                if not dry_run:
+                    docs_path.mkdir(parents=True, exist_ok=True)
+                    
+                    operations.append(FileOperation(
+                        operation="create_directory",
+                        source=path,
+                        destination=None,
+                        timestamp=datetime.now(),
+                        success=True,
+                    ))
+            else:
+                self.logger.info(f"✓ Directory already exists: {path}")
+        
+        # Step 2: Find and categorize documentation files in root
+        import os
+        
+        root_files = [
+            f for f in os.listdir(self.project_root)
+            if os.path.isfile(os.path.join(self.project_root, f))
+        ]
+        
+        doc_files = [f for f in root_files if f.endswith('.md')]
+        
+        self.logger.info(f"Found {len(doc_files)} documentation files in root")
+        
+        # Categorize files
+        file_mappings = []
+        
+        for doc_file in doc_files:
+            category = self._categorize_doc_file(doc_file)
+            destination_dir = docs_structure.get(category, docs_structure['reports'])
+            destination = os.path.join(destination_dir, doc_file)
+            
+            file_mappings.append({
+                'source': doc_file,
+                'destination': destination,
+                'category': category,
+            })
+        
+        # Step 3: Move files using git mv
+        if file_mappings:
+            self.logger.info(f"Moving {len(file_mappings)} documentation files...")
+            
+            for mapping in file_mappings:
+                self.logger.info(f"  {mapping['source']} -> {mapping['destination']}")
+                
+                if not dry_run:
+                    try:
+                        self.git_manager.git_move(mapping['source'], mapping['destination'])
+                        
+                        operations.append(FileOperation(
+                            operation="git_mv",
+                            source=mapping['source'],
+                            destination=mapping['destination'],
+                            timestamp=datetime.now(),
+                            success=True,
+                        ))
+                    except Exception as e:
+                        self.logger.error(f"Failed to move {mapping['source']}: {e}")
+                        operations.append(FileOperation(
+                            operation="git_mv",
+                            source=mapping['source'],
+                            destination=mapping['destination'],
+                            timestamp=datetime.now(),
+                            success=False,
+                        ))
+        else:
+            self.logger.info("✓ No documentation files to move")
+        
+        # Step 4: Remove empty files
+        empty_files = []
+        
+        for file in root_files:
+            file_path = self.project_root / file
+            if file_path.is_file() and file_path.stat().st_size == 0:
+                empty_files.append(file)
+        
+        if empty_files:
+            self.logger.info(f"Removing {len(empty_files)} empty files...")
+            
+            for empty_file in empty_files:
+                self.logger.info(f"  Removing: {empty_file}")
+                
+                if not dry_run:
+                    try:
+                        file_path = self.project_root / empty_file
+                        file_path.unlink()
+                        
+                        operations.append(FileOperation(
+                            operation="remove_empty",
+                            source=empty_file,
+                            destination=None,
+                            timestamp=datetime.now(),
+                            success=True,
+                        ))
+                    except Exception as e:
+                        self.logger.error(f"Failed to remove {empty_file}: {e}")
+        else:
+            self.logger.info("✓ No empty files found")
+        
+        # Step 5: Validate root directory file count
+        remaining_files = [
+            f for f in os.listdir(self.project_root)
+            if os.path.isfile(os.path.join(self.project_root, f))
+        ]
+        
+        self.logger.info(f"Root directory file count: {len(remaining_files)}")
+        
+        if len(remaining_files) < 15:
+            self.logger.info("✓ Root directory file count < 15 (target met)")
+        else:
+            self.logger.warning(f"Root directory has {len(remaining_files)} files (target: < 15)")
+        
+        # Step 6: Commit changes
+        if not dry_run and operations:
+            self.logger.info("Committing root cleanup changes...")
+            
+            try:
+                commit_sha = self.git_manager.create_commit(
+                    "chore(cleanup): organize root directory documentation\n\n"
+                    f"- Create docs/ subdirectory structure\n"
+                    f"- Move {len(file_mappings)} documentation files to organized locations\n"
+                    f"- Remove {len(empty_files)} empty files\n"
+                    f"- Root directory now has {len(remaining_files)} files"
+                )
+                
+                self.logger.info(f"✓ Changes committed: {commit_sha[:8]}")
+                
+                operations.append(FileOperation(
+                    operation="git_commit",
+                    source="root_cleanup",
+                    destination=commit_sha,
+                    timestamp=datetime.now(),
+                    success=True,
+                ))
+            except Exception as e:
+                self.logger.error(f"Failed to commit changes: {e}")
+        
+        self.logger.info(f"✓ Root cleanup phase complete: {len(operations)} operations")
+        
+        return operations
+    
+    def _categorize_doc_file(self, filename: str) -> str:
+        """
+        Categorize documentation file by name pattern.
+        
+        Args:
+            filename: Name of documentation file
+            
+        Returns:
+            Category name (reports, guides, analysis, archive)
+        """
+        filename_upper = filename.upper()
+        
+        if '_REPORT' in filename_upper or '_SUMMARY' in filename_upper or '_STATUS' in filename_upper:
+            return 'reports'
+        elif '_GUIDE' in filename_upper or 'INSTALL' in filename_upper:
+            return 'guides'
+        elif '_ANALYSIS' in filename_upper or '_PLAN' in filename_upper:
+            return 'analysis'
+        elif '_COMPLETE' in filename_upper or '_OLD' in filename_upper:
+            return 'archive'
+        else:
+            return 'reports'  # Default category
     
     def _execute_script_organization_phase(self, dry_run: bool = False) -> List[FileOperation]:
         """Execute script organization phase."""

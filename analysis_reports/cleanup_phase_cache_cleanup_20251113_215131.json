@@ -1,0 +1,60 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "cache_cleanup",
+  "timestamp": "2025-11-13T21:51:31.915831",
+  "success": true,
+  "duration_seconds": 2.450425,
+  "operations": [
+    {
+      "operation": "update_gitignore",
+      "source": ".gitignore",
+      "destination": null,
+      "timestamp": "2025-11-13T21:51:29.468404",
+      "success": true
+    },
+    {
+      "operation": "git_rm_cached",
+      "source": "__pycache__",
+      "destination": null,
+      "timestamp": "2025-11-13T21:51:29.655691",
+      "success": true
+    },
+    {
+      "operation": "remove_temp_dir",
+      "source": "temp_backup",
+      "destination": null,
+      "timestamp": "2025-11-13T21:51:29.698171",
+      "success": false
+    },
+    {
+      "operation": "remove_temp_dir",
+      "source": "temp_secondary_backup",
+      "destination": null,
+      "timestamp": "2025-11-13T21:51:29.748678",
+      "success": false
+    },
+    {
+      "operation": "remove_temp_dir",
+      "source": "_temp_changes_to_review",
+      "destination": null,
+      "timestamp": "2025-11-13T21:51:29.806666",
+      "success": true
+    },
+    {
+      "operation": "git_commit",
+      "source": "cache_cleanup",
+      "destination": "762c94000aee26f49d03457383dbad79deda19d5",
+      "timestamp": "2025-11-13T21:51:31.915831",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "cache_cleanup",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}
