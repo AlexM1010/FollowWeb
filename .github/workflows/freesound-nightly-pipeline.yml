@@ -659,9 +659,17 @@ jobs:
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
           node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
         else
-          echo " Checkpoint metadata not found, skipping backup"
-          echo "- Status: Backup skipped (no metadata)" >> $GITHUB_STEP_SUMMARY
-          exit 0
+          echo "::warning::Checkpoint metadata not found - data may be incomplete"
+          echo "- Status: ⚠️ Metadata missing (data integrity issue)" >> $GITHUB_STEP_SUMMARY
+          echo "- Action: Creating backup anyway, but remediation recommended" >> $GITHUB_STEP_SUMMARY
+          # Try to get node count from graph file
+          if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
+            node_count=$(python3 -c "import pickle; g = pickle.load(open('data/freesound_library/graph_topology.gpickle', 'rb')); print(g.number_of_nodes())" 2>/dev/null || echo "0")
+            echo "- Estimated nodes from graph: $node_count" >> $GITHUB_STEP_SUMMARY
+          else
+            node_count=0
+            echo "- No graph file found either" >> $GITHUB_STEP_SUMMARY
+          fi
         fi
         
         # Check if this is a failure recovery backup
