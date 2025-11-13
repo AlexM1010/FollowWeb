@@ -18,6 +18,22 @@ python-dotenv>=1.0.0       # BSD License - Environment variable management
 matplotlib>=3.5.0          # PSF License (Python Software Foundation) - Plotting library
 pyvis>=0.3.0               # BSD License - Interactive network visualizations
 
+# File operations and organization
+organize-tool>=3.2.0       # MIT License - File organization and pattern matching
+
+# Git operations
+GitPython>=3.1.40          # BSD License - Git repository operations
+git-filter-repo>=2.38.0    # MIT License - Advanced Git history rewriting
+
+# GitHub API integration
+github3.py>=3.2.0          # BSD License - GitHub API wrapper
+
+# YAML parsing and validation
+PyYAML>=6.0.1              # MIT License - YAML parser and emitter
+
+# Cross-platform path operations (standard library, included for clarity)
+# pathlib - Standard library module for cross-platform paths
+
 # Security-patched dependencies (updated to resolve pip-audit vulnerabilities)
 jinja2>=3.1.6              # BSD License - Template engine (used by pyvis)
 requests>=2.32.4           # Apache 2.0 - HTTP library

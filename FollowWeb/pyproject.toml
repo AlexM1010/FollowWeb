@@ -83,6 +83,19 @@ dev = [
     "twine>=4.0.0",
     "check-manifest>=0.49",
 ]
+cleanup = [
+    # File operations and organization
+    "organize-tool>=3.2.0",
+    # Git operations
+    "GitPython>=3.1.40",
+    "git-filter-repo>=2.38.0",
+    # GitHub API integration
+    "github3.py>=3.2.0",
+    # YAML parsing
+    "PyYAML>=6.0.1",
+    # CI/CD orchestration
+    "reviewdog>=0.17.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/AlexM1010/FollowWeb"
