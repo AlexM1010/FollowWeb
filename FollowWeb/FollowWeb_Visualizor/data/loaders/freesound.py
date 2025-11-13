@@ -3,6 +3,54 @@ Freesound data loader for FollowWeb audio sample network analysis.
 
 This module provides the FreesoundLoader class for loading and parsing audio sample
 data from the Freesound API with rate limiting, caching, and error handling.
+
+The loader creates networks where nodes represent audio samples and edges represent
+similarity relationships based on acoustic analysis. It supports recursive fetching
+(snowball sampling) to discover related samples beyond the initial search results.
+
+Classes:
+    FreesoundLoader: Loader for Freesound API audio sample data
+
+Example:
+    Basic usage::
+
+        from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
+
+        # Initialize with API key
+        loader = FreesoundLoader(config={
+            'api_key': 'your_freesound_api_key',
+            'requests_per_minute': 60
+        })
+
+        # Load samples and build graph
+        graph = loader.load(
+            query='drum',
+            max_samples=100,
+            recursive_depth=1,
+            max_total_samples=500
+        )
+
+        print(f"Loaded {graph.number_of_nodes()} samples")
+        print(f"Found {graph.number_of_edges()} similarity relationships")
+
+    With environment variable::
+
+        import os
+        os.environ['FREESOUND_API_KEY'] = 'your_api_key'
+
+        loader = FreesoundLoader()
+        graph = loader.load(query='synth', tags=['loop'], max_samples=50)
+
+See Also:
+    :class:`~FollowWeb_Visualizor.data.loaders.base.DataLoader`: Base class interface
+    :class:`~FollowWeb_Visualizor.utils.rate_limiter.RateLimiter`: Rate limiting utility
+    :mod:`freesound`: Official Freesound Python client library
+
+Notes:
+    Requires a Freesound API key. Get one at https://freesound.org/apiv2/apply/
+    
+    The loader respects Freesound's rate limits (60 requests/minute by default)
+    and implements exponential backoff for 429 (rate limit) errors.
 """
 
 # Standard library imports
@@ -32,36 +80,141 @@ class FreesoundLoader(DataLoader):
     rate limiting and caching.
 
     The loader supports:
+    
     - Text search queries
     - Tag-based filtering
     - Similar sounds relationships (MVP: only edge type)
-    - Rate limiting (60 requests/minute)
-    - Response caching
+    - Rate limiting (60 requests/minute default)
+    - Response caching with hit/miss tracking
     - Batch processing with progress tracking
+    - Recursive fetching (snowball sampling)
+    - Exponential backoff for rate limit errors
 
-    Attributes:
-        config: Configuration dictionary
-        logger: Logger instance for this loader
-        cache_manager: Centralized cache manager
-        client: Freesound API client
-        rate_limiter: Rate limiter for API requests
+    Attributes
+    ----------
+    config : dict[str, Any]
+        Configuration dictionary
+    logger : logging.Logger
+        Logger instance for this loader
+    cache_manager : CacheManager
+        Centralized cache manager
+    client : freesound.FreesoundClient
+        Official Freesound API client
+    rate_limiter : RateLimiter
+        Rate limiter for API requests
 
-    Example:
-        loader = FreesoundLoader(config={'api_key': 'your_api_key'})
+    Notes
+    -----
+    The loader creates directed graphs where:
+    
+    - Nodes represent audio samples with attributes:
+        - id: Freesound sample ID
+        - name: Sample name
+        - tags: List of tags
+        - duration: Duration in seconds
+        - user: Username of uploader
+        - audio_url: High-quality MP3 preview URL
+        - num_downloads: Download count (popularity metric)
+        - avg_rating: Average rating (quality metric)
+    
+    - Edges represent similarity relationships:
+        - type: 'similar' (based on acoustic analysis)
+        - weight: Similarity score (1.0 default)
+    
+    The loader uses the Freesound API's similarity endpoint which is based
+    on acoustic analysis (timbre, rhythm, pitch) rather than metadata.
+
+    Examples
+    --------
+    Basic search::
+
+        loader = FreesoundLoader(config={'api_key': 'xxx'})
         graph = loader.load(query='drum', max_samples=100)
+
+    Tag-based search::
+
+        graph = loader.load(
+            tags=['percussion', 'loop'],
+            max_samples=50
+        )
+
+    Recursive fetching (snowball sampling)::
+
+        graph = loader.load(
+            query='ambient',
+            max_samples=50,           # Initial seed samples
+            recursive_depth=2,        # Fetch similar sounds 2 levels deep
+            max_total_samples=500     # Total limit including recursive
+        )
+
+    With custom rate limit::
+
+        loader = FreesoundLoader(config={
+            'api_key': 'xxx',
+            'requests_per_minute': 30  # More conservative rate
+        })
+        graph = loader.load(query='synth')
+
+    See Also
+    --------
+    DataLoader : Base class interface
+    RateLimiter : Rate limiting implementation
+    IncrementalFreesoundLoader : Loader with checkpoint support
     """
 
     def __init__(self, config: Optional[dict[str, Any]] = None):
         """
         Initialize the Freesound loader.
 
-        Args:
-            config: Configuration dictionary with optional keys:
-                   - api_key: Freesound API key (or use FREESOUND_API_KEY env var)
-                   - requests_per_minute: Rate limit (default: 60)
+        Parameters
+        ----------
+        config : dict[str, Any], optional
+            Configuration dictionary with optional keys:
+            
+            - api_key : str
+                Freesound API key. If not provided, reads from
+                FREESOUND_API_KEY environment variable.
+            - requests_per_minute : int
+                Rate limit for API requests (default: 60).
+                Freesound's limit is 60 requests/minute for standard accounts.
 
-        Raises:
-            DataProcessingError: If API key is not provided
+        Raises
+        ------
+        DataProcessingError
+            If API key is not provided via config or environment variable.
+
+        Notes
+        -----
+        The loader initializes:
+        
+        - Official freesound-python client for API access
+        - Custom rate limiter for request throttling
+        - Internal sound cache for reducing API calls
+        - Cache hit/miss counters for monitoring
+
+        Get a Freesound API key at: https://freesound.org/apiv2/apply/
+
+        Examples
+        --------
+        With config::
+
+            loader = FreesoundLoader(config={
+                'api_key': 'your_api_key_here',
+                'requests_per_minute': 60
+            })
+
+        With environment variable::
+
+            import os
+            os.environ['FREESOUND_API_KEY'] = 'your_api_key_here'
+            loader = FreesoundLoader()
+
+        Conservative rate limit::
+
+            loader = FreesoundLoader(config={
+                'api_key': 'xxx',
+                'requests_per_minute': 30  # Half the default rate
+            })
         """
         super().__init__(config)
 

@@ -3,6 +3,64 @@ Sigma.js renderer for high-performance interactive HTML network visualizations.
 
 This module provides the SigmaRenderer class that implements the Renderer interface
 for generating interactive HTML visualizations using the Sigma.js library with WebGL support.
+
+The renderer is optimized for large graphs (10,000+ nodes) and includes features like
+audio playback for Freesound samples, interactive controls, and customizable styling.
+
+Classes:
+    SigmaRenderer: High-performance renderer using Sigma.js and WebGL
+
+Example:
+    Basic visualization::
+
+        from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
+        from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
+
+        # Load data
+        loader = FreesoundLoader(config={'api_key': 'xxx'})
+        graph = loader.load(query='drum', max_samples=100)
+
+        # Create renderer
+        renderer = SigmaRenderer(vis_config={
+            'show_labels': True,
+            'show_tooltips': True,
+            'sigma_interactive': {
+                'enable_audio_player': True
+            },
+            'ui_background_color': '#2d333c',
+            'ui_text_color': '#b6e0fe'
+        })
+
+        # Generate visualization
+        success = renderer.generate_visualization(
+            graph,
+            'output/freesound_network.html'
+        )
+
+    Instagram social network::
+
+        renderer = SigmaRenderer(
+            vis_config=config,
+            template_name='sigma_instagram.html'
+        )
+        
+        instagram_graph = instagram_loader.load(filepath='data.json')
+        renderer.generate_visualization(
+            instagram_graph,
+            'output/instagram_network.html'
+        )
+
+See Also:
+    :class:`~FollowWeb_Visualizor.visualization.renderers.base.Renderer`: Base class
+    :class:`~FollowWeb_Visualizor.visualization.renderers.pyvis.PyvisRenderer`: Alternative renderer
+    :class:`~FollowWeb_Visualizor.visualization.metrics.MetricsCalculator`: Metrics calculation
+
+Notes:
+    Requires Sigma.js and Howler.js libraries, which are loaded from CDN in the
+    generated HTML files. No Python dependencies beyond the base requirements.
+    
+    The renderer uses Jinja2 templates located in the templates/ subdirectory.
+    Custom templates can be created by following the existing template structure.
 """
 
 from pathlib import Path
@@ -27,6 +85,92 @@ class SigmaRenderer(Renderer):
     This renderer generates standalone HTML files with embedded Sigma.js library
     for interactive graph visualization with WebGL rendering, supporting 10,000+ nodes.
     Includes audio playback functionality using Howler.js for Freesound sample networks.
+
+    The renderer uses Jinja2 templates for HTML generation and supports multiple
+    template types for different data sources (Freesound audio, Instagram social).
+
+    Features:
+    
+    - WebGL rendering for high performance (10,000+ nodes)
+    - Canvas fallback for browsers without WebGL
+    - Interactive controls (zoom, pan, reset, search)
+    - Hover tooltips with node metadata
+    - Audio playback for Freesound samples (Howler.js)
+    - Community detection visualization
+    - Centrality metrics display
+    - Customizable color schemes and layouts
+    - Physics-based spring layout
+    - Legend generation
+
+    Attributes
+    ----------
+    vis_config : dict[str, Any]
+        Visualization configuration dictionary
+    logger : logging.Logger
+        Logger instance for this renderer
+    legend_generator : LegendGenerator
+        Generator for creating HTML legends
+    metrics_calculator : MetricsCalculator, optional
+        Calculator for visualization metrics
+    template_name : str
+        Name of the Jinja2 template to use
+    jinja_env : jinja2.Environment
+        Jinja2 environment for template rendering
+
+    Notes
+    -----
+    The renderer supports two template types:
+    
+    - 'sigma_visualization.html': Default template for Freesound/audio data
+        with audio player, sample metadata, and acoustic similarity visualization
+    
+    - 'sigma_instagram.html': Template for Instagram social network data
+        with follower/following metrics and social relationship visualization
+
+    The renderer automatically detects data type based on node attributes
+    and applies appropriate styling and features.
+
+    Examples
+    --------
+    Basic usage::
+
+        renderer = SigmaRenderer(vis_config={
+            'show_labels': True,
+            'show_tooltips': True,
+            'sigma_interactive': {
+                'enable_audio_player': True
+            }
+        })
+        
+        success = renderer.generate_visualization(
+            graph,
+            'output.html',
+            metrics
+        )
+
+    With custom template::
+
+        renderer = SigmaRenderer(
+            vis_config=config,
+            template_name='sigma_instagram.html'
+        )
+        renderer.generate_visualization(graph, 'instagram.html')
+
+    With metrics calculator::
+
+        calculator = MetricsCalculator(vis_config, performance_config)
+        renderer = SigmaRenderer(
+            vis_config,
+            metrics_calculator=calculator
+        )
+        renderer.generate_visualization(graph, 'output.html')
+
+    See Also
+    --------
+    Renderer : Base class interface
+    PyvisRenderer : Alternative Pyvis-based renderer
+    MetricsCalculator : Visualization metrics calculation
+    LegendGenerator : Legend HTML generation
     """
 
     def __init__(
@@ -38,17 +182,96 @@ class SigmaRenderer(Renderer):
         """
         Initialize the Sigma.js renderer with visualization configuration.
 
-        Args:
-            vis_config: Visualization configuration dictionary containing Sigma settings,
-                       display options, and styling preferences
-            metrics_calculator: Optional MetricsCalculator instance for consistent metrics
-            template_name: Name of the Jinja2 template to use. If None, reads from vis_config['template_name']
-                          or defaults to 'sigma_visualization.html'
-                          Options: 'sigma_visualization.html' (Freesound/audio),
-                                  'sigma_instagram.html' (Instagram social network)
+        Parameters
+        ----------
+        vis_config : dict[str, Any]
+            Visualization configuration dictionary containing Sigma settings,
+            display options, and styling preferences. Common keys include:
+            
+            - show_labels : bool
+                Whether to display node labels (default: True)
+            - show_tooltips : bool
+                Whether to show hover tooltips (default: True)
+            - sigma_interactive : dict
+                Sigma-specific settings:
+                
+                - enable_audio_player : bool
+                    Enable audio playback for Freesound samples
+                - show_labels : bool
+                    Override for label display
+                - show_tooltips : bool
+                    Override for tooltip display
+            
+            - ui_background_color : str
+                Background color for UI panels (default: '#2d333c')
+            - ui_highlight_color : str
+                Highlight color for UI elements (default: '#415a76')
+            - ui_text_color : str
+                Text color for UI elements (default: '#b6e0fe')
+            - template_name : str
+                Template to use (if not provided as parameter)
+        
+        metrics_calculator : MetricsCalculator, optional
+            Optional MetricsCalculator instance for consistent metrics
+            calculation across multiple visualizations. If None, a new
+            calculator is created when needed.
+        
+        template_name : str, optional
+            Name of the Jinja2 template to use. If None, reads from
+            vis_config['template_name'] or defaults to 'sigma_visualization.html'.
+            
+            Available templates:
+            
+            - 'sigma_visualization.html': Default for Freesound/audio data
+            - 'sigma_instagram.html': For Instagram social network data
 
-        Raises:
-            KeyError: If required configuration keys are missing
+        Raises
+        ------
+        KeyError
+            If required configuration keys are missing from vis_config.
+
+        Notes
+        -----
+        The constructor initializes:
+        
+        - Jinja2 template environment with autoescape
+        - Legend generator for creating HTML legends
+        - Template caching disabled for development
+
+        The template directory is located at:
+        FollowWeb_Visualizor/visualization/renderers/templates/
+
+        Examples
+        --------
+        Basic initialization::
+
+            renderer = SigmaRenderer(vis_config={
+                'show_labels': True,
+                'show_tooltips': True
+            })
+
+        With audio player::
+
+            renderer = SigmaRenderer(vis_config={
+                'sigma_interactive': {
+                    'enable_audio_player': True
+                }
+            })
+
+        With custom template::
+
+            renderer = SigmaRenderer(
+                vis_config=config,
+                template_name='sigma_instagram.html'
+            )
+
+        With shared metrics calculator::
+
+            calculator = MetricsCalculator(vis_config, perf_config)
+            renderer = SigmaRenderer(
+                vis_config,
+                metrics_calculator=calculator
+            )
         """
         super().__init__(vis_config)
         self.legend_generator = LegendGenerator(vis_config)

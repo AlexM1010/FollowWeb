@@ -184,10 +184,8 @@ except ImportError:
     # Setting to None for graceful degradation - mypy expects type objects, not None
     ColorScheme = None  # type: ignore[assignment,misc]
     EdgeMetric = None  # type: ignore[assignment,misc]
-    InteractiveRenderer = None  # type: ignore[assignment,misc]
     MetricsCalculator = None  # type: ignore[assignment,misc]
     NodeMetric = None  # type: ignore[assignment,misc]
-    StaticRenderer = None  # type: ignore[assignment,misc]
     VisualizationMetrics = None  # type: ignore[assignment,misc]
 
 # Output components - conditionally imported
@@ -214,8 +212,6 @@ __all__ = [
     "FameAnalyzer",
     # Visualization classes (if available)
     "MetricsCalculator",
-    "InteractiveRenderer",
-    "StaticRenderer",
     # Visualization data structures
     "VisualizationMetrics",
     "NodeMetric",

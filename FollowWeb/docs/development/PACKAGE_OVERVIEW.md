@@ -26,8 +26,8 @@ Professional social network analysis package with modular architecture.
 
 ### `visualization.py` - Graph Rendering
 - `MetricsCalculator` - Visual property computation
-- `InteractiveRenderer` - Pyvis HTML generation
-- `StaticRenderer` - Matplotlib PNG generation
+- `PyvisRenderer` - Pyvis HTML generation
+- `MatplotlibRenderer` - Matplotlib PNG generation
 - `MetricsReporter` - Analysis reporting
 
 ### `utils.py` - Shared Utilities

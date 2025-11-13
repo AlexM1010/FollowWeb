@@ -21,12 +21,21 @@ Guide to using FollowWeb for social network analysis and visualization.
    pip install -e ".[dev]"
    ```
 
-3. **Verify Installation**
+3. **Install Freesound Support (Optional)**
+   ```bash
+   # Install Freesound API client and additional dependencies
+   pip install freesound-python joblib Jinja2
+   ```
+
+4. **Verify Installation**
    ```bash
    python -c "from FollowWeb_Visualizor.main import PipelineOrchestrator; print('Installation successful!')"
    
    # Test the module entry point
    followweb --print-default-config
+   
+   # Verify Freesound support
+   python -c "from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader; print('Freesound support available!')"
    ```
 
 ### Quick Start
@@ -51,11 +60,23 @@ orchestrator = PipelineOrchestrator(config)
 success = orchestrator.execute_pipeline()
 ```
 
+## Data Sources
+
+FollowWeb supports multiple data sources for network analysis:
+
+1. **Instagram Networks**: Social follower/following relationships
+2. **Freesound Audio Networks**: Audio sample similarity relationships with playback
+
+### Choosing a Data Source
+
+- **Instagram**: Best for social network analysis, influence mapping, community detection
+- **Freesound**: Best for audio sample exploration, music research, sound design workflows
+
 ## Data Preparation
 
-### Required Data Format
+### Instagram Data Format
 
-FollowWeb expects JSON data with the following structure:
+FollowWeb expects Instagram JSON data with the following structure:
 
 ```json
 [
@@ -84,18 +105,161 @@ FollowWeb expects JSON data with the following structure:
 
 ### Data Validation
 
-Before analysis, validate your data:
+Before analysis, validate your Instagram data:
 
 ```python
 from FollowWeb_Visualizor.data.loaders import InstagramLoader
 
 loader = InstagramLoader()
 try:
-    graph = loader.load_from_json('your_data.json')
+    graph = loader.load(filepath='your_data.json')
     print(f"Successfully loaded {graph.number_of_nodes()} nodes and {graph.number_of_edges()} edges")
 except Exception as e:
     print(f"Data validation failed: {e}")
 ```
+
+### Freesound Data Source
+
+#### Freesound API Setup
+
+1. **Create a Freesound Account**
+   - Visit [https://freesound.org/](https://freesound.org/)
+   - Sign up for a free account
+
+2. **Get Your API Key**
+   - Go to [https://freesound.org/apiv2/apply](https://freesound.org/apiv2/apply)
+   - Fill out the API application form
+   - You'll receive an API key immediately
+
+3. **Set Up Authentication**
+
+   **Option 1: Environment Variable (Recommended)**
+   ```bash
+   # Linux/Mac
+   export FREESOUND_API_KEY="your_api_key_here"
+   
+   # Windows (Command Prompt)
+   set FREESOUND_API_KEY=your_api_key_here
+   
+   # Windows (PowerShell)
+   $env:FREESOUND_API_KEY="your_api_key_here"
+   ```
+
+   **Option 2: Configuration File**
+   ```json
+   {
+     "data_source": {
+       "type": "freesound",
+       "freesound": {
+         "api_key": "your_api_key_here"
+       }
+     }
+   }
+   ```
+
+#### Freesound Data Collection
+
+The FreesoundLoader fetches audio sample data from the Freesound API:
+
+```python
+from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
+
+# Configure loader
+config = {
+    'api_key': 'your_api_key_here',  # Or use FREESOUND_API_KEY env var
+    'checkpoint_dir': './checkpoints/freesound',
+    'checkpoint_interval': 100,
+    'max_runtime_hours': 2.0
+}
+
+# Create loader
+loader = FreesoundLoader(config)
+
+# Fetch data and build graph
+graph = loader.load(
+    query='jungle',           # Search query
+    tags=['drum', 'loop'],    # Filter by tags (optional)
+    max_samples=1000,         # Maximum samples to fetch
+    include_similar=True      # Include similarity relationships
+)
+
+print(f"Loaded {graph.number_of_nodes()} audio samples")
+print(f"Found {graph.number_of_edges()} similarity relationships")
+```
+
+#### Incremental Graph Building
+
+For large audio networks, use incremental building with checkpoints:
+
+```python
+from FollowWeb_Visualizor.data.loaders.freesound import IncrementalFreesoundLoader
+
+# Configure incremental loader
+config = {
+    'api_key': 'your_api_key_here',
+    'checkpoint_dir': './checkpoints/freesound',
+    'checkpoint_interval': 100,        # Save every 100 samples
+    'max_runtime_hours': 2.0,          # Stop after 2 hours
+    'verify_existing_sounds': True,    # Check for deleted samples
+    'verification_age_days': 7         # Verify samples older than 7 days
+}
+
+loader = IncrementalFreesoundLoader(config)
+
+# Build graph incrementally (resumes from checkpoint if exists)
+graph = loader.build_graph()
+
+# Run again to continue building
+graph = loader.build_graph()  # Picks up where it left off
+```
+
+**Key Features:**
+- **Crash Recovery**: Automatically resumes from last checkpoint after interruption
+- **Time-Limited Execution**: Perfect for nightly scheduled jobs
+- **Deleted Sample Cleanup**: Removes samples that no longer exist on Freesound
+- **Progress Tracking**: Detailed logging of processing progress and ETA
+
+#### Freesound Graph Structure
+
+Freesound graphs have the following structure:
+
+**Nodes (Audio Samples):**
+- `id`: Freesound sample ID
+- `name`: Sample name/title
+- `tags`: List of tags describing the sound
+- `duration`: Length in seconds
+- `user`: Username of uploader
+- `audio_url`: High-quality MP3 preview URL for playback
+- `type`: Always 'sample'
+
+**Edges (Relationships):**
+- `type`: 'similar' (acoustically similar sounds)
+- `weight`: Similarity score (0.0-1.0)
+
+**Example:**
+```python
+# Access node attributes
+for node_id in graph.nodes():
+    node_data = graph.nodes[node_id]
+    print(f"Sample: {node_data['name']}")
+    print(f"Tags: {', '.join(node_data['tags'])}")
+    print(f"Duration: {node_data['duration']}s")
+    print(f"Audio URL: {node_data['audio_url']}")
+
+# Access edge attributes
+for source, target in graph.edges():
+    edge_data = graph.edges[source, target]
+    print(f"Similarity: {edge_data['weight']:.2f}")
+```
+
+#### Freesound API Rate Limits
+
+The Freesound API has rate limits:
+- **60 requests per minute** for standard API keys
+- **Automatic rate limiting** built into FreesoundLoader
+- **Response caching** to minimize redundant requests
+
+The loader automatically handles rate limiting with exponential backoff.
 
 ## Configuration Guide
 
@@ -134,6 +298,37 @@ config_dict = {
 ```
 
 ### Configuration Options Explained
+
+#### Data Source Settings
+
+- **`data_source.type`**: Data source type
+  - `'instagram'`: Instagram follower/following networks
+  - `'freesound'`: Freesound audio sample networks
+
+- **`data_source.freesound`**: Freesound-specific settings
+  - `api_key`: Freesound API key (or use FREESOUND_API_KEY env var)
+  - `query`: Search query for audio samples
+  - `tags`: List of tags to filter by
+  - `max_samples`: Maximum number of samples to fetch
+  - `checkpoint_dir`: Directory for checkpoint files
+  - `checkpoint_interval`: Save checkpoint every N samples
+  - `max_runtime_hours`: Maximum runtime before stopping gracefully
+  - `verify_existing_sounds`: Check for deleted samples
+  - `verification_age_days`: Verify samples older than N days
+
+#### Renderer Settings
+
+- **`renderer_type`**: Visualization engine
+  - `'pyvis'`: Interactive HTML with physics simulation
+  - `'sigma'`: High-performance WebGL visualization
+  - `'all'`: Generate both Pyvis and Sigma outputs
+
+- **`sigma_interactive`**: Sigma.js-specific settings
+  - `enable_webgl`: Use WebGL rendering (default: true)
+  - `enable_search`: Enable node search functionality
+  - `audio_player.enabled`: Enable audio playback for Freesound
+  - `audio_player.show_controls`: Show audio player controls
+  - `audio_player.enable_loop`: Enable loop toggle button
 
 #### Core Settings
 
@@ -244,7 +439,49 @@ config_dict = {
 
 ## Visualization Options
 
-### Interactive HTML Visualizations
+FollowWeb supports multiple visualization engines optimized for different use cases:
+
+### Sigma.js Renderer (High-Performance)
+
+**Best for**: Large networks (10,000+ nodes), Freesound audio networks, modern browsers
+
+The Sigma.js renderer uses WebGL for high-performance visualization:
+
+```python
+from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
+
+config = {
+    'node_size_metric': 'degree',
+    'base_node_size': 10.0,
+    'audio_player': {
+        'enabled': True,
+        'show_controls': True,
+        'enable_loop': True
+    }
+}
+
+renderer = SigmaRenderer(config)
+renderer.generate_visualization(graph, 'output.html')
+```
+
+**Features:**
+- **WebGL Acceleration**: Smooth rendering of 10,000+ nodes
+- **Audio Playback**: Click nodes to play Freesound audio samples
+- **Interactive Controls**: Zoom, pan, search by label/tags
+- **Hover Tooltips**: Display node metadata on hover
+- **Audio Player Panel**: Play/pause, loop, timeline scrubber, time display
+- **Visual Highlighting**: Currently playing node highlighted
+
+**Audio Playback (Freesound Networks):**
+- Click any node to play its audio sample
+- Audio player appears in bottom-right corner
+- Controls: Play, Pause, Loop toggle, Timeline scrubber
+- Currently playing node highlighted in distinct color
+- Automatic audio loading with error handling
+
+### Pyvis Renderer (Interactive HTML)
+
+**Best for**: Small to medium networks (< 5,000 nodes), Instagram networks
 
 HTML outputs provide interactive exploration:
 
@@ -353,6 +590,151 @@ Highest Betweenness: user456 (betweenness: 0.12)
 Highest Eigenvector: user789 (eigenvector: 0.34)
 ```
 
+## Freesound Audio Network Analysis
+
+### Complete Freesound Workflow
+
+Here's a complete example of analyzing Freesound audio samples:
+
+```python
+from FollowWeb_Visualizor.main import PipelineOrchestrator
+from FollowWeb_Visualizor.core.config import get_configuration_manager
+
+# Configure Freesound analysis
+config_dict = {
+    'data_source': {
+        'type': 'freesound',
+        'freesound': {
+            'api_key': 'your_api_key_here',  # Or use FREESOUND_API_KEY env var
+            'query': 'jungle drum',
+            'tags': ['loop', 'percussion'],
+            'max_samples': 500,
+            'checkpoint_dir': './checkpoints/jungle_drums',
+            'checkpoint_interval': 50,
+            'max_runtime_hours': 1.0
+        }
+    },
+    'renderer_type': 'sigma',
+    'sigma_interactive': {
+        'enable_webgl': True,
+        'enable_search': True,
+        'audio_player': {
+            'enabled': True,
+            'show_controls': True,
+            'enable_loop': True
+        }
+    },
+    'strategy': 'k-core',
+    'k_values': {
+        'strategy_k_values': {
+            'k-core': 3
+        }
+    },
+    'output_file_prefix': 'JungleDrums'
+}
+
+# Load and validate configuration
+config_manager = get_configuration_manager()
+config = config_manager.load_configuration(config_dict=config_dict)
+
+# Execute pipeline
+orchestrator = PipelineOrchestrator(config)
+success = orchestrator.execute_pipeline()
+
+if success:
+    print("Analysis complete! Open the HTML file to explore the audio network.")
+    print("Click on nodes to play audio samples.")
+```
+
+### Freesound Use Cases
+
+#### 1. Sound Design Exploration
+
+Find related sounds for music production:
+
+```python
+config_dict = {
+    'data_source': {
+        'type': 'freesound',
+        'freesound': {
+            'query': 'ambient pad',
+            'tags': ['synthesizer', 'atmospheric'],
+            'max_samples': 300
+        }
+    },
+    'renderer_type': 'sigma',
+    'strategy': 'k-core',
+    'k_values': {'strategy_k_values': {'k-core': 2}}
+}
+```
+
+#### 2. Sample Pack Analysis
+
+Analyze relationships within a sample pack:
+
+```python
+config_dict = {
+    'data_source': {
+        'type': 'freesound',
+        'freesound': {
+            'query': 'pack:12345',  # Specific pack ID
+            'max_samples': 200
+        }
+    },
+    'renderer_type': 'sigma'
+}
+```
+
+#### 3. Genre Exploration
+
+Explore a music genre's sound palette:
+
+```python
+config_dict = {
+    'data_source': {
+        'type': 'freesound',
+        'freesound': {
+            'query': 'techno',
+            'tags': ['kick', 'bass', 'synth'],
+            'max_samples': 1000
+        }
+    },
+    'renderer_type': 'sigma',
+    'strategy': 'k-core',
+    'k_values': {'strategy_k_values': {'k-core': 5}}
+}
+```
+
+#### 4. Incremental Large Network Building
+
+Build a large audio network over multiple sessions:
+
+```python
+from FollowWeb_Visualizor.data.loaders.freesound import IncrementalFreesoundLoader
+
+config = {
+    'api_key': 'your_api_key_here',
+    'checkpoint_dir': './checkpoints/large_network',
+    'checkpoint_interval': 100,
+    'max_runtime_hours': 2.0,  # Run for 2 hours, then stop
+    'verify_existing_sounds': True
+}
+
+loader = IncrementalFreesoundLoader(config)
+
+# Day 1: Build for 2 hours
+graph = loader.build_graph()
+print(f"Day 1: {graph.number_of_nodes()} nodes")
+
+# Day 2: Continue building for another 2 hours
+graph = loader.build_graph()
+print(f"Day 2: {graph.number_of_nodes()} nodes")
+
+# Day 3: Continue building
+graph = loader.build_graph()
+print(f"Day 3: {graph.number_of_nodes()} nodes")
+```
+
 ## Advanced Usage
 
 ### Custom Analysis Workflows
@@ -363,7 +745,7 @@ For more control, use individual components:
 from FollowWeb_Visualizor.data.loaders import InstagramLoader
 from FollowWeb_Visualizor.analysis.network import NetworkAnalyzer
 from FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
-from FollowWeb_Visualizor.visualization.renderers import InteractiveRenderer
+from FollowWeb_Visualizor.visualization.renderers import PyvisRenderer
 
 # Load and analyze
 loader = InstagramLoader()
@@ -383,8 +765,8 @@ vis_config = {
 calculator = MetricsCalculator(vis_config)
 node_metrics = calculator.calculate_node_metrics(graph)
 
-renderer = InteractiveRenderer(vis_config)
-renderer.generate_html(graph, 'custom_output.html', node_metrics, {})
+renderer = PyvisRenderer(vis_config)
+renderer.generate_visualization(graph, 'custom_output.html')
 ```
 
 ### Batch Processing
@@ -469,7 +851,105 @@ nx.write_edgelist(graph, 'network.txt')  # Simple edge list
 
 ### Common Issues and Solutions
 
-#### 1. "File not found" Error
+#### Freesound-Specific Issues
+
+##### 1. "Invalid API key" Error
+
+**Problem**: Freesound API key is missing or invalid
+**Solution**: 
+```python
+import os
+
+# Check if API key is set
+api_key = os.getenv('FREESOUND_API_KEY')
+if not api_key:
+    print("FREESOUND_API_KEY environment variable not set")
+else:
+    print(f"API key found: {api_key[:10]}...")
+
+# Test API connection
+from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
+loader = FreesoundLoader({'api_key': api_key})
+# If no error, API key is valid
+```
+
+##### 2. "Rate limit exceeded" Error
+
+**Problem**: Too many API requests in short time
+**Solution**: The loader automatically handles rate limiting, but you can adjust:
+```python
+config = {
+    'api_key': 'your_key',
+    'checkpoint_interval': 50,  # Save more frequently
+    'max_runtime_hours': 0.5    # Shorter sessions
+}
+```
+
+##### 3. "No audio samples found" Warning
+
+**Problem**: Search query returned no results
+**Solution**: 
+- Broaden your search query
+- Remove restrictive tags
+- Check Freesound.org to verify samples exist
+
+```python
+# Too restrictive
+config = {'query': 'very specific rare sound', 'tags': ['tag1', 'tag2', 'tag3']}
+
+# Better
+config = {'query': 'drum', 'tags': ['loop']}
+```
+
+##### 4. "Checkpoint corrupted" Error
+
+**Problem**: Checkpoint file was corrupted during save
+**Solution**: 
+```python
+from FollowWeb_Visualizor.data.checkpoint import GraphCheckpoint
+
+checkpoint = GraphCheckpoint('./checkpoints/freesound')
+checkpoint.clear()  # Delete corrupted checkpoint and start fresh
+```
+
+##### 5. Audio Playback Not Working
+
+**Problem**: Audio doesn't play when clicking nodes
+**Solution**:
+- Ensure you're using Sigma.js renderer (not Pyvis)
+- Check that audio_player is enabled in configuration
+- Verify nodes have `audio_url` attribute
+- Check browser console for errors
+- Try a different browser (Chrome/Firefox recommended)
+
+```python
+# Verify audio URLs in graph
+for node_id in list(graph.nodes())[:5]:
+    node_data = graph.nodes[node_id]
+    print(f"Node {node_id}: {node_data.get('audio_url', 'NO URL')}")
+```
+
+##### 6. Slow Freesound Data Collection
+
+**Problem**: Data collection takes too long
+**Solution**:
+- Reduce `max_samples` parameter
+- Use incremental building with `max_runtime_hours`
+- Increase `checkpoint_interval` to save less frequently
+- Skip deleted sample verification
+
+```python
+# Fast configuration
+config = {
+    'max_samples': 200,
+    'checkpoint_interval': 200,
+    'verify_existing_sounds': False
+}
+```
+
+#### General Issues
+
+##### 1. "File not found" Error
 
 **Problem**: Input file path is incorrect
 **Solution**: 

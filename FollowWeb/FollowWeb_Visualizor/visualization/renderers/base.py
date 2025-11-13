@@ -3,6 +3,36 @@ Abstract base class for visualization renderers.
 
 This module defines the Renderer interface that all visualization renderers must implement.
 It provides a standardized interface for generating visualizations from NetworkX graphs.
+
+Classes:
+    Renderer: Abstract base class defining the standard interface for renderers
+
+Example:
+    Creating a custom renderer::
+
+        from FollowWeb_Visualizor.visualization.renderers.base import Renderer
+        import networkx as nx
+
+        class MyRenderer(Renderer):
+            def generate_visualization(self, graph, output_filename, metrics=None):
+                # Generate your visualization
+                metrics = self._ensure_metrics(graph, metrics)
+                # ... render logic ...
+                return True
+
+            def get_file_extension(self):
+                return '.svg'
+
+            def supports_large_graphs(self):
+                return False
+
+        # Use the renderer
+        renderer = MyRenderer(vis_config={'colors': {...}})
+        success = renderer.generate_visualization(graph, 'output.svg')
+
+See Also:
+    :class:`~FollowWeb_Visualizor.visualization.renderers.pyvis.PyvisRenderer`: Pyvis HTML renderer
+    :class:`~FollowWeb_Visualizor.visualization.renderers.sigma.SigmaRenderer`: Sigma.js renderer
 """
 
 import logging
@@ -24,18 +54,82 @@ class Renderer(ABC):
     generate_visualization method to create their specific output format.
 
     The base class provides common functionality:
+    
     - Metrics calculation with caching support
     - Empty graph validation
     - Metrics extraction to dictionary format
+    - Output directory management
+
+    Attributes
+    ----------
+    vis_config : dict[str, Any]
+        Visualization configuration dictionary containing renderer-specific
+        settings, styling preferences, and display options.
+    logger : logging.Logger
+        Logger instance for this renderer, named after the subclass.
+
+    Notes
+    -----
+    Renderers should be stateless where possible. Configuration should be
+    passed via vis_config rather than stored as mutable instance state.
+
+    The base class provides helper methods for common operations like
+    metrics calculation and validation. Subclasses should use these
+    helpers to maintain consistency across different renderers.
+
+    Examples
+    --------
+    Creating a simple text-based renderer::
+
+        class TextRenderer(Renderer):
+            def generate_visualization(self, graph, output_filename, metrics=None):
+                if not self._validate_graph_not_empty(graph):
+                    return False
+                
+                metrics = self._ensure_metrics(graph, metrics)
+                node_metrics = self._extract_node_metrics_dict(metrics)
+                
+                with open(output_filename, 'w') as f:
+                    f.write(f"Graph: {graph.number_of_nodes()} nodes\\n")
+                    for node, attrs in node_metrics.items():
+                        f.write(f"{node}: size={attrs['size']}\\n")
+                
+                return True
+
+            def get_file_extension(self):
+                return '.txt'
+
+    See Also
+    --------
+    generate_visualization : Abstract method for creating visualizations
+    _ensure_metrics : Helper for metrics calculation
+    _validate_graph_not_empty : Helper for graph validation
     """
 
     def __init__(self, vis_config: dict[str, Any]) -> None:
         """
         Initialize renderer with visualization configuration.
 
-        Args:
-            vis_config: Visualization configuration dictionary containing renderer-specific
-                       settings, styling preferences, and display options
+        Parameters
+        ----------
+        vis_config : dict[str, Any]
+            Visualization configuration dictionary containing renderer-specific
+            settings, styling preferences, and display options. Common keys include:
+            
+            - 'colors': Color scheme configuration
+            - 'node_size_range': Min/max node sizes
+            - 'edge_width_range': Min/max edge widths
+            - 'layout': Layout algorithm settings
+            - 'show_labels': Whether to display node labels
+            - 'show_tooltips': Whether to show hover tooltips
+
+        Notes
+        -----
+        The constructor automatically initializes a logger named after
+        the subclass for consistent logging across all renderers.
+
+        Subclasses should call super().__init__(vis_config) before their
+        own initialization to ensure proper setup.
         """
         self.vis_config = vis_config
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -54,18 +148,95 @@ class Renderer(ABC):
         specific visualization output. The method should handle all aspects of
         visualization generation including layout, styling, and file output.
 
-        Args:
-            graph: Analyzed NetworkX directed graph with node and edge attributes
-            output_filename: Path to save the output file
-            metrics: Optional pre-calculated visualization metrics containing node metrics,
-                    edge metrics, layout positions, and color schemes. If None, the
-                    renderer should calculate metrics internally.
+        Parameters
+        ----------
+        graph : nx.DiGraph
+            Analyzed NetworkX directed graph with node and edge attributes.
+            Should contain analysis results like community assignments and
+            centrality measures.
+        output_filename : str
+            Path to save the output file. The file extension should match
+            the renderer's get_file_extension() return value.
+        metrics : VisualizationMetrics, optional
+            Pre-calculated visualization metrics containing:
+            
+            - node_metrics: Node sizes, colors, and centrality values
+            - edge_metrics: Edge widths, colors, and relationship types
+            - layout_positions: Node positions for layout
+            - color_schemes: Community and metric color mappings
+            
+            If None, the renderer should calculate metrics internally using
+            _ensure_metrics().
 
-        Returns:
-            True if visualization generation was successful, False otherwise
+        Returns
+        -------
+        bool
+            True if visualization generation was successful, False otherwise.
+            Return False for recoverable errors (empty graph, file write errors).
+            Raise exceptions for unrecoverable errors.
 
-        Raises:
-            NotImplementedError: If subclass does not implement this method
+        Raises
+        ------
+        NotImplementedError
+            If subclass does not implement this method.
+
+        Notes
+        -----
+        Implementations should:
+        
+        1. Validate the graph is not empty using _validate_graph_not_empty()
+        2. Ensure metrics are available using _ensure_metrics()
+        3. Extract metrics to dict format using helper methods
+        4. Generate the visualization in the renderer's format
+        5. Ensure output directory exists using _ensure_output_directory()
+        6. Write the output file
+        7. Log success/failure and return appropriate boolean
+
+        The method should handle errors gracefully and return False rather
+        than raising exceptions for common failures like empty graphs or
+        file write errors.
+
+        Examples
+        --------
+        Basic implementation::
+
+            def generate_visualization(self, graph, output_filename, metrics=None):
+                # Validate
+                if not self._validate_graph_not_empty(graph):
+                    return False
+                
+                # Ensure metrics
+                metrics = self._ensure_metrics(graph, metrics)
+                node_metrics = self._extract_node_metrics_dict(metrics)
+                edge_metrics = self._extract_edge_metrics_dict(metrics)
+                
+                # Generate visualization
+                try:
+                    self._ensure_output_directory(output_filename)
+                    # ... rendering logic ...
+                    self.logger.info(f"Saved visualization: {output_filename}")
+                    return True
+                except Exception as e:
+                    self.logger.error(f"Failed to generate visualization: {e}")
+                    return False
+
+        With progress tracking::
+
+            def generate_visualization(self, graph, output_filename, metrics=None):
+                if not self._validate_graph_not_empty(graph):
+                    return False
+                
+                with ProgressTracker(total=3, title="Rendering") as tracker:
+                    metrics = self._ensure_metrics(graph, metrics)
+                    tracker.update(1)
+                    
+                    data = self._convert_to_format(graph, metrics)
+                    tracker.update(2)
+                    
+                    self._write_output(data, output_filename)
+                    tracker.update(3)
+                
+                return True
         """
         pass
 
@@ -76,8 +247,28 @@ class Renderer(ABC):
         This method provides metadata about the output format produced by the renderer.
         It can be used by the pipeline to generate appropriate filenames.
 
-        Returns:
-            File extension string including the dot (e.g., '.html', '.png', '.svg')
+        Returns
+        -------
+        str
+            File extension string including the dot (e.g., '.html', '.png', '.svg').
+            Default is '.html' for HTML-based renderers.
+
+        Notes
+        -----
+        Subclasses should override this method to return their specific
+        file extension. The extension should include the leading dot.
+
+        Examples
+        --------
+        ::
+
+            class PNGRenderer(Renderer):
+                def get_file_extension(self):
+                    return '.png'
+
+            class SVGRenderer(Renderer):
+                def get_file_extension(self):
+                    return '.svg'
         """
         return ".html"
 
@@ -88,9 +279,34 @@ class Renderer(ABC):
         This method provides metadata about the renderer's performance characteristics.
         It can be used by the pipeline to select appropriate renderers based on graph size.
 
-        Returns:
+        Returns
+        -------
+        bool
             True if the renderer can efficiently handle large graphs (10,000+ nodes),
-            False otherwise
+            False otherwise. Default is False for safety.
+
+        Notes
+        -----
+        "Efficiently" means the renderer can:
+        
+        - Generate visualizations in reasonable time (< 1 minute)
+        - Produce interactive visualizations with smooth performance
+        - Handle memory requirements without excessive consumption
+        
+        Renderers using WebGL (like Sigma.js) typically support large graphs.
+        Renderers using DOM manipulation (like Pyvis) typically do not.
+
+        Examples
+        --------
+        ::
+
+            class SigmaRenderer(Renderer):
+                def supports_large_graphs(self):
+                    return True  # WebGL-based, handles 10k+ nodes
+
+            class PyvisRenderer(Renderer):
+                def supports_large_graphs(self):
+                    return False  # DOM-based, struggles with 1k+ nodes
         """
         return False
 

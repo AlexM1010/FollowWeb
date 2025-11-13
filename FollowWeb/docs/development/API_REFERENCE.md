@@ -117,24 +117,87 @@ Core network analysis algorithms and graph processing operations.
 
 Abstract base class defining the interface for all data loaders.
 
+**Location**: `FollowWeb_Visualizor/data/loaders/base.py`
+
 ```python
 class DataLoader(ABC):
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None
+    
     @abstractmethod
-    def load_from_json(self, filepath: str) -> nx.DiGraph:
-        """Load network data from JSON file."""
+    def fetch_data(self, **params) -> Dict[str, Any]:
+        """Fetch raw data from source."""
+    
+    @abstractmethod
+    def build_graph(self, data: Dict[str, Any]) -> nx.DiGraph:
+        """Convert raw data to NetworkX directed graph."""
+    
+    def load(self, **params) -> nx.DiGraph:
+        """Complete loading workflow: fetch data and build graph."""
 ```
+
+**Methods:**
+
+#### `__init__(config: Optional[Dict[str, Any]] = None)`
+Initialize loader with optional configuration.
+
+**Parameters:**
+- `config`: Optional configuration dictionary
+
+#### `fetch_data(**params) -> Dict[str, Any]`
+Fetch raw data from source. Must be implemented by subclasses.
+
+**Parameters:**
+- `**params`: Source-specific parameters
+
+**Returns:**
+- `Dict[str, Any]`: Raw data dictionary
+
+**Raises:**
+- `DataProcessingError`: If data fetching fails
+
+#### `build_graph(data: Dict[str, Any]) -> nx.DiGraph`
+Convert raw data to NetworkX directed graph. Must be implemented by subclasses.
+
+**Parameters:**
+- `data`: Raw data from fetch_data()
+
+**Returns:**
+- `nx.DiGraph`: NetworkX directed graph with nodes and edges
+
+**Raises:**
+- `DataProcessingError`: If graph construction fails
+
+#### `load(**params) -> nx.DiGraph`
+Complete loading workflow: fetch data and build graph.
+
+This is the main entry point for pipeline integration. It orchestrates
+fetch_data() and build_graph() methods and validates the result.
+
+**Parameters:**
+- `**params`: Source-specific parameters passed to fetch_data()
+
+**Returns:**
+- `nx.DiGraph`: Validated directed graph
+
+**Raises:**
+- `DataProcessingError`: If loading or validation fails
 
 ### `InstagramLoader`
 
 Concrete implementation for loading Instagram follower/following network data.
+
+**Location**: `FollowWeb_Visualizor/data/loaders/instagram.py`
 
 ```python
 class InstagramLoader(DataLoader):
     def __init__(self) -> None
 ```
 
-#### `load_from_json(filepath: str) -> nx.DiGraph`
+#### `load(filepath: str) -> nx.DiGraph`
 Load a directed graph from a JSON file with comprehensive error handling.
+
+This is the main entry point for loading Instagram network data. It orchestrates
+the fetch_data() and build_graph() methods defined by the DataLoader interface.
 
 **Parameters:**
 - `filepath`: Path to JSON file containing Instagram network data
@@ -156,6 +219,153 @@ Load a directed graph from a JSON file with comprehensive error handling.
     "following": ["user4", "user5"]
   }
 ]
+```
+
+**Example:**
+```python
+from FollowWeb_Visualizor.data.loaders.instagram import InstagramLoader
+
+loader = InstagramLoader()
+graph = loader.load(filepath='followers_following.json')
+print(f"Loaded {graph.number_of_nodes()} nodes and {graph.number_of_edges()} edges")
+```
+
+### `FreesoundLoader`
+
+Concrete implementation for loading Freesound audio sample network data.
+
+**Location**: `FollowWeb_Visualizor/data/loaders/freesound.py`
+
+```python
+class FreesoundLoader(DataLoader):
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None
+```
+
+#### `__init__(config: Optional[Dict[str, Any]] = None)`
+Initialize Freesound loader with API client and rate limiter.
+
+**Parameters:**
+- `config`: Configuration dictionary with optional keys:
+  - `api_key`: Freesound API key (or use FREESOUND_API_KEY env var)
+
+**Raises:**
+- `ConfigurationError`: If API key is not provided
+
+#### `load(query: Optional[str] = None, tags: Optional[List[str]] = None, max_samples: int = 1000, include_similar: bool = True) -> nx.DiGraph`
+Load audio sample network from Freesound API.
+
+**Parameters:**
+- `query`: Text search query (e.g., "drum loop")
+- `tags`: List of tags to filter by (AND logic)
+- `max_samples`: Maximum number of samples to fetch
+- `include_similar`: Include similarity relationships (default: True)
+
+**Returns:**
+- `nx.DiGraph`: Graph with audio sample nodes and similarity edges
+
+**Node Attributes:**
+- `id`: Freesound sample ID
+- `name`: Sample name/title
+- `tags`: List of tags
+- `duration`: Length in seconds
+- `user`: Username of uploader
+- `audio_url`: High-quality MP3 preview URL
+- `type`: Always 'sample'
+
+**Edge Attributes:**
+- `type`: 'similar' (acoustically similar sounds)
+- `weight`: Similarity score (0.0-1.0)
+
+**Raises:**
+- `DataProcessingError`: If API request fails
+- `ConfigurationError`: If API key is invalid
+
+**Example:**
+```python
+from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
+import os
+
+config = {
+    'api_key': os.getenv('FREESOUND_API_KEY')
+}
+
+loader = FreesoundLoader(config)
+graph = loader.load(
+    query='ambient pad',
+    tags=['synthesizer', 'atmospheric'],
+    max_samples=300
+)
+
+print(f"Loaded {graph.number_of_nodes()} audio samples")
+print(f"Found {graph.number_of_edges()} similarity relationships")
+
+# Access node attributes
+for node_id in list(graph.nodes())[:5]:
+    node_data = graph.nodes[node_id]
+    print(f"Sample: {node_data['name']}")
+    print(f"Tags: {', '.join(node_data['tags'])}")
+    print(f"Audio URL: {node_data['audio_url']}")
+```
+
+### `IncrementalFreesoundLoader`
+
+Extended Freesound loader with incremental building and crash recovery.
+
+**Location**: `FollowWeb_Visualizor/data/loaders/freesound.py`
+
+```python
+class IncrementalFreesoundLoader(FreesoundLoader):
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None
+```
+
+#### `__init__(config: Optional[Dict[str, Any]] = None)`
+Initialize incremental loader with checkpoint support.
+
+**Parameters:**
+- `config`: Configuration dictionary with keys:
+  - `api_key`: Freesound API key
+  - `checkpoint_dir`: Directory for checkpoint files (default: './checkpoints/freesound')
+  - `checkpoint_interval`: Save checkpoint every N samples (default: 100)
+  - `max_runtime_hours`: Maximum runtime before stopping (default: None)
+  - `verify_existing_sounds`: Check for deleted samples (default: False)
+  - `verification_age_days`: Verify samples older than N days (default: 7)
+
+#### `build_graph() -> nx.DiGraph`
+Build graph incrementally with checkpoint support.
+
+Loads existing checkpoint, processes new samples, saves checkpoints periodically,
+and handles time limits gracefully.
+
+**Returns:**
+- `nx.DiGraph`: Graph with all processed samples
+
+**Features:**
+- Automatic checkpoint loading and saving
+- Time-limited execution for scheduled jobs
+- Deleted sample detection and cleanup
+- Progress tracking with ETA
+
+**Example:**
+```python
+from FollowWeb_Visualizor.data.loaders.freesound import IncrementalFreesoundLoader
+
+config = {
+    'api_key': 'your_api_key_here',
+    'checkpoint_dir': './checkpoints/large_network',
+    'checkpoint_interval': 100,
+    'max_runtime_hours': 2.0,
+    'verify_existing_sounds': True
+}
+
+loader = IncrementalFreesoundLoader(config)
+
+# First run: Build for 2 hours
+graph = loader.build_graph()
+print(f"Session 1: {graph.number_of_nodes()} nodes")
+
+# Second run: Continue for another 2 hours
+graph = loader.build_graph()
+print(f"Session 2: {graph.number_of_nodes()} nodes")
 ```
 
 ### `NetworkAnalyzer`
@@ -188,6 +398,184 @@ Calculate degree, betweenness, and eigenvector centrality.
 ### `PathAnalyzer`
 
 Class for shortest path and connectivity analysis.
+
+## Visualization Module (`visualization/renderers/`)
+
+### `Renderer` (Abstract Base Class)
+
+Abstract base class defining the interface for all visualization renderers.
+
+**Location**: `FollowWeb_Visualizor/visualization/renderers/base.py`
+
+```python
+class Renderer(ABC):
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None
+    
+    @abstractmethod
+    def generate_visualization(self, graph: nx.DiGraph, output_filename: str, metrics: Optional[VisualizationMetrics] = None) -> bool:
+        """Generate visualization from graph."""
+    
+    def get_file_extension(self) -> str:
+        """Get file extension for this renderer."""
+    
+    def supports_large_graphs(self) -> bool:
+        """Check if renderer supports large graphs (10,000+ nodes)."""
+```
+
+**Methods:**
+
+#### `__init__(config: Optional[Dict[str, Any]] = None)`
+Initialize renderer with optional configuration.
+
+**Parameters:**
+- `config`: Optional configuration dictionary
+
+#### `generate_visualization(graph: nx.DiGraph, output_filename: str, metrics: Optional[VisualizationMetrics] = None) -> bool`
+Generate visualization from graph. Must be implemented by subclasses.
+
+**Parameters:**
+- `graph`: NetworkX directed graph to visualize
+- `output_filename`: Path for output file
+- `metrics`: Optional pre-calculated visualization metrics
+
+**Returns:**
+- `bool`: True if visualization generated successfully
+
+**Raises:**
+- `VisualizationError`: If visualization generation fails
+
+#### `get_file_extension() -> str`
+Get file extension for this renderer.
+
+**Returns:**
+- `str`: File extension (e.g., '.html', '.png')
+
+#### `supports_large_graphs() -> bool`
+Check if renderer supports large graphs (10,000+ nodes).
+
+**Returns:**
+- `bool`: True if renderer can handle large graphs efficiently
+
+### `SigmaRenderer`
+
+High-performance WebGL visualization renderer using Sigma.js.
+
+**Location**: `FollowWeb_Visualizor/visualization/renderers/sigma.py`
+
+```python
+class SigmaRenderer(Renderer):
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None
+```
+
+#### `__init__(config: Optional[Dict[str, Any]] = None)`
+Initialize Sigma.js renderer with configuration.
+
+**Parameters:**
+- `config`: Configuration dictionary with optional keys:
+  - `node_size_metric`: Metric for node sizing ('degree', 'betweenness', etc.)
+  - `base_node_size`: Base size for nodes (default: 10.0)
+  - `scaling_algorithm`: Scaling algorithm ('logarithmic' or 'linear')
+  - `sigma_interactive.enable_webgl`: Use WebGL rendering (default: True)
+  - `sigma_interactive.enable_search`: Enable node search (default: True)
+  - `sigma_interactive.audio_player.enabled`: Enable audio playback (default: True)
+  - `sigma_interactive.audio_player.show_controls`: Show player controls (default: True)
+  - `sigma_interactive.audio_player.enable_loop`: Enable loop toggle (default: True)
+
+#### `generate_visualization(graph: nx.DiGraph, output_filename: str, metrics: Optional[VisualizationMetrics] = None) -> bool`
+Generate interactive Sigma.js HTML visualization with audio playback.
+
+**Parameters:**
+- `graph`: Network graph to visualize
+- `output_filename`: Path for output HTML file
+- `metrics`: Optional pre-calculated visualization metrics
+
+**Returns:**
+- `bool`: True if visualization generated successfully
+
+**Features:**
+- WebGL acceleration for 10,000+ nodes
+- Interactive zoom, pan, and search
+- Hover tooltips with node metadata
+- Audio playback for Freesound networks
+- Community-based coloring
+- Metric-based node sizing
+
+**Example:**
+```python
+from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
+from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
+import os
+
+# Load Freesound data
+loader = FreesoundLoader({'api_key': os.getenv('FREESOUND_API_KEY')})
+graph = loader.load(query='ambient', max_samples=500)
+
+# Configure renderer
+config = {
+    'node_size_metric': 'degree',
+    'base_node_size': 10.0,
+    'sigma_interactive': {
+        'enable_webgl': True,
+        'enable_search': True,
+        'audio_player': {
+            'enabled': True,
+            'show_controls': True,
+            'enable_loop': True
+        }
+    }
+}
+
+# Generate visualization
+renderer = SigmaRenderer(config)
+success = renderer.generate_visualization(graph, 'ambient_network.html')
+
+if success:
+    print("Visualization generated! Open ambient_network.html to explore.")
+    print("Click nodes to play audio samples.")
+```
+
+### `PyvisRenderer`
+
+Interactive HTML visualization renderer using Pyvis.
+
+**Location**: `FollowWeb_Visualizor/visualization/renderers/pyvis.py`
+
+```python
+class PyvisRenderer(Renderer):
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None
+```
+
+#### `generate_visualization(graph: nx.DiGraph, output_filename: str, metrics: Optional[VisualizationMetrics] = None) -> bool`
+Generate interactive Pyvis HTML visualization.
+
+**Parameters:**
+- `graph`: Network graph to visualize
+- `output_filename`: Path for output HTML file
+- `metrics`: Optional pre-calculated visualization metrics
+
+**Returns:**
+- `bool`: True if visualization generated successfully
+
+**Features:**
+- Physics-based layout simulation
+- Drag and drop nodes
+- Hover tooltips
+- Community-based coloring
+- Best for small to medium networks (< 5,000 nodes)
+
+**Example:**
+```python
+from FollowWeb_Visualizor.visualization.renderers.pyvis import PyvisRenderer
+from FollowWeb_Visualizor.data.loaders.instagram import InstagramLoader
+
+# Load Instagram data
+loader = InstagramLoader()
+graph = loader.load(filepath='followers_following.json')
+
+# Generate visualization
+renderer = PyvisRenderer()
+success = renderer.generate_visualization(graph, 'instagram_network.html')
+```
 
 ```python
 class PathAnalyzer:
@@ -278,44 +666,42 @@ Calculate node size, color, and positioning metrics.
 }
 ```
 
-### `InteractiveRenderer`
+### `PyvisRenderer`
 
 Class for Pyvis HTML generation with interactive network visualizations.
 
 ```python
-class InteractiveRenderer:
+class PyvisRenderer(Renderer):
     def __init__(self, vis_config: Dict[str, Any]) -> None
 ```
 
-#### `generate_html(graph: nx.DiGraph, output_path: str, node_metrics: Dict, edge_metrics: Dict) -> bool`
+#### `generate_visualization(graph: nx.DiGraph, output_filename: str, metrics: Optional[VisualizationMetrics] = None) -> bool`
 Generate interactive Pyvis HTML visualization.
 
 **Parameters:**
 - `graph`: Network graph to visualize
-- `output_path`: Path for output HTML file
-- `node_metrics`: Node visual properties
-- `edge_metrics`: Edge visual properties
+- `output_filename`: Path for output HTML file
+- `metrics`: Optional pre-calculated visualization metrics
 
 **Returns:**
 - `bool`: True if generation successful
 
-### `StaticRenderer`
+### `MatplotlibRenderer`
 
 Class for matplotlib PNG generation with static network visualizations.
 
 ```python
-class StaticRenderer:
+class MatplotlibRenderer(Renderer):
     def __init__(self, vis_config: Dict[str, Any]) -> None
 ```
 
-#### `generate_png(graph: nx.DiGraph, output_path: str, node_metrics: Dict, edge_metrics: Dict) -> bool`
+#### `generate_visualization(graph: nx.DiGraph, output_filename: str, metrics: Optional[VisualizationMetrics] = None) -> bool`
 Generate static matplotlib PNG visualization.
 
 **Parameters:**
 - `graph`: Network graph to visualize
-- `output_path`: Path for output PNG file
-- `node_metrics`: Node visual properties
-- `edge_metrics`: Edge visual properties
+- `output_filename`: Path for output PNG file
+- `metrics`: Optional pre-calculated visualization metrics
 
 **Returns:**
 - `bool`: True if generation successful
@@ -590,7 +976,7 @@ from FollowWeb_Visualizor.visualization.metrics import MetricsCalculator
 
 # Load graph
 loader = InstagramLoader()
-graph = loader.load_from_json('data.json')
+graph = loader.load(filepath='data.json')
 
 # Analyze network
 analyzer = NetworkAnalyzer()

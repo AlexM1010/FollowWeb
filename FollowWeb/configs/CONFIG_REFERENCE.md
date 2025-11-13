@@ -6,6 +6,7 @@ This document provides comprehensive documentation for all FollowWeb configurati
 
 - **`comprehensive_layout_config.json`** - Complete configuration with all available options enabled
 - **`fast_config.json`** - Optimized configuration for quick analysis and visualization
+- **`freesound_sigma_config.json`** - Configuration for Freesound audio sample network analysis with Sigma.js visualization
 
 ## Configuration Structure
 
@@ -18,8 +19,97 @@ This document provides comprehensive documentation for all FollowWeb configurati
 }
 ```
 
-- **`input_file`** - Path to input data file (JSON format with user/followers/following structure)
+- **`input_file`** - Path to input data file (JSON format with user/followers/following structure). Set to `null` when using Freesound data source.
 - **`output_file_prefix`** - Output file prefix for generated files (HTML, PNG, reports)
+
+### Data Source Configuration
+
+```json
+{
+  "data_source": {
+    "source": "instagram",
+    "freesound": {
+      "api_key": "${FREESOUND_API_KEY}",
+      "query": "jungle",
+      "tags": ["drum", "loop"],
+      "max_samples": 500,
+      "include_similar": true
+    }
+  }
+}
+```
+
+- **`source`** - Data source type: `"instagram"` or `"freesound"`
+- **`freesound`** - Freesound API configuration (used when `source` is `"freesound"`)
+  - **`api_key`** - Freesound API key. Use `"${FREESOUND_API_KEY}"` to load from environment variable
+  - **`query`** - Text search query for audio samples (e.g., `"jungle"`, `"ambient"`)
+  - **`tags`** - List of tags to filter samples (e.g., `["drum", "loop"]`). Set to `null` for no tag filtering
+  - **`max_samples`** - Maximum number of samples to fetch from API
+  - **`include_similar`** - Include similar sounds relationships for graph edges (recommended: `true`)
+
+### Renderer Configuration
+
+```json
+{
+  "renderer": {
+    "renderer_type": "sigma",
+    "template_name": "sigma_visualization.html",
+    "sigma_interactive": {
+      "height": "100vh",
+      "width": "100%",
+      "enable_webgl": true,
+      "enable_audio_player": true,
+      "audio_player": {
+        "position": "bottom-right",
+        "show_waveform": false,
+        "enable_keyboard_shortcuts": false,
+        "default_volume": 0.7,
+        "enable_loop": true,
+        "show_timeline": true,
+        "show_time_display": true
+      }
+    }
+  }
+}
+```
+
+- **`renderer_type`** - Visualization renderer: `"pyvis"`, `"sigma"`, or `"all"` (generates both)
+- **`template_name`** - Template file name for Sigma.js renderer
+- **`sigma_interactive`** - Sigma.js renderer configuration
+  - **`height`** - Canvas height (CSS units, e.g., `"100vh"`, `"800px"`)
+  - **`width`** - Canvas width (CSS units, e.g., `"100%"`, `"1200px"`)
+  - **`enable_webgl`** - Enable WebGL rendering for better performance with large graphs
+  - **`enable_audio_player`** - Enable audio playback for Freesound samples (MVP feature)
+  - **`audio_player`** - Audio player configuration (MVP scope)
+    - **`position`** - Player position: `"bottom-right"`, `"bottom-left"`, `"top-right"`, `"top-left"`
+    - **`show_waveform`** - Show waveform visualization (deferred to future release)
+    - **`enable_keyboard_shortcuts`** - Enable keyboard controls (deferred to future release)
+    - **`default_volume`** - Default volume level (0.0 to 1.0)
+    - **`enable_loop`** - Enable loop toggle button
+    - **`show_timeline`** - Show timeline scrubber for seeking
+    - **`show_time_display`** - Show current time and duration
+
+### Checkpoint Configuration
+
+```json
+{
+  "checkpoint": {
+    "checkpoint_dir": "checkpoints/freesound",
+    "checkpoint_interval": 100,
+    "max_runtime_hours": 2.0,
+    "verify_existing_sounds": true,
+    "verification_age_days": 30,
+    "metadata_update_mode": "merge"
+  }
+}
+```
+
+- **`checkpoint_dir`** - Directory to store checkpoint files for incremental graph building
+- **`checkpoint_interval`** - Save checkpoint after processing this many samples
+- **`max_runtime_hours`** - Maximum runtime in hours before graceful stop (set to `null` for unlimited)
+- **`verify_existing_sounds`** - Verify that existing samples still exist on Freesound API
+- **`verification_age_days`** - Only verify samples older than this many days
+- **`metadata_update_mode`** - Metadata update strategy: `"merge"` (add/update fields) or `"replace"` (replace all fields)
 
 ### Pipeline Configuration
 
@@ -410,13 +500,16 @@ Enable/disable individual pipeline stages for fine-grained control:
 
 ## Configuration Examples
 
-### Quick Start Configuration
+### Quick Start Configuration (Instagram)
 
-For basic analysis with minimal settings:
+For basic Instagram analysis with minimal settings:
 
 ```json
 {
   "input_file": "your_data.json",
+  "data_source": {
+    "source": "instagram"
+  },
   "pipeline": {
     "strategy": "k-core"
   },
@@ -424,6 +517,78 @@ For basic analysis with minimal settings:
     "strategy_k_values": {
       "k-core": 1
     }
+  }
+}
+```
+
+### Freesound Audio Sample Network
+
+For analyzing audio sample relationships from Freesound:
+
+```json
+{
+  "input_file": null,
+  "output_file_prefix": "Output/Freesound",
+  "data_source": {
+    "source": "freesound",
+    "freesound": {
+      "api_key": "${FREESOUND_API_KEY}",
+      "query": "ambient",
+      "tags": ["pad", "synth"],
+      "max_samples": 300,
+      "include_similar": true
+    }
+  },
+  "renderer": {
+    "renderer_type": "sigma",
+    "sigma_interactive": {
+      "enable_webgl": true,
+      "enable_audio_player": true
+    }
+  },
+  "checkpoint": {
+    "checkpoint_dir": "checkpoints/freesound",
+    "checkpoint_interval": 50,
+    "max_runtime_hours": 1.0
+  }
+}
+```
+
+### Incremental Graph Building with Time Limits
+
+For building large graphs over multiple sessions:
+
+```json
+{
+  "data_source": {
+    "source": "freesound",
+    "freesound": {
+      "api_key": "${FREESOUND_API_KEY}",
+      "query": "techno",
+      "max_samples": 5000
+    }
+  },
+  "checkpoint": {
+    "checkpoint_dir": "checkpoints/techno_network",
+    "checkpoint_interval": 100,
+    "max_runtime_hours": 2.0,
+    "verify_existing_sounds": true,
+    "verification_age_days": 7
+  }
+}
+```
+
+### Flexible Metadata Updates
+
+For updating existing graph metadata without rebuilding:
+
+```json
+{
+  "checkpoint": {
+    "checkpoint_dir": "checkpoints/existing_graph",
+    "verify_existing_sounds": true,
+    "verification_age_days": 30,
+    "metadata_update_mode": "merge"
   }
 }
 ```
@@ -471,3 +636,48 @@ For large networks:
 3. **Backup Configs** - Keep working configurations as templates for future use
 4. **Document Changes** - Note any custom modifications for reproducibility
 5. **Validate Settings** - Use the configuration validation features to catch errors early
+6. **Environment Variables** - Use `"${VAR_NAME}"` syntax for sensitive data like API keys
+7. **Checkpoint Strategy** - For large Freesound graphs, use checkpoints with time limits to build incrementally
+8. **Metadata Flexibility** - Use `"merge"` mode for metadata updates to preserve custom fields
+9. **Audio Player** - Enable audio player only for Freesound data sources with Sigma.js renderer
+10. **Verification Schedule** - Set `verification_age_days` based on how often you expect samples to be deleted
+
+## Freesound-Specific Notes
+
+### API Key Setup
+
+Set your Freesound API key as an environment variable:
+
+```bash
+# Windows (PowerShell)
+$env:FREESOUND_API_KEY="your_api_key_here"
+
+# Windows (CMD)
+set FREESOUND_API_KEY=your_api_key_here
+
+# Linux/Mac
+export FREESOUND_API_KEY="your_api_key_here"
+```
+
+Then use `"${FREESOUND_API_KEY}"` in your configuration file.
+
+### Checkpoint Recovery
+
+If your graph building is interrupted:
+
+1. Keep the same `checkpoint_dir` in your configuration
+2. Run the pipeline again - it will automatically resume from the last checkpoint
+3. Adjust `max_runtime_hours` if needed for your schedule
+
+### Sample Selection Strategy
+
+- **Broad Query**: Use general terms like `"ambient"` or `"drum"` for diverse networks
+- **Tag Filtering**: Add specific tags to focus on particular sound types
+- **Max Samples**: Start with 100-500 samples for testing, increase for production
+- **Similar Sounds**: Always enable `include_similar: true` for meaningful graph edges
+
+### Performance Tuning
+
+- **Small Networks** (< 500 samples): Use `checkpoint_interval: 50`, no time limit
+- **Medium Networks** (500-2000 samples): Use `checkpoint_interval: 100`, `max_runtime_hours: 2`
+- **Large Networks** (> 2000 samples): Use `checkpoint_interval: 200`, `max_runtime_hours: 4`, run multiple sessions
