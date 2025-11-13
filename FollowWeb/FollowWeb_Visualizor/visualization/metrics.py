@@ -29,8 +29,6 @@ from ..core.types import (
 from ..data.cache import (
     calculate_graph_hash,
     get_cache_manager,
-    get_cached_node_attributes,
-    get_cached_undirected_graph,
 )
 from ..output.formatters import EmojiFormatter
 from ..utils import ProgressTracker
