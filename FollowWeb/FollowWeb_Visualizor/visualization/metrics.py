@@ -292,9 +292,14 @@ class MetricsCalculator:
                 metric_value, base_size, multiplier, scaling_alg
             )
 
-            # Get centrality values
+            # Get centrality values - use actual graph degree if not in attrs
+            degree_value = attrs.get("degree")
+            if degree_value is None:
+                # Calculate actual degree for the node
+                degree_value = int(graph.degree(node))  # type: ignore[operator]
+            
             centrality_values = {
-                "degree": attrs.get("degree", 0),
+                "degree": degree_value,
                 "betweenness": attrs.get("betweenness", 0),
                 "eigenvector": attrs.get("eigenvector", 0),
             }
