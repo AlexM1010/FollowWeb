@@ -24,7 +24,8 @@ jobs:
         working-directory: FollowWeb
     
     strategy:
-      fail-fast: true
+      fail-fast: true  # Stop all matrix jobs immediately on first failure
+      max-parallel: 6  # Run all 6 matrix combinations simultaneously
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.9', '3.12']  # Test oldest and newest supported versions

@@ -88,7 +88,8 @@ jobs:
         working-directory: FollowWeb
     
     strategy:
-      fail-fast: false
+      fail-fast: false  # Continue testing all combinations even if one fails
+      max-parallel: 3  # Run all 3 matrix combinations simultaneously
       matrix:
         # Test key combinations that matter for ecosystem changes
         include:
