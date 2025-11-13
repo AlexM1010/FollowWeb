@@ -59,7 +59,8 @@ python-dotenv>=1.0.0       # BSD License - Environment variable management
 **Explanation:**
 - MANIFEST.in intentionally EXCLUDES development files from distribution
 - This is correct behavior - tests, examples, and dev tools should not be in PyPI package
-- Files excluded: tests/, analysis_tools/, Makefile, pytest.ini, requirements files, etc.
+- Files excluded: tests/, Makefile, pytest.ini, requirements files, etc.
+- Note: analysis_tools/ has been relocated to root directory
 
 **Resolution:** This is expected and correct. No action needed.
 

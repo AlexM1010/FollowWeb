@@ -225,7 +225,7 @@ Search and replace these phrases with technical alternatives:
 **Tool to help**:
 ```bash
 # Find AI language patterns
-python -m FollowWeb.analysis_tools --optimize
+python -m analysis_tools --optimize
 ```
 
 ---
@@ -271,7 +271,7 @@ python -m mypy FollowWeb/FollowWeb_Visualizor
 python FollowWeb/tests/run_tests.py all
 
 # Run analysis tools
-python -m FollowWeb.analysis_tools --optimize
+python -m analysis_tools --optimize
 ```
 
 ---

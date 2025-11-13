@@ -5,7 +5,7 @@
 Comprehensive analysis of the FollowWeb codebase using multiple tools:
 - **ruff**: Python linter and formatter
 - **mypy**: Static type checker
-- **analysis_tools**: Custom code quality suite
+- **analysis_tools**: Custom code quality suite (relocated to root directory)
 
 ---
 
@@ -298,7 +298,7 @@ python FollowWeb/tests/run_tests.py all
 python -m mypy FollowWeb/FollowWeb_Visualizor
 
 # Code quality
-python -m FollowWeb.analysis_tools --optimize
+python -m analysis_tools --optimize
 
 # Formatting
 python -m ruff check FollowWeb/
@@ -316,10 +316,10 @@ python -m ruff check FollowWeb/
 ### Tools
 - **ruff**: `python -m ruff check FollowWeb/`
 - **mypy**: `python -m mypy FollowWeb/FollowWeb_Visualizor`
-- **analysis_tools**: `python -m FollowWeb.analysis_tools`
+- **analysis_tools**: `python -m analysis_tools`
 
 ### Support
-- Analysis tools README: `FollowWeb/analysis_tools/README.md`
+- Analysis tools README: `analysis_tools/README.md`
 - Test runner: `FollowWeb/tests/run_tests.py`
 - Configuration: `pyproject.toml`, `pytest.ini`
 
