@@ -57,112 +57,37 @@ jobs:
       env:
         PLAUSIBLE_DOMAIN: ${{ secrets.PLAUSIBLE_DOMAIN }}
       run: |
-        echo "## 🌐 Website Generation" >> $GITHUB_STEP_SUMMARY
+        echo "## Website Generation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Check if generate_landing_page.py exists
         if [ ! -f "generate_landing_page.py" ]; then
-          echo "⚠️ Landing page generator not found, creating basic index.html" >> $GITHUB_STEP_SUMMARY
+          echo "Landing page generator not found, using index.html if available" >> $GITHUB_STEP_SUMMARY
           
           # Create basic website directory structure
           mkdir -p website/visualizations
           
-          # Create basic index.html if generator doesn't exist
-          cat > website/index.html << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freesound Network Explorer</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        h1 { color: #333; }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .viz-list {
-            list-style: none;
-            padding: 0;
-        }
-        .viz-list li {
-            margin: 10px 0;
-        }
-        .viz-list a {
-            color: #0066cc;
-            text-decoration: none;
-            font-size: 18px;
-        }
-        .viz-list a:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🎵 Freesound Network Explorer</h1>
-        <p>Interactive visualization of Freesound sample relationships</p>
-        <h2>Available Visualizations</h2>
-        <ul class="viz-list" id="vizList"></ul>
-    </div>
-    <script>
-        // Dynamically list available visualizations
-        fetch('visualizations/')
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const links = Array.from(doc.querySelectorAll('a'))
-                    .filter(a => a.href.endsWith('.html'))
-                    .map(a => a.href.split('/').pop());
-                
-                const list = document.getElementById('vizList');
-                if (links.length === 0) {
-                    list.innerHTML = '<li>No visualizations available yet</li>';
-                } else {
-                    links.forEach(link => {
-                        const li = document.createElement('li');
-                        const a = document.createElement('a');
-                        a.href = `visualizations/${link}`;
-                        a.textContent = link;
-                        li.appendChild(a);
-                        list.appendChild(li);
-                    });
-                }
-            })
-            .catch(() => {
-                document.getElementById('vizList').innerHTML = '<li>Loading visualizations...</li>';
-            });
-    </script>
-</body>
-</html>
-EOF
-          
-          echo "- ✅ Created basic index.html" >> $GITHUB_STEP_SUMMARY
+          # Copy existing index.html if available, otherwise skip
+          if [ -f "index.html" ]; then
+            cp index.html website/
+            echo "- Copied existing index.html" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- No index.html found, website will only contain visualizations" >> $GITHUB_STEP_SUMMARY
+          fi
         else
           # Use the landing page generator script
-          # Build command with optional Plausible domain
           cmd="python generate_landing_page.py --output-dir website --metrics-history data/metrics_history.jsonl --milestone-history data/milestone_history.jsonl --visualizations Output/*.html"
           
           # Add Plausible domain if configured
           if [ -n "$PLAUSIBLE_DOMAIN" ]; then
             cmd="$cmd --plausible-domain $PLAUSIBLE_DOMAIN"
-            echo "- 📈 Plausible Analytics enabled for: \`$PLAUSIBLE_DOMAIN\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Plausible Analytics enabled for: $PLAUSIBLE_DOMAIN" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Execute command
           eval "$cmd"
           
-          echo "- ✅ Generated landing page" >> $GITHUB_STEP_SUMMARY
+          echo "- Generated landing page" >> $GITHUB_STEP_SUMMARY
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
