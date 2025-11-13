@@ -351,10 +351,13 @@ jobs:
       run: |
         set -e  # Exit immediately if any command fails
         threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
+        # Get CPU count for CI environment (use all cores, no safety margin needed in CI)
+        cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
+        echo "Running tests with $cpu_count workers (all available cores)"
         # Run fast tests (unit + integration) with coverage in parallel
         # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
         # FAIL FAST: Stop immediately on first failure to save CI time
-        python -m pytest -m "not (benchmark or slow or performance)" -x --maxfail=1 --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+        python -m pytest -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
           exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
           python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only

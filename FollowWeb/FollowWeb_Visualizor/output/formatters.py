@@ -39,6 +39,10 @@ class EmojiFormatter:
         "search": {"full": "🔍", "simple": "[?]", "text": "SEARCH", "none": ""},
         "chart": {"full": "📊", "simple": "[#]", "text": "DATA", "none": ""},
         "lightning": {"full": "⚡", "simple": "[*]", "text": "FAST", "none": ""},
+        # Backup and maintenance emojis
+        "package": {"full": "📦", "simple": "[B]", "text": "BACKUP", "none": ""},
+        "broom": {"full": "🧹", "simple": "[C]", "text": "CLEANUP", "none": ""},
+        "compress": {"full": "🗜️", "simple": "[Z]", "text": "COMPRESS", "none": ""},
     }
 
     @classmethod

@@ -36,6 +36,7 @@ from ...output.formatters import EmojiFormatter
 from ...utils import ProgressTracker
 from ...utils.math import format_time_duration
 from ...utils.validation import validate_choice
+from ..backup_manager import BackupManager
 from ..checkpoint import GraphCheckpoint
 from .freesound import FreesoundLoader
 
@@ -161,6 +162,19 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         checkpoint_filename = "freesound_library.pkl"
         checkpoint_path = f"{checkpoint_dir}/{checkpoint_filename}"
         self.checkpoint = GraphCheckpoint(checkpoint_path)
+
+        # Initialize backup manager with configurable intervals
+        self.backup_manager = BackupManager(
+            backup_dir=checkpoint_dir,
+            config={
+                'backup_interval_nodes': self.config.get('backup_interval_nodes', 25),
+                'backup_retention_count': self.config.get('backup_retention_count', 10),
+                'enable_compression': self.config.get('backup_compression', True),
+                'enable_tiered_backups': self.config.get('tiered_backups', True),
+                'compression_age_days': self.config.get('compression_age_days', 7)
+            },
+            logger=self.logger
+        )
 
         # Backup path for safety
         self.backup_dir = checkpoint_dir
@@ -426,9 +440,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             f"{checkpoint_metadata['edges']} edges"
         )
 
-        # Create backup every 100 nodes for extra safety
-        if self.graph.number_of_nodes() % 100 == 0 and self.graph.number_of_nodes() > 0:
-            self._create_backup()
+        # Use BackupManager for intelligent tiered backups
+        if self.backup_manager.should_create_backup(self.graph.number_of_nodes()):
+            self.backup_manager.create_backup(
+                topology_path=topology_path,
+                metadata_db_path=metadata_db_path,
+                checkpoint_metadata=checkpoint_metadata
+            )
 
     def _create_backup(self) -> None:
         """
