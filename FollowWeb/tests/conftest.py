@@ -93,7 +93,7 @@ TEST_K_VALUE_PRESETS = {
 
 # PNG test optimization settings
 PNG_TEST_CONFIG = {
-    "k_preset": "png_optimized",
+    "k_preset": "small",  # Changed from png_optimized to small for test data compatibility
     "spring_iterations": 10,
 }
 

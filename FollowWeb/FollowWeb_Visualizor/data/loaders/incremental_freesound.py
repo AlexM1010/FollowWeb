@@ -1013,6 +1013,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             f"(~{100 / max(1, len(pending_edges) // edge_checkpoint_interval):.0f}% intervals)"
         )
 
+        # Skip Pass 2 if no pending edges
+        if len(pending_edges) == 0:
+            self.logger.info("No pending edges to process, skipping Pass 2")
+            return
+
         # Use progress tracker for Pass 2
         with ProgressTracker(
             total=len(pending_edges),
