@@ -6,6 +6,7 @@ repository structure, including file operations, git history preservation,
 workflow updates, and validation.
 """
 
+from .checkpoint import CheckpointManager
 from .exceptions import (
     CleanupError,
     FileOperationError,
@@ -35,6 +36,7 @@ from .models import (
 from .orchestrator import CleanupOrchestrator
 from .reporting import ReportingSystem
 from .rollback import RollbackManager
+from .state_db import CleanupStateDB
 from .validation import ValidationEngine
 from .workflow_manager import WorkflowManager
 
@@ -71,4 +73,7 @@ __all__ = [
     "ReportingSystem",
     "RollbackManager",
     "ValidationEngine",
+    # Scalability Components (10K+ files)
+    "CleanupStateDB",
+    "CheckpointManager",
 ]
