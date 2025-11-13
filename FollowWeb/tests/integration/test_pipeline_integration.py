@@ -538,9 +538,15 @@ class TestPipelineErrorHandling:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Use an invalid output path to cause visualization to fail
+            # Use platform-appropriate invalid path
+            if os.name == "nt":  # Windows
+                invalid_path = "Z:\\nonexistent\\path\\test"
+            else:  # Unix/macOS
+                invalid_path = "/nonexistent/path/test"
+            
             config = {
                 "input_file": "dummy.json",
-                "output_file_prefix": "Z:\\nonexistent\\path\\test",  # Invalid path
+                "output_file_prefix": invalid_path,  # Invalid path
                 "strategy": "k-core",
                 "k_values": {
                     "strategy_k_values": {"k-core": 1},

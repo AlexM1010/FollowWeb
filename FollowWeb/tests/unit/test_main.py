@@ -621,7 +621,7 @@ class TestEnhancedConfigurationIntegration:
         orchestrator = PipelineOrchestrator(config)
 
         assert orchestrator.config == config
-        assert hasattr(orchestrator.config, "pipeline_stages")
+        assert hasattr(orchestrator.config, "pipeline")  # Changed from pipeline_stages to pipeline
         assert hasattr(orchestrator.config, "analysis_mode")
         assert hasattr(orchestrator.config, "output")
 
