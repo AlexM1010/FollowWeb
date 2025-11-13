@@ -167,13 +167,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self.backup_manager = BackupManager(
             backup_dir=checkpoint_dir,
             config={
-                'backup_interval_nodes': self.config.get('backup_interval_nodes', 25),
-                'backup_retention_count': self.config.get('backup_retention_count', 10),
-                'enable_compression': self.config.get('backup_compression', True),
-                'enable_tiered_backups': self.config.get('tiered_backups', True),
-                'compression_age_days': self.config.get('compression_age_days', 7)
+                "backup_interval_nodes": self.config.get("backup_interval_nodes", 25),
+                "backup_retention_count": self.config.get("backup_retention_count", 10),
+                "enable_compression": self.config.get("backup_compression", True),
+                "enable_tiered_backups": self.config.get("tiered_backups", True),
+                "compression_age_days": self.config.get("compression_age_days", 7),
             },
-            logger=self.logger
+            logger=self.logger,
         )
 
         # Backup path for safety
@@ -442,10 +442,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Use BackupManager for intelligent tiered backups
         if self.backup_manager.should_create_backup(self.graph.number_of_nodes()):
+            metadata_db_path = checkpoint_dir / "metadata_cache.db"
             self.backup_manager.create_backup(
                 topology_path=topology_path,
                 metadata_db_path=metadata_db_path,
-                checkpoint_metadata=checkpoint_metadata
+                checkpoint_metadata=checkpoint_metadata,
             )
 
     def _create_backup(self) -> None:
