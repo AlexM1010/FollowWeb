@@ -2286,7 +2286,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
     def close(self) -> None:
         """Close the metadata cache connection to release file locks."""
-        if hasattr(self, 'metadata_cache') and self.metadata_cache is not None:
+        if hasattr(self, "metadata_cache") and self.metadata_cache is not None:
             self.metadata_cache.close()
             self.metadata_cache = None
 

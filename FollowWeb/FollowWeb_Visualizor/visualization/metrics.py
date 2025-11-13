@@ -230,7 +230,9 @@ class MetricsCalculator:
         """
         # Handle the case where analysis was skipped (attributes are missing)
         # Use cached node attributes to avoid repeated graph traversals
-        communities_attr = self.cache_manager.get_cached_node_attributes(graph, "community")
+        communities_attr = self.cache_manager.get_cached_node_attributes(
+            graph, "community"
+        )
         if not communities_attr:
             # Set all community IDs to 0 for fallback
             num_communities = 1
@@ -263,7 +265,9 @@ class MetricsCalculator:
         """
         # Handle the case where analysis was skipped (attributes are missing)
         # Use cached node attributes to avoid repeated graph traversals
-        communities_attr = self.cache_manager.get_cached_node_attributes(graph, "community")
+        communities_attr = self.cache_manager.get_cached_node_attributes(
+            graph, "community"
+        )
         if not communities_attr:
             # Set all community IDs to 0
             nx.set_node_attributes(graph, dict.fromkeys(graph.nodes(), 0), "community")
@@ -297,7 +301,7 @@ class MetricsCalculator:
             if degree_value is None:
                 # Calculate actual degree for the node
                 degree_value = int(graph.degree(node))  # type: ignore[operator]
-            
+
             centrality_values = {
                 "degree": degree_value,
                 "betweenness": attrs.get("betweenness", 0),
@@ -341,7 +345,9 @@ class MetricsCalculator:
         directed_edges = set(graph.edges())
 
         # Use cached community attributes to avoid repeated lookups
-        communities_attr = self.cache_manager.get_cached_node_attributes(graph, "community")
+        communities_attr = self.cache_manager.get_cached_node_attributes(
+            graph, "community"
+        )
         if not communities_attr:
             communities_attr = dict.fromkeys(graph.nodes(), 0)
 

@@ -5,10 +5,13 @@ include CHANGELOG.md
 include INSTALL_GUIDE.md
 
 # Include configuration files
-recursive-include configs *.json
+recursive-include configs *.json *.md
 
-# Include documentation (exclude config examples as they're redundant with configs/)
-recursive-include docs *.md *.rst
+# Include documentation
+recursive-include docs *.md *.rst *.json
+
+# Include example data
+recursive-include examples *.json *.md
 
 # Exclude test files (not needed in distribution)
 # Tests should be run from source repository, not from installed package
