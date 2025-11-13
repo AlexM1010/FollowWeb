@@ -259,9 +259,10 @@ def main():
         # priority scoring, not as a direct fetch parameter.
         logger.info(f"Fetching Freesound data with recursive discovery (depth={depth})...")
         
-        # Use a broad query to find samples, loader will skip already-processed ones
+        # Use an empty query to match all samples (per Freesound API docs)
+        # Loader will skip already-processed ones from checkpoint
         data = loader.fetch_data(
-            query="*",  # Match all samples
+            query="",  # Empty query matches all samples
             max_samples=max_requests,  # Circuit breaker
             include_similar=True,
             recursive_depth=depth,
