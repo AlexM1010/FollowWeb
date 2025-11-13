@@ -1,0 +1,39 @@
+{
+  "report_type": "cleanup_phase",
+  "phase": "doc_consolidation",
+  "timestamp": "2025-11-13T21:56:18.906199",
+  "success": true,
+  "duration_seconds": 0.26771,
+  "operations": [
+    {
+      "operation": "git_mv_archive",
+      "source": "FollowWeb\\docs\\INSTALL_GUIDE.md",
+      "destination": "docs\\archive\\INSTALL_GUIDE_archived_20251113.md",
+      "timestamp": "2025-11-13T21:56:18.779048",
+      "success": true
+    },
+    {
+      "operation": "create_file",
+      "source": "docs\\README.md",
+      "destination": null,
+      "timestamp": "2025-11-13T21:56:18.781048",
+      "success": true
+    },
+    {
+      "operation": "git_commit",
+      "source": "doc_consolidation",
+      "destination": "6242a7e7370a256684e3b60894058fd1a70ca666",
+      "timestamp": "2025-11-13T21:56:18.905206",
+      "success": true
+    }
+  ],
+  "validation": {
+    "phase": "doc_consolidation",
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "errors": [],
+  "warnings": [],
+  "rollback_available": true
+}

@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-11-13T22:06:25.332843",
+  "summary": {
+    "total_branches": 5,
+    "merged": 0,
+    "stale": 0,
+    "active": 3,
+    "protected": 2,
+    "deleted": 0
+  },
+  "merged_branches": [],
+  "stale_branches": [],
+  "active_branches": [
+    {
+      "name": "dependabot/github_actions/actions/download-artifact-6",
+      "last_commit": "2025-11-07T17:57:26+00:00",
+      "author": "dependabot[bot]",
+      "has_open_pr": true,
+      "pr_number": 7
+    },
+    {
+      "name": "dependabot/github_actions/amannn/action-semantic-pull-request-6",
+      "last_commit": "2025-11-07T17:57:23+00:00",
+      "author": "dependabot[bot]",
+      "has_open_pr": true,
+      "pr_number": 6
+    },
+    {
+      "name": "fix/ci-docs-workflow-directory-issues",
+      "last_commit": "2025-11-07T15:38:48+00:00",
+      "author": "AlexM1010",
+      "has_open_pr": false,
+      "pr_number": null
+    }
+  ],
+  "protected_branches": [
+    "main",
+    "backup/pre-cleanup"
+  ],
+  "deleted_branches": []
+}

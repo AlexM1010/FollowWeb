@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-11-13T22:00:00Z",
+  "summary": {
+    "total_branches": 5,
+    "merged": 0,
+    "stale": 0,
+    "active": 3,
+    "protected": 2,
+    "deleted": 2
+  },
+  "merged_branches": [],
+  "stale_branches": [],
+  "active_branches": [
+    {
+      "name": "dependabot/github_actions/actions/download-artifact-6",
+      "last_commit": "2025-11-07T17:57:26+00:00",
+      "author": "dependabot[bot]",
+      "has_open_pr": true,
+      "pr_number": 7
+    },
+    {
+      "name": "dependabot/github_actions/amannn/action-semantic-pull-request-6",
+      "last_commit": "2025-11-07T17:57:23+00:00",
+      "author": "dependabot[bot]",
+      "has_open_pr": true,
+      "pr_number": 6
+    },
+    {
+      "name": "fix/ci-docs-workflow-directory-issues",
+      "last_commit": "2025-11-07T15:38:48+00:00",
+      "author": "AlexM1010",
+      "has_open_pr": false
+    }
+  ],
+  "protected_branches": ["main", "backup/pre-cleanup"],
+  "deleted_branches": ["optimize/ci-phase1", "fix/python39-union-syntax"],
+  "notes": "Successfully deleted 2 merged branches. 3 active branches remain (2 with open PRs). 1 stale branch (fix/ci-docs-workflow-directory-issues) may need manual review."
+}

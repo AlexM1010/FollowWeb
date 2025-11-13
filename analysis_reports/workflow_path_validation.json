@@ -1,0 +1,906 @@
+{
+  "timestamp": "2025-11-13T22:00:00Z",
+  "summary": {
+    "total_workflows": 12,
+    "issues_found": 147,
+    "status": "fail"
+  },
+  "validated_files": [
+    "ci.yml",
+    "codespaces-prebuild.yml",
+    "deploy-website.yml",
+    "docs.yml",
+    "freesound-backup-maintenance.yml",
+    "freesound-full-validation.yml",
+    "freesound-metrics-dashboard.yml",
+    "freesound-nightly-pipeline.yml",
+    "freesound-quick-validation.yml",
+    "nightly.yml",
+    "pages.yml",
+    "release.yml"
+  ],
+  "issues": [
+    {
+      "file": "ci.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-minimal.txt",
+      "message": "Referenced file does not exist: requirements-minimal.txt"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "ci.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "codespaces-prebuild.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "codespaces-prebuild.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "deploy-website.yml",
+      "type": "invalid_file_reference",
+      "path": "generate_landing_page.py",
+      "message": "Referenced file does not exist: generate_landing_page.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements.txt",
+      "message": "Referenced file does not exist: requirements.txt"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "docs.yml",
+      "type": "invalid_file_reference",
+      "path": "../.github/scripts/ci_helpers.py",
+      "message": "Referenced file does not exist: ../.github/scripts/ci_helpers.py"
+    },
+    {
+      "file": "freesound-full-validation.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "freesound-full-validation.yml",
+      "type": "invalid_file_reference",
+      "path": "validate_freesound_samples.py",
+      "message": "Referenced file does not exist: validate_freesound_samples.py"
+    },
+    {
+      "file": "freesound-metrics-dashboard.yml",
+      "type": "invalid_file_reference",
+      "path": "generate_metrics_dashboard.py",
+      "message": "Referenced file does not exist: generate_metrics_dashboard.py"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_file_reference",
+      "path": "generate_freesound_visualization.py",
+      "message": "Referenced file does not exist: generate_freesound_visualization.py"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_file_reference",
+      "path": "detect_milestone.py",
+      "message": "Referenced file does not exist: detect_milestone.py"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_file_reference",
+      "path": "validate_pipeline_data.py",
+      "message": "Referenced file does not exist: validate_pipeline_data.py"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_file_reference",
+      "path": "generate_user_pack_edges.py",
+      "message": "Referenced file does not exist: generate_user_pack_edges.py"
+    },
+    {
+      "file": "freesound-nightly-pipeline.yml",
+      "type": "invalid_file_reference",
+      "path": "generate_landing_page.py",
+      "message": "Referenced file does not exist: generate_landing_page.py"
+    },
+    {
+      "file": "freesound-quick-validation.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "freesound-quick-validation.yml",
+      "type": "invalid_file_reference",
+      "path": "validate_freesound_samples.py",
+      "message": "Referenced file does not exist: validate_freesound_samples.py"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements.txt",
+      "message": "Referenced file does not exist: requirements.txt"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_file_reference",
+      "path": "../ci_helpers.py",
+      "message": "Referenced file does not exist: ../ci_helpers.py"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_file_reference",
+      "path": "../ci_helpers.py",
+      "message": "Referenced file does not exist: ../ci_helpers.py"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-ci.txt",
+      "message": "Referenced file does not exist: requirements-ci.txt"
+    },
+    {
+      "file": "nightly.yml",
+      "type": "invalid_file_reference",
+      "path": "../ci_helpers.py",
+      "message": "Referenced file does not exist: ../ci_helpers.py"
+    },
+    {
+      "file": "release.yml",
+      "type": "invalid_cache_path",
+      "path": "FollowWeb/requireme",
+      "message": "Cache dependency path does not exist: FollowWeb/requireme"
+    },
+    {
+      "file": "release.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements.txt",
+      "message": "Referenced file does not exist: requirements.txt"
+    },
+    {
+      "file": "release.yml",
+      "type": "invalid_file_reference",
+      "path": "requirements-test.txt",
+      "message": "Referenced file does not exist: requirements-test.txt"
+    },
+    {
+      "file": "release.yml",
+      "type": "invalid_file_reference",
+      "path": "ci_helpers.py",
+      "message": "Referenced file does not exist: ci_helpers.py"
+    },
+    {
+      "file": "release.yml",
+      "type": "invalid_file_reference",
+      "path": "ci_helpers.py",
+      "message": "Referenced file does not exist: ci_helpers.py"
+    }
+  ]
+}
