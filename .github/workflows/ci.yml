@@ -190,12 +190,14 @@ jobs:
           echo "No code quality issues found." >> $GITHUB_STEP_SUMMARY
         fi
   
-  # Quick smoke test on Ubuntu with latest Python - gates the build job
+  # Quick smoke test on Ubuntu with latest Python - runs in parallel with performance and benchmarks
   # Runs unit tests only (excludes integration tests) for faster feedback
   # Full test suite including integration tests runs in the 'test' job after this passes
+  # If this job fails, all subsequent jobs will be cancelled
   test-quick:
     name: Smoke Test (Python 3.12 on Ubuntu)
     runs-on: ubuntu-latest
+    needs: [quality-check]  # Only wait for quality check, run in parallel with performance/benchmarks
     timeout-minutes: 15
     defaults:
       run:
@@ -245,7 +247,7 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
+    needs: [quality-check, test-quick, performance, benchmarks]  # Wait for all parallel jobs to pass
     timeout-minutes: 30
     defaults:
       run:
@@ -397,7 +399,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
+    needs: [quality-check, test-quick, performance, benchmarks]  # Wait for all parallel jobs to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -531,7 +533,7 @@ jobs:
   format-check:
     name: Code Quality & Format Check
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
+    needs: [quality-check, test-quick, performance, benchmarks]  # Wait for all parallel jobs to pass
     timeout-minutes: 10
     defaults:
       run:
@@ -612,7 +614,7 @@ jobs:
   build:
     name: Build & Package
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
+    needs: [quality-check, test-quick, performance, benchmarks]  # Wait for all parallel jobs to pass
     timeout-minutes: 15
     defaults:
       run:
@@ -703,32 +705,18 @@ jobs:
         path: FollowWeb/dist/
         retention-days: 30
 
+  # Performance tests - runs in parallel with smoke test and benchmarks
+  # If this job fails, all subsequent jobs will be cancelled
   performance:
-    name: Performance & Benchmarks
+    name: Performance Tests
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick]  # Wait for quality check AND smoke test to pass
-    timeout-minutes: 30
+    needs: [quality-check]  # Only wait for quality check, run in parallel with smoke test/benchmarks
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: FollowWeb
     
     steps:
-    - name: Check for failures in parallel jobs
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const jobs = await github.rest.actions.listJobsForWorkflowRun({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            run_id: context.runId,
-          });
-          const failedJobs = jobs.data.jobs.filter(job => 
-            job.conclusion === 'failure' && job.status === 'completed'
-          );
-          if (failedJobs.length > 0) {
-            core.setFailed(`Cancelling due to failed jobs: ${failedJobs.map(j => j.name).join(', ')}`);
-          }
-    
     - name: Checkout code
       uses: actions/checkout@v4
     
@@ -769,19 +757,82 @@ jobs:
       run: |
         # Activate venv if it exists
         if [ -d ".venv" ]; then source .venv/bin/activate; fi
-        # Create benchmarks directory
-        mkdir -p .benchmarks
-        # Run slow, performance, and benchmark tests sequentially (no parallelization)
-        # These tests are excluded from the main test matrix to prevent timeouts
+        # Run slow and performance tests sequentially (no parallelization)
+        # Exclude benchmark tests - those run in separate benchmarks job
         # FAIL FAST: Stop immediately on first failure to save CI time
-        python -m pytest -m "slow or performance or benchmark" -x --maxfail=1 -v --tb=short -n 0 --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
+        python -m pytest -m "slow or performance" -x --maxfail=1 -v --tb=short -n 0
         
-        # Generate performance test summary with proper emoji handling
+        # Generate performance test summary
         python ../.github/scripts/ci_helpers.py success "Performance tests completed - no regressions detected" --print-only
         
         # Write to GitHub step summary
         python ../.github/scripts/ci_helpers.py info "**Performance Test Results**" --summary-only
         python ../.github/scripts/ci_helpers.py success "Performance tests completed successfully - no regressions detected" --summary-only
+      env:
+        MPLBACKEND: Agg
+        PYTEST_PARALLEL_DISABLE: "1"
+      continue-on-error: false
+
+  # Benchmark tests - runs in parallel with smoke test and performance tests
+  # If this job fails, all subsequent jobs will be cancelled
+  benchmarks:
+    name: Benchmark Tests
+    runs-on: ubuntu-latest
+    needs: [quality-check]  # Only wait for quality check, run in parallel with smoke test/performance
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: FollowWeb
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: 'requirements-ci.txt'
+    
+    - name: Restore prebuild cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/pip
+          FollowWeb/.venv
+          FollowWeb/tests/test_data
+          .pytest_cache
+          .mypy_cache
+          .ruff_cache
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
+        restore-keys: |
+          prebuild-${{ runner.os }}-py3.12-
+    
+    - name: Install dependencies
+      run: |
+        # Use cached environment if available
+        if [ -d ".venv" ]; then
+          echo "Using prebuild cache"
+          source .venv/bin/activate
+        else
+          echo "Installing dependencies fresh"
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-ci.txt -e .
+        fi
+    
+    - name: Run benchmark tests
+      run: |
+        # Activate venv if it exists
+        if [ -d ".venv" ]; then source .venv/bin/activate; fi
+        # Create benchmarks directory
+        mkdir -p .benchmarks
+        # Run benchmark tests sequentially (no parallelization)
+        # FAIL FAST: Stop immediately on first failure to save CI time
+        python -m pytest -m "benchmark" -x --maxfail=1 -v --tb=short -n 0 --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
+        
+        # Generate benchmark test summary
+        python ../.github/scripts/ci_helpers.py success "Benchmark tests completed - no regressions detected" --print-only
       env:
         MPLBACKEND: Agg
         PYTEST_PARALLEL_DISABLE: "1"
@@ -821,17 +872,17 @@ jobs:
         retention-days: 30
         if-no-files-found: ignore
   
-  # Documentation pipeline - runs after quality check and smoke test pass
+  # Documentation pipeline - runs after all parallel jobs pass
   documentation:
     name: Documentation
-    needs: [quality-check, test-quick]
+    needs: [quality-check, test-quick, performance, benchmarks]
     uses: ./.github/workflows/docs.yml
   
   # All checks must pass - no exceptions
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [quality-check, test-quick, test, security, format-check, build, performance, documentation]
+    needs: [quality-check, test-quick, test, security, format-check, build, performance, benchmarks, documentation]
     if: always()
     
     steps:
@@ -899,6 +950,14 @@ jobs:
           fi
         fi
         
+        if [[ "${{ needs.benchmarks.result }}" != "success" ]]; then
+          if [[ "${{ needs.benchmarks.result }}" == "skipped" ]]; then
+            skipped_jobs="$skipped_jobs Benchmarks(${{ needs.benchmarks.result }})"
+          else
+            failed_jobs="$failed_jobs Benchmarks(${{ needs.benchmarks.result }})"
+          fi
+        fi
+        
         if [[ "${{ needs.documentation.result }}" != "success" ]]; then
           if [[ "${{ needs.documentation.result }}" == "skipped" ]]; then
             skipped_jobs="$skipped_jobs Documentation(${{ needs.documentation.result }})"
@@ -922,6 +981,7 @@ jobs:
           echo "- Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Benchmarks: ${{ needs.benchmarks.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Documentation: ${{ needs.documentation.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Action Required:** Review the failed job logs above for details." >> $GITHUB_STEP_SUMMARY
@@ -968,4 +1028,5 @@ jobs:
         echo "- [PASS] Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- [PASS] Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- [PASS] Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Benchmarks: ${{ needs.benchmarks.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- [PASS] Documentation: ${{ needs.documentation.result }}" >> $GITHUB_STEP_SUMMARY
