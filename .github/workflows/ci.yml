@@ -536,6 +536,22 @@ jobs:
         working-directory: FollowWeb
     
     steps:
+    - name: Check for failures in parallel jobs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const jobs = await github.rest.actions.listJobsForWorkflowRun({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: context.runId,
+          });
+          const failedJobs = jobs.data.jobs.filter(job => 
+            job.conclusion === 'failure' && job.status === 'completed'
+          );
+          if (failedJobs.length > 0) {
+            core.setFailed(`Cancelling due to failed jobs: ${failedJobs.map(j => j.name).join(', ')}`);
+          }
+    
     - name: Checkout code
       uses: actions/checkout@v4
     
@@ -601,6 +617,22 @@ jobs:
         working-directory: FollowWeb
     
     steps:
+    - name: Check for failures in parallel jobs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const jobs = await github.rest.actions.listJobsForWorkflowRun({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: context.runId,
+          });
+          const failedJobs = jobs.data.jobs.filter(job => 
+            job.conclusion === 'failure' && job.status === 'completed'
+          );
+          if (failedJobs.length > 0) {
+            core.setFailed(`Cancelling due to failed jobs: ${failedJobs.map(j => j.name).join(', ')}`);
+          }
+    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -679,6 +711,22 @@ jobs:
         working-directory: FollowWeb
     
     steps:
+    - name: Check for failures in parallel jobs
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const jobs = await github.rest.actions.listJobsForWorkflowRun({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            run_id: context.runId,
+          });
+          const failedJobs = jobs.data.jobs.filter(job => 
+            job.conclusion === 'failure' && job.status === 'completed'
+          );
+          if (failedJobs.length > 0) {
+            core.setFailed(`Cancelling due to failed jobs: ${failedJobs.map(j => j.name).join(', ')}`);
+          }
+    
     - name: Checkout code
       uses: actions/checkout@v4
     
