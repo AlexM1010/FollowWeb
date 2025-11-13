@@ -481,7 +481,7 @@ class BackupManager:
         backups = self.manifest["backups"]
 
         # Count by tier
-        tier_counts = {}
+        tier_counts: dict[str, int] = {}
         for backup in backups:
             tier = backup.get("tier", "frequent")
             tier_counts[tier] = tier_counts.get(tier, 0) + 1
