@@ -72,6 +72,46 @@ jobs:
     name: Prebuild Environment
     uses: ./.github/workflows/codespaces-prebuild.yml
   
+  # Fast quality checks - runs in parallel with smoke test to catch issues early
+  # This job runs ruff linting and formatting checks before any tests
+  quality-check:
+    name: Quick Quality Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: FollowWeb
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+    
+    - name: Install ruff only (minimal dependencies)
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install ruff
+    
+    - name: Run ruff format check
+      run: |
+        ruff format --check FollowWeb_Visualizor tests --diff
+      continue-on-error: false
+    
+    - name: Run ruff linting
+      run: |
+        ruff check FollowWeb_Visualizor tests --output-format=github
+      continue-on-error: false
+    
+    - name: Check import sorting
+      run: |
+        ruff check --select I FollowWeb_Visualizor tests
+      continue-on-error: false
+  
   # Quick smoke test on Ubuntu with latest Python - gates the build job
   # Runs unit tests only (excludes integration tests) for faster feedback
   # Full test suite including integration tests runs in the 'test' job after this passes
@@ -654,7 +694,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [test-quick, test, security, format-check, build, performance, documentation]
+    needs: [quality-check, test-quick, test, security, format-check, build, performance, documentation]
     if: always()
     
     steps:
@@ -666,6 +706,14 @@ jobs:
         skipped_jobs=""
         
         # Check each job result - fail on anything other than "success"
+        if [[ "${{ needs.quality-check.result }}" != "success" ]]; then
+          if [[ "${{ needs.quality-check.result }}" == "skipped" ]]; then
+            skipped_jobs="$skipped_jobs QualityCheck(${{ needs.quality-check.result }})"
+          else
+            failed_jobs="$failed_jobs QualityCheck(${{ needs.quality-check.result }})"
+          fi
+        fi
+        
         if [[ "${{ needs.test-quick.result }}" != "success" ]]; then
           if [[ "${{ needs.test-quick.result }}" == "skipped" ]]; then
             skipped_jobs="$skipped_jobs QuickTest(${{ needs.test-quick.result }})"
@@ -730,6 +778,7 @@ jobs:
           echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Job Results:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Quality Check: ${{ needs.quality-check.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Quick Test: ${{ needs.test-quick.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Full Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
@@ -775,6 +824,7 @@ jobs:
         echo "**✅ CI Pipeline Success**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "All quality checks passed:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Quality Check: ${{ needs.quality-check.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Quick Test: ${{ needs.test-quick.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Full Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
