@@ -42,3 +42,8 @@ skip_summary.txt
 *.log
 !FollowWeb/**/*.log
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
