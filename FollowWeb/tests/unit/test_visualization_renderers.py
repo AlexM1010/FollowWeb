@@ -20,6 +20,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 # Import the visualization classes
+from FollowWeb_Visualizor.data.cache import clear_all_caches
 from FollowWeb_Visualizor.visualization import (
     ColorScheme,
     EdgeMetric,
@@ -36,6 +37,9 @@ class TestVisualizationConsistency:
 
     def setup_method(self):
         """Set up test fixtures."""
+        # Clear all caches to ensure clean state for each test
+        clear_all_caches()
+        
         self.vis_config = {
             "node_size_metric": "degree",
             "base_node_size": 10,
