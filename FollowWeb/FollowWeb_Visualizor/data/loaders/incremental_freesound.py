@@ -548,7 +548,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         Returns:
             Dictionary with 'samples' and 'relationships' keys
         """
-        if not query and not tags:
+        # Note: Empty query string is valid per Freesound API docs (returns all sounds)
+        if query is None and not tags:
             raise DataProcessingError(
                 "Must provide either query or tags for Freesound search"
             )
