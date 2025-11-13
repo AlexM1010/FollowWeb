@@ -79,10 +79,10 @@ defaults:
     shell: bash
 
 jobs:
-  # Prebuild environment - runs in parallel with smoke test
+  # Setup environment - runs in parallel with smoke test
   # Creates cached environment for all subsequent jobs
   prebuild:
-    name: Prebuild Environment
+    name: Setup Environment
     uses: ./.github/workflows/codespaces-prebuild.yml
   
   # Fast quality checks - runs in parallel with smoke test to catch issues early
