@@ -43,7 +43,7 @@ Example:
             vis_config=config,
             template_name='sigma_instagram.html'
         )
-        
+
         instagram_graph = instagram_loader.load(filepath='data.json')
         renderer.generate_visualization(
             instagram_graph,
@@ -58,7 +58,7 @@ See Also:
 Notes:
     Requires Sigma.js and Howler.js libraries, which are loaded from CDN in the
     generated HTML files. No Python dependencies beyond the base requirements.
-    
+
     The renderer uses Jinja2 templates located in the templates/ subdirectory.
     Custom templates can be created by following the existing template structure.
 """
@@ -90,7 +90,7 @@ class SigmaRenderer(Renderer):
     template types for different data sources (Freesound audio, Instagram social).
 
     Features:
-    
+
     - WebGL rendering for high performance (10,000+ nodes)
     - Canvas fallback for browsers without WebGL
     - Interactive controls (zoom, pan, reset, search)
@@ -120,10 +120,10 @@ class SigmaRenderer(Renderer):
     Notes
     -----
     The renderer supports two template types:
-    
+
     - 'sigma_visualization.html': Default template for Freesound/audio data
         with audio player, sample metadata, and acoustic similarity visualization
-    
+
     - 'sigma_instagram.html': Template for Instagram social network data
         with follower/following metrics and social relationship visualization
 
@@ -141,7 +141,7 @@ class SigmaRenderer(Renderer):
                 'enable_audio_player': True
             }
         })
-        
+
         success = renderer.generate_visualization(
             graph,
             'output.html',
@@ -187,21 +187,21 @@ class SigmaRenderer(Renderer):
         vis_config : dict[str, Any]
             Visualization configuration dictionary containing Sigma settings,
             display options, and styling preferences. Common keys include:
-            
+
             - show_labels : bool
                 Whether to display node labels (default: True)
             - show_tooltips : bool
                 Whether to show hover tooltips (default: True)
             - sigma_interactive : dict
                 Sigma-specific settings:
-                
+
                 - enable_audio_player : bool
                     Enable audio playback for Freesound samples
                 - show_labels : bool
                     Override for label display
                 - show_tooltips : bool
                     Override for tooltip display
-            
+
             - ui_background_color : str
                 Background color for UI panels (default: '#2d333c')
             - ui_highlight_color : str
@@ -210,18 +210,18 @@ class SigmaRenderer(Renderer):
                 Text color for UI elements (default: '#b6e0fe')
             - template_name : str
                 Template to use (if not provided as parameter)
-        
+
         metrics_calculator : MetricsCalculator, optional
             Optional MetricsCalculator instance for consistent metrics
             calculation across multiple visualizations. If None, a new
             calculator is created when needed.
-        
+
         template_name : str, optional
             Name of the Jinja2 template to use. If None, reads from
             vis_config['template_name'] or defaults to 'sigma_visualization.html'.
-            
+
             Available templates:
-            
+
             - 'sigma_visualization.html': Default for Freesound/audio data
             - 'sigma_instagram.html': For Instagram social network data
 
@@ -233,7 +233,7 @@ class SigmaRenderer(Renderer):
         Notes
         -----
         The constructor initializes:
-        
+
         - Jinja2 template environment with autoescape
         - Legend generator for creating HTML legends
         - Template caching disabled for development

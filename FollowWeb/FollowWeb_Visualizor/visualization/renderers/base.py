@@ -54,7 +54,7 @@ class Renderer(ABC):
     generate_visualization method to create their specific output format.
 
     The base class provides common functionality:
-    
+
     - Metrics calculation with caching support
     - Empty graph validation
     - Metrics extraction to dictionary format
@@ -85,15 +85,15 @@ class Renderer(ABC):
             def generate_visualization(self, graph, output_filename, metrics=None):
                 if not self._validate_graph_not_empty(graph):
                     return False
-                
+
                 metrics = self._ensure_metrics(graph, metrics)
                 node_metrics = self._extract_node_metrics_dict(metrics)
-                
+
                 with open(output_filename, 'w') as f:
                     f.write(f"Graph: {graph.number_of_nodes()} nodes\\n")
                     for node, attrs in node_metrics.items():
                         f.write(f"{node}: size={attrs['size']}\\n")
-                
+
                 return True
 
             def get_file_extension(self):
@@ -115,7 +115,7 @@ class Renderer(ABC):
         vis_config : dict[str, Any]
             Visualization configuration dictionary containing renderer-specific
             settings, styling preferences, and display options. Common keys include:
-            
+
             - 'colors': Color scheme configuration
             - 'node_size_range': Min/max node sizes
             - 'edge_width_range': Min/max edge widths
@@ -159,12 +159,12 @@ class Renderer(ABC):
             the renderer's get_file_extension() return value.
         metrics : VisualizationMetrics, optional
             Pre-calculated visualization metrics containing:
-            
+
             - node_metrics: Node sizes, colors, and centrality values
             - edge_metrics: Edge widths, colors, and relationship types
             - layout_positions: Node positions for layout
             - color_schemes: Community and metric color mappings
-            
+
             If None, the renderer should calculate metrics internally using
             _ensure_metrics().
 
@@ -183,7 +183,7 @@ class Renderer(ABC):
         Notes
         -----
         Implementations should:
-        
+
         1. Validate the graph is not empty using _validate_graph_not_empty()
         2. Ensure metrics are available using _ensure_metrics()
         3. Extract metrics to dict format using helper methods
@@ -204,12 +204,12 @@ class Renderer(ABC):
                 # Validate
                 if not self._validate_graph_not_empty(graph):
                     return False
-                
+
                 # Ensure metrics
                 metrics = self._ensure_metrics(graph, metrics)
                 node_metrics = self._extract_node_metrics_dict(metrics)
                 edge_metrics = self._extract_edge_metrics_dict(metrics)
-                
+
                 # Generate visualization
                 try:
                     self._ensure_output_directory(output_filename)
@@ -225,17 +225,17 @@ class Renderer(ABC):
             def generate_visualization(self, graph, output_filename, metrics=None):
                 if not self._validate_graph_not_empty(graph):
                     return False
-                
+
                 with ProgressTracker(total=3, title="Rendering") as tracker:
                     metrics = self._ensure_metrics(graph, metrics)
                     tracker.update(1)
-                    
+
                     data = self._convert_to_format(graph, metrics)
                     tracker.update(2)
-                    
+
                     self._write_output(data, output_filename)
                     tracker.update(3)
-                
+
                 return True
         """
         pass
@@ -288,11 +288,11 @@ class Renderer(ABC):
         Notes
         -----
         "Efficiently" means the renderer can:
-        
+
         - Generate visualizations in reasonable time (< 1 minute)
         - Produce interactive visualizations with smooth performance
         - Handle memory requirements without excessive consumption
-        
+
         Renderers using WebGL (like Sigma.js) typically support large graphs.
         Renderers using DOM manipulation (like Pyvis) typically do not.
 
