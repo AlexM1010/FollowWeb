@@ -4,6 +4,8 @@
 
 A network analysis tool for Instagram follower/following relationships using graph theory and network analysis techniques. Transform social connection data into interactive visualizations with automatic community detection and influence metrics.
 
+**🎵 Freesound Network Explorer**: [View Live Visualization](https://alexmeckes.github.io/FollowWeb/) - Interactive network of Freesound audio samples, automatically updated nightly.
+
 ---
 
 ## Key Features
@@ -11,6 +13,9 @@ A network analysis tool for Instagram follower/following relationships using gra
 - **Multiple Analysis Strategies**: k-core decomposition, reciprocal connections, ego-alter analysis
 - **Comprehensive Reporting**: text reports with network statistics and parameters
 - **Performance Optimized**: caching system eliminates duplicate calculations and reduces memory usage
+- **Automated Pipeline**: Nightly data collection with parallel milestone execution
+- **Data Validation**: Automated integrity checks and anomaly detection
+- **Public Visualizations**: GitHub Pages deployment with growth metrics dashboard
 
 ## Analysis Strategies
 1. **K-Core Analysis**: Full network analysis identifying densely connected subgraphs
@@ -21,6 +26,57 @@ A network analysis tool for Instagram follower/following relationships using gra
 - **Interactive HTML**: Network visualizations with hover tooltips and physics controls
 - **Static PNG**: High-resolution images suitable for presentations and papers
 - **Metrics Reports**: Detailed analysis statistics, timing, and configuration parameters
+
+## Freesound Pipeline Enhancements
+
+The Freesound nightly pipeline has been enhanced with advanced features for data integrity, network enrichment, and public visibility:
+
+### 🎯 Milestone Achievements
+
+**Parallel Execution Architecture**:
+- 4-core parallel processing at every 100-node milestone
+- Main pipeline continues uninterrupted during milestone actions
+- 30-40% reduction in total workflow time
+
+**Automated Validation System**:
+- Checkpoint integrity verification after every run
+- Graph structure validation (no orphaned edges)
+- Metadata consistency checks (SQLite ↔ graph sync)
+- Anomaly detection (sudden drops, zero growth)
+
+**Network Enrichment**:
+- User relationship edges (samples by same user)
+- Pack relationship edges (samples in same pack)
+- Generated automatically at every 100-node milestone
+- Adds relationship dimensions beyond similarity
+
+**Public Website Deployment**:
+- Automatic deployment to GitHub Pages
+- Growth metrics dashboard with Chart.js
+- Latest visualization embedded in iframe
+- Mobile-responsive design
+- Updates within 5 minutes of commit
+
+**Tiered Backup Retention**:
+- Frequent tier (25 nodes): 14-day retention
+- Moderate tier (100 nodes): Permanent retention
+- Milestone tier (500 nodes): Permanent retention
+- Automatic compression after 7 days
+
+### 📊 Current Network Statistics
+
+Visit the [Freesound Network Explorer](https://alexmeckes.github.io/FollowWeb/) to see:
+- Total nodes and edges
+- Growth over time
+- Latest interactive visualization
+- Milestone history
+
+### 📖 Pipeline Documentation
+
+For detailed information about the Freesound pipeline:
+- **[Freesound Pipeline Guide](../Docs/FREESOUND_PIPELINE.md)** - Complete pipeline documentation
+- **[Validation Coordination](../Docs/VALIDATION_COORDINATION.md)** - Validation system overview
+- **[Pipeline Configuration](../configs/FREESOUND_PIPELINE_CONFIG.md)** - Configuration parameters
 
 ---
 
