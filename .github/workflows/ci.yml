@@ -256,7 +256,8 @@ jobs:
           threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
           # Run fast tests (unit + integration) with coverage in parallel
           # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
-          python -m pytest -m "not (benchmark or slow or performance)" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+          # Use --maxfail=1 to stop all workers on first failure (fail-fast behavior)
+          python -m pytest -m "not (benchmark or slow or performance)" --maxfail=1 --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
             exit_code=$?
             python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
             python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
@@ -264,7 +265,8 @@ jobs:
           }
         else
           # Run tests without coverage on other platforms for speed
-          python -m pytest -m "not (benchmark or slow or performance)" || {
+          # Use --maxfail=1 to stop all workers on first failure (fail-fast behavior)
+          python -m pytest -m "not (benchmark or slow or performance)" --maxfail=1 || {
             exit_code=$?
             python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
             python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
@@ -523,7 +525,8 @@ jobs:
         mkdir -p .benchmarks
         # Run slow, performance, and benchmark tests sequentially (no parallelization)
         # These tests are excluded from the main test matrix to prevent timeouts
-        python -m pytest -m "slow or performance or benchmark" -v --tb=short -n 0 --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
+        # Use -x to exit on first failure (fail-fast behavior)
+        python -m pytest -m "slow or performance or benchmark" -v --tb=short -n 0 -x --benchmark-save=ci_run --benchmark-save-data --benchmark-storage=.benchmarks
         
         # Generate performance test summary with proper emoji handling
         python ../.github/scripts/ci_helpers.py success "Performance tests completed - no regressions detected" --print-only

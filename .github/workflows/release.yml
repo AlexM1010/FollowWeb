@@ -53,9 +53,11 @@ jobs:
     - name: Run full test suite
       run: |
         # Run non-benchmark tests with coverage
-        python -m pytest -m "not benchmark" --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-fail-under=70
+        # Use --maxfail=1 to stop all workers on first failure (fail-fast behavior)
+        python -m pytest -m "not benchmark" --maxfail=1 --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-fail-under=70
         # Run benchmark tests sequentially (no coverage)
-        python -m pytest -m benchmark -n 0 --tb=short
+        # Use -x to exit on first failure (fail-fast behavior)
+        python -m pytest -m benchmark -n 0 -x --tb=short
       env:
         MPLBACKEND: Agg
         PYTHONPATH: ${{ github.workspace }}/FollowWeb
