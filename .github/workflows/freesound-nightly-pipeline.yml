@@ -476,6 +476,138 @@ jobs:
         
         echo "✅ Metrics appended to history"
     
+    - name: Check for milestone
+      if: steps.pipeline.outputs.pipeline_status == 'success'
+      id: milestone
+      run: |
+        python detect_milestone.py \
+          --checkpoint-dir data/freesound_library \
+          --output milestone_status.json
+        
+        # Parse output
+        is_milestone=$(jq -r '.is_milestone' milestone_status.json)
+        milestone_number=$(jq -r '.milestone_number' milestone_status.json)
+        current_nodes=$(jq -r '.current_nodes' milestone_status.json)
+        
+        echo "is_milestone=$is_milestone" >> $GITHUB_OUTPUT
+        echo "milestone_number=$milestone_number" >> $GITHUB_OUTPUT
+        echo "current_nodes=$current_nodes" >> $GITHUB_OUTPUT
+        
+        if [ "$is_milestone" = "true" ]; then
+          echo "🎉 Milestone $milestone_number detected at $current_nodes nodes!"
+        fi
+    
+    - name: Run milestone actions in parallel
+      if: steps.milestone.outputs.is_milestone == 'true'
+      id: milestone_actions
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🎉 Milestone ${{ steps.milestone.outputs.milestone_number }} Reached!**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Current nodes: \`${{ steps.milestone.outputs.current_nodes }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**⚡ Running Milestone Actions in Parallel**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Start background jobs
+        echo "Starting parallel jobs..."
+        
+        # Job 1: Validation (background)
+        (
+          echo "Starting validation job..."
+          python validate_pipeline_data.py \
+            --checkpoint-dir data/freesound_library \
+            --metrics-history data/metrics_history.jsonl \
+            --output validation_report.json 2>&1 | tee validation.log
+          echo $? > validation_exit_code.txt
+        ) &
+        VALIDATION_PID=$!
+        
+        # Job 2: Edge generation (background)
+        (
+          echo "Starting edge generation job..."
+          python generate_user_pack_edges.py \
+            --checkpoint-dir data/freesound_library \
+            --output edge_stats.json 2>&1 | tee edge_generation.log
+          echo $? > edges_exit_code.txt
+        ) &
+        EDGES_PID=$!
+        
+        # Job 3: Website deployment (background)
+        (
+          echo "Starting website generation job..."
+          python generate_landing_page.py \
+            --output-dir website \
+            --metrics-history data/metrics_history.jsonl \
+            --milestone-history data/milestone_history.jsonl \
+            --visualizations Output/*.html 2>&1 | tee website.log
+          echo $? > website_exit_code.txt
+        ) &
+        WEBSITE_PID=$!
+        
+        # Wait for all jobs to complete
+        echo "Waiting for parallel jobs to complete..."
+        echo "- Validation PID: $VALIDATION_PID"
+        echo "- Edge Generation PID: $EDGES_PID"
+        echo "- Website PID: $WEBSITE_PID"
+        
+        wait $VALIDATION_PID
+        wait $EDGES_PID
+        wait $WEBSITE_PID
+        
+        # Check exit codes
+        validation_code=$(cat validation_exit_code.txt)
+        edges_code=$(cat edges_exit_code.txt)
+        website_code=$(cat website_exit_code.txt)
+        
+        echo "Exit codes: validation=$validation_code, edges=$edges_code, website=$website_code"
+        
+        # Log results to summary
+        echo "### Parallel Job Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ $validation_code -eq 0 ]; then
+          echo "- ✅ **Validation**: Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ❌ **Validation**: Failed (exit code: $validation_code)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ $edges_code -eq 0 ]; then
+          if [ -f edge_stats.json ]; then
+            user_edges=$(jq -r '.user_edges_added // 0' edge_stats.json)
+            pack_edges=$(jq -r '.pack_edges_added // 0' edge_stats.json)
+            echo "- ✅ **Edge Generation**: $user_edges user edges, $pack_edges pack edges" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ **Edge Generation**: Completed" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "- ❌ **Edge Generation**: Failed (exit code: $edges_code)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ $website_code -eq 0 ]; then
+          echo "- ✅ **Website**: Generated" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ❌ **Website**: Failed (exit code: $website_code)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Store exit codes for later steps
+        echo "validation_code=$validation_code" >> $GITHUB_OUTPUT
+        echo "edges_code=$edges_code" >> $GITHUB_OUTPUT
+        echo "website_code=$website_code" >> $GITHUB_OUTPUT
+        
+        # Fail if validation failed (critical)
+        if [ $validation_code -ne 0 ]; then
+          echo "::error::Validation failed - this is a critical error"
+          exit 1
+        fi
+        
+        # Warn if edge generation or website failed (non-critical)
+        if [ $edges_code -ne 0 ] || [ $website_code -ne 0 ]; then
+          echo "::warning::Some milestone actions failed but pipeline continues"
+        fi
+    
     - name: Upload checkpoint to private repository
       if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
       id: upload_checkpoint
@@ -653,6 +785,20 @@ jobs:
         # Add ONLY visualizations and metrics (NOT checkpoint data)
         git add Output/*.html data/metrics_history.jsonl
         
+        # Add milestone-related files if they exist
+        if [ -f data/milestone_history.jsonl ]; then
+          git add data/milestone_history.jsonl
+        fi
+        if [ -f validation_report.json ]; then
+          git add validation_report.json
+        fi
+        if [ -f edge_stats.json ]; then
+          git add edge_stats.json
+        fi
+        if [ -d website ]; then
+          git add website/
+        fi
+        
         # Check if there are changes to commit
         if git diff --staged --quiet; then
           echo "ℹ️ No changes to commit"
@@ -662,6 +808,11 @@ jobs:
           commit_msg="Nightly pipeline: $(date +'%Y-%m-%d')"
           if [ "${{ steps.stats.outputs.nodes_added }}" != "N/A" ]; then
             commit_msg="$commit_msg - +${{ steps.stats.outputs.nodes_added }} nodes, +${{ steps.stats.outputs.edges_added }} edges (total: ${{ steps.stats.outputs.total_nodes }} nodes, ${{ steps.stats.outputs.total_edges }} edges)"
+          fi
+          
+          # Add milestone info to commit message if applicable
+          if [ "${{ steps.milestone.outputs.is_milestone }}" = "true" ]; then
+            commit_msg="$commit_msg [Milestone ${{ steps.milestone.outputs.milestone_number }}]"
           fi
           
           git commit -m "$commit_msg"
@@ -800,5 +951,11 @@ jobs:
           pipeline_*.log
           freesound_viz_*.log
           fetch_freesound_*.log
+          validation.log
+          edge_generation.log
+          website.log
+          milestone_status.json
+          validation_report.json
+          edge_stats.json
         retention-days: 30
         if-no-files-found: ignore

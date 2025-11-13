@@ -1029,7 +1029,7 @@ def pytest_collection_modifyitems(config, items):
 
     # Check if we're explicitly excluding benchmarks first
     markers = config.getoption("-m", default="")
-    
+
     # Only check for benchmarks if we're not explicitly excluding them
     if "not benchmark" not in markers:
         # Check if any collected items have benchmark marker - disable xdist if so
