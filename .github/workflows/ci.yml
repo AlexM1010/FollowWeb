@@ -209,17 +209,26 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Configure Git
-      run: |
-        git config --global init.defaultBranch main
-        git config --global advice.detachedHead false
-    
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
         cache: 'pip'
         cache-dependency-path: 'FollowWeb/requirements-ci.txt'
+    
+    - name: Restore prebuild cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
+        key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
+        restore-keys: |
+          prebuild-${{ runner.os }}-py3.12-
     
     - name: Use prebuild environment
       run: |
@@ -277,11 +286,6 @@ jobs:
       with:
         # Fetch full history for better coverage analysis
         fetch-depth: 0
-    
-    - name: Configure Git
-      run: |
-        git config --global init.defaultBranch main
-        git config --global advice.detachedHead false
     
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -365,17 +369,18 @@ jobs:
       continue-on-error: false
       shell: bash
     
-    - name: Run tests without coverage
+    - name: Run tests with coverage
       run: |
         set -e  # Exit immediately if any command fails
+        threshold=$(python ../.github/scripts/ci_helpers.py coverage-threshold-value)
         # Get CPU count for CI environment (use all cores, no safety margin needed in CI)
         cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
         echo "Running tests with $cpu_count workers (all available cores)"
-        # Run fast tests (unit + integration) without coverage in parallel
+        # Run fast tests (unit + integration) with coverage in parallel
         # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
         # FAIL FAST: Stop immediately on first failure to save CI time
         # Disable benchmark plugin to prevent forced sequential mode
-        python -m pytest -p no:benchmark -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count || {
+        python -m pytest -p no:benchmark -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
           exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
           python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
@@ -421,17 +426,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Configure Git
-      run: |
-        git config --global init.defaultBranch main
-        git config --global advice.detachedHead false
-    
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
         cache: 'pip'
-        cache-dependency-path: 'requirements-ci.txt'
+        cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
     - name: Restore prebuild cache
       uses: actions/cache/restore@v4

@@ -1027,16 +1027,18 @@ def pytest_collection_modifyitems(config, items):
         ):
             item.add_marker(pytest.mark.unit)
 
-    # Check if any collected items have benchmark marker - disable xdist if so
-    has_benchmarks = any(
-        any(marker.name == "benchmark" for marker in item.iter_markers())
-        for item in items
-    )
+    # Check if we're explicitly excluding benchmarks first
+    markers = config.getoption("-m", default="")
+    
+    # Only check for benchmarks if we're not explicitly excluding them
+    if "not benchmark" not in markers:
+        # Check if any collected items have benchmark marker - disable xdist if so
+        has_benchmarks = any(
+            any(marker.name == "benchmark" for marker in item.iter_markers())
+            for item in items
+        )
 
-    if has_benchmarks:
-        # Check if we're explicitly excluding benchmarks
-        markers = config.getoption("-m", default="")
-        if "not benchmark" not in markers:
+        if has_benchmarks:
             # Disable parallel execution for benchmark tests
             config.option.numprocesses = 0
             config.option.dist = "no"
