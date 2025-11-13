@@ -12,6 +12,8 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
+
 from FollowWeb_Visualizor.core.exceptions import DataProcessingError
 from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
     IncrementalFreesoundLoader,

@@ -12,6 +12,8 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
+
 from FollowWeb_Visualizor.data.checkpoint import GraphCheckpoint
 
 

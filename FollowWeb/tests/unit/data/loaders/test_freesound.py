@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, Mock, patch
 import networkx as nx
 import pytest
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
+
 from FollowWeb_Visualizor.core.exceptions import DataProcessingError
 from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
 
