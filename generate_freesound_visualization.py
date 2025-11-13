@@ -13,10 +13,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Load environment variables from .env file
-from dotenv import load_dotenv
-
-load_dotenv()
+# Load environment variables from .env file (optional, for local development)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not available (e.g., in CI/CD), skip loading .env file
+    pass
 
 # Add FollowWeb to path
 sys.path.insert(0, str(Path(__file__).parent / "FollowWeb"))
