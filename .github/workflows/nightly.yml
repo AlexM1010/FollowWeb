@@ -97,8 +97,8 @@ jobs:
             python-version: '3.9'   # Oldest supported
           - os: ubuntu-latest  
             python-version: '3.12'  # Newest stable
-          - os: windows-latest
-            python-version: '3.11'  # Primary development version
+          - os: macos-latest
+            python-version: '3.12'  # macOS with newest stable
     
     steps:
     - name: Checkout code

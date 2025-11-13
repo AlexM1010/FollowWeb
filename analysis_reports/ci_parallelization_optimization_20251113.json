@@ -186,7 +186,8 @@
     "files_modified": [
       ".github/workflows/ci.yml",
       ".github/workflows/release.yml",
-      ".github/workflows/nightly.yml"
+      ".github/workflows/nightly.yml",
+      ".github/workflows/docs.yml"
     ],
     "changes_applied": [
       {
@@ -208,7 +209,17 @@
         "file": ".github/workflows/nightly.yml",
         "changes": [
           "Added max-parallel: 3 to ecosystem-compatibility matrix strategy",
+          "Fixed matrix configuration: changed windows-latest/3.11 to macos-latest/3.12",
           "Ensures all 3 nightly test combinations run simultaneously"
+        ]
+      },
+      {
+        "file": ".github/workflows/docs.yml",
+        "changes": [
+          "Removed unnecessary dependency: docstring-coverage no longer waits for documentation-structure",
+          "Both documentation-structure and docstring-coverage now run in parallel",
+          "Updated conventional-commits to wait for both parallel jobs",
+          "Expected time savings: ~5-10 minutes (parallel vs sequential)"
         ]
       }
     ],
