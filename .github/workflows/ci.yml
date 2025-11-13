@@ -245,7 +245,8 @@ jobs:
         # Run unit tests only (fast, isolated tests with maximum parallelization)
         # No coverage requirement for smoke test - just validate code works
         # FAIL FAST: Stop immediately on first failure to save CI time
-        python -m pytest -m unit -x --maxfail=1 --tb=short -v -n $cpu_count
+        # Disable benchmark plugin to prevent forced sequential mode
+        python -m pytest -p no:benchmark -m unit -x --maxfail=1 --tb=short -v -n $cpu_count
       shell: bash
       env:
         MPLBACKEND: Agg
@@ -295,11 +296,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
@@ -374,7 +375,8 @@ jobs:
         # Run fast tests (unit + integration) with coverage in parallel
         # Exclude slow, performance, and benchmark tests - those run in dedicated performance job
         # FAIL FAST: Stop immediately on first failure to save CI time
-        python -m pytest -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
+        # Disable benchmark plugin to prevent forced sequential mode
+        python -m pytest -p no:benchmark -m "not (benchmark or slow or performance)" -x --maxfail=1 -n $cpu_count --cov=FollowWeb_Visualizor --cov-report=xml --cov-report=term --cov-report=html --cov-fail-under=$threshold || {
           exit_code=$?
           python ../.github/scripts/ci_helpers.py error "Test Execution Failed" --summary-only
           python ../.github/scripts/ci_helpers.py info "**Exit Code:** $exit_code" --summary-only
@@ -455,11 +457,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
@@ -582,11 +584,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
@@ -739,11 +741,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
@@ -807,11 +809,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-

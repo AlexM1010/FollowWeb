@@ -27,11 +27,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
@@ -277,11 +277,11 @@ jobs:
       with:
         path: |
           ~/.cache/pip
-          FollowWeb/.venv
-          FollowWeb/tests/test_data
-          .pytest_cache
-          .mypy_cache
-          .ruff_cache
+          ${{ github.workspace }}/FollowWeb/.venv
+          ${{ github.workspace }}/FollowWeb/tests/test_data
+          ${{ github.workspace }}/.pytest_cache
+          ${{ github.workspace }}/.mypy_cache
+          ${{ github.workspace }}/.ruff_cache
         key: prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}
         restore-keys: |
           prebuild-${{ runner.os }}-py3.12-
