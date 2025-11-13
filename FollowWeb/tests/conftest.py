@@ -868,7 +868,7 @@ def _configure_parallel_execution(config):
     # But NOT if we're explicitly excluding benchmarks with "not benchmark"
     # Also check if benchmark plugin is disabled with -p no:benchmark
     benchmark_plugin_disabled = "no:benchmark" in config.option.plugins
-    
+
     if markers and "not benchmark" not in markers and not benchmark_plugin_disabled:
         if "benchmark" in markers:
             config.option.numprocesses = 0
@@ -876,7 +876,7 @@ def _configure_parallel_execution(config):
             if hasattr(config.option, "cov"):
                 config.option.cov = None  # Disable coverage for accurate timing
             return
-    
+
     # Performance and slow tests can run in parallel with reduced workers
     # They don't need sequential execution like benchmarks do
     if markers and ("performance" in markers or "slow" in markers):
