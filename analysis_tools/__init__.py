@@ -3,6 +3,7 @@ Analysis tools for comprehensive code quality assessment.
 
 This package provides utilities for analyzing Python code, detecting patterns,
 identifying optimization opportunities, and supporting safe refactoring operations.
+It also includes a comprehensive cleanup system for repository reorganization.
 """
 
 # Local imports
@@ -15,6 +16,9 @@ from .duplication_detector import DuplicationDetector
 from .pattern_detector import PatternDetector
 from .test_analyzer import DuplicateTestAnalyzer
 
+# Cleanup system imports
+from . import cleanup
+
 __all__ = [
     "AILanguageScanner",
     "AnalysisOrchestrator",
@@ -24,4 +28,5 @@ __all__ = [
     "PatternDetector",
     "DuplicateTestAnalyzer",
     "ast_utils",
+    "cleanup",
 ]
