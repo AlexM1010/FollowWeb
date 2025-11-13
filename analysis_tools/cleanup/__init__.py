@@ -13,6 +13,8 @@ from .exceptions import (
     ValidationError,
     WorkflowError,
 )
+from .file_manager import FileManager
+from .git_manager import GitManager
 from .models import (
     BranchInfo,
     CategorizedFile,
@@ -30,9 +32,11 @@ from .models import (
     WorkflowConfig,
     WorkflowRunResult,
 )
+from .orchestrator import CleanupOrchestrator
 from .reporting import ReportingSystem
 from .rollback import RollbackManager
 from .validation import ValidationEngine
+from .workflow_manager import WorkflowManager
 
 __all__ = [
     # Exceptions
@@ -41,6 +45,12 @@ __all__ = [
     "GitOperationError",
     "ValidationError",
     "WorkflowError",
+    # Orchestrator
+    "CleanupOrchestrator",
+    # Managers
+    "FileManager",
+    "GitManager",
+    "WorkflowManager",
     # Models
     "BranchInfo",
     "CategorizedFile",
