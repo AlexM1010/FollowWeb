@@ -226,6 +226,8 @@ jobs:
         if [ -d ".venv" ]; then
           echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
           python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
           echo "❌ Cache miss - installing fresh"
@@ -314,6 +316,8 @@ jobs:
         if [ -d ".venv" ]; then
           echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
           python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
           echo "❌ Cache miss - installing fresh"
@@ -465,6 +469,8 @@ jobs:
         if [ -d ".venv" ]; then
           echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
           python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
           echo "❌ Cache miss - installing fresh"
@@ -474,8 +480,6 @@ jobs:
     
     - name: Run Bandit security linter
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         # Generate JSON report for artifacts (include all issues for reporting)
         bandit -r FollowWeb_Visualizor -f json -o bandit-report.json || true
         
@@ -517,8 +521,6 @@ jobs:
     
     - name: Run pip-audit for known vulnerabilities
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         # Generate JSON report for artifacts
         pip-audit --format=json --output=pip-audit-report.json
         # Run vulnerability scan - FAIL on any vulnerabilities
@@ -594,6 +596,8 @@ jobs:
         if [ -d ".venv" ]; then
           echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
           python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
           echo "❌ Cache miss - installing fresh"
@@ -603,21 +607,15 @@ jobs:
     
     - name: Check code formatting with ruff
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         # Note: ruff format doesn't support --extend-exclude, use pyproject.toml config
         ruff format --check FollowWeb_Visualizor tests --diff
     
     - name: Run ruff linting
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         ruff check FollowWeb_Visualizor tests --output-format=github --extend-exclude="*.ipynb"
     
     - name: Check import sorting
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         ruff check --select I FollowWeb_Visualizor tests --extend-exclude="*.ipynb"
 
   build:
@@ -755,6 +753,8 @@ jobs:
         if [ -d ".venv" ]; then
           echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
           python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
           echo "❌ Cache miss - installing fresh"
@@ -764,8 +764,6 @@ jobs:
     
     - name: Run performance tests
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         # Run slow and performance tests sequentially (no parallelization)
         # Exclude benchmark tests - those run in separate benchmarks job
         # FAIL FAST: Stop immediately on first failure to save CI time
@@ -823,6 +821,8 @@ jobs:
         if [ -d ".venv" ]; then
           echo "✅ Using prebuild cache"
           source .venv/bin/activate
+          echo "VIRTUAL_ENV=$VIRTUAL_ENV" >> $GITHUB_ENV
+          echo "$VIRTUAL_ENV/bin" >> $GITHUB_PATH
           python -c "import FollowWeb_Visualizor; print('Package ready from cache')"
         else
           echo "❌ Cache miss - installing fresh"
@@ -832,8 +832,6 @@ jobs:
     
     - name: Run benchmark tests
       run: |
-        # Activate venv if it exists
-        if [ -d ".venv" ]; then source .venv/bin/activate; fi
         # Create benchmarks directory
         mkdir -p .benchmarks
         # Run benchmark tests sequentially (no parallelization)
