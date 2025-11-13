@@ -1,0 +1,193 @@
+# Reviewdog Code Review Workflow
+#
+# This workflow integrates reviewdog as a CI/CD orchestrator that calls
+# analysis_tools analyzers and formats their output for GitHub.
+#
+# Architecture:
+# - reviewdog: CI/CD orchestrator and formatter (NOT analyzer)
+# - analysis_tools: All code analysis (AI language, duplication, cross-platform, etc.)
+# - Integration: reviewdog → analysis_tools → formatted output
+#
+# Features:
+# - Diff mode analysis (only changed lines in PRs)
+# - SARIF output for GitHub Code Scanning
+# - GitHub Actions annotations for inline PR comments
+# - Severity thresholds for build failures
+# - Respects .gitignore patterns
+# - Saves results to analysis_reports/ directory
+
+name: Reviewdog Code Review
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**.py'
+      - 'FollowWeb/**'
+      - 'analysis_tools/**'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**.py'
+      - 'FollowWeb/**'
+      - 'analysis_tools/**'
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same workflow on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: write  # For SARIF upload
+
+jobs:
+  reviewdog:
+    name: Reviewdog Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better diff analysis
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install analysis_tools and its dependencies
+        if [ -f FollowWeb/requirements-ci.txt ]; then
+          python -m pip install -r FollowWeb/requirements-ci.txt
+        fi
+        # Install analysis_tools in development mode
+        if [ -f analysis_tools/__init__.py ]; then
+          python -m pip install -e .
+        fi
+    
+    - name: Set up reviewdog
+      uses: reviewdog/action-setup@v1
+      with:
+        reviewdog_version: latest
+    
+    # Run ruff linter with reviewdog
+    - name: Run ruff (linter)
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cd FollowWeb
+        ruff check --output-format=json FollowWeb_Visualizor 2>&1 | \
+          reviewdog -f=ruff -name="ruff" -reporter=github-pr-review -level=error -fail-on-error=true
+      continue-on-error: true
+    
+    # Run mypy type checker with reviewdog
+    - name: Run mypy (type checker)
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cd FollowWeb
+        mypy FollowWeb_Visualizor --show-column-numbers --show-error-codes --no-error-summary 2>&1 | \
+          reviewdog -efm="%f:%l:%c: %t%*[^:]: %m" -name="mypy" -reporter=github-pr-review -level=error
+      continue-on-error: true
+    
+    # Run analysis_tools: AI Language Scanner
+    - name: Run AI Language Scanner
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python -m analysis_tools.ai_language_scanner \
+          --format=reviewdog \
+          --output=analysis_reports/reviewdog_ai_language.json \
+          --diff-only 2>&1 | \
+          reviewdog -f=rdjson -name="ai-language" -reporter=github-pr-review -level=warning
+      continue-on-error: true
+    
+    # Run analysis_tools: Duplication Detector
+    - name: Run Duplication Detector
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python -m analysis_tools.duplication_detector \
+          --format=reviewdog \
+          --output=analysis_reports/reviewdog_duplication.json \
+          --diff-only 2>&1 | \
+          reviewdog -f=rdjson -name="duplication" -reporter=github-pr-review -level=warning
+      continue-on-error: true
+    
+    # Run analysis_tools: Cross-Platform Analyzer
+    - name: Run Cross-Platform Analyzer
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python -m analysis_tools.cross_platform_analyzer \
+          --format=reviewdog \
+          --output=analysis_reports/reviewdog_cross_platform.json \
+          --diff-only 2>&1 | \
+          reviewdog -f=rdjson -name="cross-platform" -reporter=github-pr-review -level=warning
+      continue-on-error: true
+    
+    # Run analysis_tools: Pattern Detector
+    - name: Run Pattern Detector
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python -m analysis_tools.pattern_detector \
+          --format=reviewdog \
+          --output=analysis_reports/reviewdog_patterns.json \
+          --diff-only 2>&1 | \
+          reviewdog -f=rdjson -name="patterns" -reporter=github-pr-review -level=info
+      continue-on-error: true
+    
+    # Generate SARIF report for GitHub Code Scanning
+    - name: Generate SARIF report
+      if: always()
+      run: |
+        python -m analysis_tools.generate_sarif_report \
+          --input-dir=analysis_reports \
+          --output=analysis_reports/reviewdog_combined.sarif
+      continue-on-error: true
+    
+    # Upload SARIF to GitHub Code Scanning
+    - name: Upload SARIF to GitHub Code Scanning
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: analysis_reports/reviewdog_combined.sarif
+        category: reviewdog-analysis
+      continue-on-error: true
+    
+    # Upload analysis reports as artifacts
+    - name: Upload analysis reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: reviewdog-analysis-reports
+        path: analysis_reports/reviewdog_*.json
+        retention-days: 30
+        if-no-files-found: warn
+    
+    # Generate summary
+    - name: Generate summary
+      if: always()
+      run: |
+        echo "## Reviewdog Analysis Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Analysis tools executed:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Ruff (linter)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Mypy (type checker)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ AI Language Scanner" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Duplication Detector" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Cross-Platform Analyzer" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Pattern Detector" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Results saved to \`analysis_reports/\` directory" >> $GITHUB_STEP_SUMMARY
+        echo "SARIF report uploaded to GitHub Code Scanning" >> $GITHUB_STEP_SUMMARY

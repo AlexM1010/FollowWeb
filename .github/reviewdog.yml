@@ -1,0 +1,96 @@
+# Reviewdog Configuration for FollowWeb
+# 
+# Reviewdog acts as a CI/CD orchestrator that calls analysis_tools analyzers
+# and formats their output for GitHub (inline PR annotations, SARIF, etc.)
+# 
+# Architecture:
+# - reviewdog: CI/CD orchestrator and formatter (NOT analyzer)
+# - analysis_tools: All code analysis (AI language, duplication, cross-platform, etc.)
+# - Integration: reviewdog → analysis_tools → formatted output
+#
+# This configuration integrates with existing analysis_tools:
+# - AILanguageScanner: AI language pattern detection
+# - DuplicationDetector: Code duplication analysis
+# - CrossPlatformAnalyzer: Platform compatibility checks
+# - CodeAnalyzer: Import analysis, code quality metrics
+# - PatternDetector: Generic error messages, redundant validation
+
+runner:
+  # Ruff linter (fast Python linter and formatter)
+  ruff:
+    cmd: ruff check --output-format=json --config=FollowWeb/pyproject.toml FollowWeb/FollowWeb_Visualizor
+    errorformat:
+      - "%f:%l:%c: %m"
+    name: ruff
+    level: error
+    format: rdjson
+
+  # Mypy type checker
+  mypy:
+    cmd: mypy FollowWeb/FollowWeb_Visualizor --show-column-numbers --show-error-codes --no-error-summary
+    errorformat:
+      - "%f:%l:%c: %t%*[^:]: %m"
+    name: mypy
+    level: error
+    format: mypy
+
+  # analysis_tools: AI Language Scanner
+  # Detects AI-generated language patterns, marketing phrases, overused adjectives
+  ai-language:
+    cmd: python -m analysis_tools.ai_language_scanner --format=reviewdog --diff-only
+    errorformat:
+      - "%f:%l:%c: %m"
+    name: ai-language
+    level: warning
+    format: rdjson
+
+  # analysis_tools: Duplication Detector
+  # Detects code duplication and redundant patterns
+  duplication:
+    cmd: python -m analysis_tools.duplication_detector --format=reviewdog --diff-only
+    errorformat:
+      - "%f:%l:%c: %m"
+    name: duplication
+    level: warning
+    format: rdjson
+
+  # analysis_tools: Cross-Platform Analyzer
+  # Detects hardcoded paths and platform-specific code
+  cross-platform:
+    cmd: python -m analysis_tools.cross_platform_analyzer --format=reviewdog --diff-only
+    errorformat:
+      - "%f:%l:%c: %m"
+    name: cross-platform
+    level: warning
+    format: rdjson
+
+  # analysis_tools: Pattern Detector
+  # Detects generic error messages and redundant validation
+  patterns:
+    cmd: python -m analysis_tools.pattern_detector --format=reviewdog --diff-only
+    errorformat:
+      - "%f:%l:%c: %m"
+    name: patterns
+    level: info
+    format: rdjson
+
+# Filter configuration
+filter:
+  # Only analyze changed lines in pull requests (diff mode)
+  mode: diff_context
+  # Respect .gitignore patterns
+  gitignore: true
+  # Exclude patterns
+  exclude:
+    - "*.ipynb"
+    - "tests/test_data/*"
+    - "*.md"
+    - "docs/*"
+    - ".github/*"
+    - "*.txt"
+    - "*.json"
+    - "*.yml"
+    - "*.yaml"
+
+# Severity thresholds for build failures
+fail_on_error: true  # Fail build on error-level issues
