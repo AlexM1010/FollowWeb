@@ -48,7 +48,7 @@ See Also:
 
 Notes:
     Requires a Freesound API key. Get one at https://freesound.org/apiv2/apply/
-    
+
     The loader respects Freesound's rate limits (60 requests/minute by default)
     and implements exponential backoff for 429 (rate limit) errors.
 """
@@ -80,7 +80,7 @@ class FreesoundLoader(DataLoader):
     rate limiting and caching.
 
     The loader supports:
-    
+
     - Text search queries
     - Tag-based filtering
     - Similar sounds relationships (MVP: only edge type)
@@ -106,7 +106,7 @@ class FreesoundLoader(DataLoader):
     Notes
     -----
     The loader creates directed graphs where:
-    
+
     - Nodes represent audio samples with attributes:
         - id: Freesound sample ID
         - name: Sample name
@@ -116,11 +116,11 @@ class FreesoundLoader(DataLoader):
         - audio_url: High-quality MP3 preview URL
         - num_downloads: Download count (popularity metric)
         - avg_rating: Average rating (quality metric)
-    
+
     - Edges represent similarity relationships:
         - type: 'similar' (based on acoustic analysis)
         - weight: Similarity score (1.0 default)
-    
+
     The loader uses the Freesound API's similarity endpoint which is based
     on acoustic analysis (timbre, rhythm, pitch) rather than metadata.
 
@@ -170,7 +170,7 @@ class FreesoundLoader(DataLoader):
         ----------
         config : dict[str, Any], optional
             Configuration dictionary with optional keys:
-            
+
             - api_key : str
                 Freesound API key. If not provided, reads from
                 FREESOUND_API_KEY environment variable.
@@ -186,7 +186,7 @@ class FreesoundLoader(DataLoader):
         Notes
         -----
         The loader initializes:
-        
+
         - Official freesound-python client for API access
         - Custom rate limiter for request throttling
         - Internal sound cache for reducing API calls

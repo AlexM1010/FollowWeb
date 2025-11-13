@@ -1,6 +1,6 @@
 # Makefile for FollowWeb development and testing
 
-.PHONY: help install install-dev test test-unit test-integration test-performance test-coverage test-coverage-sequential test-coverage-xml test-fast test-parallel test-sequential test-parallel-debug test-benchmark test-performance-comparison clean lint format type-check docs build dist upload tox tox-parallel
+.PHONY: help install install-dev test test-unit test-integration test-performance test-coverage test-coverage-sequential test-coverage-xml test-fast test-parallel test-sequential test-parallel-debug test-benchmark test-performance-comparison clean lint format format-check type-check check docs build dist upload tox tox-parallel
 
 # Default target
 help:
@@ -42,7 +42,9 @@ help:
 	@echo "Code Quality:"
 	@echo "  lint             Run linting checks"
 	@echo "  format           Format code with ruff"
+	@echo "  format-check     Check code formatting without modifying files"
 	@echo "  type-check       Run type checking with mypy"
+	@echo "  check            Run all quality checks (format-check, lint, type-check, test-fast)"
 	@echo ""
 	@echo "Build & Distribution:"
 	@echo "  build            Build package distributions"
@@ -179,6 +181,10 @@ format:
 	ruff check --fix FollowWeb_Visualizor tests
 	@echo "Code formatting complete"
 
+format-check:
+	ruff format --check FollowWeb_Visualizor tests --diff
+	@echo "Format check complete"
+
 type-check:
 	mypy FollowWeb_Visualizor
 	@echo "Type checking complete"
@@ -223,7 +229,7 @@ docs:
 dev-setup: install-dev
 	@echo "Development environment setup complete"
 
-check: lint type-check test-fast
+check: format-check lint type-check test-fast
 	@echo "All checks passed"
 
 ci: lint type-check test-coverage

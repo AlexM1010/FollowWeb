@@ -83,6 +83,7 @@
 #    - Use ruff for both linting and formatting (replaces black + flake8)
 #    - Configure .ipynb exclusion in pyproject.toml rather than CLI flags
 #    - Separate formatting check from linting for clearer error reporting
+#    - Quality checks fail fast with clear instructions for local fixes (no auto-commit)
 #
 # 3. Security Scanning Issues:
 #    - Use pip-audit instead of safety (no registration required)
@@ -138,7 +139,7 @@ jobs:
   
   # Fast quality checks - runs in parallel with smoke test to catch issues early
   # This job runs ruff linting and formatting checks before any tests
-  # Automatically applies safe fixes and only fails if issues remain
+  # Fails fast with clear instructions if issues are found
   quality-check:
     name: Quick Quality Check
     runs-on: ubuntu-latest
@@ -150,9 +151,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        ref: ${{ github.head_ref }}
     
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
@@ -167,97 +165,65 @@ jobs:
         # Install type stubs for external libraries
         python -m pip install types-python-dateutil types-PyYAML types-decorator
     
-    - name: Apply ruff auto-fixes
-      id: ruff-fix
+    - name: Check code formatting
       run: |
-        echo "Attempting to auto-fix issues with ruff..."
-        
-        # Apply safe auto-fixes for linting issues
-        ruff check FollowWeb_Visualizor tests --fix --unsafe-fixes || true
-        
-        # Apply formatting fixes
-        ruff format FollowWeb_Visualizor tests || true
-        
-        # Check if any files were modified
-        if git diff --quiet; then
-          echo "No auto-fixes applied"
-          echo "fixes_applied=false" >> $GITHUB_OUTPUT
-        else
-          echo "Auto-fixes applied successfully"
-          echo "fixes_applied=true" >> $GITHUB_OUTPUT
-          
-          # Show what was fixed
-          echo "### Auto-fixes Applied" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`diff" >> $GITHUB_STEP_SUMMARY
-          git diff >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        fi
-      continue-on-error: true
-    
-    - name: Commit and push auto-fixes
-      if: steps.ruff-fix.outputs.fixes_applied == 'true' && github.event_name == 'pull_request'
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add -A
-        git commit -m "style: apply ruff auto-fixes [skip ci]"
-        git push
-      continue-on-error: true
-    
-    - name: Run ruff format check (after auto-fix)
-      run: |
-        echo "Checking if any formatting issues remain after auto-fix..."
+        echo "Checking code formatting with ruff..."
         if ! ruff format --check FollowWeb_Visualizor tests --diff; then
-          echo "::error::Formatting issues remain after auto-fix. Manual intervention required."
-          echo "### [FAIL] Formatting Issues Remain" >> $GITHUB_STEP_SUMMARY
-          echo "Ruff was unable to automatically fix all formatting issues." >> $GITHUB_STEP_SUMMARY
-          echo "Please run locally: \`ruff format FollowWeb_Visualizor tests\`" >> $GITHUB_STEP_SUMMARY
+          echo "::error::Code formatting issues found."
+          echo "### ❌ Formatting Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please run locally to fix:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "cd FollowWeb" >> $GITHUB_STEP_SUMMARY
+          echo "ruff format FollowWeb_Visualizor tests" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           exit 1
-        else
-          echo "[PASS] All formatting issues resolved"
         fi
-      continue-on-error: false
+        echo "✓ Formatting check passed"
     
-    - name: Run ruff linting check (after auto-fix)
+    - name: Run linting checks
       run: |
-        echo "Checking if any linting issues remain after auto-fix..."
+        echo "Running ruff linting checks..."
         if ! ruff check FollowWeb_Visualizor tests --output-format=github; then
-          echo "::error::Linting issues remain after auto-fix. Manual intervention required."
-          echo "### [FAIL] Linting Issues Remain" >> $GITHUB_STEP_SUMMARY
-          echo "Ruff was unable to automatically fix all linting issues." >> $GITHUB_STEP_SUMMARY
-          echo "Please run locally: \`ruff check FollowWeb_Visualizor tests --fix\`" >> $GITHUB_STEP_SUMMARY
+          echo "::error::Linting issues found."
+          echo "### ❌ Linting Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please run locally to fix:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "cd FollowWeb" >> $GITHUB_STEP_SUMMARY
+          echo "ruff check FollowWeb_Visualizor tests --fix" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           exit 1
-        else
-          echo "[PASS] All linting issues resolved"
         fi
-      continue-on-error: false
+        echo "✓ Linting check passed"
     
     - name: Run type checking
       run: |
         echo "Running mypy type checking..."
         # Clean any previous build artifacts that might interfere with mypy
         if [ -d "build" ]; then rm -rf build; fi
-        # Run mypy with proper configuration to ignore external library issues
-        if ! mypy FollowWeb_Visualizor; then
-          echo "::error::Type checking failed. Please fix type errors."
-          echo "### [FAIL] Type Checking Failed" >> $GITHUB_STEP_SUMMARY
-          echo "Please run locally: \`mypy FollowWeb_Visualizor\`" >> $GITHUB_STEP_SUMMARY
+        if ! mypy FollowWeb_Visualizor --show-error-codes; then
+          echo "::error::Type checking failed."
+          echo "### ❌ Type Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please run locally to fix:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "cd FollowWeb" >> $GITHUB_STEP_SUMMARY
+          echo "mypy FollowWeb_Visualizor" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           exit 1
-        else
-          echo "[PASS] Type checking passed"
         fi
-      continue-on-error: false
+        echo "✓ Type checking passed"
     
     - name: Quality check summary
-      if: always()
+      if: success()
       run: |
-        if [[ "${{ steps.ruff-fix.outputs.fixes_applied }}" == "true" ]]; then
-          echo "### [PASS] Quality Check Passed (with auto-fixes)" >> $GITHUB_STEP_SUMMARY
-          echo "Ruff automatically fixed code quality issues." >> $GITHUB_STEP_SUMMARY
-        else
-          echo "### [PASS] Quality Check Passed" >> $GITHUB_STEP_SUMMARY
-          echo "No code quality issues found." >> $GITHUB_STEP_SUMMARY
-        fi
+        echo "### ✅ Quality Check Passed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All code quality checks passed:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Code formatting (ruff format)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Linting (ruff check)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Type checking (mypy)" >> $GITHUB_STEP_SUMMARY
   
   # Quick smoke test on Ubuntu with latest Python - runs in parallel with performance and benchmarks
   # Runs unit tests only (excludes integration tests) for faster feedback

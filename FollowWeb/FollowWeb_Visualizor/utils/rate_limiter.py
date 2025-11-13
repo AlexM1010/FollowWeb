@@ -28,7 +28,7 @@ Example:
     With timeout::
 
         limiter = RateLimiter(requests_per_minute=60)
-        
+
         if limiter.acquire(timeout=5.0):
             # Token acquired within 5 seconds
             response = make_api_request()
@@ -39,14 +39,14 @@ Example:
     Multi-threaded usage::
 
         import threading
-        
+
         limiter = RateLimiter(requests_per_minute=60)
-        
+
         def worker():
             for i in range(10):
                 limiter.acquire()
                 make_api_request()
-        
+
         threads = [threading.Thread(target=worker) for _ in range(5)]
         for t in threads:
             t.start()
@@ -58,12 +58,12 @@ See Also:
 
 Notes:
     The token bucket algorithm works as follows:
-    
+
     1. Bucket starts full with N tokens (N = requests_per_minute)
     2. Tokens are consumed when requests are made
     3. Tokens are refilled continuously at the configured rate
     4. If bucket is empty, requests block until tokens are available
-    
+
     This allows bursts up to N requests, then throttles to the average rate.
 """
 
@@ -101,13 +101,13 @@ class RateLimiter:
     Notes
     -----
     The token bucket algorithm:
-    
+
     - Starts with a full bucket (rate tokens)
     - Consumes tokens when requests are made
     - Refills tokens continuously at (rate / 60) tokens per second
     - Blocks requests when bucket is empty
     - Allows bursts up to the bucket capacity
-    
+
     This is more flexible than a simple fixed-rate limiter because it allows
     occasional bursts while still maintaining the average rate over time.
 

@@ -115,20 +115,20 @@ class DataLoader(ABC):
         config : dict[str, Any], optional
             Configuration dictionary for the loader. Subclasses can define
             their own configuration schema. Common keys include:
-            
+
             - 'api_key': API authentication key
             - 'cache_ttl': Cache time-to-live in seconds
             - 'timeout': Request timeout in seconds
-            
+
             Default is None, which initializes an empty config dict.
 
         Notes
         -----
         The constructor automatically initializes:
-        
+
         - A logger named after the subclass
         - A centralized cache manager for expensive operations
-        
+
         Subclasses should call super().__init__(config) before their own initialization.
         """
         self.config = config or {}
@@ -147,7 +147,7 @@ class DataLoader(ABC):
         ----------
         **params : dict
             Source-specific parameters for data fetching. Common parameters include:
-            
+
             - filepath : str - Path to data file (for file-based loaders)
             - query : str - Search query (for API-based loaders)
             - filters : dict - Filter criteria
@@ -165,7 +165,7 @@ class DataLoader(ABC):
         ------
         DataProcessingError
             If data fetching fails due to:
-            
+
             - Network errors or timeouts
             - Authentication failures
             - Invalid parameters
@@ -225,15 +225,15 @@ class DataLoader(ABC):
         -------
         nx.DiGraph
             NetworkX directed graph with nodes and edges representing the network.
-            
+
             Nodes should have meaningful attributes such as:
-            
+
             - 'name': Display name
             - 'type': Node type/category
             - 'metadata': Additional properties
-            
+
             Edges should have attributes such as:
-            
+
             - 'type': Relationship type
             - 'weight': Relationship strength
             - 'metadata': Additional properties
@@ -242,7 +242,7 @@ class DataLoader(ABC):
         ------
         DataProcessingError
             If graph construction fails due to:
-            
+
             - Invalid data format
             - Missing required fields
             - Duplicate node IDs
@@ -266,7 +266,7 @@ class DataLoader(ABC):
 
             def build_graph(self, data: dict[str, Any]) -> nx.DiGraph:
                 graph = nx.DiGraph()
-                
+
                 # Add nodes with attributes
                 for node in data['nodes']:
                     graph.add_node(
@@ -274,7 +274,7 @@ class DataLoader(ABC):
                         name=node['name'],
                         type=node.get('type', 'default')
                     )
-                
+
                 # Add edges with attributes
                 for edge in data['edges']:
                     graph.add_edge(
@@ -283,7 +283,7 @@ class DataLoader(ABC):
                         type=edge.get('type', 'default'),
                         weight=edge.get('weight', 1.0)
                     )
-                
+
                 return graph
 
         Graph with validation::
@@ -291,10 +291,10 @@ class DataLoader(ABC):
             def build_graph(self, data: dict[str, Any]) -> nx.DiGraph:
                 if 'nodes' not in data:
                     raise DataProcessingError("Missing 'nodes' in data")
-                
+
                 graph = nx.DiGraph()
                 node_ids = set()
-                
+
                 # Add nodes and track IDs
                 for node in data['nodes']:
                     node_id = str(node['id'])
@@ -302,7 +302,7 @@ class DataLoader(ABC):
                         raise DataProcessingError(f"Duplicate node ID: {node_id}")
                     node_ids.add(node_id)
                     graph.add_node(node_id, **node.get('attrs', {}))
-                
+
                 # Add edges with validation
                 for edge in data.get('edges', []):
                     source, target = str(edge['source']), str(edge['target'])
@@ -310,7 +310,7 @@ class DataLoader(ABC):
                         self.logger.warning(f"Skipping invalid edge: {source} -> {target}")
                         continue
                     graph.add_edge(source, target, **edge.get('attrs', {}))
-                
+
                 return graph
         """
         pass
@@ -321,7 +321,7 @@ class DataLoader(ABC):
 
         This is the main entry point for pipeline integration. It orchestrates
         the complete data loading process using the template method pattern:
-        
+
         1. Fetch raw data from source (calls fetch_data)
         2. Build NetworkX graph from data (calls build_graph)
         3. Validate graph structure (calls _validate_graph)
@@ -347,7 +347,7 @@ class DataLoader(ABC):
         ------
         DataProcessingError
             If any step in the workflow fails:
-            
+
             - Data fetching fails (network, auth, etc.)
             - Graph construction fails (invalid data)
             - Validation fails (wrong graph type)
@@ -385,11 +385,11 @@ class DataLoader(ABC):
             def run_pipeline(loader, **params):
                 # Load data
                 graph = loader.load(**params)
-                
+
                 # Analyze
                 analyzer = NetworkAnalyzer()
                 metrics = analyzer.analyze(graph)
-                
+
                 # Visualize
                 renderer = SigmaRenderer(config)
                 renderer.generate_visualization(graph, 'output.html', metrics)
@@ -443,11 +443,11 @@ class DataLoader(ABC):
         Notes
         -----
         This method performs the following checks:
-        
+
         - Verifies graph is a NetworkX DiGraph instance
         - Logs node and edge counts
         - Warns if graph is empty (no nodes or edges)
-        
+
         The validation ensures consistent output across all loader implementations.
 
         Warnings
