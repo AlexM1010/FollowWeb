@@ -309,7 +309,9 @@ jobs:
         else
           echo "Installing dependencies fresh"
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -r requirements-ci.txt -e .
+          # Install dependencies first, then package in editable mode
+          python -m pip install -r requirements-ci.txt
+          python -m pip install -e .
         fi
       shell: bash
     

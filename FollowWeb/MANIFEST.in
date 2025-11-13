@@ -7,15 +7,26 @@ include INSTALL_GUIDE.md
 # Include configuration files
 recursive-include configs *.json
 
-# Include example data (but not generated cache files)
-recursive-include examples *.json *.txt
-recursive-include examples/sample_data *.json
-
-# Include documentation
+# Include documentation (exclude config examples as they're redundant with configs/)
 recursive-include docs *.md *.rst
 
-# Include test data (anonymized datasets only)
-recursive-include tests/test_data *.json
+# Exclude test files (not needed in distribution)
+# Tests should be run from source repository, not from installed package
+prune tests
+prune analysis_tools
+
+# Exclude development files
+exclude Makefile
+exclude pytest.ini
+exclude .pypirc.template
+exclude REQUIREMENTS_GUIDE.md
+exclude requirements.txt
+exclude requirements-test.txt
+exclude requirements-minimal.txt
+exclude requirements-ci.txt
+
+# Exclude example scripts (keep sample data only)
+recursive-exclude examples *.py
 
 # Exclude generated files and caches
 global-exclude *.pyc
