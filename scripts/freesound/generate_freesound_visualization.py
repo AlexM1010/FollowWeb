@@ -30,7 +30,13 @@ from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer  # 
 
 
 def setup_logging():
-    """Configure logging with emoji support."""
+    """Configure logging with emoji support and Windows console compatibility."""
+    # Configure UTF-8 encoding for Windows console
+    if sys.platform == 'win32':
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    
     logging.basicConfig(
         level=logging.DEBUG,  # Changed to DEBUG
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
