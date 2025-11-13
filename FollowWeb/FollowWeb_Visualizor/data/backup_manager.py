@@ -4,16 +4,30 @@ Backup manager for Freesound pipeline with tiered retention strategy.
 This module provides intelligent backup management with:
 - Configurable backup intervals (e.g., every 25 nodes)
 - Multi-tier retention policies (frequent, moderate, milestone, daily)
+- Time-based and count-based retention enforcement
+- GitHub release tag assignment per tier
 - Automatic cleanup of old backups
 - Backup verification and integrity checks
 - Compression support for older backups
 - Detailed backup manifest tracking
 
 Backup Tiers:
-    - Frequent: Every N nodes (default: 25) - keeps last 5
-    - Moderate: Every 4*N nodes (default: 100) - keeps last 10
-    - Milestone: Every 20*N nodes (default: 500) - keeps indefinitely
-    - Daily: One per day - keeps last 30 days
+    - Frequent: Every N nodes (default: 25)
+        - Keeps last 5 backups
+        - 14-day retention window
+        - Release tag: v-checkpoint
+    - Moderate: Every 4*N nodes (default: 100)
+        - Keeps last 10 backups
+        - Permanent retention (retention_days=None)
+        - Release tag: v-permanent
+    - Milestone: Every 20*N nodes (default: 500)
+        - Keeps indefinitely (keep=-1)
+        - Permanent retention (retention_days=None)
+        - Release tag: v-permanent
+    - Daily: One per day
+        - Keeps last 30 backups
+        - 30-day retention window
+        - Release tag: v-checkpoint
 
 Example:
     manager = BackupManager(
@@ -27,13 +41,16 @@ Example:
         logger=logger
     )
 
-    # Check if backup needed
-    if manager.should_create_backup(current_node_count):
+    # Check if backup needed and get tier
+    should_backup, tier = manager.should_create_backup_with_tier(current_node_count)
+    if should_backup:
         manager.create_backup(
             topology_path='graph_topology.gpickle',
             metadata_db_path='metadata_cache.db',
             checkpoint_metadata={'nodes': 250, 'edges': 1500}
         )
+        release_tag = manager.get_release_tag(tier)
+        print(f"Upload to release: {release_tag}")
 """
 
 import gzip
@@ -99,19 +116,31 @@ class BackupManager:
             "frequent": {
                 "interval": self.backup_interval,
                 "keep": 5,
+                "retention_days": 14,  # Rolling 14-day window
+                "release_tag": "v-checkpoint",  # Existing tag for frequent backups
                 "description": f"Every {self.backup_interval} nodes",
             },
             "moderate": {
                 "interval": self.backup_interval * 4,
                 "keep": 10,
+                "retention_days": None,  # Permanent retention
+                "release_tag": "v-permanent",  # New tag for permanent backups
                 "description": f"Every {self.backup_interval * 4} nodes",
             },
             "milestone": {
                 "interval": self.backup_interval * 20,
                 "keep": -1,  # Keep indefinitely
+                "retention_days": None,  # Permanent retention
+                "release_tag": "v-permanent",  # Same tag as moderate
                 "description": f"Every {self.backup_interval * 20} nodes",
             },
-            "daily": {"interval": "daily", "keep": 30, "description": "One per day"},
+            "daily": {
+                "interval": "daily",
+                "keep": 30,
+                "retention_days": 30,  # Keep for 30 days
+                "release_tag": "v-checkpoint",  # Use existing tag
+                "description": "One per day",
+            },
         }
 
         # Manifest file
@@ -212,6 +241,41 @@ class BackupManager:
         # Default to frequent
         return "frequent"
 
+    def get_release_tag(self, tier: str) -> str:
+        """
+        Get the GitHub release tag for a given backup tier.
+
+        Args:
+            tier: Backup tier name ('frequent', 'moderate', 'milestone', 'daily')
+
+        Returns:
+            Release tag name (e.g., 'v-checkpoint', 'v-permanent')
+        """
+        tier_config = self.tiers.get(tier, {})
+        return tier_config.get("release_tag", "v-checkpoint")
+
+    def should_create_backup_with_tier(
+        self, current_nodes: int
+    ) -> tuple[bool, Optional[str]]:
+        """
+        Check if backup should be created and determine its tier.
+
+        Args:
+            current_nodes: Current number of nodes in graph
+
+        Returns:
+            Tuple of (should_backup, tier_name)
+        """
+        if current_nodes == 0:
+            return (False, None)
+
+        # Check if at backup interval
+        if current_nodes % self.backup_interval == 0:
+            tier = self._determine_tier(current_nodes)
+            return (True, tier)
+
+        return (False, None)
+
     def create_backup(
         self,
         topology_path: Path,
@@ -311,7 +375,8 @@ class BackupManager:
 
         Keeps:
         - Last N backups per tier (based on tier configuration)
-        - All milestone backups (keep=-1)
+        - Backups within retention_days window (if specified)
+        - All backups with retention_days=None (permanent retention)
         - At least 3 most recent backups regardless of policy
         """
         try:
@@ -329,20 +394,38 @@ class BackupManager:
 
             # Track backups to remove
             backups_to_remove = []
+            current_time = datetime.now(timezone.utc)
 
             # Apply retention policy per tier
             for tier, backups in backups_by_tier.items():
-                tier_config = self.tiers.get(tier, {"keep": 5})
+                tier_config = self.tiers.get(tier, {"keep": 5, "retention_days": None})
                 keep_count = tier_config["keep"]
+                retention_days = tier_config.get("retention_days")
 
-                # Skip if keep=-1 (indefinite retention)
-                if keep_count == -1:
+                # Skip if retention_days=None (permanent retention)
+                if retention_days is None:
                     continue
 
-                # Remove oldest backups exceeding retention count
-                if len(backups) > keep_count:
-                    excess_count = len(backups) - keep_count
-                    backups_to_remove.extend(backups[:excess_count])
+                # Apply time-based retention (retention_days)
+                if retention_days is not None:
+                    cutoff_date = current_time - timedelta(days=retention_days)
+                    for backup in backups:
+                        backup_time = datetime.fromisoformat(
+                            backup["timestamp"].replace("Z", "+00:00")
+                        )
+                        if backup_time < cutoff_date:
+                            backups_to_remove.append(backup)
+
+                # Apply count-based retention (keep)
+                # Skip if keep=-1 (indefinite retention)
+                if keep_count != -1:
+                    # Remove oldest backups exceeding retention count
+                    if len(backups) > keep_count:
+                        excess_count = len(backups) - keep_count
+                        # Add to removal list if not already there
+                        for backup in backups[:excess_count]:
+                            if backup not in backups_to_remove:
+                                backups_to_remove.append(backup)
 
             # Always keep at least 3 most recent backups
             all_backups = sorted(
