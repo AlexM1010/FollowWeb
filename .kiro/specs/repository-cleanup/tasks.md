@@ -523,7 +523,11 @@ rkflow optimization phase
 
 ## Phase 4: Code Quality and Review Integration
 
-- [-] 10. Execute code quality remediation
+- [x] 10. Execute code quality remediation
+
+
+
+
   - Use AILanguageScanner to detect AI-generated language patterns
   - Replace marketing phrases with technical terminology based on scanner results
   - Use DuplicationDetector to identify duplicate validation patterns
@@ -575,7 +579,7 @@ rkflow optimization phase
     - Cross-platform compatibility verified
     - _Requirements: 13.4_
 
-  - [ ] 10.0.6 Add type annotations for type safety
+  - [x] 10.0.6 Add type annotations for type safety
     - Run mypy to identify type errors (found 16 errors in 4 files)
     - Fix incompatible default arguments (Optional types)
     - Fix incompatible type assignments in loaders
@@ -601,16 +605,69 @@ rkflow optimization phase
     - Committed changes successfully (commit e6b6ded)
     - _Requirements: 13.7_
 
-  - [ ] 10.1 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+  - [x] 10.1 Please resolve ALL issues, EVEN if unrelated: 
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
 
-- [ ] 11. Integrate automated code review tools
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
+
+
+- [-] 11. Integrate automated code review tools
+
+
+
 
 
 
@@ -624,15 +681,63 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
   - Integrate results into analysis_reports/ directory
   - Configure file pattern filters to respect .gitignore
   - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
-
   - [ ] 11.1 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
+
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
 
 ## Phase 5: Final Validation and Documentation
 
@@ -648,14 +753,62 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
   - _Requirements: 6.1, 6.3, 7.3, 10.2, 10.3, 13.6_
 
   - [ ] 12.1 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
 
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+    
 - [ ] 13. Generate final documentation
   - Generate migration guide with file mappings
   - Create README files for new directories
@@ -666,13 +819,62 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
   - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
 
   - [ ] 13.1 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
+
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
 
 - [ ] 14. Create CLI interface and configuration
   - Implement argument parsing for cleanup commands
@@ -686,13 +888,62 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
   - _Requirements: 10.1, 10.2, 10.5_
 
   - [ ] 14.1 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
+
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
 
 - [ ] 15. Execute end-to-end testing
   - Create test repository with sample files
@@ -706,13 +957,62 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
   - [ ] 15.1 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
+
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
 
 
 ## Phase 6: Large-Scale Graph Analysis Implementation
@@ -751,13 +1051,62 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
     - _Requirements: 20.8, 20.11_
 
   - [ ] 16.5 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
+
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
 
 - [ ] 17. Write tests for graph partitioning
   - [ ] 17.1 Unit tests for GraphPartitioner
@@ -800,10 +1149,59 @@ Note: You don't need to wait for the entire pipeline to run every time or run al
     - _Requirements: 20.14_
 
   - [ ] 17.6 Please resolve ALL issues, EVEN if unrelated: 
-1. Check the latest CI pipeline run (using CLI gh cmd) if there are no failures/warnings/erroneous skips found  in steps 1/2; Exit Loop. - if (loop_run_num >= 2 AND committed_this_loop = True): you have already committed, soft delete HEAD before updating changes 
-Note: You don't need to wait for the entire pipeline to run every time or run all the local tests, intelligently and logically decide which tests/pipeline tasks are relevant and only concern yourself with those
-3. Resolve ALL issues properly, using best programming practices at ALL times, NO shortcuts 
-4. Write and commit a conventional commit title and description with ONLY relevant changes staged 
-5. Start 3 minute timer in background
-6. Whilst waiting, resolve local test failures and update/improve test suite for duration of pipeline run (pipeline run timeout is average -5% at which point it switches from task to git watch pipeline until completion) - stop local tests when pipeline complete so only run one subset at a time and resolve issues granularly, maintain a todo list of failures that you can complete in these periods  
-7. Loop back to tasks 1/2
+    Guiding Principles (Apply at all times):
+    - Best Practices: All code changes and tests must follow best programming practices. No shortcuts.
+    - Intelligent Testing: Do not run the entire test suite locally. Only run tests relevant to the specific code you are fixing.
+    - Granular Fixes: Focus on resolving one issue at a time.
+
+    Workflow Initialization:
+    - Set loop_counter = 0
+    - Set max_loops = 100
+    - Set committed_in_last_loop = False
+    - Populate a todo_list with all known local and pipeline failures.
+
+    Main Development Loop
+    (Loop until todo_list is empty AND the final pipeline succeeds, or loop_counter > max_loops)
+
+    1. Check Pipeline and Triage Work
+    Increment loop_counter.
+    Check the status of the latest CI pipeline run (e.g., gh run list --limit 1).
+
+    Case 1: Pipeline Succeeded
+    - If the todo_list is also empty, the job is DONE. Exit the loop.
+    - If the todo_list is not empty, it means the pipeline passed but local issues remain. Proceed to Step 3.
+    Case 2: Pipeline Failed
+    - Analyze the failures. Add any new failures to your todo_list.
+    - Set committed_in_last_loop = False.
+    - Proceed to Step 2.
+    Case 3: Pipeline is Running
+    - Note the start time.
+    - Proceed to Step 2 to work locally while you wait.
+
+    2. Perform Local Development
+    Prepare for Fix:
+    - Take the highest-priority item from the todo_list.
+    IF committed_in_last_loop == True:
+    - Undo the previous commit to bundle it with the new fix:
+    - git reset --soft HEAD~1
+
+    Execute Fix:
+    Resolve the code issue.
+    Update, improve, or write new tests for this specific fix.
+    Run only the relevant local tests to confirm the fix.
+
+    Monitor Pipeline (if running):
+    If the CI pipeline (from Step 1) finishes, stop local work immediately and loop back to Step 1 to analyze the results.
+
+    3. Commit and Push Fix
+    Stage only the files relevant to the fix you just completed:
+    - git add <relevant-files...>
+    Write a Conventional Commit message (title and description).
+    git commit -m "..."
+    Set committed_in_last_loop = True.
+    Push your changes to trigger a new CI pipeline run.
+    - git push
+
+    4. Loop
+    Return to Step 1 to check the new pipeline and continue the cycle.
+
