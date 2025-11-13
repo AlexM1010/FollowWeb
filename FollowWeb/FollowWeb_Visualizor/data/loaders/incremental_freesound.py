@@ -2282,3 +2282,21 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             self.logger.debug(f"Could not fetch similar sounds for {sample_id}: {e}")
 
         return similar_list
+
+    def close(self) -> None:
+        """Close the metadata cache connection to release file locks."""
+        if hasattr(self, 'metadata_cache') and self.metadata_cache is not None:
+            self.metadata_cache.close()
+            self.metadata_cache = None
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit (ensures cleanup)."""
+        self.close()
+
+    def __del__(self):
+        """Destructor (ensures cleanup)."""
+        self.close()

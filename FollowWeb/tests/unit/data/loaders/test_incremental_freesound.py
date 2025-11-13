@@ -555,34 +555,38 @@ class TestIncrementalFreesoundLoaderIntegration:
             
             loader = IncrementalFreesoundLoader(config=config)
             
-            # Mock _search_samples to return properly formatted sample dictionaries
-            sample_dicts = [
-                {
-                    'id': i,
-                    'name': f'sound{i}',
-                    'tags': [],
-                    'duration': 1.0,
-                    'username': f'user{i}',
-                    'audio_url': f'http://example.com/sound{i}.mp3',
-                    'previews': {},
-                    'num_downloads': 100,
-                    'avg_rating': 4.0,
-                    'num_ratings': 10
-                }
-                for i in range(3)
-            ]
-            
-            with patch.object(loader, '_search_samples', return_value=sample_dicts):
-                with patch.object(loader, '_fetch_similar_sounds_for_sample', return_value=[]):
-                    # Fetch data
-                    data = loader.fetch_data(query='test', max_samples=10)
-                    
-                    # Build graph
-                    graph = loader.build_graph(data)
-                    
-                    assert graph.number_of_nodes() == 3
-                    assert len(loader.processed_ids) == 3
-                    assert mock_checkpoint.save.called
+            try:
+                # Mock _search_samples to return properly formatted sample dictionaries
+                sample_dicts = [
+                    {
+                        'id': i,
+                        'name': f'sound{i}',
+                        'tags': [],
+                        'duration': 1.0,
+                        'username': f'user{i}',
+                        'audio_url': f'http://example.com/sound{i}.mp3',
+                        'previews': {},
+                        'num_downloads': 100,
+                        'avg_rating': 4.0,
+                        'num_ratings': 10
+                    }
+                    for i in range(3)
+                ]
+                
+                with patch.object(loader, '_search_samples', return_value=sample_dicts):
+                    with patch.object(loader, '_fetch_similar_sounds_for_sample', return_value=[]):
+                        # Fetch data
+                        data = loader.fetch_data(query='test', max_samples=10)
+                        
+                        # Build graph
+                        graph = loader.build_graph(data)
+                        
+                        assert graph.number_of_nodes() == 3
+                        assert len(loader.processed_ids) == 3
+                        assert mock_checkpoint.save.called
+            finally:
+                # Ensure cleanup
+                loader.close()
 
     def test_resume_from_checkpoint(self, mock_freesound_client, mock_checkpoint):
         """Test resuming from existing checkpoint."""
@@ -607,27 +611,31 @@ class TestIncrementalFreesoundLoaderIntegration:
             with patch('pathlib.Path.exists', return_value=False):
                 loader = IncrementalFreesoundLoader(config=config)
                 
-                # Verify checkpoint was loaded
-                assert '1' in loader.processed_ids
-                
-                # Mock new samples (including already-processed one)
-                sounds = [
-                    create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
-                    create_mock_sound(2, "sound2", [], 1.0, "user2", {})
-                ]
-                
-                mock_results = Mock()
-                mock_results.__iter__ = Mock(return_value=iter(sounds))
-                mock_results.more = False
-                loader.client.text_search.return_value = mock_results
-                
-                mock_sound_obj = Mock()
-                mock_sound_obj.get_similar.return_value = []
-                loader.client.get_sound.return_value = mock_sound_obj
-                
-                data = loader.fetch_data(query='test', max_samples=10)
-                
-                # Should only process sample 2 (sample 1 is already processed)
-                assert len(data['samples']) == 1
-                assert data['samples'][0]['id'] == 2
+                try:
+                    # Verify checkpoint was loaded
+                    assert '1' in loader.processed_ids
+                    
+                    # Mock new samples (including already-processed one)
+                    sounds = [
+                        create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
+                        create_mock_sound(2, "sound2", [], 1.0, "user2", {})
+                    ]
+                    
+                    mock_results = Mock()
+                    mock_results.__iter__ = Mock(return_value=iter(sounds))
+                    mock_results.more = False
+                    loader.client.text_search.return_value = mock_results
+                    
+                    mock_sound_obj = Mock()
+                    mock_sound_obj.get_similar.return_value = []
+                    loader.client.get_sound.return_value = mock_sound_obj
+                    
+                    data = loader.fetch_data(query='test', max_samples=10)
+                    
+                    # Should only process sample 2 (sample 1 is already processed)
+                    assert len(data['samples']) == 1
+                    assert data['samples'][0]['id'] == 2
+                finally:
+                    # Ensure cleanup
+                    loader.close()
     
