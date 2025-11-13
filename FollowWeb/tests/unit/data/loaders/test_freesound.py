@@ -123,7 +123,7 @@ class TestFreesoundLoaderFetchData:
         # Mock search results
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock get_sound to return full sound object
@@ -143,7 +143,7 @@ class TestFreesoundLoaderFetchData:
         
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock get_sound to return full sound object
@@ -165,12 +165,12 @@ class TestFreesoundLoaderFetchData:
         # First page
         page1 = Mock()
         page1.__iter__ = Mock(return_value=iter([sound1]))
-        page1.more = True
+        page1.next = Mock()
         
         # Second page
         page2 = Mock()
         page2.__iter__ = Mock(return_value=iter([sound2]))
-        page2.more = False
+        page2.next = None
         
         page1.next_page.return_value = page2
         mock_freesound_client.text_search.return_value = page1
@@ -195,7 +195,7 @@ class TestFreesoundLoaderFetchData:
         
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter(sounds))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock get_sound to return the appropriate sound
@@ -222,7 +222,7 @@ class TestFreesoundLoaderFetchData:
         
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         data = loader.fetch_data(query='nonexistent', include_similar=False)
@@ -241,7 +241,7 @@ class TestFreesoundLoaderSimilarSounds:
         # Mock search results
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock similar sounds with proper as_dict()
@@ -263,7 +263,7 @@ class TestFreesoundLoaderSimilarSounds:
         
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock get_sound for metadata fetching
@@ -281,7 +281,7 @@ class TestFreesoundLoaderSimilarSounds:
         
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock error when fetching similar sounds
@@ -461,7 +461,7 @@ class TestFreesoundLoaderIntegration:
         
         mock_results = Mock()
         mock_results.__iter__ = Mock(return_value=iter([sound1, sound2]))
-        mock_results.more = False
+        mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
         # Mock get_sound to return full sound objects
@@ -483,3 +483,4 @@ class TestFreesoundLoaderIntegration:
         assert isinstance(graph, nx.DiGraph)
         assert graph.number_of_nodes() == 2
         assert graph.has_edge('1', '2')
+

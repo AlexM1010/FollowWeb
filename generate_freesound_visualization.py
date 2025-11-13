@@ -254,57 +254,19 @@ def main():
         else:
             logger.info(f"Using provided seed sample ID: {seed_sample_id}")
         
-        # Check if we need to seed the graph
-        if initial_nodes == 0:
-            logger.info(f"Empty checkpoint - seeding graph with sample {seed_sample_id}")
-            try:
-                # Fetch seed sample metadata
-                seed_metadata = loader._fetch_sample_metadata(seed_sample_id)
-                
-                # Add seed to graph manually
-                loader._add_node_to_graph(seed_metadata)
-                loader.processed_ids.add(str(seed_sample_id))
-                
-                # Save initial checkpoint
-                loader._save_checkpoint({"seeded": True, "seed_id": seed_sample_id})
-                
-                logger.info(f"✅ Seeded graph with sample {seed_sample_id}: {seed_metadata.get('name', 'unknown')}")
-            except Exception as e:
-                logger.error(f"Failed to fetch seed sample {seed_sample_id}: {e}")
-                raise
+        # For incremental loading, we use a broad query and let the loader
+        # handle checkpoint-aware processing. The seed sample is used for
+        # priority scoring, not as a direct fetch parameter.
+        logger.info(f"Fetching Freesound data with recursive discovery (depth={depth})...")
         
-        # Now recursively fetch similar sounds from all existing nodes
-        logger.info(f"Fetching similar sounds recursively (depth={depth}, max={max_requests})...")
-        
-        # Get all existing nodes as seed samples for recursive processing
-        existing_samples = []
-        for node_id in loader.graph.nodes():
-            node_data = loader.graph.nodes[node_id]
-            existing_samples.append({
-                'id': int(node_id),
-                'name': node_data.get('name', ''),
-                'tags': node_data.get('tags', []),
-                'num_downloads': node_data.get('num_downloads', 0),
-                'avg_rating': node_data.get('avg_rating', 0),
-            })
-        
-        if existing_samples:
-            # Process recursively from existing nodes
-            loader._process_samples_recursive(
-                seed_samples=existing_samples,
-                depth=depth,
-                max_total_samples=max_requests,
-                include_similar=True
-            )
-            
-            # Save final checkpoint
-            loader._save_checkpoint({"completed": True})
-        
-        # Build data structure for compatibility
-        data = {
-            'samples': list(loader.graph.nodes()),
-            'relationships': {'similar': {}}
-        }
+        # Use a broad query to find samples, loader will skip already-processed ones
+        data = loader.fetch_data(
+            query="*",  # Match all samples
+            max_samples=max_requests,  # Circuit breaker
+            include_similar=True,
+            recursive_depth=depth,
+            max_total_samples=max_requests
+        )
         
         # Build graph
         logger.info(EmojiFormatter.format("progress", "Building graph..."))
