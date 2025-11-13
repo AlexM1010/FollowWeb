@@ -167,7 +167,7 @@ class TestIncrementalFreesoundLoaderCheckpoint:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
+        mock_results.__iter__ = lambda: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -215,7 +215,7 @@ class TestIncrementalFreesoundLoaderSkipProcessed:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
+        mock_results.__iter__ = lambda: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -242,7 +242,7 @@ class TestIncrementalFreesoundLoaderSkipProcessed:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
+        mock_results.__iter__ = lambda: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -270,7 +270,7 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
+        mock_results.__iter__ = lambda: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -312,7 +312,7 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
+        mock_results.__iter__ = lambda: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -622,7 +622,7 @@ class TestIncrementalFreesoundLoaderIntegration:
                     ]
                     
                     mock_results = Mock()
-                    mock_results.__iter__ = Mock(return_value=iter(sounds))
+                    mock_results.__iter__ = lambda: iter(sounds)
                     mock_results.more = False
                     loader.client.text_search.return_value = mock_results
                     
