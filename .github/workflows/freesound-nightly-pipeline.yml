@@ -625,8 +625,55 @@ jobs:
           exit 0
         fi
         
-        # Create tar.gz archive
-        backup_filename="checkpoint_backup_${{ github.run_id }}.tar.gz"
+        # Determine backup tier based on node count
+        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+          node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
+        else
+          echo "⚠️ Checkpoint metadata not found, skipping backup"
+          echo "- Status: Backup skipped (no metadata)" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        echo "Current node count: $node_count"
+        
+        # Determine tier and release tag using Python
+        tier_info=$(python -c "
+import sys
+node_count = $node_count
+backup_interval = 25
+
+# Determine tier
+if node_count % (backup_interval * 20) == 0:  # 500 nodes
+    tier = 'milestone'
+    release_tag = 'v-permanent'
+elif node_count % (backup_interval * 4) == 0:  # 100 nodes
+    tier = 'moderate'
+    release_tag = 'v-permanent'
+elif node_count % backup_interval == 0:  # 25 nodes
+    tier = 'frequent'
+    release_tag = 'v-checkpoint'
+else:
+    tier = 'none'
+    release_tag = 'none'
+
+print(f'{tier}|{release_tag}')
+")
+        
+        tier=$(echo "$tier_info" | cut -d'|' -f1)
+        release_tag=$(echo "$tier_info" | cut -d'|' -f2)
+        
+        # Check if backup should be created
+        if [ "$tier" = "none" ]; then
+          echo "ℹ️ Node count ($node_count) not at backup interval, skipping backup"
+          echo "- Status: Backup skipped (not at interval)" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        echo "Backup tier: $tier"
+        echo "Release tag: $release_tag"
+        
+        # Create tar.gz archive with tier information in filename
+        backup_filename="checkpoint_backup_${node_count}nodes_${tier}_${{ github.run_id }}.tar.gz"
         echo "Creating backup archive: $backup_filename"
         tar -czf "$backup_filename" -C data freesound_library/
         
@@ -638,20 +685,22 @@ jobs:
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
         
-        # Get release ID for v-checkpoint
+        # Get release ID for the appropriate tag
         RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
-          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/${release_tag}")
         
         RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo "❌ Release v-checkpoint not found in ${BACKUP_REPO}"
+          echo "❌ Release ${release_tag} not found in ${BACKUP_REPO}"
           echo "- Status: Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
+          echo "- Tier: \`$tier\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Release Tag: \`$release_tag\`" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
         
         # Upload asset
-        echo "Uploading backup to ${BACKUP_REPO}..."
+        echo "Uploading backup to ${BACKUP_REPO} (release: ${release_tag})..."
         UPLOAD_URL="https://uploads.github.com/repos/${BACKUP_REPO}/releases/${RELEASE_ID}/assets?name=${backup_filename}"
         
         UPLOAD_RESPONSE=$(curl -s -X POST \
@@ -670,8 +719,15 @@ jobs:
         
         echo "✅ Backup uploaded successfully"
         echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Tier: \`$tier\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Release Tag: \`$release_tag\`" >> $GITHUB_STEP_SUMMARY
         echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Node Count: \`$node_count\`" >> $GITHUB_STEP_SUMMARY
         echo "- Run ID: \`${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        # Store tier info for retention cleanup
+        echo "backup_tier=$tier" >> $GITHUB_OUTPUT
+        echo "release_tag=$release_tag" >> $GITHUB_OUTPUT
         
         # Cleanup local backup file
         rm -f "$backup_filename"
@@ -694,49 +750,83 @@ jobs:
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
         
-        # List all assets from v-checkpoint release
-        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+        # Process v-checkpoint release (frequent tier with 14-day retention)
+        echo "### v-checkpoint Release (Frequent Tier)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        CHECKPOINT_ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
         
-        # Get total asset count
-        TOTAL_ASSETS=$(echo "$ASSETS_JSON" | jq '.assets | length')
-        echo "Total backups: $TOTAL_ASSETS"
+        CHECKPOINT_TOTAL=$(echo "$CHECKPOINT_ASSETS_JSON" | jq '.assets | length')
+        echo "Total v-checkpoint backups: $CHECKPOINT_TOTAL"
         
-        # Keep only 14 most recent backups
-        MAX_BACKUPS=14
+        # Apply 14-day retention policy for frequent backups
+        CUTOFF_DATE=$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-14d +%Y-%m-%dT%H:%M:%S 2>/dev/null || echo "")
         
-        if [ "$TOTAL_ASSETS" -le "$MAX_BACKUPS" ]; then
-          echo "✅ Retention policy satisfied ($TOTAL_ASSETS <= $MAX_BACKUPS)"
-          echo "- Backups retained: \`$TOTAL_ASSETS\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Backups deleted: \`0\`" >> $GITHUB_STEP_SUMMARY
-          exit 0
+        if [ -n "$CUTOFF_DATE" ]; then
+          echo "Cutoff date for frequent backups: $CUTOFF_DATE"
+          
+          # Get assets older than 14 days
+          CHECKPOINT_TO_DELETE=$(echo "$CHECKPOINT_ASSETS_JSON" | jq -r ".assets | map(select(.created_at < \"$CUTOFF_DATE\")) | .[].id")
+          
+          CHECKPOINT_DELETED=0
+          for ASSET_ID in $CHECKPOINT_TO_DELETE; do
+            echo "Deleting old v-checkpoint asset ID: $ASSET_ID"
+            curl -s -X DELETE \
+              -H "Authorization: token $BACKUP_PAT" \
+              "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}"
+            
+            if [ $? -eq 0 ]; then
+              CHECKPOINT_DELETED=$((CHECKPOINT_DELETED + 1))
+            else
+              echo "⚠️ Failed to delete asset $ASSET_ID"
+            fi
+          done
+          
+          CHECKPOINT_RETAINED=$((CHECKPOINT_TOTAL - CHECKPOINT_DELETED))
+          echo "- Retention: \`14 days\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Backups retained: \`$CHECKPOINT_RETAINED\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Backups deleted: \`$CHECKPOINT_DELETED\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Could not calculate cutoff date, skipping time-based cleanup"
+          echo "- Status: Cleanup skipped (date calculation failed)" >> $GITHUB_STEP_SUMMARY
         fi
         
-        # Calculate how many to delete
-        TO_DELETE=$((TOTAL_ASSETS - MAX_BACKUPS))
-        echo "Deleting $TO_DELETE oldest backups..."
-        
-        # Get oldest assets (sorted by creation date)
-        ASSETS_TO_DELETE=$(echo "$ASSETS_JSON" | jq -r ".assets | sort_by(.created_at) | .[:$TO_DELETE] | .[].id")
-        
-        DELETED_COUNT=0
-        for ASSET_ID in $ASSETS_TO_DELETE; do
-          echo "Deleting asset ID: $ASSET_ID"
-          DELETE_RESPONSE=$(curl -s -X DELETE \
-            -H "Authorization: token $BACKUP_PAT" \
-            "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}")
+        # Also enforce max count limit (keep last 10 backups)
+        MAX_CHECKPOINT_BACKUPS=10
+        if [ "$CHECKPOINT_TOTAL" -gt "$MAX_CHECKPOINT_BACKUPS" ]; then
+          TO_DELETE=$((CHECKPOINT_TOTAL - MAX_CHECKPOINT_BACKUPS))
+          echo "Enforcing max count limit: deleting $TO_DELETE oldest backups..."
           
-          if [ $? -eq 0 ]; then
-            DELETED_COUNT=$((DELETED_COUNT + 1))
-          else
-            echo "⚠️ Failed to delete asset $ASSET_ID"
-          fi
-        done
+          OLDEST_ASSETS=$(echo "$CHECKPOINT_ASSETS_JSON" | jq -r ".assets | sort_by(.created_at) | .[:$TO_DELETE] | .[].id")
+          
+          for ASSET_ID in $OLDEST_ASSETS; do
+            echo "Deleting old v-checkpoint asset ID: $ASSET_ID"
+            curl -s -X DELETE \
+              -H "Authorization: token $BACKUP_PAT" \
+              "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}"
+          done
+        fi
         
-        RETAINED_COUNT=$((TOTAL_ASSETS - DELETED_COUNT))
-        echo "✅ Retention cleanup complete"
-        echo "- Backups retained: \`$RETAINED_COUNT\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Backups deleted: \`$DELETED_COUNT\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Process v-permanent release (moderate and milestone tiers - no deletion)
+        echo "### v-permanent Release (Moderate & Milestone Tiers)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        PERMANENT_ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-permanent")
+        
+        PERMANENT_TOTAL=$(echo "$PERMANENT_ASSETS_JSON" | jq '.assets | length')
+        echo "Total v-permanent backups: $PERMANENT_TOTAL"
+        
+        # No deletion for permanent backups
+        echo "- Retention: \`Permanent (no expiration)\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Backups retained: \`$PERMANENT_TOTAL\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Backups deleted: \`0\` (permanent tier never deleted)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "✅ Tier-specific retention cleanup complete"
     
     - name: Extract pipeline statistics
       if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
