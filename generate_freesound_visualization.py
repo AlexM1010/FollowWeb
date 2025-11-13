@@ -293,10 +293,15 @@ def main():
         
         # Create minimal config for visualization
         
-        # Create renderer
+        # Create renderer with required metrics config
         renderer = SigmaRenderer({
             'renderer_type': 'sigma',
-            'template_name': 'sigma_samples.html'
+            'template_name': 'sigma_samples.html',
+            'node_size_metric': 'degree',
+            'node_color_metric': 'degree',
+            'edge_width_metric': 'weight',
+            'node_size_range': [5, 30],
+            'edge_width_range': [0.5, 3.0]
         })
         
         # Generate output filename with seed sample ID
