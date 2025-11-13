@@ -146,13 +146,7 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git add -A
-        git commit -m "style: apply ruff auto-fixes
-
-[skip ci]
-
-Auto-applied by CI quality-check job:
-- Fixed linting issues with ruff check --fix
-- Applied code formatting with ruff format"
+        git commit -m "style: apply ruff auto-fixes [skip ci]"
         git push
       continue-on-error: true
     
@@ -161,12 +155,12 @@ Auto-applied by CI quality-check job:
         echo "Checking if any formatting issues remain after auto-fix..."
         if ! ruff format --check FollowWeb_Visualizor tests --diff; then
           echo "::error::Formatting issues remain after auto-fix. Manual intervention required."
-          echo "### ❌ Formatting Issues Remain" >> $GITHUB_STEP_SUMMARY
+          echo "### [FAIL] Formatting Issues Remain" >> $GITHUB_STEP_SUMMARY
           echo "Ruff was unable to automatically fix all formatting issues." >> $GITHUB_STEP_SUMMARY
           echo "Please run locally: \`ruff format FollowWeb_Visualizor tests\`" >> $GITHUB_STEP_SUMMARY
           exit 1
         else
-          echo "✅ All formatting issues resolved"
+          echo "[PASS] All formatting issues resolved"
         fi
       continue-on-error: false
     
@@ -175,12 +169,12 @@ Auto-applied by CI quality-check job:
         echo "Checking if any linting issues remain after auto-fix..."
         if ! ruff check FollowWeb_Visualizor tests --output-format=github; then
           echo "::error::Linting issues remain after auto-fix. Manual intervention required."
-          echo "### ❌ Linting Issues Remain" >> $GITHUB_STEP_SUMMARY
+          echo "### [FAIL] Linting Issues Remain" >> $GITHUB_STEP_SUMMARY
           echo "Ruff was unable to automatically fix all linting issues." >> $GITHUB_STEP_SUMMARY
           echo "Please run locally: \`ruff check FollowWeb_Visualizor tests --fix\`" >> $GITHUB_STEP_SUMMARY
           exit 1
         else
-          echo "✅ All linting issues resolved"
+          echo "[PASS] All linting issues resolved"
         fi
       continue-on-error: false
     
@@ -188,10 +182,10 @@ Auto-applied by CI quality-check job:
       if: always()
       run: |
         if [[ "${{ steps.ruff-fix.outputs.fixes_applied }}" == "true" ]]; then
-          echo "### ✅ Quality Check Passed (with auto-fixes)" >> $GITHUB_STEP_SUMMARY
+          echo "### [PASS] Quality Check Passed (with auto-fixes)" >> $GITHUB_STEP_SUMMARY
           echo "Ruff automatically fixed code quality issues." >> $GITHUB_STEP_SUMMARY
         else
-          echo "### ✅ Quality Check Passed" >> $GITHUB_STEP_SUMMARY
+          echo "### [PASS] Quality Check Passed" >> $GITHUB_STEP_SUMMARY
           echo "No code quality issues found." >> $GITHUB_STEP_SUMMARY
         fi
   
@@ -849,7 +843,7 @@ Auto-applied by CI quality-check job:
         # Fail if any jobs failed
         if [[ -n "$failed_jobs" ]]; then
           echo "::error::CI PIPELINE FAILED - Failed Jobs:$failed_jobs"
-          echo "**❌ CI Pipeline Failed**" >> $GITHUB_STEP_SUMMARY
+          echo "**[FAIL] CI Pipeline Failed**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Failed Jobs:**$failed_jobs" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -874,7 +868,7 @@ Auto-applied by CI quality-check job:
         # Warn about skipped jobs but don't fail
         if [[ -n "$skipped_jobs" ]]; then
           echo "::warning::Some jobs were skipped:$skipped_jobs"
-          echo "**⚠️ CI PIPELINE WARNING**" >> $GITHUB_STEP_SUMMARY
+          echo "**[WARN] CI PIPELINE WARNING**" >> $GITHUB_STEP_SUMMARY
           echo "**Skipped Jobs:**$skipped_jobs" >> $GITHUB_STEP_SUMMARY
         fi
         
@@ -897,14 +891,14 @@ Auto-applied by CI quality-check job:
       run: |
         # Generate success summary
         echo "::notice::ALL CHECKS PASSED!"
-        echo "**✅ CI Pipeline Success**" >> $GITHUB_STEP_SUMMARY
+        echo "**[PASS] CI Pipeline Success**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "All quality checks passed:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Quality Check: ${{ needs.quality-check.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Quick Test: ${{ needs.test-quick.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Full Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Documentation: ${{ needs.documentation.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Quality Check: ${{ needs.quality-check.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Quick Test: ${{ needs.test-quick.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Full Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Code Quality: ${{ needs.format-check.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Build: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- [PASS] Documentation: ${{ needs.documentation.result }}" >> $GITHUB_STEP_SUMMARY
