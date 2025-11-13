@@ -167,7 +167,7 @@ class TestIncrementalFreesoundLoaderCheckpoint:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = lambda: iter(sounds)
+        mock_results.__iter__ = lambda self: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -207,26 +207,51 @@ class TestIncrementalFreesoundLoaderSkipProcessed:
         loader = loader_with_mocks
         loader.processed_ids = {'1', '2'}
         
-        # Mock search results including processed samples
-        sounds = [
-            create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
-            create_mock_sound(2, "sound2", [], 1.0, "user2", {}),
-            create_mock_sound(3, "sound3", [], 1.0, "user3", {})
+        # Mock _search_samples to return properly formatted sample dictionaries
+        sample_dicts = [
+            {
+                'id': 1,
+                'name': 'sound1',
+                'tags': [],
+                'duration': 1.0,
+                'username': 'user1',
+                'audio_url': 'http://example.com/sound1.mp3',
+                'previews': {},
+                'num_downloads': 100,
+                'avg_rating': 4.0,
+                'num_ratings': 10
+            },
+            {
+                'id': 2,
+                'name': 'sound2',
+                'tags': [],
+                'duration': 1.0,
+                'username': 'user2',
+                'audio_url': 'http://example.com/sound2.mp3',
+                'previews': {},
+                'num_downloads': 100,
+                'avg_rating': 4.0,
+                'num_ratings': 10
+            },
+            {
+                'id': 3,
+                'name': 'sound3',
+                'tags': [],
+                'duration': 1.0,
+                'username': 'user3',
+                'audio_url': 'http://example.com/sound3.mp3',
+                'previews': {},
+                'num_downloads': 100,
+                'avg_rating': 4.0,
+                'num_ratings': 10
+            }
         ]
         
-        mock_results = Mock()
-        mock_results.__iter__ = lambda: iter(sounds)
-        mock_results.more = False
-        loader.client.text_search.return_value = mock_results
+        with patch.object(loader, '_search_samples', return_value=sample_dicts):
+            with patch.object(loader, '_fetch_similar_sounds_for_sample', return_value=[]):
+                data = loader.fetch_data(query='test', max_samples=10)
         
-        # Mock similar sounds
-        mock_sound_obj = Mock()
-        mock_sound_obj.get_similar.return_value = []
-        loader.client.get_sound.return_value = mock_sound_obj
-        
-        data = loader.fetch_data(query='test', max_samples=10)
-        
-        # Should only process sample 3
+        # Should only process sample 3 (1 and 2 are already processed)
         assert len(data['samples']) == 1
         assert data['samples'][0]['id'] == 3
 
@@ -235,18 +260,49 @@ class TestIncrementalFreesoundLoaderSkipProcessed:
         loader = loader_with_mocks
         loader.processed_ids = {'1', '2', '3'}
         
-        sounds = [
-            create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
-            create_mock_sound(2, "sound2", [], 1.0, "user2", {}),
-            create_mock_sound(3, "sound3", [], 1.0, "user3", {})
+        # Mock _search_samples to return properly formatted sample dictionaries
+        sample_dicts = [
+            {
+                'id': 1,
+                'name': 'sound1',
+                'tags': [],
+                'duration': 1.0,
+                'username': 'user1',
+                'audio_url': 'http://example.com/sound1.mp3',
+                'previews': {},
+                'num_downloads': 100,
+                'avg_rating': 4.0,
+                'num_ratings': 10
+            },
+            {
+                'id': 2,
+                'name': 'sound2',
+                'tags': [],
+                'duration': 1.0,
+                'username': 'user2',
+                'audio_url': 'http://example.com/sound2.mp3',
+                'previews': {},
+                'num_downloads': 100,
+                'avg_rating': 4.0,
+                'num_ratings': 10
+            },
+            {
+                'id': 3,
+                'name': 'sound3',
+                'tags': [],
+                'duration': 1.0,
+                'username': 'user3',
+                'audio_url': 'http://example.com/sound3.mp3',
+                'previews': {},
+                'num_downloads': 100,
+                'avg_rating': 4.0,
+                'num_ratings': 10
+            }
         ]
         
-        mock_results = Mock()
-        mock_results.__iter__ = lambda: iter(sounds)
-        mock_results.more = False
-        loader.client.text_search.return_value = mock_results
-        
-        data = loader.fetch_data(query='test', max_samples=10)
+        with patch.object(loader, '_search_samples', return_value=sample_dicts):
+            with patch.object(loader, '_fetch_similar_sounds_for_sample', return_value=[]):
+                data = loader.fetch_data(query='test', max_samples=10)
         
         assert len(data['samples']) == 0
 
@@ -270,7 +326,7 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = lambda: iter(sounds)
+        mock_results.__iter__ = lambda self: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -312,7 +368,7 @@ class TestIncrementalFreesoundLoaderTimeLimit:
         ]
         
         mock_results = Mock()
-        mock_results.__iter__ = lambda: iter(sounds)
+        mock_results.__iter__ = lambda self: iter(sounds)
         mock_results.more = False
         loader.client.text_search.return_value = mock_results
         
@@ -615,22 +671,37 @@ class TestIncrementalFreesoundLoaderIntegration:
                     # Verify checkpoint was loaded
                     assert '1' in loader.processed_ids
                     
-                    # Mock new samples (including already-processed one)
-                    sounds = [
-                        create_mock_sound(1, "sound1", [], 1.0, "user1", {}),
-                        create_mock_sound(2, "sound2", [], 1.0, "user2", {})
+                    # Mock _search_samples to return properly formatted sample dictionaries
+                    sample_dicts = [
+                        {
+                            'id': 1,
+                            'name': 'sound1',
+                            'tags': [],
+                            'duration': 1.0,
+                            'username': 'user1',
+                            'audio_url': 'http://example.com/sound1.mp3',
+                            'previews': {},
+                            'num_downloads': 100,
+                            'avg_rating': 4.0,
+                            'num_ratings': 10
+                        },
+                        {
+                            'id': 2,
+                            'name': 'sound2',
+                            'tags': [],
+                            'duration': 1.0,
+                            'username': 'user2',
+                            'audio_url': 'http://example.com/sound2.mp3',
+                            'previews': {},
+                            'num_downloads': 100,
+                            'avg_rating': 4.0,
+                            'num_ratings': 10
+                        }
                     ]
                     
-                    mock_results = Mock()
-                    mock_results.__iter__ = lambda: iter(sounds)
-                    mock_results.more = False
-                    loader.client.text_search.return_value = mock_results
-                    
-                    mock_sound_obj = Mock()
-                    mock_sound_obj.get_similar.return_value = []
-                    loader.client.get_sound.return_value = mock_sound_obj
-                    
-                    data = loader.fetch_data(query='test', max_samples=10)
+                    with patch.object(loader, '_search_samples', return_value=sample_dicts):
+                        with patch.object(loader, '_fetch_similar_sounds_for_sample', return_value=[]):
+                            data = loader.fetch_data(query='test', max_samples=10)
                     
                     # Should only process sample 2 (sample 1 is already processed)
                     assert len(data['samples']) == 1

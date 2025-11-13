@@ -122,19 +122,33 @@ jobs:
         # Test loader initialization without making API calls
         python -c "
         import os
+        import tempfile
         from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader
         
-        # Initialize loader (no API calls) - uses FREESOUND_API_KEY from environment
-        loader = IncrementalFreesoundLoader(
-            config={'checkpoint': {'checkpoint_dir': 'test_checkpoint', 'checkpoint_interval': 1}}
-        )
-        
-        # Verify loader attributes
-        assert hasattr(loader, 'rate_limiter'), 'Rate limiter not initialized'
-        assert hasattr(loader, 'graph'), 'Graph not initialized'
-        assert hasattr(loader, 'processed_ids'), 'Processed IDs not initialized'
-        
-        print('✅ Loader initialization successful')
+        # Create temporary checkpoint directory
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Initialize loader (no API calls)
+            loader = IncrementalFreesoundLoader(
+                config={
+                    'api_key': os.environ['FREESOUND_API_KEY'],
+                    'checkpoint_dir': tmpdir,
+                    'checkpoint_interval': 1
+                }
+            )
+            
+            # Verify loader attributes
+            assert hasattr(loader, 'rate_limiter'), 'Rate limiter not initialized'
+            assert hasattr(loader, 'graph'), 'Graph not initialized'
+            assert hasattr(loader, 'processed_ids'), 'Processed IDs not initialized'
+            assert hasattr(loader, 'checkpoint'), 'Checkpoint not initialized'
+            assert hasattr(loader, 'client'), 'Freesound client not initialized'
+            
+            # Verify initial state
+            assert isinstance(loader.processed_ids, set), 'processed_ids should be a set'
+            assert len(loader.processed_ids) == 0, 'processed_ids should start empty'
+            assert loader.graph.number_of_nodes() == 0, 'Graph should start empty'
+            
+            print('✅ Loader initialization successful')
         " && echo "- ✅ IncrementalFreesoundLoader initialization" >> $GITHUB_STEP_SUMMARY || { echo "- ❌ IncrementalFreesoundLoader initialization" >> $GITHUB_STEP_SUMMARY; exit 1; }
         
         # Test renderer can be imported (initialization tested in actual pipeline)

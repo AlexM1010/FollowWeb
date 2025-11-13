@@ -15,13 +15,14 @@ from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
 
 
 def create_mock_sound(sound_id, name="test_sound.wav", tags=None, duration=1.0, username="test_user", previews=None):
-    """Helper to create a properly mocked Freesound sound object."""
+    """Helper to create a properly mocked Freesound sound object using MagicMock."""
     if tags is None:
         tags = []
     if previews is None:
         previews = {}
     
-    sound = Mock()
+    # Use MagicMock for automatic magic method support
+    sound = MagicMock()
     sound.id = sound_id
     sound.name = name
     sound.tags = tags
@@ -29,23 +30,23 @@ def create_mock_sound(sound_id, name="test_sound.wav", tags=None, duration=1.0, 
     sound.username = username
     sound.previews = previews
     
-    # Mock as_dict() to return a proper dictionary (not a Mock)
-    sound.as_dict = Mock(return_value={
+    # Configure as_dict() to return a proper dictionary (not a Mock)
+    sound.as_dict.return_value = {
         'id': sound_id,
         'name': name,
         'tags': tags,
         'duration': duration,
         'username': username,
         'previews': previews
-    })
+    }
     return sound
 
 
 @pytest.fixture
 def mock_freesound_client():
-    """Create a mock Freesound client."""
+    """Create a mock Freesound client using MagicMock for better method support."""
     with patch('FollowWeb_Visualizor.data.loaders.freesound.freesound') as mock_fs:
-        client = Mock()
+        client = MagicMock()
         mock_fs.FreesoundClient.return_value = client
         yield client
 
@@ -120,9 +121,9 @@ class TestFreesoundLoaderFetchData:
         """Test fetch_data with text query."""
         loader = FreesoundLoader(config={'api_key': 'test_key'})
         
-        # Mock search results
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
+        # Mock search results using MagicMock for automatic iterator support
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([mock_sound])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -141,8 +142,8 @@ class TestFreesoundLoaderFetchData:
         """Test fetch_data with tags."""
         loader = FreesoundLoader(config={'api_key': 'test_key'})
         
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([mock_sound])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -162,14 +163,14 @@ class TestFreesoundLoaderFetchData:
         sound1 = create_mock_sound(1, "sound1", [], 1.0, "user1", {})
         sound2 = create_mock_sound(2, "sound2", [], 1.0, "user2", {})
         
-        # First page
-        page1 = Mock()
-        page1.__iter__ = Mock(return_value=iter([sound1]))
-        page1.next = Mock()
+        # First page using MagicMock
+        page1 = MagicMock()
+        page1.__iter__.return_value = iter([sound1])
+        page1.next = MagicMock()
         
-        # Second page
-        page2 = Mock()
-        page2.__iter__ = Mock(return_value=iter([sound2]))
+        # Second page using MagicMock
+        page2 = MagicMock()
+        page2.__iter__.return_value = iter([sound2])
         page2.next = None
         
         page1.next_page.return_value = page2
@@ -193,8 +194,8 @@ class TestFreesoundLoaderFetchData:
         # Create 5 mock sounds
         sounds = [create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {}) for i in range(5)]
         
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter(sounds))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter(sounds)
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -220,8 +221,8 @@ class TestFreesoundLoaderFetchData:
         """Test fetch_data returns empty data for no results."""
         loader = FreesoundLoader(config={'api_key': 'test_key'})
         
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([]))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -239,8 +240,8 @@ class TestFreesoundLoaderSimilarSounds:
         loader = FreesoundLoader(config={'api_key': 'test_key'})
         
         # Mock search results
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([mock_sound])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -248,7 +249,7 @@ class TestFreesoundLoaderSimilarSounds:
         similar_sound = create_mock_sound(67890, "similar.wav", [], 1.0, "user", {})
         
         # Mock get_sound to return the sound with get_similar method
-        mock_sound.get_similar = Mock(return_value=[similar_sound])
+        mock_sound.get_similar.return_value = [similar_sound]
         mock_freesound_client.get_sound.return_value = mock_sound
         
         data = loader.fetch_data(query='drum', max_samples=10, include_similar=True)
@@ -261,8 +262,8 @@ class TestFreesoundLoaderSimilarSounds:
         """Test skipping similar sounds when include_similar=False."""
         loader = FreesoundLoader(config={'api_key': 'test_key'})
         
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([mock_sound])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -279,8 +280,8 @@ class TestFreesoundLoaderSimilarSounds:
         """Test similar sounds handles errors gracefully."""
         loader = FreesoundLoader(config={'api_key': 'test_key'})
         
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([mock_sound]))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([mock_sound])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -459,8 +460,8 @@ class TestFreesoundLoaderIntegration:
         sound1 = create_mock_sound(1, "s1", ["tag1"], 1.0, "u1", {})
         sound2 = create_mock_sound(2, "s2", ["tag2"], 2.0, "u2", {})
         
-        mock_results = Mock()
-        mock_results.__iter__ = Mock(return_value=iter([sound1, sound2]))
+        mock_results = MagicMock()
+        mock_results.__iter__.return_value = iter([sound1, sound2])
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
         
@@ -475,7 +476,7 @@ class TestFreesoundLoaderIntegration:
         
         # Mock similar sounds on sound1
         similar = create_mock_sound(2, "s2", ["tag2"], 2.0, "u2", {})
-        sound1.get_similar = Mock(return_value=[similar])
+        sound1.get_similar.return_value = [similar]
         
         # Use load() method for complete workflow
         graph = loader.load(query='test', max_samples=10)
