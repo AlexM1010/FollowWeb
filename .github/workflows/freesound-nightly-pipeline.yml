@@ -124,11 +124,9 @@ jobs:
         import os
         from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader
         
-        # Initialize loader (no API calls)
+        # Initialize loader (no API calls) - uses FREESOUND_API_KEY from environment
         loader = IncrementalFreesoundLoader(
-            api_key=os.environ['FREESOUND_API_KEY'],
-            checkpoint_dir='test_checkpoint',
-            checkpoint_interval=1
+            config={'checkpoint': {'checkpoint_dir': 'test_checkpoint', 'checkpoint_interval': 1}}
         )
         
         # Verify loader attributes
