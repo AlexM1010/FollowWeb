@@ -637,11 +637,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 self.rate_limiter.acquire()
 
                 # Fetch page with retry logic
-                def _do_search():
+                def _do_search(page=current_page):
                     return self.client.text_search(
                         query=query or "",
                         filter=search_filter if search_filter else None,
-                        page=current_page,
+                        page=page,
                         page_size=page_size,
                         sort=sort_order,
                         fields="id,name,tags,duration,username,previews,num_downloads,avg_rating",
@@ -1741,7 +1741,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 samples_by_user[username].append(node_id)
 
         # Add edges between samples by same user
-        for username, sample_ids in samples_by_user.items():
+        for _username, sample_ids in samples_by_user.items():
             # Only create edges if user has multiple samples
             if len(sample_ids) < 2:
                 continue
@@ -1805,7 +1805,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     samples_by_pack[pack_name].append(node_id)
 
         # Add edges between samples in same pack
-        for pack_name, sample_ids in samples_by_pack.items():
+        for _pack_name, sample_ids in samples_by_pack.items():
             # Only create edges if pack has multiple samples
             if len(sample_ids) < 2:
                 continue
@@ -2568,14 +2568,14 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 self._increment_request_count()
 
                 # Fetch page with retry logic
-                def _do_search():
+                def _do_search(page=current_page):
                     return self.client.text_search(
                         query=query or "",
                         filter=search_filter if search_filter else None,
                         page_size=page_size,
                         sort=sort,
                         fields=comprehensive_fields,
-                        page=current_page,
+                        page=page,
                     )
 
                 results = self._retry_with_backoff(_do_search)
