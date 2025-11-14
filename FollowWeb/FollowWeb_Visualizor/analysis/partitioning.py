@@ -196,7 +196,7 @@ class GraphPartitioner:
                 ]
 
                 # Create subgraph (directed)
-                partition_graph = graph.subgraph(partition_nodes).copy()
+                partition_graph = nx.DiGraph(graph.subgraph(partition_nodes))
                 partitions.append(partition_graph)
 
                 self.logger.debug(
@@ -265,7 +265,7 @@ class GraphPartitioner:
         # Create partition subgraphs
         partitions = []
         for partition_id, partition_nodes in enumerate(merged):
-            partition_graph = graph.subgraph(partition_nodes).copy()
+            partition_graph = nx.DiGraph(graph.subgraph(partition_nodes))
             partitions.append(partition_graph)
 
             self.logger.debug(
