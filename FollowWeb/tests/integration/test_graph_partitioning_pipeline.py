@@ -14,10 +14,9 @@ import pytest
 
 pytestmark = [pytest.mark.integration, pytest.mark.analysis]
 
-from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
-from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
-
+from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
+from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
 # ============================================================================
 # Test Fixtures
@@ -357,7 +356,7 @@ class TestGraphPartitioningPipeline:
         assert merged_results.merge_time > 0
 
         # Print performance breakdown
-        print(f"\nPerformance metrics for 100K nodes:")
+        print("\nPerformance metrics for 100K nodes:")
         print(f"  Partition time: {partition_time:.2f}s")
         print(f"  Analysis time: {analysis_time:.2f}s")
         print(f"  Merge time: {merge_time:.2f}s")

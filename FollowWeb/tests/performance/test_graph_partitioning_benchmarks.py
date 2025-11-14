@@ -13,10 +13,9 @@ import pytest
 
 pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
 
-from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
-from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
-
+from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
+from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
 # ============================================================================
 # Helper Functions

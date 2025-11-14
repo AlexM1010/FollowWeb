@@ -124,7 +124,7 @@ class TestCompleteWorkflowFreesoundToSigma:
 
             # Verify HTML content
             html_file = html_files[0]
-            with open(html_file, "r", encoding="utf-8") as f:
+            with open(html_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Verify Sigma.js integration
@@ -200,7 +200,7 @@ class TestAudioPlaybackIntegration:
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
 
-            with open(html_files[0], "r", encoding="utf-8") as f:
+            with open(html_files[0], encoding="utf-8") as f:
                 html_content = f.read()
 
             # Verify audio player UI elements
@@ -342,7 +342,7 @@ class TestInstagramDataWithBothRenderers:
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
 
-            with open(html_files[0], "r", encoding="utf-8") as f:
+            with open(html_files[0], encoding="utf-8") as f:
                 html_content = f.read()
 
             # Verify renderer-specific content
@@ -422,7 +422,7 @@ class TestFreesoundDataWithBothRenderers:
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
 
-            with open(html_files[0], "r", encoding="utf-8") as f:
+            with open(html_files[0], encoding="utf-8") as f:
                 html_content = f.read()
 
             # Verify renderer-specific content
