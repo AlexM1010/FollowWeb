@@ -743,21 +743,30 @@ class TestIncrementalFreesoundLoaderPagination:
                     create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
                     for i in range(1, 4)
                 ]
-                mock_results.results = sounds
+                mock_results.__iter__ = Mock(return_value=iter(sounds))
+                mock_results.next = "page2"  # Has next page
             elif page == 2:
                 # Second page: 2 samples
                 sounds = [
                     create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
                     for i in range(4, 6)
                 ]
-                mock_results.results = sounds
+                mock_results.__iter__ = Mock(return_value=iter(sounds))
+                mock_results.next = None  # No more pages
             else:
                 # No more results
-                mock_results.results = []
+                mock_results.__iter__ = Mock(return_value=iter([]))
+                mock_results.next = None
             
             return mock_results
         
         loader.client.text_search.side_effect = mock_text_search
+        
+        # Mock get_sound to return full metadata
+        def mock_get_sound(sound_id):
+            return create_mock_sound(sound_id, f"sound{sound_id}", [], 1.0, f"user{sound_id}", {})
+        
+        loader.client.get_sound = mock_get_sound
         
         # Mock checkpoint save
         loader.checkpoint.save = Mock()
@@ -765,17 +774,14 @@ class TestIncrementalFreesoundLoaderPagination:
         # Search with pagination
         result = loader._search_with_pagination(
             query="test",
-            max_samples=5,
-            sort="downloads_desc"
+            sort_order="downloads_desc"
         )
         
         # Should collect 5 samples across 2 pages
-        assert len(result['samples']) == 5
-        assert result['pages_processed'] == 2
-        assert result['duplicates_skipped'] == 0
+        assert len(result) == 5
         
-        # Pagination state should be updated to page 3
-        assert loader.pagination_state['page'] == 3
+        # Pagination state should be reset to page 1 (end of results reached)
+        assert loader.pagination_state['page'] == 1
         assert loader.pagination_state['query'] == "test"
         assert loader.pagination_state['sort'] == "downloads_desc"
 

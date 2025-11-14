@@ -55,24 +55,27 @@ def run_autofix_only():
     print("\n" + "=" * 80)
     print("AUTO-FIX CODE ISSUES (NO CHECKS)")
     print("=" * 80)
-    
+
     fixes = [
         ("ruff format FollowWeb_Visualizor tests", "Auto-fix formatting"),
         ("ruff check --fix FollowWeb_Visualizor tests", "Auto-fix linting"),
-        ("ruff check --fix --select I FollowWeb_Visualizor tests", "Auto-fix import sorting"),
+        (
+            "ruff check --fix --select I FollowWeb_Visualizor tests",
+            "Auto-fix import sorting",
+        ),
     ]
-    
+
     all_passed = True
     for cmd, desc in fixes:
         if not run_command(cmd, desc, check=False):
             all_passed = False
-    
+
     if all_passed:
         print("\n" + "=" * 80)
         print("[SUCCESS] All auto-fixes applied successfully!")
         print("=" * 80)
         print("\nRun 'python tests/run_tests.py quality' to verify fixes.")
-    
+
     return all_passed
 
 
@@ -89,28 +92,28 @@ def run_quality_checks():
         print("\n" + "=" * 80)
         print("AUTO-FIXING CODE ISSUES")
         print("=" * 80)
-        
+
         # Fix formatting
         run_command(
             "ruff format FollowWeb_Visualizor tests",
             "Auto-fix formatting",
             check=False,
         )
-        
+
         # Fix linting issues
         run_command(
             "ruff check --fix FollowWeb_Visualizor tests",
             "Auto-fix linting",
             check=False,
         )
-        
+
         # Fix import sorting
         run_command(
             "ruff check --fix --select I FollowWeb_Visualizor tests",
             "Auto-fix import sorting",
             check=False,
         )
-        
+
         print("\n" + "=" * 80)
         print("VERIFYING FIXES")
         print("=" * 80)
@@ -274,7 +277,7 @@ def run_all_checks():
 def main():
     """Run tests based on command line arguments."""
     global AUTOFIX_MODE
-    
+
     if len(sys.argv) < 2:
         print(__doc__)
         return 1

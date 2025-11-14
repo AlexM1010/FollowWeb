@@ -3,6 +3,7 @@ include README.md
 include LICENSE
 include CHANGELOG.md
 include INSTALL_GUIDE.md
+include TESTING_QUICK_REFERENCE.md
 
 # Include configuration files
 recursive-include configs *.json *.md
