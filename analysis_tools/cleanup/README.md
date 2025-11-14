@@ -272,3 +272,508 @@ See `.kiro/specs/repository-cleanup/requirements.md` for detailed requirements.
 ## Design
 
 See `.kiro/specs/repository-cleanup/design.md` for comprehensive design documentation.
+
+
+## Comprehensive CLI Guide
+
+### Installation
+
+The cleanup system is part of the `analysis_tools` package. Dependencies are automatically installed:
+
+```bash
+# Install with cleanup dependencies
+pip install -e "FollowWeb/[cleanup]"
+
+# Or install individual dependencies
+pip install organize-tool git-filter-repo gitpython github3.py pyyaml reviewdog
+```
+
+### CLI Commands
+
+#### analyze - Analyze Repository
+
+Analyze repository structure and generate cleanup recommendations.
+
+```bash
+python -m analysis_tools.cleanup analyze [OPTIONS]
+
+Options:
+  --config PATH         Path to configuration file
+  --project-root PATH   Project root directory (default: current directory)
+```
+
+**Example Output:**
+```
+============================================================
+CLEANUP ANALYSIS RESULTS
+============================================================
+
+Root Directory:
+  Files: 69
+  Target: < 15 files
+  Reduction needed: 54 files
+
+Cache Directories:
+  Size: 178.4 MB
+  Directories: 4
+
+Utility Scripts:
+  Count: 29
+  Uncategorized: 12
+
+Documentation:
+  Files: 45
+  Duplicates: 8
+
+Branches:
+  Total: 15
+  Merged: 5
+  Stale: 3
+
+Workflows:
+  Total: 8
+  Failing: 2
+  Path updates needed: 6
+
+============================================================
+Report saved to: analysis_reports/cleanup_analysis_20241114.json
+============================================================
+```
+
+#### execute - Execute Cleanup Phases
+
+Execute cleanup phases with validation and rollback support.
+
+```bash
+python -m analysis_tools.cleanup execute [OPTIONS]
+
+Options:
+  --phase PHASE         Specific phase to execute
+  --all                 Execute all phases
+  --dry-run             Simulate operations without making changes
+  --config PATH         Path to configuration file
+  --no-backup           Skip backup branch creation
+  --skip-validation     Skip validation checks
+  --no-commit           Do not auto-commit changes
+  --yes, -y             Skip confirmation prompts
+  --project-root PATH   Project root directory
+```
+
+**Examples:**
+
+```bash
+# Dry run all phases
+python -m analysis_tools.cleanup execute --all --dry-run
+
+# Execute specific phase
+python -m analysis_tools.cleanup execute --phase root_cleanup
+
+# Execute all phases without confirmation
+python -m analysis_tools.cleanup execute --all --yes
+
+# Execute with custom config
+python -m analysis_tools.cleanup execute --all --config cleanup_config.json
+
+# Execute without backup (not recommended)
+python -m analysis_tools.cleanup execute --phase cache_cleanup --no-backup
+```
+
+#### rollback - Rollback Phase
+
+Rollback a cleanup phase to its previous state.
+
+```bash
+python -m analysis_tools.cleanup rollback [OPTIONS]
+
+Options:
+  --phase PHASE         Phase to rollback (required)
+  --yes, -y             Skip confirmation prompt
+  --project-root PATH   Project root directory
+```
+
+**Examples:**
+
+```bash
+# Rollback with confirmation
+python -m analysis_tools.cleanup rollback --phase root_cleanup
+
+# Rollback without confirmation
+python -m analysis_tools.cleanup rollback --phase root_cleanup --yes
+```
+
+#### validate - Validate Environment
+
+Validate cleanup environment and prerequisites.
+
+```bash
+python -m analysis_tools.cleanup validate [OPTIONS]
+
+Options:
+  --project-root PATH   Project root directory
+```
+
+**Example Output:**
+```
+============================================================
+ENVIRONMENT VALIDATION
+============================================================
+
+Git Repository:
+  Status: ✓
+  Clean working tree: ✓
+
+Required Tools:
+  git: ✓
+  gh: ✓
+  python: ✓
+
+Secrets:
+  FREESOUND_API_KEY: ✓
+  BACKUP_PAT: ✓
+  BACKUP_PAT_SECONDARY: ✓
+
+Disk Space:
+  Available: 15.3 GB
+  Required: 1.0 GB
+  Status: ✓
+
+============================================================
+```
+
+#### list-phases - List Available Phases
+
+List all available cleanup phases with descriptions.
+
+```bash
+python -m analysis_tools.cleanup list-phases
+```
+
+**Output:**
+```
+============================================================
+AVAILABLE CLEANUP PHASES
+============================================================
+
+backup
+  Create backup branch before cleanup
+
+cache_cleanup
+  Remove cache directories from version control
+
+root_cleanup
+  Move documentation files to organized structure
+
+script_organization
+  Organize utility scripts by category
+
+doc_consolidation
+  Eliminate duplicate documentation
+
+branch_cleanup
+  Remove stale and merged branches
+
+workflow_update
+  Update workflow files with new paths
+
+workflow_optimization
+  Fix workflow failures and optimize schedules
+
+ci_parallelization
+  Optimize CI matrix parallelization
+
+code_quality
+  Remediate code quality issues
+
+code_review_integration
+  Integrate automated code review tools
+
+validation
+  Comprehensive validation of all changes
+
+documentation
+  Generate comprehensive documentation
+
+============================================================
+Usage:
+  python -m analysis_tools.cleanup execute --phase <phase_name>
+  python -m analysis_tools.cleanup execute --all
+============================================================
+```
+
+#### create-config - Create Configuration File
+
+Create a default configuration file for customization.
+
+```bash
+python -m analysis_tools.cleanup create-config OUTPUT_PATH
+
+Example:
+  python -m analysis_tools.cleanup create-config cleanup_config.json
+```
+
+### Configuration File
+
+Create a JSON configuration file to customize cleanup behavior:
+
+```json
+{
+  "dry_run": false,
+  "create_backup_branch": true,
+  "backup_branch_name": "backup/pre-cleanup",
+  "phases_to_execute": ["all"],
+  "skip_validation": false,
+  "auto_commit": true,
+  
+  "docs_structure": {
+    "reports": "docs/reports",
+    "guides": "docs/guides",
+    "analysis": "docs/analysis",
+    "archive": "docs/archive"
+  },
+  
+  "scripts_structure": {
+    "freesound": "scripts/freesound",
+    "backup": "scripts/backup",
+    "validation": "scripts/validation",
+    "generation": "scripts/generation",
+    "testing": "scripts/testing",
+    "analysis": "scripts/analysis"
+  },
+  
+  "gitignore_patterns": [
+    ".mypy_cache/",
+    ".pytest_cache/",
+    ".ruff_cache/",
+    "__pycache__/",
+    "temp_*/",
+    "_temp_*/",
+    "TestOutput-*.txt",
+    "*_viz_*.log"
+  ],
+  
+  "workflow_schedule_offset_minutes": 15,
+  "required_secrets": [
+    "FREESOUND_API_KEY",
+    "BACKUP_PAT",
+    "BACKUP_PAT_SECONDARY"
+  ],
+  
+  "git_batch_size": 100,
+  "max_workers": null,
+  "file_batch_size": 1000,
+  "large_scale_threshold": 10000,
+  "checkpoint_interval": 5000
+}
+```
+
+### Rollback Procedures
+
+#### Automatic Rollback
+
+The cleanup system automatically rolls back on validation failures:
+
+1. **Validation Failure Detected** - Phase validation fails
+2. **Rollback Initiated** - System begins rollback process
+3. **Operations Reverted** - File operations reversed
+4. **Git Commits Reverted** - Git commits undone
+5. **State Restored** - Repository returned to pre-phase state
+6. **Report Generated** - Rollback report created
+
+#### Manual Rollback
+
+To manually rollback a phase:
+
+```bash
+# Rollback specific phase
+python -m analysis_tools.cleanup rollback --phase <phase_name>
+
+# Example: Rollback root cleanup
+python -m analysis_tools.cleanup rollback --phase root_cleanup
+```
+
+#### Emergency Rollback
+
+If the cleanup system fails catastrophically:
+
+```bash
+# Switch to backup branch
+git checkout backup/pre-cleanup
+
+# Force push to main (if necessary)
+git checkout main
+git reset --hard backup/pre-cleanup
+git push --force origin main
+
+# Or create new branch from backup
+git checkout -b recovery backup/pre-cleanup
+```
+
+### Progress Tracking
+
+The cleanup system provides real-time progress tracking:
+
+#### Progress Bars
+
+```
+Moving files: 1234/5000 [████████░░░░░░░░] 24.7% ETA: 2m 15s
+```
+
+#### Time Estimates
+
+- **Completion percentage** - Current progress
+- **ETA** - Estimated time to completion
+- **Throughput** - Files processed per second
+
+#### Checkpoints (10K+ files)
+
+For large-scale operations, the system automatically saves checkpoints:
+
+```
+Checkpoint saved: 5000/50000 files processed
+Resume command: python -m analysis_tools.cleanup execute --phase root_cleanup
+```
+
+### Workflow Examples
+
+#### Example 1: First-Time Cleanup
+
+```bash
+# Step 1: Analyze repository
+python -m analysis_tools.cleanup analyze
+
+# Step 2: Test with dry run
+python -m analysis_tools.cleanup execute --all --dry-run
+
+# Step 3: Execute cleanup
+python -m analysis_tools.cleanup execute --all
+
+# Step 4: Validate results
+python -m analysis_tools.cleanup validate
+```
+
+#### Example 2: Incremental Cleanup
+
+```bash
+# Execute phases one at a time
+python -m analysis_tools.cleanup execute --phase backup
+python -m analysis_tools.cleanup execute --phase cache_cleanup
+python -m analysis_tools.cleanup execute --phase root_cleanup
+
+# Validate after each phase
+python -m analysis_tools.cleanup validate
+```
+
+#### Example 3: Custom Configuration
+
+```bash
+# Create config file
+python -m analysis_tools.cleanup create-config my_config.json
+
+# Edit config file (customize directory structure, etc.)
+# ...
+
+# Execute with custom config
+python -m analysis_tools.cleanup execute --all --config my_config.json
+```
+
+#### Example 4: Rollback and Retry
+
+```bash
+# Execute phase
+python -m analysis_tools.cleanup execute --phase root_cleanup
+
+# If something goes wrong, rollback
+python -m analysis_tools.cleanup rollback --phase root_cleanup
+
+# Fix issues, then retry
+python -m analysis_tools.cleanup execute --phase root_cleanup
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**"Git repository not found"**
+
+Solution: Run from repository root or use `--project-root`:
+
+```bash
+python -m analysis_tools.cleanup execute --all --project-root /path/to/repo
+```
+
+**"Uncommitted changes detected"**
+
+Solution: Commit or stash changes before cleanup:
+
+```bash
+git stash
+python -m analysis_tools.cleanup execute --all
+git stash pop
+```
+
+**"Validation failed"**
+
+Solution: Check validation report and fix issues:
+
+```bash
+python -m analysis_tools.cleanup validate
+```
+
+**"Disk space insufficient"**
+
+Solution: Free up disk space (requires 1+ GB):
+
+```bash
+# Clean cache directories
+rm -rf .mypy_cache .pytest_cache .ruff_cache __pycache__
+
+# Run cleanup
+python -m analysis_tools.cleanup execute --all
+```
+
+#### Debug Mode
+
+Enable debug logging for troubleshooting:
+
+```bash
+export LOG_LEVEL=DEBUG
+python -m analysis_tools.cleanup execute --all
+```
+
+#### Getting Help
+
+```bash
+# Show help
+python -m analysis_tools.cleanup --help
+
+# Show command help
+python -m analysis_tools.cleanup execute --help
+
+# List available phases
+python -m analysis_tools.cleanup list-phases
+```
+
+### Best Practices
+
+#### Before Cleanup
+
+1. **Commit all changes** - Ensure clean working tree
+2. **Run analysis** - Understand what will change
+3. **Test with dry-run** - Verify operations
+4. **Create backup** - Let system create backup branch
+5. **Notify team** - Inform collaborators
+
+#### During Cleanup
+
+1. **Monitor progress** - Watch for errors or warnings
+2. **Validate each phase** - Check results after each phase
+3. **Review reports** - Read generated reports
+4. **Test functionality** - Verify repository still works
+
+#### After Cleanup
+
+1. **Run tests** - Execute full test suite
+2. **Check workflows** - Verify CI/CD pipelines
+3. **Update documentation** - Review generated docs
+4. **Notify team** - Share migration guide
+5. **Delete backup** - After confirming success

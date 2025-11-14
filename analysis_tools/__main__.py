@@ -114,37 +114,18 @@ def main():
     orchestrator = AnalysisOrchestrator(project_root=args.project_root)
 
     try:
-        # Cleanup commands
+        # Cleanup commands - delegate to cleanup CLI
         if args.cleanup_analyze:
-            EmojiFormatter.safe_print("search", "Analyzing repository for cleanup opportunities...")
-            EmojiFormatter.safe_print("warning", "Cleanup orchestrator not yet implemented")
-            print("This will analyze:")
-            print("  - Root directory file count and organization")
-            print("  - Cache directories and sizes")
-            print("  - Utility script categorization")
-            print("  - Documentation consolidation opportunities")
-            print("  - Branch cleanup candidates")
-            print("  - Workflow optimization opportunities")
-            return 0
+            from .cleanup.cli import analyze_command
+            return analyze_command(args)
             
         elif args.cleanup_execute:
-            EmojiFormatter.safe_print("rocket", "Executing cleanup operations...")
-            if args.phase:
-                print(f"Phase: {args.phase}")
-            if args.dry_run:
-                print("Mode: DRY RUN (no changes will be made)")
-            EmojiFormatter.safe_print("warning", "Cleanup orchestrator not yet implemented")
-            return 0
+            from .cleanup.cli import execute_command
+            return execute_command(args)
             
         elif args.cleanup_rollback:
-            print(EmojiFormatter.format("progress", "Rolling back cleanup phase..."))
-            if args.phase:
-                print(f"Phase: {args.phase}")
-            else:
-                EmojiFormatter.safe_print("error", "Error: --phase required for rollback")
-                return 1
-            EmojiFormatter.safe_print("warning", "Cleanup orchestrator not yet implemented")
-            return 0
+            from .cleanup.cli import rollback_command
+            return rollback_command(args)
             
         # Analysis commands
         elif args.optimize:
