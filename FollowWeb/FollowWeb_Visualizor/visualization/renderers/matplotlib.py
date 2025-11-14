@@ -109,13 +109,14 @@ class MatplotlibRenderer(Renderer):
 
             # Calculate layout with unified method
             pos = self._calculate_layout(graph, G_undirected, layout_type)
-            
+
             # Ensure all nodes in the original graph have positions
             # (in case there are isolated nodes not in G_undirected)
             for node in graph.nodes():
                 if node not in pos:
                     # Place isolated nodes at origin or random position
                     import random
+
                     pos[node] = (random.uniform(-1, 1), random.uniform(-1, 1))
 
         # Use progress tracking for edge preparation and drawing operations
