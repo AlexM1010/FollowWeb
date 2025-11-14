@@ -292,8 +292,8 @@ class PartitionResultsMerger:
         # Merge layouts
         global_layout = self.merge_layouts(partition_results)
 
-        # Calculate total nodes
-        total_nodes = len(global_communities)
+        # Calculate total nodes from original graph (not just analyzed nodes)
+        total_nodes = original_graph.number_of_nodes()
 
         merge_time = time.perf_counter() - start_time
 
