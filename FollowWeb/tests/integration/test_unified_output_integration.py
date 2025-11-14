@@ -20,6 +20,7 @@ from FollowWeb_Visualizor.output.managers import OutputManager
 
 pytestmark = [pytest.mark.integration, pytest.mark.output]
 
+
 class TestUnifiedOutputIntegration:
     """Integration tests for unified output system with real pipeline components."""
 

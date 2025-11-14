@@ -5,13 +5,13 @@ Tests that the pipeline correctly selects and initializes data loaders
 based on configuration.
 """
 
-
 import pytest
 
 from FollowWeb_Visualizor.core.config import load_config_from_dict
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.integration, pytest.mark.data]
+
 
 class TestDataLoaderIntegration:
     """Test data loader integration in pipeline."""

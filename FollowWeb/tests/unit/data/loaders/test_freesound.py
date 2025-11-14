@@ -15,6 +15,7 @@ from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
 
 pytestmark = [pytest.mark.unit, pytest.mark.data]
 
+
 def create_mock_sound(
     sound_id,
     name="test_sound.wav",

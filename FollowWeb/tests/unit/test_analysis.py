@@ -20,6 +20,7 @@ from FollowWeb_Visualizor.data.strategies import GraphStrategy
 
 pytestmark = [pytest.mark.unit, pytest.mark.analysis]
 
+
 class TestInstagramLoader:
     """Test InstagramLoader functionality."""
 

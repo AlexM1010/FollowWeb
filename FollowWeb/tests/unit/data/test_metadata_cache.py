@@ -15,6 +15,7 @@ from FollowWeb_Visualizor.data.storage.metadata_cache import MetadataCache
 
 pytestmark = [pytest.mark.unit, pytest.mark.data]
 
+
 @pytest.fixture
 def mock_logger():
     """Fixture providing mock logger."""

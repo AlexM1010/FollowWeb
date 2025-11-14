@@ -14,6 +14,7 @@ from FollowWeb_Visualizor.data.loaders.base import DataLoader
 
 pytestmark = [pytest.mark.unit, pytest.mark.data]
 
+
 class ConcreteLoader(DataLoader):
     """Concrete implementation of DataLoader for testing."""
 

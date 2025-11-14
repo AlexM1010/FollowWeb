@@ -17,6 +17,7 @@ from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
 
 pytestmark = [pytest.mark.integration, pytest.mark.visualization]
 
+
 @pytest.mark.integration
 class TestSigmaVisualizationEndToEnd:
     """Test end-to-end Sigma.js HTML generation."""

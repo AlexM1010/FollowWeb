@@ -16,6 +16,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
 
+
 class TestPipelineExecution:
     """Test complete pipeline execution."""
 

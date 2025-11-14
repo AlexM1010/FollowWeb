@@ -18,6 +18,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
 
+
 @pytest.mark.integration
 class TestFreesoundPipelineIntegration:
     """Test pipeline integration with Freesound data source."""

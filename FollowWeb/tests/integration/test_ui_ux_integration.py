@@ -18,6 +18,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.integration, pytest.mark.output]
 
+
 class TestEmojiConsistencyIntegration:
     """Test emoji consistency across all modules in real analysis scenarios."""
 

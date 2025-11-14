@@ -16,6 +16,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.slow, pytest.mark.performance]
 
+
 class TestPerformanceBenchmarks:
     """Test performance characteristics and timing accuracy."""
 

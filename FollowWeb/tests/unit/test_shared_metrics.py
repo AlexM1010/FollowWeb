@@ -22,6 +22,7 @@ from FollowWeb_Visualizor.visualization import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
+
 class TestMetricsCalculator:
     """Test cases for the MetricsCalculator class."""
 

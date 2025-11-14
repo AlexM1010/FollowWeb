@@ -32,6 +32,7 @@ from FollowWeb_Visualizor.visualization.colors import get_community_colors
 
 pytestmark = [pytest.mark.unit, pytest.mark.utils]
 
+
 class TestOutputFilenameGeneration:
     """Test output filename generation functionality."""
 

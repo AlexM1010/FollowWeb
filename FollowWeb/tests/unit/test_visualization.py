@@ -20,6 +20,7 @@ from FollowWeb_Visualizor.visualization import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
+
 class TestPyvisRenderer:
     """Test PyvisRenderer functionality."""
 
@@ -247,7 +248,6 @@ class TestMatplotlibRenderer:
 
         # Create node metrics
 
-
         output_path = os.path.join(temp_output_dir, "test_output.png")
         success = renderer.generate_visualization(graph, output_path, None)
 
@@ -289,7 +289,6 @@ class TestMatplotlibRenderer:
             # Create test graph
             graph = nx.DiGraph()
             graph.add_edges_from([("A", "B"), ("B", "C")])
-
 
             output_path = os.path.join(temp_output_dir, f"test_{layout}.png")
             success = renderer.generate_visualization(graph, output_path, None)

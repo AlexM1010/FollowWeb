@@ -14,6 +14,7 @@ from FollowWeb_Visualizor.visualization.renderers.base import Renderer
 
 pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
+
 class ConcreteRenderer(Renderer):
     """Concrete implementation of Renderer for testing."""
 

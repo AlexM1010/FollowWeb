@@ -19,6 +19,7 @@ from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.data]
 
+
 def create_mock_sound(
     sound_id,
     name="test_sound.wav",
@@ -1005,9 +1006,7 @@ class TestIncrementalFreesoundLoaderPagination:
         loader.checkpoint.save = Mock()
 
         # Search with new query
-        loader._search_with_pagination(
-            query="new_query", sort_order="downloads_desc"
-        )
+        loader._search_with_pagination(query="new_query", sort_order="downloads_desc")
 
         # Should reset to page 1 and then advance to page 2
         assert loader.pagination_state["page"] == 1

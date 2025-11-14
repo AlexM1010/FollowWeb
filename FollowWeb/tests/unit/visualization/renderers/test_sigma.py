@@ -14,6 +14,7 @@ from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
 
 pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
+
 class TestSigmaRendererBasics:
     """Test SigmaRenderer basic functionality."""
 

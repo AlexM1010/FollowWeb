@@ -26,6 +26,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 
+
 @pytest.mark.integration
 class TestCompleteWorkflowFreesoundToSigma:
     """Test complete workflow: Freesound → Analysis → Sigma visualization."""

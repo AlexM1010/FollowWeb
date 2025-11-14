@@ -21,6 +21,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 
+
 class TestKValueConfiguration:
     """Test k-value configuration and validation."""
 

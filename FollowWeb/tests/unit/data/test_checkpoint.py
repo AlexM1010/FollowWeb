@@ -15,6 +15,7 @@ from FollowWeb_Visualizor.data.checkpoint import GraphCheckpoint
 
 pytestmark = [pytest.mark.unit, pytest.mark.data]
 
+
 @pytest.fixture
 def temp_checkpoint_path(tmp_path):
     """Create a temporary checkpoint path."""

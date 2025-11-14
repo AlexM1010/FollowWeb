@@ -25,6 +25,7 @@ from FollowWeb_Visualizor.main import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 
+
 class TestPipelineOrchestrator:
     """Test PipelineOrchestrator functionality."""
 

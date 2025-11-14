@@ -29,6 +29,7 @@ from FollowWeb_Visualizor.core.config import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
 
+
 class TestPipelineConfig:
     """Test PipelineConfig dataclass validation."""
 

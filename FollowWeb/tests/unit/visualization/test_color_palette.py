@@ -21,6 +21,7 @@ from FollowWeb_Visualizor.visualization.color_palette import (
 
 pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
+
 class TestNodeGroupColors:
     """Test NodeGroupColors class and base palette."""
 
