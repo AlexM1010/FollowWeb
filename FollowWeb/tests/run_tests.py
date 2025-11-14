@@ -289,9 +289,13 @@ def main():
 
     command = sys.argv[1].lower()
 
+    # Change to the FollowWeb package directory
+    package_dir = Path(__file__).parent.parent
+    os.chdir(package_dir)
+
     # Set environment variables
     os.environ["MPLBACKEND"] = "Agg"
-    os.environ["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
+    os.environ["PYTHONPATH"] = str(package_dir.parent)
 
     if command == "fix":
         return 0 if run_autofix_only() else 1

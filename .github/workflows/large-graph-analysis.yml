@@ -48,11 +48,13 @@ jobs:
           import sys
           import json
           import networkx as nx
+          import pickle
           from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
           
           # Load graph
           print('Loading graph from ${{ inputs.graph_file }}')
-          graph = nx.read_gpickle('${{ inputs.graph_file }}')
+          with open('${{ inputs.graph_file }}', 'rb') as f:
+              graph = pickle.load(f)
           print(f'Loaded graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges')
           
           # Create partitioner
@@ -207,13 +209,15 @@ jobs:
         run: |
           python -c "
           import networkx as nx
+          import pickle
           from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
           
           print('Merging partition results')
           
           # Load original graph
           print('Loading original graph')
-          original_graph = nx.read_gpickle('original_graph.gpickle')
+          with open('original_graph.gpickle', 'rb') as f:
+              original_graph = pickle.load(f)
           print(f'Loaded graph: {original_graph.number_of_nodes()} nodes')
           
           # Load and merge results
@@ -225,7 +229,8 @@ jobs:
           print(f'Merge complete: {merged_results.total_nodes} nodes in {merged_results.merge_time:.2f}s')
           
           # Save final graph
-          nx.write_gpickle(original_graph, 'final_graph.gpickle')
+          with open('final_graph.gpickle', 'wb') as f:
+              pickle.dump(original_graph, f, protocol=pickle.HIGHEST_PROTOCOL)
           print('Saved final graph to final_graph.gpickle')
           
           # Save merged results metadata
@@ -246,13 +251,15 @@ jobs:
         run: |
           python -c "
           import networkx as nx
+          import pickle
           from FollowWeb_Visualizor.main import FollowWebPipeline
           from FollowWeb_Visualizor.core.config import Config
           
           print('Generating visualization')
           
           # Load final graph
-          graph = nx.read_gpickle('final_graph.gpickle')
+          with open('final_graph.gpickle', 'rb') as f:
+              graph = pickle.load(f)
           print(f'Loaded final graph: {graph.number_of_nodes()} nodes')
           
           # Create config for visualization

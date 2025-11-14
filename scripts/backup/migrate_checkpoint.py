@@ -72,9 +72,11 @@ def migrate_checkpoint(checkpoint_dir: Path) -> bool:
     
     # 1. Save graph topology (edges only, no attributes)
     import networkx as nx
+    import pickle
     topology_path = checkpoint_dir / "graph_topology.gpickle"
     logger.info(f"Saving graph topology to: {topology_path}")
-    nx.write_gpickle(graph, str(topology_path))
+    with open(topology_path, "wb") as f:
+        pickle.dump(graph, f, protocol=pickle.HIGHEST_PROTOCOL)
     
     # 2. Create metadata cache and store node attributes
     metadata_db_path = checkpoint_dir / "metadata_cache.db"
