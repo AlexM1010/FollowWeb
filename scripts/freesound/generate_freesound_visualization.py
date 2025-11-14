@@ -113,6 +113,21 @@ def parse_arguments():
         help='Minimum Jaccard similarity for tag edges (0.0-1.0, default: 0.3)'
     )
     
+    parser.add_argument(
+        '--use-pagination',
+        action='store_true',
+        default=False,
+        help='Use pagination-based collection (continues from last page in checkpoint)'
+    )
+    
+    parser.add_argument(
+        '--sort-order',
+        type=str,
+        default='downloads_desc',
+        choices=['downloads_desc', 'created_desc', 'rating_desc', 'duration_desc'],
+        help='Sort order for pagination search (default: downloads_desc)'
+    )
+    
     return parser.parse_args()
 
 
@@ -211,8 +226,9 @@ def get_checkpoint_aware_seed(loader, api_key: str, logger: logging.Logger) -> t
         best_seed = loader.metadata_cache.get_best_seed_sample()
         
         if best_seed:
-            # Get node data from graph
-            node_data = loader.graph.nodes[best_seed]
+            # Get node data from graph (convert to string key)
+            node_id = str(best_seed)
+            node_data = loader.graph.nodes[node_id]
             seed_name = node_data.get('name', 'Unknown')
             seed_downloads = node_data.get('num_downloads', 0)
             logger.info(
@@ -253,6 +269,8 @@ def main():
     include_pack_edges = args.include_pack_edges
     include_tag_edges = args.include_tag_edges
     tag_similarity_threshold = args.tag_similarity_threshold
+    use_pagination = args.use_pagination
+    sort_order = args.sort_order
     
     # Track seed sample info for logging
     seed_name = None
@@ -262,6 +280,9 @@ def main():
     logger.info(f"Discovery mode: {discovery_mode}")
     logger.info(f"Max requests: {max_requests} (circuit breaker)")
     logger.info(f"Page size: {page_size} (API maximum)")
+    logger.info(f"Pagination mode: {use_pagination}")
+    if use_pagination:
+        logger.info(f"Sort order: {sort_order}")
     logger.info(f"Edge generation: user={include_user_edges}, pack={include_pack_edges}, tag={include_tag_edges}")
     if include_tag_edges:
         logger.info(f"Tag similarity threshold: {tag_similarity_threshold}")
@@ -308,19 +329,27 @@ def main():
             logger.info(f"Using provided seed sample ID: {seed_sample_id}")
         
         # For incremental loading, we use a broad query and let the loader
-        # handle checkpoint-aware processing.
+        # handle checkpoint-aware processing with pagination resumption.
         logger.info(f"Fetching Freesound data with discovery mode: {discovery_mode}...")
+        
+        # The loader will:
+        # 1. Resume from the last pagination checkpoint
+        # 2. Skip already-processed samples
+        # 3. Stop when circuit breaker (max_requests) is hit
+        # 4. Save pagination state for next run
         
         # Use a broad query to find samples, loader will skip already-processed ones
         # Note: Freesound API doesn't support wildcard queries, use empty string for all samples
         data = loader.fetch_data(
             query="",  # Empty query matches all samples (per Freesound API docs)
-            max_samples=max_requests,  # Circuit breaker
+            max_samples=999999,  # Large number - circuit breaker will stop us
             discovery_mode=discovery_mode,
             include_user_edges=include_user_edges,
             include_pack_edges=include_pack_edges,
             include_tag_edges=include_tag_edges,
-            tag_similarity_threshold=tag_similarity_threshold
+            tag_similarity_threshold=tag_similarity_threshold,
+            use_pagination=use_pagination,
+            sort_order=sort_order
         )
         
         # Build graph
