@@ -8,16 +8,15 @@ visualization, including configuration loading, output generation, and error han
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
-
 from FollowWeb_Visualizor.core.config import load_config_from_dict
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
+pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
 
 @pytest.mark.integration
 class TestFreesoundPipelineIntegration:
@@ -108,7 +107,7 @@ class TestFreesoundPipelineIntegration:
             with patch.object(
                 orchestrator.graph_strategy, "prune_graph", return_value=mock_graph
             ):
-                graph = orchestrator._execute_strategy_phase()
+                orchestrator._execute_strategy_phase()
 
             # Verify loader was initialized with correct config
             mock_loader_class.assert_called_once()
@@ -267,7 +266,7 @@ class TestSigmaRendererPipelineIntegration:
 
             # Verify HTML contains Sigma.js elements
             html_file = html_files[0]
-            with open(html_file, "r", encoding="utf-8") as f:
+            with open(html_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             assert "sigma" in html_content.lower()
@@ -365,7 +364,7 @@ class TestFreesoundSigmaPipelineIntegration:
 
             # Verify HTML contains both Freesound and Sigma elements
             html_file = html_files[0]
-            with open(html_file, "r", encoding="utf-8") as f:
+            with open(html_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for Sigma.js

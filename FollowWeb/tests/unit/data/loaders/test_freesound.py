@@ -5,16 +5,15 @@ Tests Freesound API integration, search functionality, graph construction,
 and error handling with mocked freesound-python client responses.
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.data]
-
 from FollowWeb_Visualizor.core.exceptions import DataProcessingError
 from FollowWeb_Visualizor.data.loaders.freesound import FreesoundLoader
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
 
 def create_mock_sound(
     sound_id,

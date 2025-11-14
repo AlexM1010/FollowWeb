@@ -12,12 +12,11 @@ from pathlib import Path
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.analysis]
-
 from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
 from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
+pytestmark = [pytest.mark.integration, pytest.mark.analysis]
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -310,9 +309,9 @@ class TestGraphPartitioningPipeline:
             assert "betweenness" in final_graph.nodes[node]
 
         # Verify community assignments are valid
-        communities = set(
+        communities = {
             final_graph.nodes[node]["community"] for node in final_graph.nodes()
-        )
+        }
         assert len(communities) > 0  # Should have at least one community
 
         # Verify centrality scores are normalized

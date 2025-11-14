@@ -23,15 +23,10 @@ Usage:
     pytest tests/performance/test_freesound_refactor_benchmarks.py -m performance -n 0
 """
 
-import json
-import os
 import tempfile
 import time
-from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
-import networkx as nx
 import pytest
 
 pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
@@ -177,7 +172,7 @@ def temp_checkpoint_dir():
         import shutil
 
         shutil.rmtree(tmpdir, ignore_errors=True)
-    except:
+    except Exception:
         pass
 
 
@@ -226,7 +221,7 @@ class TestSearchBasedCollectionBenchmarks:
                 )
                 return result
 
-            result = benchmark(collect_samples)
+            benchmark(collect_samples)
 
             # Verify samples were collected
             assert loader.graph.number_of_nodes() >= 100
@@ -375,7 +370,7 @@ class TestSearchBasedCollectionBenchmarks:
 
             start_time = time.time()
 
-            result = loader.fetch_data(
+            loader.fetch_data(
                 query="drum",
                 max_samples=200,
                 discovery_mode="search",
@@ -396,7 +391,7 @@ class TestSearchBasedCollectionBenchmarks:
             samples_per_second = nodes_collected / elapsed
             calls_per_sample = total_calls / nodes_collected
 
-            print(f"\n=== Performance Improvements ===")
+            print("\n=== Performance Improvements ===")
             print(f"Samples collected: {nodes_collected}")
             print(f"Total time: {elapsed:.2f}s")
             print(f"Samples per second: {samples_per_second:.2f}")
@@ -655,7 +650,7 @@ class TestEdgeGenerationBenchmarks:
 
             total_time = sum(timings.values())
 
-            print(f"\n=== Edge Generation Timing Analysis ===")
+            print("\n=== Edge Generation Timing Analysis ===")
             print(f"Nodes: {nodes}")
             print(
                 f"User edges: {user_edges} ({timings['user_edges']:.3f}s, {timings['user_edges'] / total_time * 100:.1f}%)"

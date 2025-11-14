@@ -13,8 +13,6 @@ Usage:
 import gc
 import os
 import tempfile
-import time
-from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -162,7 +160,7 @@ class TestMemoryProfiling:
             peak_memory = initial_memory
 
             # Collect samples in batches and track peak memory
-            for batch in range(5):
+            for _batch in range(5):
                 loader.fetch_data(
                     query="drum",
                     max_samples=100,
@@ -182,7 +180,7 @@ class TestMemoryProfiling:
             nodes = loader.graph.number_of_nodes()
             memory_per_node = memory_increase / nodes if nodes > 0 else 0
 
-            print(f"\n=== Memory Usage During Collection ===")
+            print("\n=== Memory Usage During Collection ===")
             print(f"Initial memory: {initial_memory:.2f} MB")
             print(f"Final memory: {final_memory:.2f} MB")
             print(f"Peak memory: {peak_memory:.2f} MB")
@@ -243,7 +241,7 @@ class TestMemoryProfiling:
                 edge_memory_increase / total_edges if total_edges > 0 else 0
             )
 
-            print(f"\n=== Memory Usage During Edge Generation ===")
+            print("\n=== Memory Usage During Edge Generation ===")
             print(f"Memory before edges: {memory_before_edges:.2f} MB")
             print(f"Memory after edges: {memory_after_edges:.2f} MB")
             print(f"Memory increase: {edge_memory_increase:.2f} MB")
@@ -302,7 +300,7 @@ class TestMemoryProfiling:
                 pending_memory / pending_nodes_count if pending_nodes_count > 0 else 0
             )
 
-            print(f"\n=== Pending Data Structures Memory ===")
+            print("\n=== Pending Data Structures Memory ===")
             print(f"Memory before: {memory_before_pending:.2f} MB")
             print(f"Memory after: {memory_after_pending:.2f} MB")
             print(f"Memory increase: {pending_memory:.2f} MB")
@@ -368,7 +366,7 @@ class TestMemoryProfiling:
             memory_savings = estimated_legacy_overhead
             savings_percentage = (memory_savings / estimated_legacy_memory) * 100
 
-            print(f"\n=== Memory Reduction Analysis ===")
+            print("\n=== Memory Reduction Analysis ===")
             print(f"Nodes: {nodes}")
             print(f"Edges: {edges}")
             print(f"Actual memory (new): {actual_memory:.2f} MB")
@@ -379,7 +377,7 @@ class TestMemoryProfiling:
 
             # Target: ≥ 30% reduction
             # Note: This is an estimate based on removed data structures
-            print(f"\nTarget: ≥30% reduction")
+            print("\nTarget: ≥30% reduction")
             print(f"Achieved: {savings_percentage:.1f}% reduction (estimated)")
 
             # Verify reasonable memory usage

@@ -10,16 +10,16 @@ Tests the centralized color palette system including:
 
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 from FollowWeb_Visualizor.visualization.color_palette import (
     NodeGroupColors,
     UIColors,
     darken_color,
-    lighten_color,
-    hex_to_rgba,
     generate_extended_palette,
+    hex_to_rgba,
+    lighten_color,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 class TestNodeGroupColors:
     """Test NodeGroupColors class and base palette."""

@@ -13,8 +13,6 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.visualization]
-
 # Set matplotlib backend before importing pyplot
 os.environ["MPLBACKEND"] = "Agg"
 import matplotlib
@@ -32,6 +30,8 @@ from FollowWeb_Visualizor.visualization import (
     PyvisRenderer,
     VisualizationMetrics,
 )
+
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 
 class TestVisualizationConsistency:

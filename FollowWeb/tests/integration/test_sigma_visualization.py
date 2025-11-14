@@ -9,15 +9,13 @@ import json
 import os
 import re
 import tempfile
-from pathlib import Path
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.visualization]
-
 from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
 
+pytestmark = [pytest.mark.integration, pytest.mark.visualization]
 
 @pytest.mark.integration
 class TestSigmaVisualizationEndToEnd:
@@ -83,7 +81,7 @@ class TestSigmaVisualizationEndToEnd:
             output_file = os.path.join(tmpdir, "test_structure.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Validate HTML structure
@@ -111,7 +109,7 @@ class TestSigmaVisualizationEndToEnd:
             output_file = os.path.join(tmpdir, "test_libraries.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for required libraries
@@ -136,7 +134,7 @@ class TestSigmaVisualizationEndToEnd:
             output_file = os.path.join(tmpdir, "test_data.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check that node data is present
@@ -167,7 +165,7 @@ class TestSigmaVisualizationEndToEnd:
             output_file = os.path.join(tmpdir, "test_config.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check that config values are embedded
@@ -246,7 +244,7 @@ class TestSigmaVisualizationWithFreesoundData:
             assert os.path.exists(output_file)
 
             # Read and validate content
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for Freesound-specific attributes
@@ -277,7 +275,7 @@ class TestSigmaVisualizationWithFreesoundData:
             output_file = os.path.join(tmpdir, "audio_player_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for audio player elements
@@ -359,7 +357,7 @@ class TestSigmaVisualizationJavaScriptValidation:
             output_file = os.path.join(tmpdir, "json_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check that graphData variable is defined
@@ -398,7 +396,7 @@ class TestSigmaVisualizationJavaScriptValidation:
             output_file = os.path.join(tmpdir, "js_init_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for key JavaScript initialization
@@ -419,7 +417,7 @@ class TestSigmaVisualizationJavaScriptValidation:
             output_file = os.path.join(tmpdir, "events_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for event handlers
@@ -439,7 +437,7 @@ class TestSigmaVisualizationJavaScriptValidation:
             output_file = os.path.join(tmpdir, "controls_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for zoom controls
@@ -496,7 +494,7 @@ class TestSigmaVisualizationErrorHandling:
             assert os.path.exists(output_file)
 
             # Verify HTML is still valid (no unescaped characters breaking structure)
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             assert "</html>" in html_content  # HTML structure intact
@@ -544,7 +542,7 @@ class TestSigmaVisualizationOutputQuality:
             output_file = os.path.join(tmpdir, "legend_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for legend elements (legend is generated by LegendGenerator)
@@ -565,7 +563,7 @@ class TestSigmaVisualizationOutputQuality:
             output_file = os.path.join(tmpdir, "responsive_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for viewport meta tag
@@ -586,7 +584,7 @@ class TestSigmaVisualizationOutputQuality:
             output_file = os.path.join(tmpdir, "styling_test.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check for CSS

@@ -10,8 +10,6 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.utils]
-
 from FollowWeb_Visualizor.core.exceptions import (
     ConfigurationError,
     DataProcessingError,
@@ -32,6 +30,7 @@ from FollowWeb_Visualizor.utils.math import (
 from FollowWeb_Visualizor.utils.validation import validate_file_path
 from FollowWeb_Visualizor.visualization.colors import get_community_colors
 
+pytestmark = [pytest.mark.unit, pytest.mark.utils]
 
 class TestOutputFilenameGeneration:
     """Test output filename generation functionality."""

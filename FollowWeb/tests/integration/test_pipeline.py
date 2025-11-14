@@ -12,10 +12,9 @@ from unittest.mock import patch
 
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
-
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
+pytestmark = [pytest.mark.integration, pytest.mark.pipeline]
 
 class TestPipelineExecution:
     """Test complete pipeline execution."""
@@ -515,7 +514,6 @@ class TestCustomOutputDirectoryIntegration:
         custom_dir = os.path.join(temp_output_dir, "custom_output")
 
         from FollowWeb_Visualizor.core.config import load_config_from_dict
-
         from tests.conftest import apply_pipeline_preset
 
         config = fast_config.copy()

@@ -5,27 +5,23 @@ Tests GraphPartitioner, PartitionAnalysisWorker, and PartitionResultsMerger
 for large-scale graph analysis with distributed processing.
 """
 
-import math
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.analysis]
-
-from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner, PartitionInfo
+from FollowWeb_Visualizor.analysis.partition_merger import (
+    MergedResults,
+    PartitionResultsMerger,
+)
 from FollowWeb_Visualizor.analysis.partition_worker import (
     PartitionAnalysisWorker,
     PartitionResults,
 )
-from FollowWeb_Visualizor.analysis.partition_merger import (
-    PartitionResultsMerger,
-    MergedResults,
-)
+from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner, PartitionInfo
 
-
+pytestmark = [pytest.mark.unit, pytest.mark.analysis]
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -676,8 +672,8 @@ class TestPartitionResultsMerger:
             global_communities={
                 node: i % 3 for i, node in enumerate(small_graph.nodes())
             },
-            global_centrality={node: 0.5 for node in small_graph.nodes()},
-            global_layout={node: (0.0, 0.0) for node in small_graph.nodes()},
+            global_centrality=dict.fromkeys(small_graph.nodes(), 0.5),
+            global_layout=dict.fromkeys(small_graph.nodes(), (0.0, 0.0)),
             partition_count=2,
             total_nodes=small_graph.number_of_nodes(),
             merge_time=1.0,

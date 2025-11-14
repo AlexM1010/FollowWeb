@@ -5,17 +5,15 @@ Tests checkpoint save/load with joblib, checkpoint management operations,
 and error handling with mocked joblib operations.
 """
 
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.data]
-
 from FollowWeb_Visualizor.data.checkpoint import GraphCheckpoint
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
 
 @pytest.fixture
 def temp_checkpoint_path(tmp_path):
@@ -120,7 +118,7 @@ class TestGraphCheckpointSave:
     ):
         """Test save handles IO errors gracefully."""
         # Mock joblib.dump to raise an error
-        mock_dump.side_effect = IOError("Disk full")
+        mock_dump.side_effect = OSError("Disk full")
 
         checkpoint = GraphCheckpoint(temp_checkpoint_path)
 

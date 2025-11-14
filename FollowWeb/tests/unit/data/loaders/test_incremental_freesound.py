@@ -12,13 +12,12 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.data]
-
 from FollowWeb_Visualizor.core.exceptions import DataProcessingError
 from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
     IncrementalFreesoundLoader,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
 
 def create_mock_sound(
     sound_id,
@@ -882,7 +881,6 @@ class TestIncrementalFreesoundLoaderPagination:
         loader = loader_with_mocks
 
         # Mock metadata_cache.exists to return True for samples 1 and 2
-        original_exists = loader.metadata_cache.exists
         loader.metadata_cache.exists = Mock(side_effect=lambda sid: sid in [1, 2])
 
         # Reset pagination state
@@ -1007,7 +1005,7 @@ class TestIncrementalFreesoundLoaderPagination:
         loader.checkpoint.save = Mock()
 
         # Search with new query
-        result = loader._search_with_pagination(
+        loader._search_with_pagination(
             query="new_query", sort_order="downloads_desc"
         )
 

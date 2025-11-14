@@ -4,16 +4,15 @@ Unit tests for DataLoader abstract base class.
 Tests interface enforcement, template method pattern, and validation logic.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.data]
-
 from FollowWeb_Visualizor.core.exceptions import DataProcessingError
 from FollowWeb_Visualizor.data.loaders.base import DataLoader
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
 
 class ConcreteLoader(DataLoader):
     """Concrete implementation of DataLoader for testing."""
@@ -25,7 +24,7 @@ class ConcreteLoader(DataLoader):
         self.fetch_called = False
         self.build_called = False
 
-    def fetch_data(self, **params) -> Dict[str, Any]:
+    def fetch_data(self, **params) -> dict[str, Any]:
         """Fetch test data."""
         self.fetch_called = True
 
@@ -37,7 +36,7 @@ class ConcreteLoader(DataLoader):
             "edges": params.get("edges", [{"source": 1, "target": 2}]),
         }
 
-    def build_graph(self, data: Dict[str, Any]) -> nx.DiGraph:
+    def build_graph(self, data: dict[str, Any]) -> nx.DiGraph:
         """Build test graph."""
         self.build_called = True
 
@@ -56,10 +55,10 @@ class ConcreteLoader(DataLoader):
 class InvalidLoader(DataLoader):
     """Invalid loader that returns wrong type from build_graph."""
 
-    def fetch_data(self, **params) -> Dict[str, Any]:
+    def fetch_data(self, **params) -> dict[str, Any]:
         return {"data": "test"}
 
-    def build_graph(self, data: Dict[str, Any]) -> nx.DiGraph:
+    def build_graph(self, data: dict[str, Any]) -> nx.DiGraph:
         # Return wrong type to test validation
         return "not a graph"
 
@@ -87,7 +86,7 @@ class TestDataLoaderInterface:
         """Test that fetch_data must be implemented."""
 
         class NoFetchLoader(DataLoader):
-            def build_graph(self, data: Dict[str, Any]) -> nx.DiGraph:
+            def build_graph(self, data: dict[str, Any]) -> nx.DiGraph:
                 return nx.DiGraph()
 
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
@@ -97,7 +96,7 @@ class TestDataLoaderInterface:
         """Test that build_graph must be implemented."""
 
         class NoBuildLoader(DataLoader):
-            def fetch_data(self, **params) -> Dict[str, Any]:
+            def fetch_data(self, **params) -> dict[str, Any]:
                 return {}
 
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
@@ -163,10 +162,10 @@ class TestDataLoaderTemplateMethod:
         """Test that load() wraps unexpected errors."""
 
         class BrokenLoader(DataLoader):
-            def fetch_data(self, **params) -> Dict[str, Any]:
+            def fetch_data(self, **params) -> dict[str, Any]:
                 raise ValueError("Unexpected error")
 
-            def build_graph(self, data: Dict[str, Any]) -> nx.DiGraph:
+            def build_graph(self, data: dict[str, Any]) -> nx.DiGraph:
                 return nx.DiGraph()
 
         loader = BrokenLoader()

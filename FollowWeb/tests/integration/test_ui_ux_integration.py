@@ -10,13 +10,13 @@ import json
 import os
 import sys
 from pathlib import Path
-import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.output]
+import pytest
 
 from FollowWeb_Visualizor.core.config import get_configuration_manager
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
+pytestmark = [pytest.mark.integration, pytest.mark.output]
 
 class TestEmojiConsistencyIntegration:
     """Test emoji consistency across all modules in real analysis scenarios."""

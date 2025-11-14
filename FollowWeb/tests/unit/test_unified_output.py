@@ -13,12 +13,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.output]
-
 from FollowWeb_Visualizor.output.formatters import EmojiFormatter
 from FollowWeb_Visualizor.output.logging import Logger
 from FollowWeb_Visualizor.output.managers import OutputConfig, OutputManager
 
+pytestmark = [pytest.mark.unit, pytest.mark.output]
 
 class TestOutputConfig:
     """Test OutputConfig dataclass functionality."""

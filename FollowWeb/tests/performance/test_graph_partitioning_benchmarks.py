@@ -6,17 +6,15 @@ graph sizes to verify performance targets.
 """
 
 import time
-from typing import List, Tuple
 
 import networkx as nx
 import pytest
-
-pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
 
 from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
 from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
+pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -48,7 +46,7 @@ def create_sparse_graph(num_nodes: int, edges_per_node: int = 3) -> nx.DiGraph:
 
 def benchmark_partition(
     graph: nx.DiGraph, num_partitions: int
-) -> Tuple[List[nx.DiGraph], float]:
+) -> tuple[list[nx.DiGraph], float]:
     """
     Benchmark graph partitioning.
 
@@ -68,7 +66,7 @@ def benchmark_partition(
     return partitions, elapsed_time
 
 
-def benchmark_analysis(partitions: List[nx.DiGraph]) -> Tuple[List, float]:
+def benchmark_analysis(partitions: list[nx.DiGraph]) -> tuple[list, float]:
     """
     Benchmark partition analysis.
 
@@ -91,7 +89,7 @@ def benchmark_analysis(partitions: List[nx.DiGraph]) -> Tuple[List, float]:
     return results, elapsed_time
 
 
-def benchmark_merge(results: List, original_graph: nx.DiGraph) -> Tuple[float, float]:
+def benchmark_merge(results: list, original_graph: nx.DiGraph) -> tuple[float, float]:
     """
     Benchmark result merging.
 
@@ -151,7 +149,7 @@ class TestPartitioningPerformance:
             worker = PartitionAnalysisWorker(partition_id=0)
 
             start_time = time.perf_counter()
-            results = worker.analyze_partition(graph)
+            worker.analyze_partition(graph)
             elapsed = time.perf_counter() - start_time
 
             return elapsed
@@ -197,7 +195,7 @@ class TestPartitioningPerformance:
         # Create a very sparse 1M node graph
         graph = create_sparse_graph(1000000, edges_per_node=2)
 
-        start_time = time.perf_counter()
+        time.perf_counter()
 
         # Partition (20 partitions for 1M nodes)
         partitions, partition_time = benchmark_partition(graph, num_partitions=20)

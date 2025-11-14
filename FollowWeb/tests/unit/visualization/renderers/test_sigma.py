@@ -4,18 +4,15 @@ Unit tests for SigmaRenderer.
 Tests Sigma.js HTML generation, data format conversion, and configuration handling.
 """
 
-import json
 import os
 import tempfile
-from pathlib import Path
 
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.visualization]
-
 from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
 
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 class TestSigmaRendererBasics:
     """Test SigmaRenderer basic functionality."""
@@ -81,7 +78,7 @@ class TestSigmaRendererDataConversion:
         edge_metrics = {(1, 2): {"width": 2, "color": "#cccccc", "is_mutual": False}}
 
         # Create mock metrics object
-        from FollowWeb_Visualizor.core.types import VisualizationMetrics, ColorScheme
+        from FollowWeb_Visualizor.core.types import ColorScheme, VisualizationMetrics
 
         metrics = VisualizationMetrics(
             node_metrics={},
@@ -127,7 +124,7 @@ class TestSigmaRendererDataConversion:
         }
         edge_metrics = {}
 
-        from FollowWeb_Visualizor.core.types import VisualizationMetrics, ColorScheme
+        from FollowWeb_Visualizor.core.types import ColorScheme, VisualizationMetrics
 
         metrics = VisualizationMetrics(
             node_metrics={},
@@ -183,7 +180,7 @@ class TestSigmaRendererDataConversion:
         }
         edge_metrics = {(1, 2): {"width": 3, "color": "#0000ff", "is_mutual": False}}
 
-        from FollowWeb_Visualizor.core.types import VisualizationMetrics, ColorScheme
+        from FollowWeb_Visualizor.core.types import ColorScheme, VisualizationMetrics
 
         metrics = VisualizationMetrics(
             node_metrics={},
@@ -243,7 +240,7 @@ class TestSigmaRendererHTMLGeneration:
             output_file = os.path.join(tmpdir, "test_sigma.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             assert "sigma" in html_content.lower()
@@ -262,7 +259,7 @@ class TestSigmaRendererHTMLGeneration:
             output_file = os.path.join(tmpdir, "test_sigma.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             assert "test_node" in html_content
@@ -321,7 +318,7 @@ class TestSigmaRendererConfiguration:
             output_file = os.path.join(tmpdir, "test_sigma.html")
             renderer.generate_visualization(graph, output_file)
 
-            with open(output_file, "r", encoding="utf-8") as f:
+            with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Check that config is embedded in HTML

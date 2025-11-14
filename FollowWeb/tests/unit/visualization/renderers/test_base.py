@@ -9,11 +9,10 @@ from typing import Any, Optional
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.visualization]
-
 from FollowWeb_Visualizor.core.types import VisualizationMetrics
 from FollowWeb_Visualizor.visualization.renderers.base import Renderer
 
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 class ConcreteRenderer(Renderer):
     """Concrete implementation of Renderer for testing."""

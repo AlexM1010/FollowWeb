@@ -6,13 +6,9 @@ across the separated pipeline workflows.
 """
 
 import json
-import os
 import pickle
-import shutil
-import tempfile
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
 
 import networkx as nx
 import pytest
@@ -104,7 +100,6 @@ class TestWorkflowTriggers:
         """Test collection → validation trigger with cache sharing."""
         # Simulate collection workflow saving checkpoint to cache
         checkpoint_dir = mock_checkpoint_data["checkpoint_dir"]
-        cache_key = "checkpoint-12345"
 
         # Verify checkpoint files exist
         assert mock_checkpoint_data["graph_path"].exists()
@@ -126,7 +121,7 @@ class TestWorkflowTriggers:
     @pytest.mark.integration
     def test_collection_to_repair_trigger(self, mock_checkpoint_data: dict[str, Any]):
         """Test collection → repair trigger with cache sharing."""
-        checkpoint_dir = mock_checkpoint_data["checkpoint_dir"]
+        mock_checkpoint_data["checkpoint_dir"]
 
         # Verify checkpoint can be loaded for repair
         assert mock_checkpoint_data["graph_path"].exists()
@@ -145,7 +140,7 @@ class TestWorkflowTriggers:
     @pytest.mark.integration
     def test_validation_to_backup_trigger(self, mock_checkpoint_data: dict[str, Any]):
         """Test validation → backup trigger with cache sharing."""
-        checkpoint_dir = mock_checkpoint_data["checkpoint_dir"]
+        mock_checkpoint_data["checkpoint_dir"]
 
         # Simulate validation passing
         validation_passed = True
@@ -171,8 +166,6 @@ class TestWorkflowTriggers:
         """Verify cache keys are passed correctly between workflows."""
         # Simulate GitHub Actions run IDs
         collection_run_id = "12345"
-        validation_run_id = "12346"
-        backup_run_id = "12347"
 
         # Collection saves with its run ID
         collection_cache_key = f"checkpoint-{collection_run_id}"
@@ -217,7 +210,6 @@ class TestFailureScenarios:
     ):
         """Test failure recovery (collection fails, backup workflow creates recovery backup)."""
         # Simulate collection failure
-        collection_conclusion = "failure"
 
         # Backup workflow should still be triggered
         backup_triggered = True  # Triggered on both success and failure
@@ -408,7 +400,6 @@ class TestCacheSharing:
     ):
         """Test cache save runs even on failure (if: always())."""
         # Simulate workflow failure
-        workflow_failed = True
 
         # Cache should still be saved (if: always() condition)
         cache_saved = True  # Always runs regardless of failure
@@ -425,8 +416,6 @@ class TestCacheSharing:
     ):
         """Test cache restore from upstream workflow run."""
         # Simulate upstream run ID
-        upstream_run_id = "12345"
-        cache_key = f"checkpoint-{upstream_run_id}"
 
         # Verify checkpoint can be restored
         assert mock_checkpoint_data["checkpoint_dir"].exists()

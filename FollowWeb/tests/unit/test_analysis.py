@@ -10,8 +10,6 @@ import os
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.analysis]
-
 from FollowWeb_Visualizor.analysis import (
     FameAnalyzer,
     NetworkAnalyzer,
@@ -20,6 +18,7 @@ from FollowWeb_Visualizor.analysis import (
 from FollowWeb_Visualizor.data.loaders import InstagramLoader
 from FollowWeb_Visualizor.data.strategies import GraphStrategy
 
+pytestmark = [pytest.mark.unit, pytest.mark.analysis]
 
 class TestInstagramLoader:
     """Test InstagramLoader functionality."""

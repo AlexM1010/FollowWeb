@@ -14,7 +14,7 @@ Usage:
 
 import tempfile
 import time
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -128,7 +128,7 @@ def loader_config(temp_checkpoint_dir):
     }
 
 
-def collect_metrics(loader, elapsed_time: float, api_client) -> Dict[str, Any]:
+def collect_metrics(loader, elapsed_time: float, api_client) -> dict[str, Any]:
     """Collect comprehensive metrics from a loader run."""
     nodes = loader.graph.number_of_nodes()
     edges = loader.graph.number_of_edges()
@@ -202,7 +202,7 @@ class TestDiscoveryModeComparisons:
             elapsed = time.time() - start_time
             metrics = collect_metrics(loader, elapsed, mock_freesound_client)
 
-            print(f"\n=== Search Mode Performance ===")
+            print("\n=== Search Mode Performance ===")
             print(f"Nodes: {metrics['nodes']}")
             print(f"Edges: {metrics['edges']}")
             print(f"Graph density: {metrics['density']:.6f}")
@@ -259,7 +259,7 @@ class TestDiscoveryModeComparisons:
             elapsed = time.time() - start_time
             metrics = collect_metrics(loader, elapsed, mock_freesound_client)
 
-            print(f"\n=== Relationships Mode Performance ===")
+            print("\n=== Relationships Mode Performance ===")
             print(f"Nodes: {metrics['nodes']}")
             print(f"Edges: {metrics['edges']}")
             print(f"Graph density: {metrics['density']:.6f}")
@@ -314,7 +314,7 @@ class TestDiscoveryModeComparisons:
             elapsed = time.time() - start_time
             metrics = collect_metrics(loader, elapsed, mock_freesound_client)
 
-            print(f"\n=== Mixed Mode Performance ===")
+            print("\n=== Mixed Mode Performance ===")
             print(f"Nodes: {metrics['nodes']}")
             print(f"Edges: {metrics['edges']}")
             print(f"Graph density: {metrics['density']:.6f}")
@@ -371,7 +371,7 @@ class TestDiscoveryModeComparisons:
                 results[mode] = metrics
 
         # Print comparison table
-        print(f"\n=== Discovery Mode Comparison ===")
+        print("\n=== Discovery Mode Comparison ===")
         print(f"{'Metric':<25} {'Search':<15} {'Relationships':<15} {'Mixed':<15}")
         print("-" * 70)
 
@@ -397,7 +397,7 @@ class TestDiscoveryModeComparisons:
             )
 
         # Analyze and document optimal strategies
-        print(f"\n=== Optimal Strategy Recommendations ===")
+        print("\n=== Optimal Strategy Recommendations ===")
 
         # Best for speed
         fastest = min(results.items(), key=lambda x: x[1]["elapsed_time"])
@@ -422,7 +422,7 @@ class TestDiscoveryModeComparisons:
         )
 
         # Use case recommendations
-        print(f"\n=== Use Case Recommendations ===")
+        print("\n=== Use Case Recommendations ===")
         print(f"1. Quick exploration: Use '{fastest[0]}' mode")
         print(f"2. API quota limited: Use '{most_efficient[0]}' mode")
         print(f"3. Dense network analysis: Use '{densest[0]}' mode")
@@ -475,7 +475,7 @@ class TestDiscoveryModeComparisons:
                     "avg_degree": avg_degree,
                 }
 
-        print(f"\n=== Graph Density by Discovery Mode ===")
+        print("\n=== Graph Density by Discovery Mode ===")
         for mode, results in density_results.items():
             print(f"\n{mode.upper()} Mode:")
             print(f"  Nodes: {results['nodes']}")
@@ -534,7 +534,7 @@ class TestDiscoveryModeComparisons:
                     else 0,
                 }
 
-        print(f"\n=== API Efficiency by Discovery Mode ===")
+        print("\n=== API Efficiency by Discovery Mode ===")
         for mode, results in efficiency_results.items():
             print(f"\n{mode.upper()} Mode:")
             print(f"  Nodes: {results['nodes']}")

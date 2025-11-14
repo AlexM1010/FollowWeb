@@ -12,7 +12,6 @@ Usage:
 
 import tempfile
 import time
-from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -146,7 +145,7 @@ class TestLargeScalePerformance:
 
             start_time = time.time()
 
-            result = loader.fetch_data(
+            loader.fetch_data(
                 query="drum",
                 max_samples=1000,
                 discovery_mode="search",
@@ -161,7 +160,7 @@ class TestLargeScalePerformance:
             edges = loader.graph.number_of_edges()
             samples_per_second = nodes / elapsed
 
-            print(f"\n=== 1000+ Samples Test ===")
+            print("\n=== 1000+ Samples Test ===")
             print(f"Nodes collected: {nodes}")
             print(f"Edges created: {edges}")
             print(f"Time elapsed: {elapsed:.2f}s")
@@ -198,7 +197,7 @@ class TestLargeScalePerformance:
 
             start_time = time.time()
 
-            result = loader.fetch_data(
+            loader.fetch_data(
                 query="drum",
                 max_samples=10000,
                 discovery_mode="search",
@@ -213,7 +212,7 @@ class TestLargeScalePerformance:
             edges = loader.graph.number_of_edges()
             samples_per_second = nodes / elapsed
 
-            print(f"\n=== 10,000+ Samples Test ===")
+            print("\n=== 10,000+ Samples Test ===")
             print(f"Nodes collected: {nodes}")
             print(f"Edges created: {edges}")
             print(f"Time elapsed: {elapsed:.2f}s ({elapsed / 60:.1f} minutes)")
@@ -272,7 +271,7 @@ class TestLargeScalePerformance:
 
             pending_count = len(loader.pending_nodes)
 
-            print(f"\n=== Large Pending Queue Test ===")
+            print("\n=== Large Pending Queue Test ===")
             print(f"Initial nodes: {initial_nodes}")
             print(f"Pending nodes discovered: {pending_count}")
             print(f"Edge generation time: {edge_time:.2f}s")
@@ -338,8 +337,8 @@ class TestLargeScalePerformance:
             # Force checkpoint save
             loader1._save_checkpoint()
 
-            print(f"\n=== Checkpoint Recovery at Scale ===")
-            print(f"Saved checkpoint with:")
+            print("\n=== Checkpoint Recovery at Scale ===")
+            print("Saved checkpoint with:")
             print(f"  Nodes: {nodes_before}")
             print(f"  Edges: {edges_before}")
             print(f"  Pending nodes: {pending_before}")
@@ -354,7 +353,7 @@ class TestLargeScalePerformance:
             edges_after = loader2.graph.number_of_edges()
             pending_after = len(loader2.pending_nodes)
 
-            print(f"Loaded checkpoint with:")
+            print("Loaded checkpoint with:")
             print(f"  Nodes: {nodes_after}")
             print(f"  Edges: {edges_after}")
             print(f"  Pending nodes: {pending_after}")
@@ -382,7 +381,7 @@ class TestLargeScalePerformance:
 
             final_nodes = loader2.graph.number_of_nodes()
 
-            print(f"After continuing collection:")
+            print("After continuing collection:")
             print(f"  Nodes: {final_nodes}")
 
             # Verify incremental collection worked
@@ -429,7 +428,7 @@ class TestLargeScalePerformance:
 
             total_edges = sum(edge_stats.values())
 
-            print(f"\n=== Edge Generation at Scale ===")
+            print("\n=== Edge Generation at Scale ===")
             print(f"Nodes: {nodes}")
             print(f"Edge generation time: {edge_time:.2f}s")
             print(f"Total edges: {total_edges}")
@@ -475,7 +474,7 @@ class TestLargeScalePerformance:
             initial_edges = loader.graph.number_of_edges()
             pending_count = len(loader.pending_nodes)
 
-            print(f"\n=== Deferred Discovery at Scale ===")
+            print("\n=== Deferred Discovery at Scale ===")
             print(f"Initial nodes: {initial_nodes}")
             print(f"Initial edges: {initial_edges}")
             print(f"Pending nodes: {pending_count}")

@@ -21,11 +21,10 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
-
 from FollowWeb_Visualizor.core.config import load_config_from_dict
 from FollowWeb_Visualizor.main import PipelineOrchestrator
 
+pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 
 @pytest.mark.integration
 class TestCompleteWorkflowFreesoundToSigma:

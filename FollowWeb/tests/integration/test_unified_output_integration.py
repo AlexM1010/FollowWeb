@@ -15,11 +15,10 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.output]
-
 from FollowWeb_Visualizor.output.formatters import EmojiFormatter
 from FollowWeb_Visualizor.output.managers import OutputManager
 
+pytestmark = [pytest.mark.integration, pytest.mark.output]
 
 class TestUnifiedOutputIntegration:
     """Integration tests for unified output system with real pipeline components."""

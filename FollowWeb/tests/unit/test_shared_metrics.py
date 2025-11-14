@@ -11,8 +11,6 @@ from unittest.mock import patch
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.visualization]
-
 # Import the visualization classes
 from FollowWeb_Visualizor.visualization import (
     ColorScheme,
@@ -22,6 +20,7 @@ from FollowWeb_Visualizor.visualization import (
     VisualizationMetrics,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 class TestMetricsCalculator:
     """Test cases for the MetricsCalculator class."""

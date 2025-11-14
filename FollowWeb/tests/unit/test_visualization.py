@@ -11,8 +11,6 @@ import tempfile
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.visualization]
-
 from FollowWeb_Visualizor.output.managers import MetricsReporter
 from FollowWeb_Visualizor.visualization import (
     MatplotlibRenderer,
@@ -20,6 +18,7 @@ from FollowWeb_Visualizor.visualization import (
     PyvisRenderer,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.visualization]
 
 class TestPyvisRenderer:
     """Test PyvisRenderer functionality."""
@@ -247,41 +246,7 @@ class TestMatplotlibRenderer:
         graph.add_edges_from([("A", "B"), ("B", "C"), ("C", "A")])
 
         # Create node metrics
-        node_metrics = {
-            "A": {"size": 100, "community": 0, "color_rgba": (1.0, 0.0, 0.0, 1.0)},
-            "B": {"size": 150, "community": 0, "color_rgba": (1.0, 0.0, 0.0, 1.0)},
-            "C": {"size": 120, "community": 1, "color_rgba": (0.0, 1.0, 0.0, 1.0)},
-        }
 
-        edge_metrics = {
-            ("A", "B"): {
-                "width": 2,
-                "color": "#c0c0c0",
-                "is_mutual": False,
-                "common_neighbors": 0,
-                "is_bridge": False,
-                "u_comm": 0,
-                "v_comm": 0,
-            },
-            ("B", "C"): {
-                "width": 2,
-                "color": "#6e6e6e",
-                "is_mutual": False,
-                "common_neighbors": 0,
-                "is_bridge": True,
-                "u_comm": 0,
-                "v_comm": 1,
-            },
-            ("C", "A"): {
-                "width": 2,
-                "color": "#c0c0c0",
-                "is_mutual": False,
-                "common_neighbors": 0,
-                "is_bridge": False,
-                "u_comm": 1,
-                "v_comm": 0,
-            },
-        }
 
         output_path = os.path.join(temp_output_dir, "test_output.png")
         success = renderer.generate_visualization(graph, output_path, None)
@@ -325,11 +290,6 @@ class TestMatplotlibRenderer:
             graph = nx.DiGraph()
             graph.add_edges_from([("A", "B"), ("B", "C")])
 
-            node_metrics = {
-                "A": {"size": 100, "community": 0, "color_rgba": (1.0, 0.0, 0.0, 1.0)},
-                "B": {"size": 100, "community": 0, "color_rgba": (1.0, 0.0, 0.0, 1.0)},
-                "C": {"size": 100, "community": 1, "color_rgba": (0.0, 1.0, 0.0, 1.0)},
-            }
 
             output_path = os.path.join(temp_output_dir, f"test_{layout}.png")
             success = renderer.generate_visualization(graph, output_path, None)

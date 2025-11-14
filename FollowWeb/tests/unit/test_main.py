@@ -14,8 +14,6 @@ from unittest.mock import patch
 
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.core]
-
 from FollowWeb_Visualizor.core.config import get_configuration_manager
 from FollowWeb_Visualizor.main import (
     PipelineOrchestrator,
@@ -25,6 +23,7 @@ from FollowWeb_Visualizor.main import (
     setup_logging,
 )
 
+pytestmark = [pytest.mark.unit, pytest.mark.core]
 
 class TestPipelineOrchestrator:
     """Test PipelineOrchestrator functionality."""
@@ -324,7 +323,7 @@ class TestMainFunction:
 
             # Capture stdout
             old_stdout = sys.stdout
-            sys.stdout = captured_output = StringIO()
+            sys.stdout = StringIO()
 
             try:
                 with patch("sys.argv", ["followweb"]):

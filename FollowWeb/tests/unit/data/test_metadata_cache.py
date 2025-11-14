@@ -6,16 +6,14 @@ dormant node filtering, and edge cases.
 """
 
 import logging
-import sqlite3
 import tempfile
 from pathlib import Path
 
 import pytest
 
-pytestmark = [pytest.mark.unit, pytest.mark.data]
-
 from FollowWeb_Visualizor.data.storage.metadata_cache import MetadataCache
 
+pytestmark = [pytest.mark.unit, pytest.mark.data]
 
 @pytest.fixture
 def mock_logger():
@@ -243,7 +241,7 @@ class TestEdgeCases:
         cache.close()
 
         # Attempting to get best seed after close should raise error
-        with pytest.raises(Exception):
+        with pytest.raises((RuntimeError, ValueError)):
             cache.get_best_seed_sample()
 
     def test_get_best_seed_with_null_priority(self, metadata_cache):
