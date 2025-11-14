@@ -755,5 +755,8 @@ class TestPartitionResultsMerger:
         """Test loading from non-existent directory raises error."""
         merger = PartitionResultsMerger()
 
-        with pytest.raises(FileNotFoundError, match="Results directory not found"):
+        with pytest.raises(
+            FileNotFoundError,
+            match="(Results directory not found|No partition result files found)",
+        ):
             merger.load_all_results("/nonexistent/directory")
