@@ -103,9 +103,10 @@ class CentralizedCache:
 
         # Calculate hash based on graph structure
         try:
+            # Sort nodes and edges by string representation to handle mixed types
             graph_data = {
-                "nodes": sorted(graph.nodes()),
-                "edges": sorted(graph.edges()),
+                "nodes": sorted(graph.nodes(), key=str),
+                "edges": sorted(graph.edges(), key=str),
                 "directed": graph.is_directed(),
                 "node_count": graph.number_of_nodes(),
                 "edge_count": graph.number_of_edges(),
