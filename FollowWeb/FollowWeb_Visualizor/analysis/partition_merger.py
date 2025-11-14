@@ -13,7 +13,6 @@ import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import networkx as nx
 
@@ -22,9 +21,9 @@ import networkx as nx
 class MergedResults:
     """Merged results from all partitions."""
 
-    global_communities: Dict[str, int]
-    global_centrality: Dict[str, float]
-    global_layout: Dict[str, Tuple[float, float]]
+    global_communities: dict[str, int]
+    global_centrality: dict[str, float]
+    global_layout: dict[str, tuple[float, float]]
     partition_count: int
     total_nodes: int
     merge_time: float
@@ -47,7 +46,7 @@ class PartitionResultsMerger:
         """Initialize partition results merger."""
         self.logger = logging.getLogger(__name__)
 
-    def load_all_results(self, results_dir: str) -> List:
+    def load_all_results(self, results_dir: str) -> list:
         """
         Load all partition results from artifacts.
 
@@ -82,7 +81,7 @@ class PartitionResultsMerger:
 
         return results
 
-    def merge_communities(self, partition_results: List) -> Dict[str, int]:
+    def merge_communities(self, partition_results: list) -> dict[str, int]:
         """
         Merge community assignments across partitions.
 
@@ -120,7 +119,7 @@ class PartitionResultsMerger:
 
         return global_communities
 
-    def merge_centrality(self, partition_results: List) -> Dict[str, float]:
+    def merge_centrality(self, partition_results: list) -> dict[str, float]:
         """
         Merge centrality scores across partitions.
 
@@ -156,7 +155,7 @@ class PartitionResultsMerger:
 
         return all_centrality
 
-    def merge_layouts(self, partition_results: List) -> Dict[str, Tuple[float, float]]:
+    def merge_layouts(self, partition_results: list) -> dict[str, tuple[float, float]]:
         """
         Merge layout positions across partitions.
 
@@ -263,7 +262,7 @@ class PartitionResultsMerger:
         return original_graph
 
     def merge_all(
-        self, partition_results: List, original_graph: nx.DiGraph
+        self, partition_results: list, original_graph: nx.DiGraph
     ) -> MergedResults:
         """
         Merge all partition results into final graph.

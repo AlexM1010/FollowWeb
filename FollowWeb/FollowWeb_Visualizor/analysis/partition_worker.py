@@ -12,7 +12,6 @@ Classes:
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
 import networkx as nx
 
@@ -24,11 +23,11 @@ class PartitionResults:
     """Results from analyzing a single partition."""
 
     partition_id: int
-    communities: Dict[str, int]  # node_id -> community_id
-    centrality: Dict[str, float]  # node_id -> centrality_score
-    layout: Dict[str, Tuple[float, float]]  # node_id -> (x, y)
-    boundary_nodes: List[str]  # nodes with cross-partition edges
-    metrics: Dict[str, any]  # partition-specific metrics
+    communities: dict[str, int]  # node_id -> community_id
+    centrality: dict[str, float]  # node_id -> centrality_score
+    layout: dict[str, tuple[float, float]]  # node_id -> (x, y)
+    boundary_nodes: list[str]  # nodes with cross-partition edges
+    metrics: dict[str, any]  # partition-specific metrics
 
 
 class PartitionAnalysisWorker:
@@ -119,7 +118,7 @@ class PartitionAnalysisWorker:
             metrics=metrics,
         )
 
-    def _detect_communities(self, partition: nx.DiGraph) -> Dict[str, int]:
+    def _detect_communities(self, partition: nx.DiGraph) -> dict[str, int]:
         """
         Run community detection on partition.
 
@@ -159,7 +158,7 @@ class PartitionAnalysisWorker:
 
     def _calculate_centrality(
         self, partition: nx.DiGraph, executor: ProcessPoolExecutor
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Calculate centrality with parallel execution.
 
@@ -192,7 +191,7 @@ class PartitionAnalysisWorker:
 
     def _calculate_layout(
         self, partition: nx.DiGraph
-    ) -> Dict[str, Tuple[float, float]]:
+    ) -> dict[str, tuple[float, float]]:
         """
         Calculate layout positions for partition.
 
@@ -214,7 +213,7 @@ class PartitionAnalysisWorker:
 
         return layout
 
-    def _identify_boundary_nodes(self, partition: nx.DiGraph) -> List[str]:
+    def _identify_boundary_nodes(self, partition: nx.DiGraph) -> list[str]:
         """
         Identify nodes with cross-partition edges.
 
@@ -238,7 +237,7 @@ class PartitionAnalysisWorker:
         # For now, we mark nodes with low degree as potential boundary nodes
         # In a full implementation, this would check against the original graph
         boundary_nodes = []
-        partition_nodes = set(partition.nodes())
+        set(partition.nodes())
 
         for node in partition.nodes():
             # Check if node has edges to nodes outside partition
