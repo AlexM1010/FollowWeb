@@ -117,6 +117,21 @@ jobs:
         
         echo "" >> $GITHUB_STEP_SUMMARY
     
+    - name: Copy CNAME for custom domain
+      run: |
+        echo "### 🌐 Configuring Custom Domain" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Copy CNAME file if it exists
+        if [ -f "CNAME" ]; then
+          cp CNAME website/
+          echo "- ✅ Copied CNAME file for custom domain: $(cat CNAME)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⚠️ No CNAME file found (using default GitHub Pages URL)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
