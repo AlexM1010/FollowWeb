@@ -19,7 +19,7 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from validate_freesound_samples import SampleValidator, write_validation_report
+from scripts.freesound.validate_freesound_samples import SampleValidator, write_validation_report
 
 
 @pytest.fixture

@@ -26,8 +26,8 @@ import pytest
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from detect_milestone import check_milestone, load_milestone_history
-from validate_pipeline_data import ValidationReport, validate_checkpoint_integrity
+from scripts.analysis.detect_milestone import check_milestone, load_milestone_history
+from scripts.validation.validate_pipeline_data import ValidationReport, validate_checkpoint_integrity
 
 
 @pytest.fixture

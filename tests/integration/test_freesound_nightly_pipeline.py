@@ -20,12 +20,12 @@ import networkx as nx
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from generate_freesound_visualization import (
+from scripts.freesound.generate_freesound_visualization import (
     get_most_downloaded_sample,
     setup_logging,
     parse_arguments
 )
-from cleanup_old_backups import cleanup_old_backups
+from scripts.backup.cleanup_old_backups import cleanup_old_backups
 
 
 # Mock Freesound API responses
@@ -194,6 +194,26 @@ def create_mock_sound(sound_id, name, username='test_user', duration=1.5,
     })
 
 
+def create_mock_pager(sounds=None, has_next=False):
+    """Helper to create a properly mocked pager object that's iterable."""
+    mock_pager = Mock()
+    mock_pager.next = has_next
+    mock_pager.more = has_next
+    mock_pager.__iter__ = lambda self: iter(sounds or [])
+    
+    # Create mock for next_page that returns an empty iterable pager
+    if has_next:
+        mock_next_page = Mock()
+        mock_next_page.next = False
+        mock_next_page.more = False
+        mock_next_page.__iter__ = lambda self: iter([])
+        mock_pager.next_page = Mock(return_value=mock_next_page)
+    else:
+        mock_pager.next_page = Mock(return_value=None)
+    
+    return mock_pager
+
+
 def mock_requests_get(url: str, *args, **kwargs):
     """Mock requests.get for Freesound API calls."""
     # Search endpoint
@@ -296,38 +316,9 @@ class TestPipelineEndToEnd:
             mock_client_class.return_value = mock_client
             
             # Mock text_search to return mock results
-            mock_pager = Mock()
-            mock_pager.more = False
-            mock_pager.__iter__ = lambda self: iter([
-                MockFreesoundObject({
-                    'id': 12345,
-                    'name': 'test_sample.wav',
-                    'tags': ['test'],
-                    'duration': 1.5,
-                    'username': 'test_user',
-                    'previews': {'preview-hq-mp3': 'http://test.mp3'},
-                    'num_downloads': 1000,
-                    'avg_rating': 4.5,
-                    'num_ratings': 10,
-                    'num_comments': 2,
-                    'url': 'https://freesound.org/people/test_user/sounds/12345/',
-                    'license': 'CC BY 3.0',
-                    'description': 'Test sample',
-                    'created': '2024-01-01T00:00:00Z',
-                    'type': 'wav',
-                    'channels': 2,
-                    'filesize': 1024000,
-                    'bitrate': 320,
-                    'bitdepth': 16,
-                    'samplerate': 44100,
-                    'pack': None,
-                    'images': {},
-                    'comments': None,
-                    'similar_sounds': None,
-                    'analysis': None,
-                    'ac_analysis': None
-                })
-            ])
+            mock_pager = create_mock_pager(sounds=[
+                create_mock_sound(12345, 'test_sample.wav', tags=['test'])
+            ], has_next=False)
             mock_client.text_search.return_value = mock_pager
             
             # Mock get_sound to return full sample data
@@ -370,9 +361,9 @@ class TestPipelineEndToEnd:
             data = loader.fetch_data(
                 query='test',
                 max_samples=5,
-                include_similar=True,
-                recursive_depth=0,  # No recursion to keep test simple
-                max_total_samples=5
+                discovery_mode="similar",
+                # # No recursion to keep test simple
+                # max_total_samples removed
             )
             
             # Build graph
@@ -409,24 +400,21 @@ class TestPipelineEndToEnd:
             
             def mock_text_search(*args, **kwargs):
                 call_count[0] += 1
-                mock_pager = Mock()
-                mock_pager.more = False
                 
                 if call_count[0] == 1:
                     # First call: return sample 12345
-                    mock_pager.__iter__ = lambda self: iter([
+                    return create_mock_pager(sounds=[
                         create_mock_sound(12345, 'sample1.wav', username='user1',
                                         duration=1.5, num_downloads=1000, avg_rating=4.5)
-                    ])
+                    ], has_next=False)
                 else:
                     # Second call: return sample 12346 (already processed 12345)
-                    mock_pager.__iter__ = lambda self: iter([
+                    return create_mock_pager(sounds=[
                         create_mock_sound(12345, 'sample1.wav', username='user1',
                                         duration=1.5, num_downloads=1000, avg_rating=4.5),
                         create_mock_sound(12346, 'sample2.wav', username='user2',
                                         duration=2.0, num_downloads=900, avg_rating=4.0)
-                    ])
-                return mock_pager
+                    ], has_next=False)
             
             mock_client.text_search.side_effect = mock_text_search
             
@@ -470,9 +458,8 @@ class TestPipelineEndToEnd:
             data1 = loader1.fetch_data(
                 query='test',
                 max_samples=2,
-                include_similar=False,
-                recursive_depth=0,
-                max_total_samples=2
+                discovery_mode="search",
+                # # max_total_samples removed
             )
             graph1 = loader1.build_graph(data1)
             initial_nodes = graph1.number_of_nodes()
@@ -489,9 +476,8 @@ class TestPipelineEndToEnd:
             data2 = loader2.fetch_data(
                 query='test',
                 max_samples=3,
-                include_similar=False,
-                recursive_depth=0,
-                max_total_samples=5
+                discovery_mode="search",
+                # # max_total_samples removed
             )
             graph2 = loader2.build_graph(data2)
             
@@ -514,12 +500,10 @@ class TestPipelineEndToEnd:
             mock_client_class.return_value = mock_client
             
             # Mock text_search
-            mock_pager = Mock()
-            mock_pager.more = False
-            mock_pager.__iter__ = lambda self: iter([
+            mock_pager = create_mock_pager(sounds=[
                 create_mock_sound(12345, 'test_sample.wav', username='test_user',
                                 duration=1.5, num_downloads=1000, avg_rating=4.5)
-            ])
+            ], has_next=False)
             mock_client.text_search.return_value = mock_pager
             
             # Mock get_sound
@@ -549,9 +533,8 @@ class TestPipelineEndToEnd:
             data = loader.fetch_data(
                 query='test',
                 max_samples=5,
-                include_similar=False,
-                recursive_depth=0,
-                max_total_samples=5
+                discovery_mode="search",
+                # # max_total_samples removed
             )
             graph = loader.build_graph(data)
             
@@ -621,7 +604,7 @@ class TestCleanupScript:
             return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(test_checkpoint_dir),
                     max_backups=3,
@@ -668,7 +651,7 @@ class TestCleanupScript:
                 return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(test_checkpoint_dir),
                     max_backups=5,
@@ -701,13 +684,10 @@ class TestErrorHandling:
                 raise freesound.FreesoundException(429, "Too Many Requests")
             
             # Subsequent calls succeed
-            mock_pager = Mock()
-            mock_pager.more = False
-            mock_pager.__iter__ = lambda self: iter([
+            return create_mock_pager(sounds=[
                 create_mock_sound(12345, 'test_sample.wav', username='test_user',
                                 duration=1.5, num_downloads=1000, avg_rating=4.5)
-            ])
-            return mock_pager
+            ], has_next=False)
         
         # Mock the Freesound client
         with patch('FollowWeb_Visualizor.data.loaders.freesound.freesound.FreesoundClient') as mock_client_class:
@@ -744,9 +724,8 @@ class TestErrorHandling:
             data = loader.fetch_data(
                 query='test',
                 max_samples=2,
-                include_similar=False,
-                recursive_depth=0,
-                max_total_samples=2
+                discovery_mode="search",
+                # # max_total_samples removed
             )
             
             # Verify retry happened (should be called at least twice)
@@ -765,14 +744,12 @@ class TestErrorHandling:
             mock_client_class.return_value = mock_client
             
             # Mock text_search
-            mock_pager = Mock()
-            mock_pager.more = False
-            mock_pager.__iter__ = lambda self: iter([
+            mock_pager = create_mock_pager(sounds=[
                 create_mock_sound(12345, 'sample1.wav', username='user1',
                                 duration=1.5, num_downloads=1000, avg_rating=4.5),
                 create_mock_sound(12346, 'sample2.wav', username='user2',
                                 duration=2.0, num_downloads=900, avg_rating=4.0)
-            ])
+            ], has_next=False)
             mock_client.text_search.return_value = mock_pager
             
             # Mock get_sound
@@ -816,9 +793,8 @@ class TestErrorHandling:
             data = loader.fetch_data(
                 query='test',
                 max_samples=2,
-                include_similar=False,
-                recursive_depth=0,
-                max_total_samples=2
+                discovery_mode="search",
+                # # max_total_samples removed
             )
             graph = loader.build_graph(data)
             
@@ -836,3 +812,4 @@ class TestErrorHandling:
             # Verify checkpoint was loaded (relaxed for test stability)
             # The loader should at least have processed_ids
             assert len(loader2.processed_ids) >= 0
+

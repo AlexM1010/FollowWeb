@@ -16,7 +16,7 @@ import pytest
 # Add cleanup script to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from cleanup_old_backups import cleanup_old_backups
+from scripts.backup.cleanup_old_backups import cleanup_old_backups
 
 
 class TestBackupFileDiscovery:
@@ -40,7 +40,7 @@ class TestBackupFileDiscovery:
         
         logger = logging.getLogger(__name__)
         
-        with patch('cleanup_old_backups.safe_file_cleanup', return_value=True):
+        with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True):
             # Set retention to 0 days so all backups are candidates for deletion
             # But keep max_backups=1 so only 2 oldest are deleted
             deleted_count = cleanup_old_backups(
@@ -129,7 +129,7 @@ class TestAgeBasedRetention:
                 return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True) as mock_cleanup:
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True) as mock_cleanup:
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=1,  # Keep only 1, so old backup is beyond max_backups
@@ -171,7 +171,7 @@ class TestAgeBasedRetention:
                 return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=10,
@@ -219,7 +219,7 @@ class TestCountBasedRetention:
             return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=3,  # Keep only 3 most recent
@@ -256,7 +256,7 @@ class TestCountBasedRetention:
                 return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=5,  # Max is higher than actual count
@@ -300,7 +300,7 @@ class TestSafeFileCleanupMocking:
                 return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=True) as mock_cleanup:
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=True) as mock_cleanup:
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=1,
@@ -345,7 +345,7 @@ class TestSafeFileCleanupMocking:
         
         with patch.object(Path, 'stat', mock_stat_method):
             # Mock safe_file_cleanup to return False (failure)
-            with patch('cleanup_old_backups.safe_file_cleanup', return_value=False):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', return_value=False):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=1,
@@ -416,7 +416,7 @@ class TestCorrectFileSelection:
             return stat_obj
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', side_effect=mock_cleanup):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', side_effect=mock_cleanup):
                 deleted_count = cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=2,  # Keep only 2 newest
@@ -471,7 +471,7 @@ class TestCorrectFileSelection:
                 return original_stat(path_self)
         
         with patch.object(Path, 'stat', mock_stat_method):
-            with patch('cleanup_old_backups.safe_file_cleanup', side_effect=mock_cleanup):
+            with patch('scripts.backup.cleanup_old_backups.safe_file_cleanup', side_effect=mock_cleanup):
                 cleanup_old_backups(
                     checkpoint_dir=str(tmp_path),
                     max_backups=0,  # Delete all backups
@@ -484,3 +484,4 @@ class TestCorrectFileSelection:
         
         # Only backup files should be deleted
         assert all("backup" in f for f in deleted_files)
+

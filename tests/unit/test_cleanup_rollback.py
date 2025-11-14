@@ -121,20 +121,25 @@ class TestRollbackOperations:
         
         source.write_text("content")
         
+        # Create backup before move
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+        backup_file = backup_dir / "source.txt.backup"
+        backup_file.write_text("content")
+        
         # Simulate move
         dest.write_text(source.read_text())
         source.unlink()
         
-        # Create rollback state
+        # Create rollback state with backup reference
         operations = [
             FileOperation("move", str(source), str(dest), datetime.now(), True)
         ]
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
-            modified_files={}
+            modified_files={str(source): str(backup_file)}
         )
         
         # Rollback
@@ -146,49 +151,55 @@ class TestRollbackOperations:
     
     def test_rolls_back_file_removals(self, rollback_manager, tmp_path):
         """Test rolling back file removal operations."""
-        # Create file and backup content
+        # Create file and backup
         removed_file = tmp_path / "removed.txt"
         original_content = "original content"
+        
+        # Create backup
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+        backup_file = backup_dir / "removed.txt.backup"
+        backup_file.write_text(original_content)
         
         operations = [
             FileOperation("remove", str(removed_file), None, datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.CACHE_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.CACHE_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
-            modified_files={str(removed_file): original_content}
+            modified_files={str(removed_file): str(backup_file)}
         )
         
         # Rollback
         result = rollback_manager.rollback(state)
         
         assert result is True
-        # File should be restored (if backup exists)
+        assert removed_file.exists()
+        assert removed_file.read_text() == original_content
     
     def test_reverts_git_commits(self, rollback_manager):
         """Test reverting git commits."""
         operations = []
         git_commits = ["commit1", "commit2"]
         
-        state = RollbackState(
-            phase=CleanupPhase.BRANCH_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.BRANCH_CLEANUP,
             operations=operations,
             git_commits=git_commits,
             created_directories=[],
             modified_files={}
         )
         
-        with patch('analysis_tools.cleanup.rollback.Repo') as mock_repo:
-            mock_git = Mock()
-            mock_repo.return_value.git = mock_git
+        with patch('subprocess.run') as mock_run:
+            mock_run.return_value = Mock(returncode=0)
             
             result = rollback_manager.rollback(state)
             
             # Should attempt to revert commits
             assert isinstance(result, bool)
+            # Verify git revert was called for each commit
+            assert mock_run.call_count == len(git_commits)
     
     def test_removes_created_directories(self, rollback_manager, tmp_path):
         """Test removing directories created during cleanup."""
@@ -201,8 +212,7 @@ class TestRollbackOperations:
             d.mkdir()
         
         operations = []
-        state = RollbackState(
-            phase=CleanupPhase.SCRIPT_ORGANIZATION,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.SCRIPT_ORGANIZATION,
             operations=operations,
             git_commits=[],
             created_directories=[str(d) for d in created_dirs],
@@ -222,13 +232,18 @@ class TestRollbackOperations:
         modified_file = tmp_path / "modified.txt"
         modified_file.write_text("modified content")
         
+        # Create backup with original content
+        backup_dir = tmp_path / "backups"
+        backup_dir.mkdir()
+        backup_file = backup_dir / "modified.txt.backup"
+        backup_file.write_text("original content")
+        
         operations = []
-        state = RollbackState(
-            phase=CleanupPhase.WORKFLOW_UPDATE,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.WORKFLOW_UPDATE,
             operations=operations,
             git_commits=[],
             created_directories=[],
-            modified_files={str(modified_file): "original content"}
+            modified_files={str(modified_file): str(backup_file)}
         )
         
         result = rollback_manager.rollback(state)
@@ -255,8 +270,7 @@ class TestRollbackValidation:
             FileOperation("move", str(source), str(dest), datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -275,8 +289,7 @@ class TestRollbackValidation:
             FileOperation("move", "/nonexistent/source.txt", "/nonexistent/dest.txt", datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -315,17 +328,20 @@ class TestStateManagement:
         for phase in [CleanupPhase.ROOT_CLEANUP, CleanupPhase.CACHE_CLEANUP]:
             rollback_manager.save_state(phase, [])
         
+        # Verify files were created
+        state_files = list(rollback_manager.state_dir.glob("*.json"))
+        assert len(state_files) >= 2, f"Expected at least 2 state files, found {len(state_files)}"
+        
         states = rollback_manager.list_available_states()
         
-        assert len(states) >= 2
+        assert len(states) >= 2, f"Expected at least 2 states, found {len(states)}: {states}"
         assert CleanupPhase.ROOT_CLEANUP in states
         assert CleanupPhase.CACHE_CLEANUP in states
     
     def test_clears_state_after_successful_rollback(self, rollback_manager, tmp_path):
         """Test clearing state after successful rollback."""
         operations = []
-        state = RollbackState(
-            phase=CleanupPhase.VALIDATION,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.VALIDATION,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -360,8 +376,7 @@ class TestRollbackOrdering:
             FileOperation("move", str(file2), str(tmp_path / "dest2.txt"), datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -384,8 +399,7 @@ class TestRollbackOrdering:
             FileOperation("move", "source.txt", str(new_file), datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.SCRIPT_ORGANIZATION,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.SCRIPT_ORGANIZATION,
             operations=operations,
             git_commits=[],
             created_directories=[str(new_dir)],
@@ -433,8 +447,7 @@ class TestErrorHandling:
             FileOperation("move", str(readonly_file), str(tmp_path / "dest.txt"), datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -460,8 +473,7 @@ class TestErrorHandling:
             FileOperation("move", str(valid_file), str(tmp_path / "dest.txt"), datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -485,8 +497,7 @@ class TestRollbackReporting:
             FileOperation("move", "file2.txt", "dest2.txt", datetime.now(), True)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.ROOT_CLEANUP,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.ROOT_CLEANUP,
             operations=operations,
             git_commits=["commit1"],
             created_directories=["new_dir"],
@@ -505,8 +516,7 @@ class TestRollbackReporting:
             for i in range(5)
         ]
         
-        state = RollbackState(
-            phase=CleanupPhase.SCRIPT_ORGANIZATION,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.SCRIPT_ORGANIZATION,
             operations=operations,
             git_commits=[],
             created_directories=[],
@@ -519,8 +529,7 @@ class TestRollbackReporting:
     
     def test_report_includes_phase_information(self, rollback_manager):
         """Test that report includes phase information."""
-        state = RollbackState(
-            phase=CleanupPhase.DOC_CONSOLIDATION,
+        state = RollbackState(timestamp=datetime.now(), phase=CleanupPhase.DOC_CONSOLIDATION,
             operations=[],
             git_commits=[],
             created_directories=[],
@@ -564,3 +573,4 @@ class TestRollbackAvailability:
         valid = rollback_manager.validate_state_integrity(CleanupPhase.CACHE_CLEANUP)
         
         assert isinstance(valid, bool)
+

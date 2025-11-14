@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from workflow_orchestrator import WorkflowOrchestrator
+from scripts.analysis.workflow_orchestrator import WorkflowOrchestrator
 
 
 @pytest.fixture

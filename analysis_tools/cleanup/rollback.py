@@ -33,7 +33,12 @@ class RollbackManager:
         self.state_dir.mkdir(parents=True, exist_ok=True)
 
     def save_state(
-        self, phase: CleanupPhase, operations: List[FileOperation]
+        self,
+        phase: CleanupPhase,
+        operations: List[FileOperation],
+        git_commits: Optional[List[str]] = None,
+        created_directories: Optional[List[str]] = None,
+        modified_files: Optional[Dict[str, str]] = None,
     ) -> RollbackState:
         """
         Save state before phase execution.
@@ -41,6 +46,9 @@ class RollbackManager:
         Args:
             phase: Cleanup phase
             operations: List of file operations to be performed
+            git_commits: Optional list of git commit hashes
+            created_directories: Optional list of directories that will be created
+            modified_files: Optional dict of files and their backup content
             
         Returns:
             RollbackState with saved state information
@@ -48,30 +56,35 @@ class RollbackManager:
         timestamp = datetime.now()
         state_file = self.state_dir / f"{phase.value}_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
         
-        # Backup files that will be modified
-        modified_files = {}
-        created_directories = []
+        # Use provided values or auto-detect
+        if modified_files is None:
+            modified_files = {}
+            for op in operations:
+                # Backup source files for move/remove operations
+                if op.operation in ["move", "remove"]:
+                    source_path = Path(op.source)
+                    if source_path.exists() and source_path.is_file():
+                        backup_path = self._create_backup(source_path, phase)
+                        modified_files[op.source] = str(backup_path)
         
-        for op in operations:
-            # Backup source files for move/remove operations
-            if op.operation in ["move", "remove"]:
-                source_path = Path(op.source)
-                if source_path.exists() and source_path.is_file():
-                    backup_path = self._create_backup(source_path, phase)
-                    modified_files[op.source] = str(backup_path)
-            
-            # Track directories that will be created
-            if op.operation in ["move", "copy"] and op.destination:
-                dest_path = Path(op.destination)
-                dest_dir = dest_path.parent
-                if not dest_dir.exists():
-                    created_directories.append(str(dest_dir))
+        if created_directories is None:
+            created_directories = []
+            for op in operations:
+                # Track directories that will be created
+                if op.operation in ["move", "copy"] and op.destination:
+                    dest_path = Path(op.destination)
+                    dest_dir = dest_path.parent
+                    if not dest_dir.exists():
+                        created_directories.append(str(dest_dir))
+        
+        if git_commits is None:
+            git_commits = []
         
         # Create rollback state
         state = RollbackState(
             phase=phase,
             operations=operations,
-            git_commits=[],  # Will be populated during execution
+            git_commits=git_commits,
             created_directories=created_directories,
             modified_files=modified_files,
             timestamp=timestamp,
@@ -146,8 +159,11 @@ class RollbackManager:
         
         state_file = state_files[0]
         
-        with open(state_file, "r", encoding="utf-8") as f:
-            state_data = json.load(f)
+        try:
+            with open(state_file, "r", encoding="utf-8") as f:
+                state_data = json.load(f)
+        except json.JSONDecodeError:
+            return None
         
         # Reconstruct operations
         operations = [
@@ -161,12 +177,16 @@ class RollbackManager:
             for op in state_data["operations"]
         ]
         
+        # Get timestamp from state data or use current time as fallback
+        timestamp = datetime.fromisoformat(state_data["timestamp"]) if "timestamp" in state_data else datetime.now()
+        
         return RollbackState(
             phase=CleanupPhase(state_data["phase"]),
             operations=operations,
-            git_commits=state_data["git_commits"],
-            created_directories=state_data["created_directories"],
-            modified_files=state_data["modified_files"],
+            git_commits=state_data.get("git_commits", []),
+            created_directories=state_data.get("created_directories", []),
+            modified_files=state_data.get("modified_files", {}),
+            timestamp=timestamp,
         )
 
     def rollback(self, state: RollbackState) -> bool:
@@ -306,3 +326,95 @@ class RollbackManager:
             rollbacks[phase_name].sort(reverse=True)
         
         return rollbacks
+
+    def list_available_states(self) -> List[CleanupPhase]:
+        """
+        List cleanup phases that have available rollback states.
+        
+        Returns:
+            List of CleanupPhase values with available states
+        """
+        phases = set()
+        
+        for state_file in self.state_dir.glob("*.json"):
+            # Parse filename: phase_timestamp.json
+            # Timestamp format is YYYYMMDD_HHMMSS, so we need to find the last occurrence
+            # of the timestamp pattern and extract everything before it
+            stem = state_file.stem
+            # Find the last underscore followed by 8 digits (date part of timestamp)
+            import re
+            match = re.match(r'(.+)_\d{8}_\d{6}$', stem)
+            if match:
+                phase_name = match.group(1)
+                try:
+                    phase = CleanupPhase(phase_name)
+                    phases.add(phase)
+                except ValueError:
+                    continue
+        
+        return list(phases)
+
+    def is_rollback_available(self, phase: CleanupPhase) -> bool:
+        """
+        Check if rollback is available for a phase.
+        
+        Args:
+            phase: Cleanup phase to check
+            
+        Returns:
+            True if rollback state exists, False otherwise
+        """
+        state_files = list(self.state_dir.glob(f"{phase.value}_*.json"))
+        return len(state_files) > 0
+
+    def validate_state_integrity(self, phase: CleanupPhase) -> bool:
+        """
+        Validate integrity of rollback state for a phase.
+        
+        Args:
+            phase: Cleanup phase to validate
+            
+        Returns:
+            True if state is valid, False otherwise
+        """
+        try:
+            state = self.load_state(phase)
+            if state is None:
+                return False
+            
+            # Check that backup files exist
+            for backup_path in state.modified_files.values():
+                if not Path(backup_path).exists():
+                    return False
+            
+            return True
+        except Exception:
+            return False
+
+    def generate_rollback_report(self, state: RollbackState) -> str:
+        """
+        Generate a human-readable rollback report.
+        
+        Args:
+            state: RollbackState to report on
+            
+        Returns:
+            Formatted report string
+        """
+        report_lines = [
+            f"Rollback Report for {state.phase.value}",
+            f"Timestamp: {state.timestamp.isoformat()}",
+            f"",
+            f"Operations to rollback: {len(state.operations)}",
+        ]
+        
+        if state.git_commits:
+            report_lines.append(f"Git commits to revert: {len(state.git_commits)}")
+        
+        if state.created_directories:
+            report_lines.append(f"Directories to remove: {len(state.created_directories)}")
+        
+        if state.modified_files:
+            report_lines.append(f"Files to restore: {len(state.modified_files)}")
+        
+        return "\n".join(report_lines)

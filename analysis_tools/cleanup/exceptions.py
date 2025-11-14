@@ -185,3 +185,38 @@ class WorkflowError(CleanupError):
         if workflow_file:
             error_msg = f"{message} (workflow: {workflow_file})"
         super().__init__(phase, error_msg, recoverable)
+
+
+class RollbackError(CleanupError):
+    """
+    Error during rollback operations.
+    
+    Raised when rollback operations fail due to:
+    - State file corruption
+    - Missing backup files
+    - Permission errors during restoration
+    - Git revert failures
+    - Incomplete rollback state
+    """
+
+    def __init__(
+        self,
+        phase: CleanupPhase,
+        message: str,
+        operation: Optional[str] = None,
+        recoverable: bool = False,
+    ) -> None:
+        """
+        Initialize rollback error.
+        
+        Args:
+            phase: The cleanup phase where error occurred
+            message: Error description
+            operation: The rollback operation that failed
+            recoverable: Whether error can be recovered from (usually False for rollback)
+        """
+        self.operation = operation
+        error_msg = f"{message}"
+        if operation:
+            error_msg = f"{message} (operation: {operation})"
+        super().__init__(phase, error_msg, recoverable)

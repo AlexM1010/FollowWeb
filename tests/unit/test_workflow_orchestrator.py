@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 import requests
 
-from workflow_orchestrator import WorkflowOrchestrator
+from scripts.analysis.workflow_orchestrator import WorkflowOrchestrator
 
 
 @pytest.fixture
