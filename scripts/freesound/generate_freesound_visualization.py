@@ -54,14 +54,14 @@ def setup_logging():
 def parse_arguments():
     """Parse command-line arguments with environment variable fallbacks."""
     parser = argparse.ArgumentParser(
-        description='Generate Freesound network visualization with recursive similar sounds discovery',
+        description='Generate Freesound network visualization with edge-based relationships',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
     # Get defaults from environment variables or use hardcoded defaults
     default_seed_sample_id = os.environ.get('FREESOUND_SEED_SAMPLE_ID', None)
     default_max_requests = int(os.environ.get('FREESOUND_MAX_REQUESTS', '1950'))
-    default_depth = int(os.environ.get('FREESOUND_DEPTH', '3'))
+    default_discovery_mode = os.environ.get('FREESOUND_DISCOVERY_MODE', 'search')
     
     parser.add_argument(
         '--seed-sample-id',
@@ -78,10 +78,39 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--depth',
-        type=int,
-        default=default_depth,
-        help='Recursive depth for similar sounds discovery'
+        '--discovery-mode',
+        type=str,
+        default=default_discovery_mode,
+        choices=['search', 'relationships', 'mixed'],
+        help='Sample discovery strategy: search (API search), relationships (pending nodes), or mixed'
+    )
+    
+    parser.add_argument(
+        '--include-user-edges',
+        action='store_true',
+        default=True,
+        help='Create edges between samples by the same user'
+    )
+    
+    parser.add_argument(
+        '--include-pack-edges',
+        action='store_true',
+        default=True,
+        help='Create edges between samples in the same pack'
+    )
+    
+    parser.add_argument(
+        '--include-tag-edges',
+        action='store_true',
+        default=True,
+        help='Create edges between samples with similar tags'
+    )
+    
+    parser.add_argument(
+        '--tag-similarity-threshold',
+        type=float,
+        default=0.3,
+        help='Minimum Jaccard similarity for tag edges (0.0-1.0, default: 0.3)'
     )
     
     return parser.parse_args()
@@ -217,18 +246,25 @@ def main():
     
     # Configuration from CLI arguments
     seed_sample_id = args.seed_sample_id
-    depth = args.depth
+    discovery_mode = args.discovery_mode
     max_requests = args.max_requests
     page_size = 150  # Maximum allowed by API
+    include_user_edges = args.include_user_edges
+    include_pack_edges = args.include_pack_edges
+    include_tag_edges = args.include_tag_edges
+    tag_similarity_threshold = args.tag_similarity_threshold
     
     # Track seed sample info for logging
     seed_name = None
     seed_downloads = None
     
     # Log collection strategy
-    logger.info(f"Recursive depth: {depth}")
+    logger.info(f"Discovery mode: {discovery_mode}")
     logger.info(f"Max requests: {max_requests} (circuit breaker)")
     logger.info(f"Page size: {page_size} (API maximum)")
+    logger.info(f"Edge generation: user={include_user_edges}, pack={include_pack_edges}, tag={include_tag_edges}")
+    if include_tag_edges:
+        logger.info(f"Tag similarity threshold: {tag_similarity_threshold}")
     logger.info("=" * 70)
     
     try:
@@ -272,18 +308,19 @@ def main():
             logger.info(f"Using provided seed sample ID: {seed_sample_id}")
         
         # For incremental loading, we use a broad query and let the loader
-        # handle checkpoint-aware processing. The seed sample is used for
-        # priority scoring, not as a direct fetch parameter.
-        logger.info(f"Fetching Freesound data with recursive discovery (depth={depth})...")
+        # handle checkpoint-aware processing.
+        logger.info(f"Fetching Freesound data with discovery mode: {discovery_mode}...")
         
         # Use a broad query to find samples, loader will skip already-processed ones
         # Note: Freesound API doesn't support wildcard queries, use empty string for all samples
         data = loader.fetch_data(
             query="",  # Empty query matches all samples (per Freesound API docs)
             max_samples=max_requests,  # Circuit breaker
-            include_similar=True,
-            recursive_depth=depth,
-            max_total_samples=max_requests
+            discovery_mode=discovery_mode,
+            include_user_edges=include_user_edges,
+            include_pack_edges=include_pack_edges,
+            include_tag_edges=include_tag_edges,
+            tag_similarity_threshold=tag_similarity_threshold
         )
         
         # Build graph
@@ -318,10 +355,10 @@ def main():
             'edge_width_range': [0.5, 3.0]
         })
         
-        # Generate output filename with seed sample ID
+        # Generate output filename with seed sample ID and discovery mode
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         seed_id_str = seed_sample_id if seed_sample_id else "unknown"
-        output_prefix = f"freesound_seed{seed_id_str}_depth{depth}_n{final_nodes}_{timestamp}"
+        output_prefix = f"freesound_seed{seed_id_str}_{discovery_mode}_n{final_nodes}_{timestamp}"
         output_path = output_dir / f"{output_prefix}.html"
         
         # Render visualization

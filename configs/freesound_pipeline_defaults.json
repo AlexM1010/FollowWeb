@@ -1,7 +1,19 @@
 {
-  "seed_sample_id": null,
-  "recursive_depth": 3,
+  "_comment": "Freesound Pipeline Default Configuration",
+  "_description": "Default parameters for the automated nightly pipeline using simplified search-based collection",
+  
+  "discovery_mode": "search",
+  "relationship_priority": 0.7,
+  
   "max_requests": 1950,
   "page_size": 150,
-  "checkpoint_interval": 1
+  
+  "include_user_edges": true,
+  "include_pack_edges": true,
+  "include_tag_edges": false,
+  "tag_similarity_threshold": 0.3,
+  
+  "checkpoint_interval": 1,
+  "max_pending_nodes": 10000,
+  "fetch_pending_batch_size": 100
 }

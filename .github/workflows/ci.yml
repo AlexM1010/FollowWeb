@@ -311,6 +311,25 @@ jobs:
         fi
         echo "✓ Type checking passed"
     
+    - name: Validate GitHub Actions workflows
+      run: |
+        echo "Validating workflow files..."
+        # Install actionlint
+        cd ..
+        curl -sSL https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz | tar -xz
+        
+        # Run actionlint on all workflow files
+        if ! ./actionlint .github/workflows/*.yml; then
+          echo "::error::Workflow validation failed."
+          echo "### ❌ Workflow Validation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please fix workflow syntax errors." >> $GITHUB_STEP_SUMMARY
+          echo "See actionlint output above for details." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        echo "✓ Workflow validation passed"
+      shell: bash
+    
     - name: Quality check summary
       if: success()
       run: |
@@ -321,6 +340,7 @@ jobs:
         echo "- ✓ Linting (ruff check)" >> $GITHUB_STEP_SUMMARY
         echo "- ✓ Import sorting (ruff check --select I)" >> $GITHUB_STEP_SUMMARY
         echo "- ✓ Type checking (mypy)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✓ Workflow validation (actionlint)" >> $GITHUB_STEP_SUMMARY
   
   # Security scanning - runs in parallel with Phase 1
   # Does NOT need environment-build - installs its own minimal dependencies

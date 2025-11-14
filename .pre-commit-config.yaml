@@ -1,0 +1,87 @@
+# Pre-commit hooks for FollowWeb
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+#
+# These hooks prevent code quality issues from reaching CI by running
+# the same checks locally before commit.
+
+repos:
+  # Ruff - Fast Python linter and formatter (replaces black, flake8, isort)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter
+      - id: ruff
+        name: ruff lint
+        args: [--fix]
+        files: ^FollowWeb/
+        exclude: '\.ipynb$'
+      
+      # Run the formatter
+      - id: ruff-format
+        name: ruff format
+        files: ^FollowWeb/
+        exclude: '\.ipynb$'
+  
+  # Mypy - Static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        name: mypy type check
+        files: ^FollowWeb/FollowWeb_Visualizor/
+        args: [--config-file=FollowWeb/pyproject.toml]
+        additional_dependencies:
+          - types-python-dateutil
+          - types-PyYAML
+          - types-decorator
+          - networkx
+          - pandas
+          - numpy
+        pass_filenames: false
+        # Run on all files in the module to catch cross-file type issues
+        always_run: true
+  
+  # YAML validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        name: check yaml syntax
+        args: [--safe]
+        files: \.(yaml|yml)$
+      
+      - id: end-of-file-fixer
+        name: fix end of files
+        files: \.(py|yaml|yml|md|txt|json)$
+      
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        files: \.(py|yaml|yml|md|txt)$
+      
+      - id: check-added-large-files
+        name: check for large files
+        args: [--maxkb=1000]
+      
+      - id: check-merge-conflict
+        name: check for merge conflicts
+      
+      - id: check-json
+        name: check json syntax
+        files: \.json$
+        exclude: ^(\.vscode/|\.benchmarks/)
+  
+  # Actionlint - GitHub Actions workflow validation
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.4
+    hooks:
+      - id: actionlint
+        name: validate github actions workflows
+
+# Configuration
+default_language_version:
+  python: python3.11
+
+# Skip these hooks in CI (they run separately)
+ci:
+  skip: [mypy]  # Mypy runs in CI quality-check job

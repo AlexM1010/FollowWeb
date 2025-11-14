@@ -1,0 +1,127 @@
+{
+  "_comment": "Freesound Refactored Pipeline Configuration Examples",
+  "_description": "This file contains example configurations for the refactored Freesound pipeline with simplified search-based collection and batch edge generation",
+
+  "basic_search_collection": {
+    "_description": "Basic search-based collection with user and pack edges",
+    "max_requests": 100,
+    "page_size": 150,
+    "discovery_mode": "search",
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "checkpoint_interval": 50
+  },
+
+  "relationship_discovery": {
+    "_description": "Prioritize pending nodes discovered through edge generation",
+    "max_requests": 100,
+    "page_size": 150,
+    "discovery_mode": "relationships",
+    "relationship_priority": 0.7,
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "checkpoint_interval": 50
+  },
+
+  "mixed_mode_balanced": {
+    "_description": "Balance search and relationship discovery (70% pending, 30% search)",
+    "max_requests": 100,
+    "page_size": 150,
+    "discovery_mode": "mixed",
+    "relationship_priority": 0.7,
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "checkpoint_interval": 50
+  },
+
+  "dense_network_with_tags": {
+    "_description": "Create dense network with tag similarity edges (for smaller networks)",
+    "max_requests": 200,
+    "page_size": 150,
+    "discovery_mode": "search",
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": true,
+    "tag_similarity_threshold": 0.3,
+    "checkpoint_interval": 50
+  },
+
+  "strict_tag_similarity": {
+    "_description": "Use strict tag similarity threshold for stronger connections",
+    "max_requests": 200,
+    "page_size": 150,
+    "discovery_mode": "search",
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": true,
+    "tag_similarity_threshold": 0.5,
+    "checkpoint_interval": 50
+  },
+
+  "user_edges_only": {
+    "_description": "Focus on user relationships only (artist networks)",
+    "max_requests": 100,
+    "page_size": 150,
+    "discovery_mode": "search",
+    "include_user_edges": true,
+    "include_pack_edges": false,
+    "include_tag_edges": false,
+    "checkpoint_interval": 50
+  },
+
+  "pack_edges_only": {
+    "_description": "Focus on pack relationships only (collection networks)",
+    "max_requests": 100,
+    "page_size": 150,
+    "discovery_mode": "search",
+    "include_user_edges": false,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "checkpoint_interval": 50
+  },
+
+  "production_nightly": {
+    "_description": "Production configuration for nightly pipeline (recommended)",
+    "max_requests": 1950,
+    "page_size": 150,
+    "discovery_mode": "search",
+    "relationship_priority": 0.7,
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "tag_similarity_threshold": 0.3,
+    "checkpoint_interval": 50,
+    "max_pending_nodes": 10000,
+    "fetch_pending_batch_size": 100
+  },
+
+  "development_testing": {
+    "_description": "Fast configuration for development and testing",
+    "max_requests": 100,
+    "page_size": 50,
+    "discovery_mode": "search",
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "checkpoint_interval": 10,
+    "max_pending_nodes": 1000,
+    "fetch_pending_batch_size": 20
+  },
+
+  "large_scale_collection": {
+    "_description": "Configuration for large-scale network building",
+    "max_requests": 1950,
+    "page_size": 150,
+    "discovery_mode": "mixed",
+    "relationship_priority": 0.8,
+    "include_user_edges": true,
+    "include_pack_edges": true,
+    "include_tag_edges": false,
+    "checkpoint_interval": 100,
+    "max_pending_nodes": 50000,
+    "fetch_pending_batch_size": 200
+  }
+}

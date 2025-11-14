@@ -1,58 +1,57 @@
 #!/usr/bin/env python3
 """
-Standalone script for fetching and saving Freesound graphs with recursive discovery.
+Standalone script for fetching and saving Freesound graphs with search-based collection.
 
 This script provides a command-line interface for building Freesound audio sample
-graphs using recursive similarity-based discovery. It leverages the IncrementalFreesoundLoader
-with queue-based BFS and two-pass processing to ensure all edges are preserved correctly.
+graphs using simplified search-based collection with batch edge generation.
 
 Features:
-    - Recursive similar sounds discovery (snowball sampling)
-    - Queue-based breadth-first traversal for predictable memory usage
-    - Two-pass processing to preserve all edges correctly
+    - Search-based sample collection (sorted by popularity)
+    - Three discovery modes: search, relationships, mixed
+    - Batch edge generation (user, pack, tag similarity)
     - Checkpoint-based resumable fetching for crash recovery
-    - Configurable depth limits and sample counts
+    - Configurable edge generation options
     - Time-limited execution with graceful stopping
     - Saves graphs to standard output directory for later visualization
 
 Basic Usage:
-    # Fetch jungle samples with 1 level of recursion (20 total samples)
-    python fetch_freesound_data.py --query "jungle" --depth 1 --max-samples 20
+    # Fetch jungle samples using search mode
+    python fetch_freesound_data.py --query "jungle" --max-requests 100
     
-    # Fetch drum samples with 2 levels of recursion (100 total samples)
-    python fetch_freesound_data.py --query "drum" --depth 2 --max-samples 100
+    # Fetch drum samples with user and pack edges
+    python fetch_freesound_data.py --query "drum" --max-requests 200 \\
+        --include-user-edges --include-pack-edges
 
-complex Usage:
-    # Custom checkpoint directory for resumable fetching
-    python fetch_freesound_data.py --query "ambient" --depth 1 --max-samples 50 \\
-        --checkpoint-dir "my_checkpoints"
+Advanced Usage:
+    # Use mixed discovery mode with relationship priority
+    python fetch_freesound_data.py --query "ambient" --discovery-mode mixed \\
+        --relationship-priority 0.7 --max-requests 500
     
-    # Time-limited fetch (stops gracefully after 1.5 hours)
-    python fetch_freesound_data.py --query "bass" --depth 2 --max-samples 200 \\
-        --max-runtime 1.5
+    # Enable tag similarity edges with custom threshold
+    python fetch_freesound_data.py --query "bass" --max-requests 200 \\
+        --include-tag-edges --tag-similarity-threshold 0.5
     
-    # Custom output directory and checkpoint interval
-    python fetch_freesound_data.py --query "synth" --depth 1 --max-samples 100 \\
-        --output-dir "Output/freesound_graphs" \\
-        --checkpoint-interval 25
+    # Custom checkpoint directory and output directory
+    python fetch_freesound_data.py --query "synth" --max-requests 300 \\
+        --checkpoint-dir "my_checkpoints" \\
+        --output-dir "Output/freesound_graphs"
     
     # Provide API key via command line
-    python fetch_freesound_data.py --query "percussion" --depth 1 --max-samples 30 \\
+    python fetch_freesound_data.py --query "percussion" --max-requests 100 \\
         --api-key "your_api_key_here"
 
-Recursive Depth Explanation:
-    - depth=0: No recursion, only fetch seed samples from search query
-    - depth=1: Fetch seed samples + their similar sounds (2 levels total)
-    - depth=2: Fetch seed + similar + similar-to-similar (3 levels total)
-    - depth=N: Fetch N+1 levels of samples via similarity relationships
+Discovery Mode Explanation:
+    - search: Discovers samples through Freesound API search queries (sorted by popularity)
+    - relationships: Discovers samples from pending nodes found during edge generation
+    - mixed: Combines both strategies based on relationship_priority ratio
 
 Output:
     Saves a NetworkX DiGraph to Output/ directory with filename format:
-        freesound_{query}_depth{depth}_k{max_samples}_{timestamp}.pkl
+        freesound_{query}_{discovery_mode}_k{nodes}_{timestamp}.pkl
     
     Load the graph for visualization:
         import joblib
-        graph = joblib.load('Output/freesound_jungle_depth1_k20_20251110_123456.pkl')
+        graph = joblib.load('Output/freesound_jungle_search_k100_20251114_123456.pkl')
 
 Requirements:
     - Freesound API key (via --api-key, FREESOUND_API_KEY env var, or GitHub Secrets)
@@ -62,10 +61,10 @@ Requirements:
 API Key Setup:
     # Option 1: Environment variable (recommended)
     export FREESOUND_API_KEY="your_api_key_here"
-    python fetch_freesound_data.py --query "drum" --depth 1 --max-samples 20
+    python fetch_freesound_data.py --query "drum" --max-requests 100
     
     # Option 2: Command-line argument
-    python fetch_freesound_data.py --query "drum" --depth 1 --max-samples 20 \\
+    python fetch_freesound_data.py --query "drum" --max-requests 100 \\
         --api-key "your_api_key_here"
     
     # Option 3: GitHub Secrets (for CI/CD)
@@ -76,10 +75,10 @@ Checkpoint Recovery:
     Simply re-run the same command to resume from the last checkpoint:
     
     # First run (interrupted after 50 samples)
-    python fetch_freesound_data.py --query "drum" --depth 2 --max-samples 100
+    python fetch_freesound_data.py --query "drum" --max-requests 200
     
-    # Resume from checkpoint (continues from sample 51)
-    python fetch_freesound_data.py --query "drum" --depth 2 --max-samples 100
+    # Resume from checkpoint (continues from where it left off)
+    python fetch_freesound_data.py --query "drum" --max-requests 200
 """
 
 import argparse
@@ -205,23 +204,27 @@ def parse_arguments() -> argparse.Namespace:
         Parsed arguments namespace
     """
     parser = argparse.ArgumentParser(
-        description="Fetch and save Freesound audio sample graphs with recursive discovery",
+        description="Fetch and save Freesound audio sample graphs with search-based collection",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic fetch with 1 level of recursion
-  python fetch_freesound_data.py --query "jungle" --depth 1 --max-samples 20
+  # Basic fetch with search mode
+  python fetch_freesound_data.py --query "jungle" --max-requests 100
 
-  # Deep fetch with custom checkpoint directory
-  python fetch_freesound_data.py --query "drum" --depth 2 --max-samples 100 \\
-      --checkpoint-dir "my_checkpoints"
+  # Fetch with user and pack edges
+  python fetch_freesound_data.py --query "drum" --max-requests 200 \\
+      --include-user-edges --include-pack-edges
 
-  # Fetch with time limit and custom output directory
-  python fetch_freesound_data.py --query "ambient" --depth 1 --max-samples 50 \\
-      --max-runtime 1.5 --output-dir "Output/freesound_graphs"
+  # Use mixed discovery mode
+  python fetch_freesound_data.py --query "ambient" --discovery-mode mixed \\
+      --relationship-priority 0.7 --max-requests 500
+
+  # Enable tag similarity edges
+  python fetch_freesound_data.py --query "bass" --max-requests 200 \\
+      --include-tag-edges --tag-similarity-threshold 0.5
 
   # Fetch with API key from command line
-  python fetch_freesound_data.py --query "bass" --depth 1 --max-samples 30 \\
+  python fetch_freesound_data.py --query "percussion" --max-requests 100 \\
       --api-key "your_api_key_here"
         """
     )
@@ -234,19 +237,56 @@ Examples:
         help='Search query for Freesound samples (e.g., "jungle", "drum")'
     )
     
-    # Recursive fetching parameters
+    # Discovery parameters
     parser.add_argument(
-        '--depth',
-        type=int,
-        default=1,
-        help='Recursive depth for similar sounds discovery (default: 1)'
+        '--discovery-mode',
+        type=str,
+        default='search',
+        choices=['search', 'relationships', 'mixed'],
+        help='Discovery strategy: search, relationships, or mixed (default: search)'
     )
     
     parser.add_argument(
-        '--max-samples',
+        '--relationship-priority',
+        type=float,
+        default=0.7,
+        help='For mixed mode, ratio of pending vs search (0.0-1.0, default: 0.7)'
+    )
+    
+    parser.add_argument(
+        '--max-requests',
         type=int,
-        default=100,
-        help='Maximum total samples to fetch including recursive discovery (default: 100)'
+        default=1950,
+        help='Maximum API requests (circuit breaker, default: 1950)'
+    )
+    
+    # Edge generation parameters
+    parser.add_argument(
+        '--include-user-edges',
+        action='store_true',
+        default=True,
+        help='Create edges between samples by the same user (default: True)'
+    )
+    
+    parser.add_argument(
+        '--include-pack-edges',
+        action='store_true',
+        default=True,
+        help='Create edges between samples in the same pack (default: True)'
+    )
+    
+    parser.add_argument(
+        '--include-tag-edges',
+        action='store_true',
+        default=False,
+        help='Create edges between samples with similar tags (default: False)'
+    )
+    
+    parser.add_argument(
+        '--tag-similarity-threshold',
+        type=float,
+        default=0.3,
+        help='Minimum Jaccard similarity for tag edges (0.0-1.0, default: 0.3)'
     )
     
     # Checkpoint configuration
@@ -315,11 +355,22 @@ def validate_arguments(args: argparse.Namespace, logger: logging.Logger) -> None
         # Validate query
         validate_non_empty_string(args.query, "query")
         
-        # Validate depth
-        validate_positive_integer(args.depth, "depth")
+        # Validate discovery_mode
+        if args.discovery_mode not in ['search', 'relationships', 'mixed']:
+            raise ValueError("discovery_mode must be one of: search, relationships, mixed")
         
-        # Validate max_samples
-        validate_positive_integer(args.max_samples, "max_samples")
+        # Validate relationship_priority
+        if not 0.0 <= args.relationship_priority <= 1.0:
+            raise ValueError("relationship_priority must be between 0.0 and 1.0")
+        
+        # Validate max_requests
+        validate_positive_integer(args.max_requests, "max_requests")
+        if args.max_requests > 2000:
+            raise ValueError("max_requests cannot exceed 2000 (API limit)")
+        
+        # Validate tag_similarity_threshold
+        if not 0.0 <= args.tag_similarity_threshold <= 1.0:
+            raise ValueError("tag_similarity_threshold must be between 0.0 and 1.0")
         
         # Validate checkpoint_interval
         validate_positive_integer(args.checkpoint_interval, "checkpoint_interval")
@@ -355,8 +406,9 @@ def main() -> int:
         logger.info(EmojiFormatter.format("rocket", "Freesound Graph Fetch Script"))
         logger.info("=" * 70)
         logger.info(f"Query: {args.query}")
-        logger.info(f"Recursive depth: {args.depth}")
-        logger.info(f"Max samples: {args.max_samples}")
+        logger.info(f"Discovery mode: {args.discovery_mode}")
+        logger.info(f"Max requests: {args.max_requests}")
+        logger.info(f"Edge generation: user={args.include_user_edges}, pack={args.include_pack_edges}, tag={args.include_tag_edges}")
         logger.info(f"Checkpoint directory: {args.checkpoint_dir}")
         logger.info(f"Output directory: {args.output_dir}")
         logger.info("=" * 70)
@@ -394,10 +446,12 @@ def main() -> int:
         
         data = loader.fetch_data(
             query=args.query,
-            max_samples=args.max_samples,
-            include_similar=True,
-            recursive_depth=args.depth,
-            max_total_samples=args.max_samples
+            discovery_mode=args.discovery_mode,
+            relationship_priority=args.relationship_priority,
+            include_user_edges=args.include_user_edges,
+            include_pack_edges=args.include_pack_edges,
+            include_tag_edges=args.include_tag_edges,
+            tag_similarity_threshold=args.tag_similarity_threshold
         )
         
         # Build final graph
@@ -415,8 +469,8 @@ def main() -> int:
         # Use generate_output_filename for consistent naming
         output_filename = generate_output_filename(
             prefix=f"{output_dir}/freesound_{sanitized_query}",
-            strategy=f"depth{args.depth}",
-            k_value=args.max_samples,
+            strategy=f"{args.discovery_mode}",
+            k_value=graph.number_of_nodes(),
             extension="pkl"
         )
         
