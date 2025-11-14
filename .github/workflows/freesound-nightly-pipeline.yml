@@ -8,6 +8,8 @@
 # - Persistent Storage: Private GitHub repository release assets (TOS-compliant)
 # - Ephemeral Cache: Workflow cache populated from private repo at start, wiped at end
 # - Split Checkpoint: Graph topology (.gpickle) + SQLite metadata (.db) + metadata JSON
+# - Simplified Collection: Search-based sample collection with edge generation
+# - Edge Types: User relationships, pack membership, and tag similarity
 #
 # Backup Strategy (Triple Redundancy):
 # 1. Primary Backup: Private repo with tiered retention (frequent: 14 days, permanent: unlimited) - REQUIRED
@@ -21,7 +23,7 @@
 #
 # Features:
 # - Scheduled execution at 2 AM UTC daily
-# - Manual trigger with configurable parameters
+# - Manual trigger with configurable parameters (discovery mode, edge generation options)
 # - Incremental data collection with checkpoint recovery
 # - Automatic visualization generation
 # - Fail-fast on backup failures (prevents data loss)
@@ -48,10 +50,34 @@ on:
         required: false
         default: '1950'
         type: string
-      recursive_depth:
-        description: 'Depth of recursive similar sound fetching'
+      discovery_mode:
+        description: 'Discovery strategy: search, relationships, or mixed'
         required: false
-        default: '3'
+        default: 'search'
+        type: choice
+        options:
+          - search
+          - relationships
+          - mixed
+      include_user_edges:
+        description: 'Create edges between samples by the same user'
+        required: false
+        default: true
+        type: boolean
+      include_pack_edges:
+        description: 'Create edges between samples in the same pack'
+        required: false
+        default: true
+        type: boolean
+      include_tag_edges:
+        description: 'Create edges between samples with similar tags'
+        required: false
+        default: true
+        type: boolean
+      tag_similarity_threshold:
+        description: 'Minimum Jaccard similarity for tag edges (0.0-1.0)'
+        required: false
+        default: '0.3'
         type: string
 
 # Prevent workflow collisions
@@ -340,11 +366,19 @@ jobs:
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> $GITHUB_OUTPUT
           echo "max_requests=${{ github.event.inputs.max_requests }}" >> $GITHUB_OUTPUT
-          echo "depth=${{ github.event.inputs.recursive_depth }}" >> $GITHUB_OUTPUT
+          echo "discovery_mode=${{ github.event.inputs.discovery_mode }}" >> $GITHUB_OUTPUT
+          echo "include_user_edges=${{ github.event.inputs.include_user_edges }}" >> $GITHUB_OUTPUT
+          echo "include_pack_edges=${{ github.event.inputs.include_pack_edges }}" >> $GITHUB_OUTPUT
+          echo "include_tag_edges=${{ github.event.inputs.include_tag_edges }}" >> $GITHUB_OUTPUT
+          echo "tag_similarity_threshold=${{ github.event.inputs.tag_similarity_threshold }}" >> $GITHUB_OUTPUT
         else
           echo "seed_sample_id=" >> $GITHUB_OUTPUT
           echo "max_requests=1950" >> $GITHUB_OUTPUT
-          echo "depth=3" >> $GITHUB_OUTPUT
+          echo "discovery_mode=search" >> $GITHUB_OUTPUT
+          echo "include_user_edges=true" >> $GITHUB_OUTPUT
+          echo "include_pack_edges=true" >> $GITHUB_OUTPUT
+          echo "include_tag_edges=true" >> $GITHUB_OUTPUT
+          echo "tag_similarity_threshold=0.3" >> $GITHUB_OUTPUT
         fi
         
         # Generate execution ID
@@ -451,7 +485,12 @@ jobs:
           echo "- Seed Sample: \`Most downloaded sample (auto-detected)\`" >> $GITHUB_STEP_SUMMARY
         fi
         echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> $GITHUB_STEP_SUMMARY
-        echo "- Recursive Depth: \`${{ steps.params.outputs.depth }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Discovery Mode: \`${{ steps.params.outputs.discovery_mode }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Edge Generation:" >> $GITHUB_STEP_SUMMARY
+        echo "  - User Edges: \`${{ steps.params.outputs.include_user_edges }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "  - Pack Edges: \`${{ steps.params.outputs.include_pack_edges }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "  - Tag Edges: \`${{ steps.params.outputs.include_tag_edges }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "  - Tag Similarity Threshold: \`${{ steps.params.outputs.tag_similarity_threshold }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -471,7 +510,19 @@ jobs:
           cmd="$cmd --seed-sample-id ${{ steps.params.outputs.seed_sample_id }}"
         fi
         cmd="$cmd --max-requests ${{ steps.params.outputs.max_requests }}"
-        cmd="$cmd --depth ${{ steps.params.outputs.depth }}"
+        cmd="$cmd --discovery-mode ${{ steps.params.outputs.discovery_mode }}"
+        
+        # Add edge generation flags
+        if [ "${{ steps.params.outputs.include_user_edges }}" = "true" ]; then
+          cmd="$cmd --include-user-edges"
+        fi
+        if [ "${{ steps.params.outputs.include_pack_edges }}" = "true" ]; then
+          cmd="$cmd --include-pack-edges"
+        fi
+        if [ "${{ steps.params.outputs.include_tag_edges }}" = "true" ]; then
+          cmd="$cmd --include-tag-edges"
+        fi
+        cmd="$cmd --tag-similarity-threshold ${{ steps.params.outputs.tag_similarity_threshold }}"
         
         # Run the pipeline script
         eval "$cmd" 2>&1 | tee pipeline_${{ steps.params.outputs.execution_id }}.log

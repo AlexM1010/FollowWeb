@@ -71,6 +71,38 @@ make test-integration   # Integration tests
 make test-performance   # Performance tests
 ```
 
+### 4. Set Up Pre-Commit Hooks (Recommended)
+
+Pre-commit hooks automatically run code quality checks before each commit, catching issues early and preventing CI failures.
+
+**Quick Setup:**
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install the git hooks
+pre-commit install
+
+# (Optional) Run on all files to check current state
+pre-commit run --all-files
+```
+
+**What Gets Checked:**
+- ✅ Ruff linting and formatting
+- ✅ Mypy type checking
+- ✅ YAML syntax validation
+- ✅ GitHub Actions workflow validation (actionlint)
+- ✅ Trailing whitespace, end-of-file fixes
+- ✅ JSON syntax validation
+
+**Benefits:**
+- Catch issues before they reach CI
+- Faster feedback loop
+- Auto-fix many problems
+- Consistent code quality across all contributors
+
+For detailed setup instructions and troubleshooting, see **[.github/PRE_COMMIT_SETUP.md](../../../.github/PRE_COMMIT_SETUP.md)**.
+
 ## Code Standards
 
 ### Style Guidelines

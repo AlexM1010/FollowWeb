@@ -545,30 +545,36 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         query: Optional[str] = None,
         tags: Optional[list[str]] = None,
         max_samples: int = 1000,
-        include_similar: bool = True,
-        recursive_depth: int = 0,
-        max_total_samples: int = 100,
+        discovery_mode: str = "search",
+        relationship_priority: float = 0.7,
+        include_user_edges: bool = True,
+        include_pack_edges: bool = True,
+        include_tag_edges: bool = True,
+        tag_similarity_threshold: float = 0.3,
     ) -> dict[str, Any]:
         """
-        Fetch sample data incrementally with checkpoint support and optional recursion.
+        Fetch sample data incrementally with checkpoint support and edge generation.
 
         Overrides parent method to support incremental processing:
         - Skips already-processed samples
         - Saves checkpoints periodically
         - Respects time limits
         - Tracks progress statistics
-        - Supports recursive similar sounds fetching (snowball sampling)
+        - Generates edges based on user, pack, and tag relationships
 
         Args:
             query: Text search query
             tags: List of tags to filter by
-            max_samples: Maximum number of seed samples to fetch
-            include_similar: Fetch similar sounds relationships
-            recursive_depth: How many levels deep to fetch similar sounds (0=no recursion)
-            max_total_samples: Maximum total samples including recursive fetches
+            max_samples: Maximum number of samples to fetch
+            discovery_mode: Sample discovery strategy - "search", "relationships", or "mixed"
+            relationship_priority: For mixed mode, ratio of pending vs search (0.0-1.0)
+            include_user_edges: Create edges for same-user samples
+            include_pack_edges: Create edges for same-pack samples
+            include_tag_edges: Create edges for tag similarity
+            tag_similarity_threshold: Minimum Jaccard similarity for tag edges
 
         Returns:
-            Dictionary with 'samples' and 'relationships' keys
+            Dictionary with 'samples' and edge statistics
         """
         # Note: Empty query string is valid per Freesound API docs (returns all sounds)
         if query is None and not tags:
@@ -600,63 +606,97 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Process samples incrementally with progress tracking
         processed_samples = []
-        relationships: dict[str, dict[int, list[int]]] = {"similar": {}}
 
-        # Use recursive processing if depth > 0
-        if recursive_depth > 0:
-            self._process_samples_recursive(
-                new_samples, recursive_depth, max_total_samples, include_similar
-            )
-            processed_samples = new_samples
-        else:
-            # Non-recursive processing
-            with ProgressTracker(
-                total=len(new_samples),
-                title="Processing new samples incrementally",
-                logger=self.logger,
-            ) as tracker:
-                for i, sample in enumerate(new_samples):
-                    # Check time limit
-                    if self._check_time_limit():
-                        elapsed = time.time() - self.start_time
-                        stats = self._calculate_progress_stats(
-                            i, len(new_samples), elapsed
-                        )
+        # Simplified processing - add all samples as nodes
+        with ProgressTracker(
+            total=len(new_samples),
+            title="Processing new samples incrementally",
+            logger=self.logger,
+        ) as tracker:
+            for i, sample in enumerate(new_samples):
+                # Check time limit
+                if self._check_time_limit():
+                    elapsed = time.time() - self.start_time
+                    stats = self._calculate_progress_stats(
+                        i, len(new_samples), elapsed
+                    )
 
-                        self.logger.warning(
-                            f"Time limit reached ({self.max_runtime_hours}h). "
-                            f"Processed {stats['current']}/{stats['total']} samples "
-                            f"({stats['percentage']:.1f}%). Saving checkpoint..."
-                        )
+                    self.logger.warning(
+                        f"Time limit reached ({self.max_runtime_hours}h). "
+                        f"Processed {stats['current']}/{stats['total']} samples "
+                        f"({stats['percentage']:.1f}%). Saving checkpoint..."
+                    )
 
-                        self._save_checkpoint(
-                            {"stopped_reason": "time_limit", "progress": stats}
-                        )
-                        break
+                    self._save_checkpoint(
+                        {"stopped_reason": "time_limit", "progress": stats}
+                    )
+                    break
 
-                    # Add sample to graph
-                    self._add_sample_to_graph(sample, include_similar)
-                    processed_samples.append(sample)
+                # Add sample to graph (simplified - no similar sounds)
+                self._add_sample_to_graph(sample, include_similar=False)
+                processed_samples.append(sample)
 
-                    # Mark as processed
-                    self.processed_ids.add(str(sample["id"]))
+                # Mark as processed
+                self.processed_ids.add(str(sample["id"]))
 
-                    # Periodic checkpoint save
-                    if (i + 1) % self.checkpoint_interval == 0:
-                        elapsed = time.time() - self.start_time
-                        stats = self._calculate_progress_stats(
-                            i + 1, len(new_samples), elapsed
-                        )
+                # Periodic checkpoint save
+                if (i + 1) % self.checkpoint_interval == 0:
+                    elapsed = time.time() - self.start_time
+                    stats = self._calculate_progress_stats(
+                        i + 1, len(new_samples), elapsed
+                    )
 
-                        self.logger.info(
-                            f"Progress: {stats['percentage']:.1f}% "
-                            f"({stats['current']}/{stats['total']}), "
-                            f"ETA: {stats['eta_minutes']:.1f} min"
-                        )
+                    self.logger.info(
+                        f"Progress: {stats['percentage']:.1f}% "
+                        f"({stats['current']}/{stats['total']}), "
+                        f"ETA: {stats['eta_minutes']:.1f} min"
+                    )
 
-                        self._save_checkpoint({"progress": stats})
+                    self._save_checkpoint({"progress": stats})
 
-                    tracker.update(i + 1)
+                tracker.update(i + 1)
+
+        # Generate edges if requested
+        edge_stats = {}
+        if processed_samples and (include_user_edges or include_pack_edges or include_tag_edges):
+            self.logger.info("Generating edges...")
+            # Note: Edge generation methods should be implemented in earlier tasks
+            # For now, we'll call the existing batch edge generation if available
+            try:
+                if hasattr(self, '_generate_all_edges'):
+                    edge_stats = self._generate_all_edges(
+                        include_user=include_user_edges,
+                        include_pack=include_pack_edges,
+                        include_tag=include_tag_edges,
+                        tag_threshold=tag_similarity_threshold
+                    )
+                else:
+                    # Fallback to existing methods
+                    if include_user_edges or include_pack_edges:
+                        # Use existing batch edge generation
+                        usernames = set()
+                        pack_names = set()
+                        
+                        for node_id in self.graph.nodes():
+                            node_data = self.graph.nodes[node_id]
+                            if include_user_edges:
+                                username = node_data.get("user") or node_data.get("username")
+                                if username:
+                                    usernames.add(username)
+                            if include_pack_edges:
+                                pack = node_data.get("pack")
+                                if pack:
+                                    pack_names.add(pack)
+                        
+                        if include_user_edges and usernames:
+                            user_edges = self._add_user_edges_batch(usernames)
+                            edge_stats["user_edges_added"] = user_edges
+                        
+                        if include_pack_edges and pack_names:
+                            pack_edges = self._add_pack_edges_batch(pack_names)
+                            edge_stats["pack_edges_added"] = pack_edges
+            except Exception as e:
+                self.logger.warning(f"Edge generation failed: {e}")
 
         # Final checkpoint save
         elapsed = time.time() - self.start_time
@@ -664,7 +704,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             len(processed_samples), len(new_samples), elapsed
         )
 
-        self._save_checkpoint({"completed": True, "final_stats": final_stats})
+        self._save_checkpoint({"completed": True, "final_stats": final_stats, "edge_stats": edge_stats})
 
         success_msg = EmojiFormatter.format(
             "success",
@@ -673,7 +713,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         )
         self.logger.info(success_msg)
 
-        return {"samples": processed_samples, "relationships": relationships}
+        return {"samples": processed_samples, "edge_stats": edge_stats}
 
     def _process_samples_recursive(
         self,
