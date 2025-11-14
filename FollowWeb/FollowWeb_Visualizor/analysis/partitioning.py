@@ -247,11 +247,13 @@ class GraphPartitioner:
         all_community_nodes = set()
         for comm in communities:
             all_community_nodes.update(comm)
-        
+
         # Add any missing nodes as singleton communities
         missing_nodes = set(graph.nodes()) - all_community_nodes
         if missing_nodes:
-            self.logger.debug(f"Adding {len(missing_nodes)} isolated nodes as singleton communities")
+            self.logger.debug(
+                f"Adding {len(missing_nodes)} isolated nodes as singleton communities"
+            )
             for node in missing_nodes:
                 communities.append({node})
 
@@ -260,7 +262,7 @@ class GraphPartitioner:
             # Sort by size (largest first) and merge smaller communities into larger ones
             communities = sorted(communities, key=len, reverse=True)
             merged = list(communities[:num_partitions])
-            
+
             # Distribute remaining communities across the partitions
             for i, comm in enumerate(communities[num_partitions:]):
                 # Add to smallest partition to balance
