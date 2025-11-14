@@ -41,9 +41,9 @@ logs/pipeline_*.log
 .workflow_locks/
 *.lock
 
-# Temporary test scripts (root level)
-test_*.py
-*_test.py
+# Temporary test scripts (root level only - not in FollowWeb/)
+/test_*.py
+/*_test.py
 test_skip_report.txt
 skip_summary.txt
 check_db.py
