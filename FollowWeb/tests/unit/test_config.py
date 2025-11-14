@@ -168,12 +168,14 @@ class TestStaticImageConfig:
     def test_spring_layout_default(self):
         """Test that spring layout is the default (now in LayoutConfig)."""
         from FollowWeb_Visualizor.core.config import LayoutConfig
+
         config = LayoutConfig()
         assert config.algorithm == "spring"
 
     def test_all_valid_layouts(self):
         """Test all valid layout options (now in LayoutConfig)."""
         from FollowWeb_Visualizor.core.config import LayoutConfig
+
         valid_layouts = ["spring", "kamada_kawai", "circular", "random"]
         for layout in valid_layouts:
             config = LayoutConfig(algorithm=layout)
@@ -182,6 +184,7 @@ class TestStaticImageConfig:
     def test_invalid_layout_rejection(self):
         """Test rejection of invalid layout (now in LayoutConfig)."""
         from FollowWeb_Visualizor.core.config import LayoutConfig
+
         with pytest.raises(ValueError, match="algorithm must be one of"):
             LayoutConfig(algorithm="invalid_layout")
 
@@ -646,4 +649,3 @@ class TestPipelineStageControlIntegration:
         assert config_obj.pipeline.enable_community_detection is False
         assert config_obj.pipeline.enable_path_analysis is False
         assert config_obj.pipeline.enable_centrality_analysis is True
-

@@ -61,24 +61,39 @@ class TestSigmaRendererDataConversion:
 
         # Create minimal metrics
         node_metrics = {
-            1: {"size": 10, "color_hex": "#ff0000", "community": 0, "degree": 1, "betweenness": 0.0, "eigenvector": 0.5},
-            2: {"size": 10, "color_hex": "#00ff00", "community": 0, "degree": 1, "betweenness": 0.0, "eigenvector": 0.5},
+            1: {
+                "size": 10,
+                "color_hex": "#ff0000",
+                "community": 0,
+                "degree": 1,
+                "betweenness": 0.0,
+                "eigenvector": 0.5,
+            },
+            2: {
+                "size": 10,
+                "color_hex": "#00ff00",
+                "community": 0,
+                "degree": 1,
+                "betweenness": 0.0,
+                "eigenvector": 0.5,
+            },
         }
-        edge_metrics = {
-            (1, 2): {"width": 2, "color": "#cccccc", "is_mutual": False}
-        }
+        edge_metrics = {(1, 2): {"width": 2, "color": "#cccccc", "is_mutual": False}}
 
         # Create mock metrics object
         from FollowWeb_Visualizor.core.types import VisualizationMetrics, ColorScheme
+
         metrics = VisualizationMetrics(
             node_metrics={},
             edge_metrics={},
             layout_positions={1: (0, 0), 2: (1, 1)},
             color_schemes=ColorScheme({}, {}, "#6e6e6e", "#c0c0c0"),
-            graph_hash="test_hash"
+            graph_hash="test_hash",
         )
 
-        sigma_data = renderer._convert_to_sigma_format(graph, node_metrics, edge_metrics, metrics)
+        sigma_data = renderer._convert_to_sigma_format(
+            graph, node_metrics, edge_metrics, metrics
+        )
 
         assert "nodes" in sigma_data
         assert "edges" in sigma_data
@@ -91,23 +106,40 @@ class TestSigmaRendererDataConversion:
         renderer = SigmaRenderer(config)
 
         graph = nx.DiGraph()
-        graph.add_node(1, name="Sample 1", tags=["tag1", "tag2"], duration=5.5, user="testuser", audio_url="http://example.com/audio.mp3")
+        graph.add_node(
+            1,
+            name="Sample 1",
+            tags=["tag1", "tag2"],
+            duration=5.5,
+            user="testuser",
+            audio_url="http://example.com/audio.mp3",
+        )
 
         node_metrics = {
-            1: {"size": 15, "color_hex": "#ff0000", "community": 1, "degree": 5, "betweenness": 0.2, "eigenvector": 0.8}
+            1: {
+                "size": 15,
+                "color_hex": "#ff0000",
+                "community": 1,
+                "degree": 5,
+                "betweenness": 0.2,
+                "eigenvector": 0.8,
+            }
         }
         edge_metrics = {}
 
         from FollowWeb_Visualizor.core.types import VisualizationMetrics, ColorScheme
+
         metrics = VisualizationMetrics(
             node_metrics={},
             edge_metrics={},
             layout_positions={1: (10, 20)},
             color_schemes=ColorScheme({}, {}, "#6e6e6e", "#c0c0c0"),
-            graph_hash="test_hash"
+            graph_hash="test_hash",
         )
 
-        sigma_data = renderer._convert_to_sigma_format(graph, node_metrics, edge_metrics, metrics)
+        sigma_data = renderer._convert_to_sigma_format(
+            graph, node_metrics, edge_metrics, metrics
+        )
 
         node = sigma_data["nodes"][0]
         assert node["key"] == "1"
@@ -132,23 +164,38 @@ class TestSigmaRendererDataConversion:
         graph.add_edge(1, 2, type="similar", weight=0.9)
 
         node_metrics = {
-            1: {"size": 10, "color_hex": "#ff0000", "community": 0, "degree": 1, "betweenness": 0.0, "eigenvector": 0.5},
-            2: {"size": 10, "color_hex": "#00ff00", "community": 0, "degree": 1, "betweenness": 0.0, "eigenvector": 0.5},
+            1: {
+                "size": 10,
+                "color_hex": "#ff0000",
+                "community": 0,
+                "degree": 1,
+                "betweenness": 0.0,
+                "eigenvector": 0.5,
+            },
+            2: {
+                "size": 10,
+                "color_hex": "#00ff00",
+                "community": 0,
+                "degree": 1,
+                "betweenness": 0.0,
+                "eigenvector": 0.5,
+            },
         }
-        edge_metrics = {
-            (1, 2): {"width": 3, "color": "#0000ff", "is_mutual": False}
-        }
+        edge_metrics = {(1, 2): {"width": 3, "color": "#0000ff", "is_mutual": False}}
 
         from FollowWeb_Visualizor.core.types import VisualizationMetrics, ColorScheme
+
         metrics = VisualizationMetrics(
             node_metrics={},
             edge_metrics={},
             layout_positions={1: (0, 0), 2: (1, 1)},
             color_schemes=ColorScheme({}, {}, "#6e6e6e", "#c0c0c0"),
-            graph_hash="test_hash"
+            graph_hash="test_hash",
         )
 
-        sigma_data = renderer._convert_to_sigma_format(graph, node_metrics, edge_metrics, metrics)
+        sigma_data = renderer._convert_to_sigma_format(
+            graph, node_metrics, edge_metrics, metrics
+        )
 
         edge = sigma_data["edges"][0]
         assert edge["source"] == "1"
@@ -167,7 +214,7 @@ class TestSigmaRendererHTMLGeneration:
         """Test that HTML file is generated."""
         config = {
             "sigma_interactive": {"show_labels": True, "show_tooltips": True},
-            "node_size_metric": "degree"
+            "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
 
@@ -263,7 +310,7 @@ class TestSigmaRendererConfiguration:
         """Test that configuration is passed to template."""
         config = {
             "sigma_interactive": {"show_labels": False},
-            "node_size_metric": "degree"
+            "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
 

@@ -41,7 +41,7 @@ class TestVisualizationConsistency:
         """Set up test fixtures."""
         # Clear all caches to ensure clean state for each test
         clear_all_caches()
-        
+
         self.vis_config = {
             "node_size_metric": "degree",
             "base_node_size": 10,
@@ -522,9 +522,3 @@ class TestRendererInitialization:
 
         with pytest.raises(KeyError):
             MatplotlibRenderer(vis_config)
-
-
-
-
-
-

@@ -624,9 +624,7 @@ class TestEmojiIntegration:
     def test_emoji_configuration_from_config_dict(self):
         """Test emoji configuration extraction and application."""
         config_dict = {
-            "output": {
-                "formatting": {"emoji": {"fallback_level": "simple"}}
-            }
+            "output": {"formatting": {"emoji": {"fallback_level": "simple"}}}
         }
 
         # Test emoji level extraction
@@ -749,4 +747,3 @@ class TestOutputSynchronization:
 
 if __name__ == "__main__":
     pytest.main([__file__])
-

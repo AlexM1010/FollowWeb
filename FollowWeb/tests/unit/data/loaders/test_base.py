@@ -205,8 +205,9 @@ class TestDataLoaderValidation:
     def test_validate_logs_statistics(self, caplog):
         """Test that validation logs graph statistics."""
         import logging
+
         caplog.set_level(logging.INFO)
-        
+
         loader = ConcreteLoader()
         graph = nx.DiGraph()
         graph.add_nodes_from([1, 2, 3])
@@ -279,7 +280,7 @@ class TestDataLoaderIntegration:
         loader = ConcreteLoader()
 
         nodes = [{"id": f"user_{i}"} for i in range(10)]
-        edges = [{"source": f"user_{i}", "target": f"user_{i+1}"} for i in range(9)]
+        edges = [{"source": f"user_{i}", "target": f"user_{i + 1}"} for i in range(9)]
 
         graph = loader.load(nodes=nodes, edges=edges)
 

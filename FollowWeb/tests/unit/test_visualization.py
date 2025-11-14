@@ -420,7 +420,3 @@ class TestMetricsReporter:
         assert success is False
 
     # test_calculate_edge_metrics_networkx_error removed - MetricsCalculator no longer exists
-
-
-
-

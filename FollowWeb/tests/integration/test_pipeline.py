@@ -94,7 +94,9 @@ class TestPipelineExecution:
             if len(followers) >= 2:
                 # Check if any followers follow each other
                 for i, f1 in enumerate(followers[:10]):  # Limit to first 10 followers
-                    for f2 in followers[i+1:min(i+11, len(followers))]:  # Check next 10
+                    for f2 in followers[
+                        i + 1 : min(i + 11, len(followers))
+                    ]:  # Check next 10
                         if graph.has_edge(f1, f2) or graph.has_edge(f2, f1):
                             ego_username = node
                             break
@@ -102,7 +104,7 @@ class TestPipelineExecution:
                         break
             if ego_username:
                 break
-        
+
         if not ego_username:
             pytest.skip("No suitable ego user with alters found in test data")
 
@@ -111,7 +113,11 @@ class TestPipelineExecution:
         config = fast_config.copy()
         # Use minimal k-value for ego-alter to keep graph small
         config["k_values"] = {
-            "strategy_k_values": {"k-core": 5, "reciprocal_k-core": 5, "ego_alter_k-core": 2},
+            "strategy_k_values": {
+                "k-core": 5,
+                "reciprocal_k-core": 5,
+                "ego_alter_k-core": 2,
+            },
             "default_k_value": 2,
         }
         config["pipeline"]["strategy"] = "ego_alter_k-core"
@@ -744,7 +750,7 @@ class TestPipelineSuccessValidation:
         # Use dynamically calculated k-values appropriate for the dataset
         k_values = calculate_appropriate_k_values("small_real")
         config["k_values"] = k_values
-        
+
         # Use a path that doesn't exist initially
         import tempfile
         from pathlib import Path
@@ -781,7 +787,7 @@ class TestPipelineSuccessValidation:
         # Use dynamically calculated k-values appropriate for the dataset
         k_values = calculate_appropriate_k_values("small_real")
         config["k_values"] = k_values
-        
+
         # Skip visualization phase
         if "pipeline" not in config:
             config["pipeline"] = {}
@@ -974,7 +980,7 @@ class TestLoadingIndicatorIntegration:
         from FollowWeb_Visualizor.core.config import load_config_from_dict
 
         config = fast_config.copy()
-        
+
         config_obj = load_config_from_dict(config)
 
         start_time = time.perf_counter()
@@ -991,5 +997,6 @@ class TestLoadingIndicatorIntegration:
             phase_sum = sum(orchestrator.phase_times.values())
             # Progress tracking overhead should be minimal
             overhead = abs(total_duration - phase_sum) / max(total_duration, 0.001)
-            assert overhead < 0.8  # Less than 80% overhead (generous for CI variability)
-
+            assert (
+                overhead < 0.8
+            )  # Less than 80% overhead (generous for CI variability)

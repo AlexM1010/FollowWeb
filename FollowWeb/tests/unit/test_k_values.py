@@ -99,7 +99,7 @@ class TestKValueGraphPruning:
 
         loader = InstagramLoader()
         original_graph = loader.load_from_json(sample_data_file)
-        
+
         strategy = GraphStrategy()
         pruned_graph = strategy.prune_graph(original_graph, 0)
 
@@ -125,7 +125,7 @@ class TestKValueGraphPruning:
             pytest.skip("Need non-empty graph for boundary testing")
 
         strategy = GraphStrategy()
-        
+
         # Test very high k-value (should result in empty or very small graph)
         very_high_k = original_graph.number_of_nodes() + 100
         pruned_graph = strategy.prune_graph(original_graph, very_high_k)

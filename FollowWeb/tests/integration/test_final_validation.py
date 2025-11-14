@@ -319,7 +319,9 @@ class TestInstagramDataWithBothRenderers:
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 "input_file": "test_instagram.json",
-                "output_file_prefix": os.path.join(tmpdir, f"instagram_{renderer_type}"),
+                "output_file_prefix": os.path.join(
+                    tmpdir, f"instagram_{renderer_type}"
+                ),
                 "strategy": "k-core",
                 "k_values": {
                     "strategy_k_values": {"k-core": 1},
@@ -389,7 +391,9 @@ class TestFreesoundDataWithBothRenderers:
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
                 "input_file": "dummy.json",
-                "output_file_prefix": os.path.join(tmpdir, f"freesound_{renderer_type}"),
+                "output_file_prefix": os.path.join(
+                    tmpdir, f"freesound_{renderer_type}"
+                ),
                 "strategy": "k-core",
                 "k_values": {
                     "strategy_k_values": {"k-core": 1},

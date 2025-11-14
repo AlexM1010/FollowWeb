@@ -22,13 +22,13 @@ class TestDataLoaderIntegration:
         """Test that Instagram loader is selected when data_source is instagram."""
         config = fast_config.copy()
         config["data_source"] = {"source": "instagram"}
-        
+
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)
-        
+
         # Verify config is set correctly
         assert orchestrator.config.data_source.source == "instagram"
-        
+
         # Loader should be None until strategy phase
         assert orchestrator.graph_loader is None
 
@@ -38,20 +38,16 @@ class TestDataLoaderIntegration:
         config = fast_config.copy()
         config["data_source"] = {
             "source": "freesound",
-            "freesound": {
-                "api_key": "test_key",
-                "query": "test",
-                "max_samples": 100
-            }
+            "freesound": {"api_key": "test_key", "query": "test", "max_samples": 100},
         }
-        
+
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)
-        
+
         # Verify config is set correctly
         assert orchestrator.config.data_source.source == "freesound"
         assert orchestrator.config.data_source.freesound.api_key == "test_key"
-        
+
         # Loader should be None until strategy phase
         assert orchestrator.graph_loader is None
 
@@ -60,7 +56,7 @@ class TestDataLoaderIntegration:
         """Test that invalid data source raises error during strategy phase."""
         config = fast_config.copy()
         config["data_source"] = {"source": "invalid_source"}
-        
+
         # This should fail validation
         with pytest.raises(ValueError, match="data_source.source"):
             config_obj = load_config_from_dict(config)
@@ -74,10 +70,10 @@ class TestRendererIntegration:
         """Test that Pyvis renderer is selected when renderer_type is pyvis."""
         config = fast_config.copy()
         config["renderer"] = {"renderer_type": "pyvis"}
-        
+
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)
-        
+
         # Verify config is set correctly
         assert orchestrator.config.renderer.renderer_type == "pyvis"
 
@@ -86,10 +82,10 @@ class TestRendererIntegration:
         """Test that Sigma renderer is selected when renderer_type is sigma."""
         config = fast_config.copy()
         config["renderer"] = {"renderer_type": "sigma"}
-        
+
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)
-        
+
         # Verify config is set correctly
         assert orchestrator.config.renderer.renderer_type == "sigma"
 
@@ -98,10 +94,10 @@ class TestRendererIntegration:
         """Test that all renderers are selected when renderer_type is all."""
         config = fast_config.copy()
         config["renderer"] = {"renderer_type": "all"}
-        
+
         config_obj = load_config_from_dict(config)
         orchestrator = PipelineOrchestrator(config_obj)
-        
+
         # Verify config is set correctly
         assert orchestrator.config.renderer.renderer_type == "all"
 
@@ -110,7 +106,7 @@ class TestRendererIntegration:
         """Test that invalid renderer type raises error."""
         config = fast_config.copy()
         config["renderer"] = {"renderer_type": "invalid_renderer"}
-        
+
         # This should fail validation
         with pytest.raises(ValueError, match="renderer_type"):
             config_obj = load_config_from_dict(config)

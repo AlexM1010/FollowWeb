@@ -545,7 +545,7 @@ class TestPipelineErrorHandling:
                 invalid_path = "Z:\\nonexistent\\path\\test"
             else:  # Unix/macOS
                 invalid_path = "/nonexistent/path/test"
-            
+
             config = {
                 "input_file": "dummy.json",
                 "output_file_prefix": invalid_path,  # Invalid path
@@ -737,8 +737,3 @@ class TestPipelineOutputGeneration:
             with open(report_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "FOLLOWWEB" in content or "GRAPH" in content
-
-
-
-
-

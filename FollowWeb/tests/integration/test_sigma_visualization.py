@@ -27,7 +27,7 @@ class TestSigmaVisualizationEndToEnd:
         """Test complete workflow from graph to HTML file."""
         # Create realistic graph
         graph = nx.DiGraph()
-        
+
         # Add nodes with typical attributes
         for i in range(20):
             graph.add_node(
@@ -38,15 +38,15 @@ class TestSigmaVisualizationEndToEnd:
                 betweenness=0.1 * i,
                 eigenvector=0.05 * i,
             )
-        
+
         # Add edges
         for i in range(19):
             graph.add_edge(i, i + 1, type="connection", weight=0.8)
-        
+
         # Add some cross-connections
         graph.add_edge(0, 10, type="connection", weight=0.5)
         graph.add_edge(5, 15, type="connection", weight=0.6)
-        
+
         # Create renderer with configuration
         config = {
             "sigma_interactive": {
@@ -57,15 +57,15 @@ class TestSigmaVisualizationEndToEnd:
             "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
-        
+
         # Generate visualization
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_visualization.html")
             result = renderer.generate_visualization(graph, output_file)
-            
+
             assert result is True
             assert os.path.exists(output_file)
-            
+
             # Verify file is not empty
             file_size = os.path.getsize(output_file)
             assert file_size > 1000  # Should be substantial HTML file
@@ -75,17 +75,17 @@ class TestSigmaVisualizationEndToEnd:
         graph = nx.DiGraph()
         graph.add_node(1, name="Test Node", community=0, degree=1)
         graph.add_edge(1, 1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_structure.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Validate HTML structure
             assert "<!DOCTYPE html>" in html_content
             assert "<html" in html_content
@@ -94,7 +94,7 @@ class TestSigmaVisualizationEndToEnd:
             assert "</head>" in html_content
             assert "<body>" in html_content
             assert "</body>" in html_content
-            
+
             # Validate meta tags
             assert '<meta charset="UTF-8">' in html_content
             assert '<meta name="viewport"' in html_content
@@ -103,22 +103,22 @@ class TestSigmaVisualizationEndToEnd:
         """Test that required JavaScript libraries are included."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_libraries.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for required libraries
             assert "graphology" in html_content.lower()
             assert "sigma" in html_content.lower()
             assert "howler" in html_content.lower()
-            
+
             # Check for CDN links
             assert "cdn.jsdelivr.net" in html_content or "unpkg.com" in html_content
 
@@ -128,23 +128,23 @@ class TestSigmaVisualizationEndToEnd:
         graph.add_node("node1", name="First Node", community=0, degree=2)
         graph.add_node("node2", name="Second Node", community=1, degree=2)
         graph.add_edge("node1", "node2", type="similar", weight=0.9)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_data.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check that node data is present
             assert "node1" in html_content
             assert "node2" in html_content
             assert "First Node" in html_content
             assert "Second Node" in html_content
-            
+
             # Check that edge data is present
             assert "similar" in html_content or "0.9" in html_content
 
@@ -152,7 +152,7 @@ class TestSigmaVisualizationEndToEnd:
         """Test that configuration is properly embedded in HTML."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {
             "sigma_interactive": {
                 "show_labels": False,
@@ -162,14 +162,14 @@ class TestSigmaVisualizationEndToEnd:
             "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_config.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check that config values are embedded
             assert "show_labels" in html_content
             assert "show_tooltips" in html_content
@@ -184,7 +184,7 @@ class TestSigmaVisualizationWithFreesoundData:
         """Test visualization with Freesound sample attributes."""
         # Create graph with Freesound-like attributes
         graph = nx.DiGraph()
-        
+
         # Add sample nodes
         graph.add_node(
             "12345",
@@ -197,7 +197,7 @@ class TestSigmaVisualizationWithFreesoundData:
             community=0,
             degree=3,
         )
-        
+
         graph.add_node(
             "12346",
             name="snare_hit_02.wav",
@@ -209,7 +209,7 @@ class TestSigmaVisualizationWithFreesoundData:
             community=0,
             degree=2,
         )
-        
+
         graph.add_node(
             "12347",
             name="bass_synth.wav",
@@ -221,11 +221,11 @@ class TestSigmaVisualizationWithFreesoundData:
             community=1,
             degree=2,
         )
-        
+
         # Add similarity edges
         graph.add_edge("12345", "12346", type="similar", weight=0.85)
         graph.add_edge("12346", "12347", type="similar", weight=0.45)
-        
+
         # Create renderer
         config = {
             "sigma_interactive": {
@@ -236,19 +236,19 @@ class TestSigmaVisualizationWithFreesoundData:
             "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
-        
+
         # Generate visualization
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "freesound_test.html")
             result = renderer.generate_visualization(graph, output_file)
-            
+
             assert result is True
             assert os.path.exists(output_file)
-            
+
             # Read and validate content
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for Freesound-specific attributes
             assert "kick_drum_01.wav" in html_content
             assert "snare_hit_02.wav" in html_content
@@ -266,20 +266,20 @@ class TestSigmaVisualizationWithFreesoundData:
             community=0,
             degree=1,
         )
-        
+
         config = {
             "sigma_interactive": {"enable_audio": True},
             "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "audio_player_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for audio player elements
             assert "audio-player" in html_content
             assert "play-btn" in html_content or "Play" in html_content
@@ -291,7 +291,7 @@ class TestSigmaVisualizationWithFreesoundData:
         """Test visualization with larger Freesound-like graph."""
         # Create larger graph (100 nodes)
         graph = nx.DiGraph()
-        
+
         for i in range(100):
             graph.add_node(
                 str(10000 + i),
@@ -304,7 +304,7 @@ class TestSigmaVisualizationWithFreesoundData:
                 community=i % 5,
                 degree=i % 10 + 1,
             )
-        
+
         # Add edges (create a connected graph)
         for i in range(99):
             graph.add_edge(
@@ -313,7 +313,7 @@ class TestSigmaVisualizationWithFreesoundData:
                 type="similar",
                 weight=0.5 + (i % 50) / 100,
             )
-        
+
         # Add some cross-connections
         for i in range(0, 100, 10):
             if i + 50 < 100:
@@ -323,20 +323,20 @@ class TestSigmaVisualizationWithFreesoundData:
                     type="similar",
                     weight=0.6,
                 )
-        
+
         config = {
             "sigma_interactive": {"enable_audio": True},
             "node_size_metric": "degree",
         }
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "large_freesound_test.html")
             result = renderer.generate_visualization(graph, output_file)
-            
+
             assert result is True
             assert os.path.exists(output_file)
-            
+
             # Verify file size is reasonable for 100 nodes
             file_size = os.path.getsize(output_file)
             assert file_size > 10000  # Should be substantial
@@ -351,26 +351,25 @@ class TestSigmaVisualizationJavaScriptValidation:
         graph = nx.DiGraph()
         graph.add_node(1, name="Test", community=0, degree=1)
         graph.add_edge(1, 1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "json_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check that graphData variable is defined
             assert "const graphData = " in html_content
-            
+
             # Extract JSON data using regex - match the entire JSON object
             graph_data_match = re.search(
-                r"const graphData = (\{[\s\S]*?\});[\s\n]*const config",
-                html_content
+                r"const graphData = (\{[\s\S]*?\});[\s\n]*const config", html_content
             )
-            
+
             if graph_data_match:
                 json_str = graph_data_match.group(1)
                 # Validate it's valid JSON
@@ -391,17 +390,17 @@ class TestSigmaVisualizationJavaScriptValidation:
         """Test that JavaScript initialization code is present."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "js_init_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for key JavaScript initialization
             assert "new graphology.DirectedGraph()" in html_content
             assert "new Sigma(" in html_content
@@ -412,17 +411,17 @@ class TestSigmaVisualizationJavaScriptValidation:
         """Test that event handlers are properly set up."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "events_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for event handlers
             assert "addEventListener" in html_content
             assert "clickNode" in html_content or "click" in html_content
@@ -432,22 +431,22 @@ class TestSigmaVisualizationJavaScriptValidation:
         """Test that control elements are properly wired."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "controls_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for zoom controls
             assert "zoom-in" in html_content
             assert "zoom-out" in html_content
             assert "reset-view" in html_content
-            
+
             # Check for search
             assert "search-input" in html_content
 
@@ -463,15 +462,15 @@ class TestSigmaVisualizationErrorHandling:
         graph.add_node(1)
         graph.add_node(2, name="Node 2")
         graph.add_edge(1, 2)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "missing_attrs_test.html")
             # Should handle gracefully
             result = renderer.generate_visualization(graph, output_file)
-            
+
             assert result is True
             assert os.path.exists(output_file)
 
@@ -485,21 +484,21 @@ class TestSigmaVisualizationErrorHandling:
             community=0,
             degree=1,
         )
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "special_chars_test.html")
             result = renderer.generate_visualization(graph, output_file)
-            
+
             assert result is True
             assert os.path.exists(output_file)
-            
+
             # Verify HTML is still valid (no unescaped characters breaking structure)
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             assert "</html>" in html_content  # HTML structure intact
 
     def test_very_long_node_names(self):
@@ -507,7 +506,7 @@ class TestSigmaVisualizationErrorHandling:
         graph = nx.DiGraph()
         long_name = "A" * 1000  # Very long name
         long_tags = ["tag" + str(i) for i in range(100)]  # Many tags
-        
+
         graph.add_node(
             1,
             name=long_name,
@@ -515,14 +514,14 @@ class TestSigmaVisualizationErrorHandling:
             community=0,
             degree=1,
         )
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "long_names_test.html")
             result = renderer.generate_visualization(graph, output_file)
-            
+
             assert result is True
             assert os.path.exists(output_file)
 
@@ -537,39 +536,41 @@ class TestSigmaVisualizationOutputQuality:
         for i in range(5):
             graph.add_node(i, community=i % 2, degree=i + 1)
         graph.add_edge(0, 1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "legend_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for legend elements (legend is generated by LegendGenerator)
             # The exact content depends on LegendGenerator implementation
-            assert "legend" in html_content.lower() or "community" in html_content.lower()
+            assert (
+                "legend" in html_content.lower() or "community" in html_content.lower()
+            )
 
     def test_responsive_design_elements(self):
         """Test that responsive design elements are present."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "responsive_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for viewport meta tag
             assert "viewport" in html_content
-            
+
             # Check for responsive sizing
             assert "100vw" in html_content or "100vh" in html_content
 
@@ -577,21 +578,21 @@ class TestSigmaVisualizationOutputQuality:
         """Test that CSS styling is properly applied."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
-        
+
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "styling_test.html")
             renderer.generate_visualization(graph, output_file)
-            
+
             with open(output_file, "r", encoding="utf-8") as f:
                 html_content = f.read()
-            
+
             # Check for CSS
             assert "<style>" in html_content
             assert "</style>" in html_content
-            
+
             # Check for key styling elements
             assert "container" in html_content
             assert "controls" in html_content

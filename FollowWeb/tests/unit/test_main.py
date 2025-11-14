@@ -115,7 +115,9 @@ class TestConfigurationLoading:
     def test_load_config_with_invalid_configuration(self, temp_output_dir: str):
         """Test loading file with invalid configuration."""
         invalid_config = {
-            "pipeline": {"strategy": "invalid_strategy"}  # Invalid strategy should cause validation error
+            "pipeline": {
+                "strategy": "invalid_strategy"
+            }  # Invalid strategy should cause validation error
         }
         config_file = os.path.join(temp_output_dir, "invalid_config.json")
 
@@ -623,7 +625,9 @@ class TestEnhancedConfigurationIntegration:
         orchestrator = PipelineOrchestrator(config)
 
         assert orchestrator.config == config
-        assert hasattr(orchestrator.config, "pipeline")  # Changed from pipeline_stages to pipeline
+        assert hasattr(
+            orchestrator.config, "pipeline"
+        )  # Changed from pipeline_stages to pipeline
         assert hasattr(orchestrator.config, "analysis_mode")
         assert hasattr(orchestrator.config, "output")
 
@@ -659,4 +663,3 @@ class TestEnhancedConfigurationIntegration:
 
         assert orchestrator1.config.input_file == orchestrator2.config.input_file
         assert orchestrator1.config.strategy == orchestrator2.config.strategy
-

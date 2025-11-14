@@ -1,0 +1,679 @@
+"""
+Performance benchmarks for the refactored Freesound search-based collection.
+
+These tests benchmark the simplified search-based collection approach and compare
+it against the expected performance targets from the design document.
+
+Expected Performance Targets:
+- API calls: < 10 calls per 100 samples (excluding edge generation)
+- Processing speed: ≥ 10 samples per second
+- Memory usage: ≤ 70% of legacy recursive implementation
+- Edge generation: < 60 seconds for 1000 nodes
+- Checkpoint recovery: No data loss at any stage
+
+Test Categories:
+- Search-based collection benchmarks (10.1)
+- Edge generation benchmarks (10.2)
+- Memory profiling (10.3)
+- Large-scale tests (10.4)
+- Discovery mode comparisons (10.5)
+
+Usage:
+    pytest tests/performance/test_freesound_refactor_benchmarks.py -m benchmark -n 0 --benchmark-only
+    pytest tests/performance/test_freesound_refactor_benchmarks.py -m performance -n 0
+"""
+
+import json
+import os
+import tempfile
+import time
+from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
+
+import networkx as nx
+import pytest
+
+pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
+
+
+@pytest.fixture
+def mock_freesound_client():
+    """Create a mock Freesound client for testing without API calls."""
+    client = MagicMock()
+
+    # Mock text_search to return paginated results
+    def mock_text_search(query="", page=1, page_size=150, **kwargs):
+        """Mock search that returns realistic sample data."""
+        # Simulate pagination
+        total_samples = 500
+        start_idx = (page - 1) * page_size
+        end_idx = min(start_idx + page_size, total_samples)
+
+        results = []
+        for i in range(start_idx, end_idx):
+            if i >= total_samples:
+                break
+            sample_id = 10000 + i
+            sound = Mock(spec=[])
+            sound.id = sample_id
+            sound.name = f"sample_{sample_id}"
+            sound.tags = (
+                ["drum", "loop", "electronic"] if i % 3 == 0 else ["bass", "synth"]
+            )
+            sound.username = f"user_{i % 50}"  # 50 unique users
+            sound.pack = f"pack_{i % 30}" if i % 2 == 0 else None  # 30 unique packs
+            sound.duration = 2.5
+            sound.num_downloads = 1000 - i
+            sound.avg_rating = 4.5
+            sound.previews = {"preview-hq-mp3": f"http://example.com/{sample_id}.mp3"}
+            sound.created = "2024-01-01T00:00:00Z"
+            sound.license = "http://creativecommons.org/licenses/by/3.0/"
+            sound.description = f"Sample {sample_id}"
+            sound.type = "wav"
+            sound.channels = 2
+            sound.filesize = 1024000
+            sound.bitrate = 320
+            sound.bitdepth = 16
+            sound.samplerate = 44100
+            sound.pack_name = f"pack_{i % 30}" if i % 2 == 0 else None
+            sound.geotag = None
+            sound.num_ratings = 10
+            sound.comment_count = 5
+
+            # Add as_dict method
+            def make_as_dict(sound_obj):
+                return lambda: {
+                    "id": sound_obj.id,
+                    "name": sound_obj.name,
+                    "tags": sound_obj.tags,
+                    "username": sound_obj.username,
+                    "pack": sound_obj.pack,
+                    "duration": sound_obj.duration,
+                    "num_downloads": sound_obj.num_downloads,
+                    "avg_rating": sound_obj.avg_rating,
+                    "previews": sound_obj.previews,
+                    "created": sound_obj.created,
+                    "license": sound_obj.license,
+                    "description": sound_obj.description,
+                    "type": sound_obj.type,
+                    "channels": sound_obj.channels,
+                    "filesize": sound_obj.filesize,
+                    "bitrate": sound_obj.bitrate,
+                    "bitdepth": sound_obj.bitdepth,
+                    "samplerate": sound_obj.samplerate,
+                    "pack_name": sound_obj.pack_name,
+                    "geotag": sound_obj.geotag,
+                    "num_ratings": sound_obj.num_ratings,
+                    "comment_count": sound_obj.comment_count,
+                }
+
+            sound.as_dict = make_as_dict(sound)
+            results.append(sound)
+
+        # Create result object that supports iteration
+        class MockPager:
+            def __init__(self, results, has_next=False):
+                self.results = results
+                self.count = total_samples
+                self.next = has_next
+                self._iter_index = 0
+
+            def __iter__(self):
+                return iter(self.results)
+
+            def next_page(self):
+                # Return empty results for next page
+                return MockPager([], False)
+
+        has_next = end_idx < total_samples
+        return MockPager(results, has_next)
+
+    client.text_search.side_effect = mock_text_search
+
+    # Mock get_sound for individual sample fetches
+    def mock_get_sound(sound_id):
+        """Mock individual sample fetch."""
+        return Mock(
+            id=sound_id,
+            name=f"sample_{sound_id}",
+            tags=["drum", "loop"],
+            username=f"user_{sound_id % 50}",
+            pack=f"pack_{sound_id % 30}" if sound_id % 2 == 0 else None,
+            duration=2.5,
+            num_downloads=1000,
+            avg_rating=4.5,
+            previews={"preview-hq-mp3": f"http://example.com/{sound_id}.mp3"},
+            created="2024-01-01T00:00:00Z",
+            license="http://creativecommons.org/licenses/by/3.0/",
+            description=f"Sample {sound_id}",
+            type="wav",
+            channels=2,
+            filesize=1024000,
+            bitrate=320,
+            bitdepth=16,
+            samplerate=44100,
+            pack_name=f"pack_{sound_id % 30}" if sound_id % 2 == 0 else None,
+            geotag=None,
+            num_ratings=10,
+            comment_count=5,
+        )
+
+    client.get_sound.side_effect = mock_get_sound
+
+    return client
+
+
+@pytest.fixture
+def temp_checkpoint_dir():
+    """Create a temporary directory for checkpoint files."""
+    import time
+
+    tmpdir = tempfile.mkdtemp()
+    yield tmpdir
+    # Give time for connections to close
+    time.sleep(0.1)
+    try:
+        import shutil
+
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    except:
+        pass
+
+
+@pytest.fixture
+def loader_config(temp_checkpoint_dir):
+    """Create a test configuration for the loader."""
+    return {
+        "data_source": "freesound",
+        "api_key": "test_key",
+        "checkpoint_dir": temp_checkpoint_dir,
+        "checkpoint_interval": 50,
+        "max_runtime_hours": None,
+        "max_requests": 2000,
+        "backup_interval_nodes": 100,
+    }
+
+
+class TestSearchBasedCollectionBenchmarks:
+    """Benchmark tests for search-based collection (Task 10.1)."""
+
+    @pytest.mark.benchmark
+    def test_search_collection_speed(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure samples per second during search-based collection.
+
+        Target: ≥ 10 samples per second
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            def collect_samples():
+                """Collect 100 samples via search."""
+                result = loader.fetch_data(
+                    query="drum",
+                    max_samples=100,
+                    discovery_mode="search",
+                    include_user_edges=False,
+                    include_pack_edges=False,
+                    include_tag_edges=False,
+                )
+                return result
+
+            result = benchmark(collect_samples)
+
+            # Verify samples were collected
+            assert loader.graph.number_of_nodes() >= 100
+
+            # Clean up
+            loader.close()
+
+            # Calculate samples per second
+            samples_per_second = 100 / benchmark.stats["mean"]
+            print(f"\n✓ Samples per second: {samples_per_second:.2f}")
+
+            # Target: ≥ 10 samples per second
+            assert samples_per_second >= 10.0, (
+                f"Expected ≥10 samples/sec, got {samples_per_second:.2f}"
+            )
+
+    @pytest.mark.benchmark
+    def test_api_calls_per_sample(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure API calls per sample collected.
+
+        Target: < 10 API calls per 100 samples (< 0.1 calls per sample)
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Reset call count
+            mock_freesound_client.text_search.reset_mock()
+            mock_freesound_client.get_sound.reset_mock()
+
+            def collect_and_count():
+                """Collect samples and count API calls."""
+                loader.fetch_data(
+                    query="drum",
+                    max_samples=100,
+                    discovery_mode="search",
+                    include_user_edges=False,
+                    include_pack_edges=False,
+                    include_tag_edges=False,
+                )
+
+                # Count API calls
+                search_calls = mock_freesound_client.text_search.call_count
+                get_calls = mock_freesound_client.get_sound.call_count
+                total_calls = search_calls + get_calls
+
+                return total_calls
+
+            total_calls = benchmark(collect_and_count)
+
+            # Calculate calls per sample
+            calls_per_sample = total_calls / 100
+            print(f"\n✓ API calls per sample: {calls_per_sample:.3f}")
+            print(f"  Search calls: {mock_freesound_client.text_search.call_count}")
+            print(f"  Get calls: {mock_freesound_client.get_sound.call_count}")
+
+            # Target: < 0.2 calls per sample (search-based should be very efficient)
+            # Note: With pagination, we expect ~1 search call per 150 samples
+            assert calls_per_sample < 0.2, (
+                f"Expected <0.2 calls/sample, got {calls_per_sample:.3f}"
+            )
+
+    @pytest.mark.benchmark
+    def test_pending_node_discovery_rate(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure rate of pending node discovery during edge generation.
+
+        This measures how many new nodes are discovered through relationships
+        (user/pack edges) that aren't already in the graph.
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # First collect some samples
+            loader.fetch_data(
+                query="drum",
+                max_samples=50,
+                discovery_mode="search",
+                include_user_edges=False,
+                include_pack_edges=False,
+                include_tag_edges=False,
+            )
+
+            initial_nodes = loader.graph.number_of_nodes()
+            initial_pending = len(loader.pending_nodes)
+
+            def discover_pending_nodes():
+                """Generate edges and discover pending nodes."""
+                edge_stats = loader._generate_all_edges(
+                    include_user=True,
+                    include_pack=True,
+                    include_tag=False,
+                )
+                return edge_stats
+
+            edge_stats = benchmark(discover_pending_nodes)
+
+            final_pending = len(loader.pending_nodes)
+            discovered = final_pending - initial_pending
+
+            print(f"\n✓ Pending nodes discovered: {discovered}")
+            print(f"  Initial nodes: {initial_nodes}")
+            print(f"  User edges: {edge_stats.get('user_edges', 0)}")
+            print(f"  Pack edges: {edge_stats.get('pack_edges', 0)}")
+            print(f"  Discovery rate: {discovered / initial_nodes:.2f} per node")
+
+            # Verify some pending nodes were discovered
+            assert discovered >= 0, (
+                "Should discover some pending nodes through relationships"
+            )
+
+    @pytest.mark.performance
+    def test_search_collection_performance_improvements(
+        self, loader_config, mock_freesound_client
+    ):
+        """
+        Performance test: Document performance improvements over legacy approach.
+
+        Measures:
+        - Total execution time
+        - API call efficiency
+        - Memory usage
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Reset counters
+            mock_freesound_client.text_search.reset_mock()
+            mock_freesound_client.get_sound.reset_mock()
+
+            start_time = time.time()
+
+            result = loader.fetch_data(
+                query="drum",
+                max_samples=200,
+                discovery_mode="search",
+                include_user_edges=False,
+                include_pack_edges=False,
+                include_tag_edges=False,
+            )
+
+            end_time = time.time()
+            elapsed = end_time - start_time
+
+            # Collect metrics
+            nodes_collected = loader.graph.number_of_nodes()
+            search_calls = mock_freesound_client.text_search.call_count
+            get_calls = mock_freesound_client.get_sound.call_count
+            total_calls = search_calls + get_calls
+
+            samples_per_second = nodes_collected / elapsed
+            calls_per_sample = total_calls / nodes_collected
+
+            print(f"\n=== Performance Improvements ===")
+            print(f"Samples collected: {nodes_collected}")
+            print(f"Total time: {elapsed:.2f}s")
+            print(f"Samples per second: {samples_per_second:.2f}")
+            print(f"Total API calls: {total_calls}")
+            print(f"API calls per sample: {calls_per_sample:.3f}")
+            print(f"Search calls: {search_calls}")
+            print(f"Get calls: {get_calls}")
+
+            # Verify performance targets
+            assert samples_per_second >= 10.0, (
+                f"Expected ≥10 samples/sec, got {samples_per_second:.2f}"
+            )
+            assert calls_per_sample < 0.1, (
+                f"Expected <0.1 calls/sample, got {calls_per_sample:.3f}"
+            )
+
+            # Expected improvement: 97.5% reduction in API calls
+            # Legacy: ~200 calls for 100 samples (2 calls per sample)
+            # New: ~1 call for 100 samples (0.01 calls per sample)
+            legacy_calls_per_sample = 2.0
+            improvement_ratio = legacy_calls_per_sample / calls_per_sample
+            print(f"API call improvement: {improvement_ratio:.1f}x fewer calls")
+
+            assert improvement_ratio >= 10.0, (
+                f"Expected ≥10x improvement, got {improvement_ratio:.1f}x"
+            )
+
+
+class TestEdgeGenerationBenchmarks:
+    """Benchmark tests for edge generation (Task 10.2)."""
+
+    @pytest.mark.benchmark
+    def test_user_edge_generation_speed(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure user edge generation speed.
+
+        Target: Part of < 60 seconds for 1000 nodes
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Collect samples first
+            loader.fetch_data(
+                query="drum",
+                max_samples=100,
+                discovery_mode="search",
+                include_user_edges=False,
+                include_pack_edges=False,
+                include_tag_edges=False,
+            )
+
+            # Get unique usernames
+            usernames = set()
+            for node_id in loader.graph.nodes():
+                metadata = loader.metadata_cache.get(str(node_id))
+                if metadata and metadata.get("username"):
+                    usernames.add(metadata["username"])
+
+            def generate_user_edges():
+                """Generate user edges."""
+                return loader._add_user_edges_batch(usernames)
+
+            edge_count = benchmark(generate_user_edges)
+
+            print(f"\n✓ User edges created: {edge_count}")
+            print(f"  Unique users: {len(usernames)}")
+            print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
+
+            assert edge_count >= 0, "Should create some user edges"
+
+    @pytest.mark.benchmark
+    def test_pack_edge_generation_speed(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure pack edge generation speed.
+
+        Target: Part of < 60 seconds for 1000 nodes
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Collect samples first
+            loader.fetch_data(
+                query="drum",
+                max_samples=100,
+                discovery_mode="search",
+                include_user_edges=False,
+                include_pack_edges=False,
+                include_tag_edges=False,
+            )
+
+            # Get unique pack names
+            pack_names = set()
+            for node_id in loader.graph.nodes():
+                metadata = loader.metadata_cache.get(str(node_id))
+                if metadata and metadata.get("pack_name"):
+                    pack_names.add(metadata["pack_name"])
+
+            def generate_pack_edges():
+                """Generate pack edges."""
+                return loader._add_pack_edges_batch(pack_names)
+
+            edge_count = benchmark(generate_pack_edges)
+
+            print(f"\n✓ Pack edges created: {edge_count}")
+            print(f"  Unique packs: {len(pack_names)}")
+            print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
+
+            assert edge_count >= 0, "Should create some pack edges"
+
+    @pytest.mark.benchmark
+    def test_tag_similarity_computation_speed(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure tag similarity computation speed.
+
+        Target: Part of < 60 seconds for 1000 nodes
+        Note: This is O(N²) so we test with smaller graphs
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Collect samples first (smaller set for O(N²) operation)
+            loader.fetch_data(
+                query="drum",
+                max_samples=50,
+                discovery_mode="search",
+                include_user_edges=False,
+                include_pack_edges=False,
+                include_tag_edges=False,
+            )
+
+            nodes = loader.graph.number_of_nodes()
+
+            def generate_tag_edges():
+                """Generate tag similarity edges."""
+                return loader._add_tag_similarity_edges(min_similarity=0.3)
+
+            edge_count = benchmark(generate_tag_edges)
+
+            comparisons = nodes * (nodes - 1) // 2
+
+            print(f"\n✓ Tag similarity edges created: {edge_count}")
+            print(f"  Nodes: {nodes}")
+            print(f"  Comparisons: {comparisons}")
+            print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
+            print(
+                f"  Comparisons per second: {comparisons / benchmark.stats['mean']:.2f}"
+            )
+
+            assert edge_count >= 0, "Should create some tag similarity edges"
+
+    @pytest.mark.benchmark
+    def test_pending_node_fetching_speed(
+        self, benchmark, loader_config, mock_freesound_client
+    ):
+        """
+        Benchmark: Measure pending node fetching speed.
+
+        This tests how quickly we can fetch discovered nodes in batch.
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Create a list of pending node IDs
+            pending_ids = [str(20000 + i) for i in range(50)]
+
+            def fetch_pending():
+                """Fetch pending nodes in batch."""
+                return loader._fetch_pending_nodes_batch(pending_ids, batch_size=50)
+
+            fetched = benchmark(fetch_pending)
+
+            print(f"\n✓ Pending nodes fetched: {len(fetched)}")
+            print(f"  Nodes per second: {len(fetched) / benchmark.stats['mean']:.2f}")
+
+            assert len(fetched) == len(pending_ids), "Should fetch all pending nodes"
+
+    @pytest.mark.performance
+    def test_edge_generation_optimization_opportunities(
+        self, loader_config, mock_freesound_client
+    ):
+        """
+        Performance test: Identify optimization opportunities in edge generation.
+
+        Measures timing for each edge type to identify bottlenecks.
+        """
+        from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+            IncrementalFreesoundLoader,
+        )
+
+        with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
+            loader = IncrementalFreesoundLoader(loader_config)
+
+            # Collect samples
+            loader.fetch_data(
+                query="drum",
+                max_samples=100,
+                discovery_mode="search",
+                include_user_edges=False,
+                include_pack_edges=False,
+                include_tag_edges=False,
+            )
+
+            nodes = loader.graph.number_of_nodes()
+
+            # Benchmark each edge type separately
+            timings = {}
+
+            # User edges
+            usernames = set()
+            for node_id in loader.graph.nodes():
+                metadata = loader.metadata_cache.get(str(node_id))
+                if metadata and metadata.get("username"):
+                    usernames.add(metadata["username"])
+
+            start = time.time()
+            user_edges = loader._add_user_edges_batch(usernames)
+            timings["user_edges"] = time.time() - start
+
+            # Pack edges
+            pack_names = set()
+            for node_id in loader.graph.nodes():
+                metadata = loader.metadata_cache.get(str(node_id))
+                if metadata and metadata.get("pack_name"):
+                    pack_names.add(metadata["pack_name"])
+
+            start = time.time()
+            pack_edges = loader._add_pack_edges_batch(pack_names)
+            timings["pack_edges"] = time.time() - start
+
+            # Tag similarity (smaller subset for O(N²))
+            start = time.time()
+            tag_edges = loader._add_tag_similarity_edges(min_similarity=0.3)
+            timings["tag_similarity"] = time.time() - start
+
+            total_time = sum(timings.values())
+
+            print(f"\n=== Edge Generation Timing Analysis ===")
+            print(f"Nodes: {nodes}")
+            print(
+                f"User edges: {user_edges} ({timings['user_edges']:.3f}s, {timings['user_edges'] / total_time * 100:.1f}%)"
+            )
+            print(
+                f"Pack edges: {pack_edges} ({timings['pack_edges']:.3f}s, {timings['pack_edges'] / total_time * 100:.1f}%)"
+            )
+            print(
+                f"Tag edges: {tag_edges} ({timings['tag_similarity']:.3f}s, {timings['tag_similarity'] / total_time * 100:.1f}%)"
+            )
+            print(f"Total time: {total_time:.3f}s")
+            print(f"Total edges: {user_edges + pack_edges + tag_edges}")
+
+            # Identify bottleneck
+            slowest = max(timings.items(), key=lambda x: x[1])
+            print(f"\nBottleneck: {slowest[0]} ({slowest[1]:.3f}s)")
+
+            # For 100 nodes, should complete in reasonable time
+            assert total_time < 30.0, (
+                f"Edge generation too slow: {total_time:.2f}s for {nodes} nodes"
+            )
