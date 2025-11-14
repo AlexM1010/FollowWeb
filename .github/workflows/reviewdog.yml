@@ -69,9 +69,9 @@ jobs:
         if [ -f FollowWeb/requirements-ci.txt ]; then
           python -m pip install -r FollowWeb/requirements-ci.txt
         fi
-        # Install analysis_tools in development mode
-        if [ -f analysis_tools/__init__.py ]; then
-          python -m pip install -e .
+        # Install FollowWeb package in development mode
+        if [ -f FollowWeb/pyproject.toml ]; then
+          python -m pip install -e FollowWeb/
         fi
     
     - name: Set up reviewdog
@@ -159,7 +159,7 @@ jobs:
     # Upload SARIF to GitHub Code Scanning
     - name: Upload SARIF to GitHub Code Scanning
       if: always()
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: analysis_reports/reviewdog_combined.sarif
         category: reviewdog-analysis
