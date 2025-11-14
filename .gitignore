@@ -8,6 +8,11 @@ github-ci-logs.txt
 tests/Output/
 tests\Output
 TestOutput*.txt
+Output/freesound_seed*.html
+analysis_reports/comprehensive_validation_*.json
+test_checkpoint/
+edge_stats.json
+milestone_status.json
 
 # PyPI Credentials
 .pypirc
@@ -27,6 +32,9 @@ custom_checkpoints/
 data/freesound_library/*.pkl
 data/freesound_library/*.db
 data/freesound_library/*.gpickle
+data/freesound_library/backup_manifest.json
+data/freesound_library/backups/
+data/freesound_library/checkpoint_metadata.json
 logs/pipeline_*.log
 
 # Workflow Orchestration
@@ -38,6 +46,11 @@ test_*.py
 *_test.py
 test_skip_report.txt
 skip_summary.txt
+check_db.py
+execute_comprehensive_validation.py
+verify_backup_data.py
+view_validation_issues.py
+setup_backup_releases.ps1
 
 # Log files (root level)
 *.log
@@ -52,6 +65,8 @@ __pycache__/
 unused_imports.json
 detailed_issues.json
 ruff_report.json
+workflow_state.json
+workflow_status.md
 
 # Temporary documentation files (root level)
 *_SUMMARY.md
