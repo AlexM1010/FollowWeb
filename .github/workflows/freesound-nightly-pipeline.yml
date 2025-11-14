@@ -720,11 +720,13 @@ jobs:
         RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo " Release ${release_tag} not found in ${BACKUP_REPO}"
-          echo "- Status: Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
+          echo "::warning::Release ${release_tag} not found in ${BACKUP_REPO}"
+          echo "- Status: ⚠️ Upload skipped (release not found)" >> $GITHUB_STEP_SUMMARY
           echo "- Tier: \`$tier\`" >> $GITHUB_STEP_SUMMARY
           echo "- Release Tag: \`$release_tag\`" >> $GITHUB_STEP_SUMMARY
-          exit 1
+          echo "- Note: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups" >> $GITHUB_STEP_SUMMARY
+          rm -f "$backup_filename"
+          exit 0
         fi
         
         # Upload asset
@@ -740,9 +742,11 @@ jobs:
         ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
         
         if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
-          echo " Failed to upload backup"
-          echo "- Status: Upload failed" >> $GITHUB_STEP_SUMMARY
-          exit 1
+          echo "::warning::Failed to upload backup to ${BACKUP_REPO}"
+          echo "- Status: ⚠️ Upload failed" >> $GITHUB_STEP_SUMMARY
+          echo "- Error: API upload failed (check PAT permissions)" >> $GITHUB_STEP_SUMMARY
+          rm -f "$backup_filename"
+          exit 0
         fi
         
         echo " Backup uploaded successfully"
