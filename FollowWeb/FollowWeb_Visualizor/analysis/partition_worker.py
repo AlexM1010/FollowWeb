@@ -12,6 +12,7 @@ Classes:
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+from typing import Any
 
 import networkx as nx
 
@@ -27,7 +28,7 @@ class PartitionResults:
     centrality: dict[str, float]  # node_id -> centrality_score
     layout: dict[str, tuple[float, float]]  # node_id -> (x, y)
     boundary_nodes: list[str]  # nodes with cross-partition edges
-    metrics: dict[str, any]  # partition-specific metrics
+    metrics: dict[str, Any]  # partition-specific metrics
 
 
 class PartitionAnalysisWorker:
@@ -207,11 +208,14 @@ class PartitionAnalysisWorker:
 
         layout = nx.spring_layout(partition, seed=42)
 
+        # Convert numpy arrays to tuples for type consistency
+        layout_tuples = {node: (float(pos[0]), float(pos[1])) for node, pos in layout.items()}
+
         self.logger.debug(
             f"Layout calculation complete for partition {self.partition_id}"
         )
 
-        return layout
+        return layout_tuples
 
     def _identify_boundary_nodes(self, partition: nx.DiGraph) -> list[str]:
         """
