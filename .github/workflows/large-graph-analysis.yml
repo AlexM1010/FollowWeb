@@ -127,7 +127,7 @@ jobs:
           pip install -e FollowWeb/
       
       - name: Download partition
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: graph-partitions
           path: partitions/
@@ -192,7 +192,7 @@ jobs:
           pip install -e FollowWeb/
       
       - name: Download all results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: partition-results-*
           path: results/
