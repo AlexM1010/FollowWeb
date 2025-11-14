@@ -1,0 +1,479 @@
+# Freesound Validation & Visualization Workflow
+#
+# Triggered automatically after the repair pipeline completes successfully.
+# This workflow validates checkpoint integrity, generates edges from existing data,
+# creates visualizations, and deploys to GitHub Pages.
+#
+# Architecture:
+# - Triggered by: Freesound Data Repair Pipeline (on success)
+# - Restores checkpoint from GitHub Actions cache (repaired if needed)
+# - Validates data integrity (graph topology + metadata consistency)
+# - Generates edges (user, pack, tag) with zero API requests
+# - Creates Sigma.js visualization with audio playback
+# - Deploys to GitHub Pages
+# - Triggers backup workflow on success
+#
+# Features:
+# - Cache-based checkpoint sharing (no repo cloning needed)
+# - Zero API requests (all data from existing checkpoint)
+# - Fail-fast validation (skip visualization if data invalid)
+# - Atomic deployment (only deploy if visualization succeeds)
+# - Comprehensive logging and monitoring
+
+name: Freesound Validation & Visualization
+
+on:
+  workflow_run:
+    workflows: ["Freesound Data Repair"]
+    types: [completed]
+    branches: [main]
+  
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+# Prevent workflow collisions
+concurrency:
+  group: freesound-validation
+  cancel-in-progress: false
+
+jobs:
+  validate-and-visualize:
+    name: Validate Data & Generate Visualization
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Only run if repair pipeline succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Git
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        git config --global init.defaultBranch main
+        git config --global advice.detachedHead false
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements.txt'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r FollowWeb/requirements.txt
+        pip install -e FollowWeb/
+    
+    - name: Verify installation
+      run: |
+        python -c "import FollowWeb_Visualizor"
+        echo "✅ FollowWeb package imported successfully"
+        python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader"
+        echo "✅ IncrementalFreesoundLoader available"
+        python -c "from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer"
+        echo "✅ SigmaRenderer available"
+    
+    - name: Set execution parameters
+      id: params
+      run: |
+        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+        
+        # Determine cache key based on trigger
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # For manual runs, use latest checkpoint from repo
+          echo "cache_key=manual-run" >> $GITHUB_OUTPUT
+          echo "use_cache=false" >> $GITHUB_OUTPUT
+        else
+          # For triggered runs, use cache from repair pipeline
+          # Try repaired checkpoint first, fall back to original
+          echo "cache_key=checkpoint-repaired-${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+          echo "use_cache=true" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Display workflow configuration
+      run: |
+        echo "## 🔍 Validation & Visualization Workflow" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.params.outputs.use_cache }}" = "true" ]; then
+          echo "- Cache Key: \`${{ steps.params.outputs.cache_key }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Upstream Run: [#${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- Source: Manual run (using checkpoint from repository)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    # Subtask 10.1: Restore checkpoint from cache
+    - name: Restore checkpoint from cache
+      if: steps.params.outputs.use_cache == 'true'
+      uses: actions/cache/restore@v3
+      id: cache-restore
+      with:
+        path: data/freesound_library
+        key: ${{ steps.params.outputs.cache_key }}
+        restore-keys: |
+          checkpoint-
+        fail-on-cache-miss: true
+    
+    - name: Verify checkpoint files
+      run: |
+        echo "Verifying checkpoint files..."
+        
+        if [ "${{ steps.params.outputs.use_cache }}" = "true" ]; then
+          # Check if cache was restored
+          if [ ! -d "data/freesound_library" ]; then
+            echo "❌ Cache restore failed - checkpoint directory not found"
+            exit 1
+          fi
+        fi
+        
+        # Check required files exist
+        CHECKPOINT_DIR="data/freesound_library"
+        
+        if [ ! -f "$CHECKPOINT_DIR/graph_topology.gpickle" ]; then
+          echo "❌ Missing graph_topology.gpickle"
+          exit 1
+        fi
+        
+        if [ ! -f "$CHECKPOINT_DIR/metadata_cache.db" ]; then
+          echo "❌ Missing metadata_cache.db"
+          exit 1
+        fi
+        
+        if [ ! -f "$CHECKPOINT_DIR/checkpoint_metadata.json" ]; then
+          echo "❌ Missing checkpoint_metadata.json"
+          exit 1
+        fi
+        
+        echo "✅ All checkpoint files present"
+        
+        # Display checkpoint info
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Checkpoint Files:**" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        ls -lh $CHECKPOINT_DIR/ >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+    
+    # Subtask 10.2: Validate checkpoint integrity
+    - name: Validate checkpoint integrity
+      id: validation
+      continue-on-error: true
+      run: |
+        echo "Running checkpoint validation..."
+        
+        # Run validation script and capture output
+        VALIDATION_OUTPUT=$(python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1)
+        VALIDATION_EXIT_CODE=$?
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Validation Results:**" >> $GITHUB_STEP_SUMMARY
+        
+        if [ $VALIDATION_EXIT_CODE -eq 0 ]; then
+          echo "validation_passed=true" >> $GITHUB_OUTPUT
+          echo "✅ Validation passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$VALIDATION_OUTPUT" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "validation_passed=false" >> $GITHUB_OUTPUT
+          echo "❌ Validation failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$VALIDATION_OUTPUT" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Skipping visualization and deployment due to validation failure**" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review validation errors above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Check data repair workflow logs" >> $GITHUB_STEP_SUMMARY
+          echo "3. Manually trigger repair workflow if needed" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+    
+    # Subtask 10.3: Generate edges from existing data
+    - name: Generate edges (zero API requests)
+      if: steps.validation.outputs.validation_passed == 'true'
+      id: edge-generation
+      run: |
+        echo "Generating edges from existing checkpoint data..."
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Edge Generation:**" >> $GITHUB_STEP_SUMMARY
+        
+        # Generate edges and save statistics
+        python scripts/generation/generate_edges.py \
+          --checkpoint-dir data/freesound_library \
+          --user-edges \
+          --pack-edges \
+          --tag-edges \
+          --tag-threshold 0.3 \
+          --output edge_stats.json
+        
+        # Display edge statistics
+        if [ -f edge_stats.json ]; then
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          cat edge_stats.json >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract counts for output
+          USER_EDGES=$(jq -r '.user_edges_added // 0' edge_stats.json)
+          PACK_EDGES=$(jq -r '.pack_edges_added // 0' edge_stats.json)
+          TAG_EDGES=$(jq -r '.tag_edges_added // 0' edge_stats.json)
+          
+          echo "user_edges=$USER_EDGES" >> $GITHUB_OUTPUT
+          echo "pack_edges=$PACK_EDGES" >> $GITHUB_OUTPUT
+          echo "tag_edges=$TAG_EDGES" >> $GITHUB_OUTPUT
+          
+          echo "✅ Generated $USER_EDGES user edges, $PACK_EDGES pack edges, $TAG_EDGES tag edges"
+        else
+          echo "⚠️  Edge statistics file not found"
+        fi
+    
+    # Subtask 10.4: Generate visualization
+    - name: Generate Sigma.js visualization
+      if: steps.validation.outputs.validation_passed == 'true'
+      id: visualization
+      continue-on-error: true
+      env:
+        FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
+      run: |
+        echo "Generating Sigma.js visualization..."
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Visualization:**" >> $GITHUB_STEP_SUMMARY
+        
+        # Generate visualization with audio playback and capture output
+        VIZ_OUTPUT=$(python generate_freesound_visualization.py \
+          --checkpoint-dir data/freesound_library \
+          --renderer-type sigma \
+          --output-dir Output \
+          --max-requests 0 2>&1)
+        VIZ_EXIT_CODE=$?
+        
+        if [ $VIZ_EXIT_CODE -ne 0 ]; then
+          echo "visualization_generated=false" >> $GITHUB_OUTPUT
+          echo "❌ Visualization generation failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$VIZ_OUTPUT" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Previous visualization remains live on GitHub Pages**" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Find generated visualization
+        VIZ_FILE=$(ls -t Output/freesound_*.html 2>/dev/null | head -n1)
+        
+        if [ -n "$VIZ_FILE" ]; then
+          echo "visualization_generated=true" >> $GITHUB_OUTPUT
+          echo "visualization_file=$VIZ_FILE" >> $GITHUB_OUTPUT
+          echo "✅ Visualization generated: \`$VIZ_FILE\`" >> $GITHUB_STEP_SUMMARY
+          
+          # Get file size
+          VIZ_SIZE=$(du -h "$VIZ_FILE" | cut -f1)
+          echo "- File size: $VIZ_SIZE" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "visualization_generated=false" >> $GITHUB_OUTPUT
+          echo "❌ Visualization file not found" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Previous visualization remains live on GitHub Pages**" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+    
+    # Subtask 10.5: Deploy to GitHub Pages
+    - name: Update landing page
+      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true'
+      id: landing-page
+      continue-on-error: true
+      run: |
+        echo "Updating landing page..."
+        
+        # Generate landing page with latest visualization and capture output
+        LANDING_OUTPUT=$(python generate_landing_page.py 2>&1)
+        LANDING_EXIT_CODE=$?
+        
+        if [ $LANDING_EXIT_CODE -ne 0 ]; then
+          echo "landing_page_updated=false" >> $GITHUB_OUTPUT
+          echo "❌ Landing page update failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$LANDING_OUTPUT" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "landing_page_updated=true" >> $GITHUB_OUTPUT
+        echo "✅ Landing page updated"
+    
+    - name: Commit and push changes
+      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
+      id: deployment
+      continue-on-error: true
+      run: |
+        echo "Committing visualization and landing page..."
+        
+        # Add generated files
+        git add Output/*.html
+        git add index.html
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "deployment_successful=true" >> $GITHUB_OUTPUT
+          echo "No changes to commit" >> $GITHUB_STEP_SUMMARY
+        else
+          git commit -m "🎨 Update visualization from validation pipeline
+
+          - Validation: ✅ Passed
+          - User edges: ${{ steps.edge-generation.outputs.user_edges }}
+          - Pack edges: ${{ steps.edge-generation.outputs.pack_edges }}
+          - Tag edges: ${{ steps.edge-generation.outputs.tag_edges }}
+          - Visualization: ${{ steps.visualization.outputs.visualization_file }}
+          - Workflow: ${{ github.workflow }} #${{ github.run_number }}
+          - Triggered by: ${{ github.event_name }}"
+          
+          # Push changes and capture result
+          if git push origin main; then
+            echo "deployment_successful=true" >> $GITHUB_OUTPUT
+            echo "✅ Changes pushed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "deployment_successful=false" >> $GITHUB_OUTPUT
+            echo "❌ Failed to push changes to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  **Previous visualization remains live**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        fi
+    
+    # Check workflow success and fail if any critical step failed
+    - name: Check workflow success
+      if: always()
+      run: |
+        # This step ensures the workflow fails if validation, visualization, or deployment failed
+        # This prevents the backup workflow from being triggered on failure
+        
+        if [ "${{ steps.validation.outputs.validation_passed }}" != "true" ]; then
+          echo "❌ Workflow failed: Validation did not pass"
+          exit 1
+        fi
+        
+        if [ "${{ steps.visualization.outputs.visualization_generated }}" != "true" ]; then
+          echo "❌ Workflow failed: Visualization was not generated"
+          exit 1
+        fi
+        
+        if [ "${{ steps.deployment.outputs.deployment_successful }}" != "true" ]; then
+          echo "❌ Workflow failed: Deployment was not successful"
+          exit 1
+        fi
+        
+        echo "✅ All critical steps completed successfully"
+    
+    # Generate workflow summary
+    - name: Generate workflow summary
+      if: always()
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Workflow Results:**" >> $GITHUB_STEP_SUMMARY
+        
+        # Validation status
+        if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+          echo "- ✅ Validation: Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ❌ Validation: Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Edge generation status
+        if [ -n "${{ steps.edge-generation.outputs.user_edges }}" ]; then
+          echo "- ✅ Edge Generation: Complete" >> $GITHUB_STEP_SUMMARY
+          echo "  - User edges: ${{ steps.edge-generation.outputs.user_edges }}" >> $GITHUB_STEP_SUMMARY
+          echo "  - Pack edges: ${{ steps.edge-generation.outputs.pack_edges }}" >> $GITHUB_STEP_SUMMARY
+          echo "  - Tag edges: ${{ steps.edge-generation.outputs.tag_edges }}" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+          echo "- ⚠️  Edge Generation: Skipped or failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⏭️  Edge Generation: Skipped (validation failed)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Visualization status
+        if [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ]; then
+          echo "- ✅ Visualization: Generated" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+          echo "- ❌ Visualization: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⏭️  Visualization: Skipped (validation failed)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Deployment status
+        if [ "${{ steps.deployment.outputs.deployment_successful }}" = "true" ]; then
+          echo "- ✅ Deployment: Complete" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ]; then
+          echo "- ❌ Deployment: Failed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⏭️  Deployment: Skipped (visualization failed or validation failed)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+        
+        # Determine if backup workflow should be triggered
+        WORKFLOW_SUCCESS="false"
+        if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ] && \
+           [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ] && \
+           [ "${{ steps.deployment.outputs.deployment_successful }}" = "true" ]; then
+          WORKFLOW_SUCCESS="true"
+        fi
+        
+        if [ "$WORKFLOW_SUCCESS" = "true" ]; then
+          echo "- ✅ Backup workflow will be triggered automatically" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ All pipeline stages completed successfully" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️  **Previous visualization remains live on GitHub Pages**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Failure Reason:**" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.validation.outputs.validation_passed }}" != "true" ]; then
+            echo "- Validation failed - check validation errors above" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.visualization.outputs.visualization_generated }}" != "true" ]; then
+            echo "- Visualization generation failed - check visualization errors above" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.deployment.outputs.deployment_successful }}" != "true" ]; then
+            echo "- Deployment failed - check deployment errors above" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Recovery Actions:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review error details in the failed step above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Check data repair workflow logs if validation failed" >> $GITHUB_STEP_SUMMARY
+          echo "3. Manually trigger repair workflow if needed" >> $GITHUB_STEP_SUMMARY
+          echo "4. Manually trigger this workflow again after fixes" >> $GITHUB_STEP_SUMMARY
+        fi
+
+# Note: Subtask 10.6 - Backup workflow trigger
+# The backup workflow (freesound-backup.yml) is configured with:
+#   on:
+#     workflow_run:
+#       workflows: ["Freesound Validation & Visualization"]
+#       types: [completed]
+#       branches: [main]
+# AND a job-level condition that checks:
+#   github.event.workflow_run.conclusion == 'success'
+# This ensures the backup workflow only runs when this validation workflow
+# completes successfully. If validation, visualization, or deployment fails,
+# the backup workflow will NOT run, preserving the previous valid backup.
