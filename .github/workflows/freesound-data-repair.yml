@@ -1,0 +1,387 @@
+# Freesound Data Repair Pipeline
+#
+# Automated pipeline that detects and repairs checkpoint inconsistencies.
+# This workflow is part of the three-pipeline architecture:
+# 1. Collection Pipeline: Collects data only
+# 2. Validation Pipeline: Validates data and generates visualizations
+# 3. Repair Pipeline (this workflow): Repairs data integrity issues
+# 4. Backup Pipeline: Creates and manages backups
+#
+# Architecture:
+# - Triggered automatically after nightly collection completes
+# - Can be triggered manually when data issues are detected
+# - Restores checkpoint from cache or repository
+# - Runs validation checks
+# - Applies repairs if validation fails
+# - Re-validates after repairs
+# - Saves repaired checkpoint back to cache and repository
+#
+# Repair Operations:
+# - Orphaned metadata: Rebuilds graph nodes from metadata cache
+# - Missing pagination state: Adds default pagination state
+# - Edge count mismatches: Updates checkpoint metadata
+# - Corrupted checkpoint files: Attempts recovery
+#
+# Features:
+# - Automatic trigger after nightly collection
+# - Manual trigger with workflow_dispatch
+# - Comprehensive validation and repair
+# - Detailed reporting of repairs performed
+# - Saves repaired checkpoint for downstream workflows
+
+name: Freesound Data Repair
+
+on:
+  workflow_run:
+    workflows: ["Freesound Nightly Collection"]
+    types: [completed]
+    branches: [main]
+  
+  workflow_dispatch:
+    # Allow manual triggering for ad-hoc repairs
+    inputs:
+      checkpoint_source:
+        description: 'Checkpoint source: cache (from last run) or repo (from backup)'
+        required: false
+        default: 'repo'
+        type: choice
+        options:
+          - cache
+          - repo
+
+# Prevent workflow collisions
+concurrency:
+  group: freesound-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-checkpoint:
+    name: Validate and Repair Checkpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Configure Git
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: 'FollowWeb/requirements.txt'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r FollowWeb/requirements.txt
+        pip install -e FollowWeb/
+    
+    - name: Determine checkpoint source
+      id: source
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "source=${{ github.event.inputs.checkpoint_source }}" >> $GITHUB_OUTPUT
+        else
+          # For workflow_run trigger, try cache first
+          echo "source=cache" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "## 🔧 Data Repair Pipeline" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Restore checkpoint from cache
+      if: steps.source.outputs.source == 'cache'
+      id: cache_restore
+      uses: actions/cache/restore@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-${{ github.event.workflow_run.id || github.run_id }}
+        restore-keys: |
+          checkpoint-
+    
+    - name: Download checkpoint from repository
+      if: steps.source.outputs.source == 'repo' || steps.cache_restore.outputs.cache-hit != 'true'
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "### 📥 Download Checkpoint" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "::error::BACKUP_PAT not configured"
+          echo "- Status: ❌ Cannot download checkpoint" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # Get latest checkpoint from v-checkpoint release
+        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        if echo "$ASSETS_JSON" | grep -q "Not Found"; then
+          echo "::error::Release v-checkpoint not found"
+          echo "- Status: ❌ No backup available" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
+        
+        if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
+          echo "::error::No checkpoint backups found"
+          echo "- Status: ❌ No backup available" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
+        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
+        ASSET_SIZE=$(echo "$LATEST_ASSET" | jq -r '.size')
+        
+        echo "Downloading: $ASSET_NAME"
+        curl -L -H "Authorization: token $BACKUP_PAT" \
+          -H "Accept: application/octet-stream" \
+          "$ASSET_URL" -o checkpoint_backup.tar.gz
+        
+        mkdir -p data/freesound_library
+        tar -xzf checkpoint_backup.tar.gz -C data/
+        rm -f checkpoint_backup.tar.gz
+        
+        echo "- Source: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Run validation checks
+      id: validation
+      run: |
+        echo "### 🔍 Validation Checks" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run validation script and capture output
+        if python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log; then
+          echo "validation_passed=true" >> $GITHUB_OUTPUT
+          echo "- Status: ✅ All checks passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "validation_passed=false" >> $GITHUB_OUTPUT
+          echo "- Status: ❌ Validation failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Run repair operations
+      if: steps.validation.outputs.validation_passed == 'false'
+      id: repair
+      run: |
+        echo "### 🔧 Repair Operations" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run repair script and capture output
+        if python scripts/validation/repair_checkpoint.py data/freesound_library 2>&1 | tee repair_output.log; then
+          echo "repair_success=true" >> $GITHUB_OUTPUT
+          echo "- Status: ✅ Repairs completed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "repair_success=false" >> $GITHUB_OUTPUT
+          echo "- Status: ❌ Repairs failed" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Re-validate after repairs
+      if: steps.repair.outputs.repair_success == 'true'
+      id: revalidation
+      run: |
+        echo "### 🔍 Re-validation After Repairs" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run validation again
+        if python scripts/validation/validate_checkpoint.py data/freesound_library; then
+          echo "revalidation_passed=true" >> $GITHUB_OUTPUT
+          echo "- Status: ✅ All checks passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "revalidation_passed=false" >> $GITHUB_OUTPUT
+          echo "- Status: ❌ Validation still failing" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Warning:** Repairs did not resolve all issues. Manual intervention may be required." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Save repaired checkpoint to cache
+      if: steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'
+      uses: actions/cache/save@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-repaired-${{ github.run_id }}
+    
+    - name: Upload repaired checkpoint to repository
+      if: steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        echo "### 📤 Upload Repaired Checkpoint" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -z "$BACKUP_PAT" ]; then
+          echo "::warning::BACKUP_PAT not configured, skipping upload"
+          echo "- Status: ⚠️ Upload skipped" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        # Create backup archive
+        backup_filename="checkpoint_repaired_${{ github.run_id }}.tar.gz"
+        tar -czf "$backup_filename" -C data freesound_library/
+        
+        backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
+        
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # Get v-checkpoint release
+        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
+        
+        if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
+          echo "::error::Release v-checkpoint not found"
+          echo "- Status: ❌ Upload failed" >> $GITHUB_STEP_SUMMARY
+          rm -f "$backup_filename"
+          exit 1
+        fi
+        
+        # Upload asset
+        UPLOAD_URL="https://uploads.github.com/repos/${BACKUP_REPO}/releases/${RELEASE_ID}/assets?name=${backup_filename}"
+        
+        UPLOAD_RESPONSE=$(curl -s -X POST \
+          -H "Authorization: token $BACKUP_PAT" \
+          -H "Content-Type: application/gzip" \
+          --data-binary "@${backup_filename}" \
+          "$UPLOAD_URL")
+        
+        ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
+        
+        if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
+          echo "::error::Failed to upload repaired checkpoint"
+          echo "- Status: ❌ Upload failed" >> $GITHUB_STEP_SUMMARY
+          rm -f "$backup_filename"
+          exit 1
+        fi
+        
+        echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Status: ✅ Uploaded successfully" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        rm -f "$backup_filename"
+    
+    - name: Generate repair summary
+      if: always()
+      run: |
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Repair Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+          echo "### ✅ No Repairs Needed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All validation checks passed. Checkpoint is healthy." >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.repair.outputs.repair_success }}" = "true" ] && [ "${{ steps.revalidation.outputs.revalidation_passed }}" = "true" ]; then
+          echo "### ✅ Repairs Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checkpoint issues were detected and successfully repaired." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Actions Taken:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Validation identified issues" >> $GITHUB_STEP_SUMMARY
+          echo "- Repair operations applied" >> $GITHUB_STEP_SUMMARY
+          echo "- Re-validation confirmed fixes" >> $GITHUB_STEP_SUMMARY
+          echo "- Repaired checkpoint uploaded to backup repository" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.repair.outputs.repair_success }}" = "false" ]; then
+          echo "### ❌ Repairs Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Repair operations failed. Manual intervention required." >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.revalidation.outputs.revalidation_passed }}" = "false" ]; then
+          echo "### ⚠️ Partial Repair" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Repairs were applied but validation still fails. Additional investigation needed." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Repair Pipeline Error" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "An unexpected error occurred during the repair process." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Execution Details" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ github.event_name }}" = "workflow_run" ]; then
+          echo "| **Source Workflow** | [Run #${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}) |" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "| **Checkpoint Source** | \`${{ steps.source.outputs.source }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Upload repair logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: repair-logs-${{ github.run_id }}
+        path: |
+          *.log
+          validation_output.log
+          repair_output.log
+        retention-days: 30
+        if-no-files-found: ignore
+    
+    - name: Create issue on failure
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue_body = `## 🔧 Repair Pipeline Failed
+          
+          The data repair pipeline encountered an error and could not complete successfully.
+          
+          ### Details
+          - **Workflow Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Trigger:** \`${{ github.event_name }}\`
+          - **Branch:** \`${{ github.ref_name }}\`
+          - **Timestamp:** ${new Date().toISOString()}
+          
+          ### Possible Causes
+          - Checkpoint files corrupted beyond repair
+          - Database connection issues
+          - Insufficient disk space
+          - Network connectivity problems
+          
+          ### Next Steps
+          1. Review the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          2. Download repair logs from artifacts
+          3. Check checkpoint integrity manually
+          4. Consider restoring from backup if needed
+          
+          ### Artifacts
+          - Repair logs available in workflow artifacts (30-day retention)
+          
+          ---
+          *This issue was automatically created by the repair pipeline.*`;
+          
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `🔧 Repair Pipeline Failed - Run #${{ github.run_number }}`,
+            body: issue_body,
+            labels: ['automated', 'repair-failure', 'needs-investigation']
+          });
