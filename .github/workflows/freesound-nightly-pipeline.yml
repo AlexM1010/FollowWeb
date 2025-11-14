@@ -10,16 +10,21 @@
 # - Split Checkpoint: Graph topology (.gpickle) + SQLite metadata (.db) + metadata JSON
 #
 # Backup Strategy (Triple Redundancy):
-# 1. Primary Backup: Private repo with tiered retention (frequent: 14 days, permanent: unlimited)
-# 2. Secondary Backup: Separate private repo with 7-day rolling history (disaster recovery)
-# 3. Workflow Artifacts: 7-day retention for manual recovery (uploaded on every run)
+# 1. Primary Backup: Private repo with tiered retention (frequent: 14 days, permanent: unlimited) - REQUIRED
+# 2. Secondary Backup: Separate private repo with 7-day rolling history (disaster recovery) - OPTIONAL
+# 3. Workflow Artifacts: 7-day retention for manual recovery (uploaded on every run) - AUTOMATIC
+#
+# CRITICAL: Backup Failure = Pipeline Failure
+# - Primary backup (BACKUP_PAT) is REQUIRED - pipeline will fail fast if backup fails
+# - No data collection without successful backup
+# - Ensures data integrity and prevents data loss
 #
 # Features:
 # - Scheduled execution at 2 AM UTC daily
 # - Manual trigger with configurable parameters
 # - Incremental data collection with checkpoint recovery
 # - Automatic visualization generation
-# - Backup on failure (preserves partial progress)
+# - Fail-fast on backup failures (prevents data loss)
 # - Triple-redundant backup system
 # - Comprehensive logging and monitoring
 
@@ -100,30 +105,32 @@ jobs:
         
         # Check FREESOUND_API_KEY (required)
         if [ -z "$FREESOUND_API_KEY" ]; then
-          echo "-  FREESOUND_API_KEY: Not configured" >> $GITHUB_STEP_SUMMARY
+          echo "-  FREESOUND_API_KEY: ❌ Not configured" >> $GITHUB_STEP_SUMMARY
           echo "::error::FREESOUND_API_KEY not configured"
           exit 1
         else
           # Validate API key format (should be 32 hex characters)
           if [[ "$FREESOUND_API_KEY" =~ ^[a-f0-9]{32}$ ]]; then
-            echo "-  FREESOUND_API_KEY: Valid format" >> $GITHUB_STEP_SUMMARY
+            echo "-  FREESOUND_API_KEY: ✅ Valid format" >> $GITHUB_STEP_SUMMARY
           else
-            echo "-  FREESOUND_API_KEY: Configured but format may be invalid" >> $GITHUB_STEP_SUMMARY
+            echo "-  FREESOUND_API_KEY: ⚠️ Configured but format may be invalid" >> $GITHUB_STEP_SUMMARY
           fi
         fi
         
-        # Check BACKUP_PAT (optional)
+        # Check BACKUP_PAT (required)
         if [ -z "$BACKUP_PAT" ]; then
-          echo "-  BACKUP_PAT: Not configured (primary backups disabled)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> $GITHUB_STEP_SUMMARY
+          echo "::error::BACKUP_PAT not configured - backups are REQUIRED"
+          exit 1
         else
-          echo "-  BACKUP_PAT: Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
         
         # Check BACKUP_PAT_SECONDARY (optional)
         if [ -z "$BACKUP_PAT_SECONDARY" ]; then
-          echo "-  BACKUP_PAT_SECONDARY: Not configured (secondary backups disabled)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT_SECONDARY: ⚠️ Not configured (secondary backups disabled)" >> $GITHUB_STEP_SUMMARY
         else
-          echo "-  BACKUP_PAT_SECONDARY: Configured (secondary backup repository)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT_SECONDARY: ✅ Configured (secondary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
     
@@ -299,12 +306,13 @@ jobs:
           echo "-  FREESOUND_API_KEY: Configured" >> $GITHUB_STEP_SUMMARY
         fi
         
-        # Check BACKUP_PAT (optional but recommended)
+        # Check BACKUP_PAT (required)
         if [ -z "$BACKUP_PAT" ]; then
-          echo "::warning::BACKUP_PAT not configured - primary checkpoint backups will be skipped"
-          echo "-  BACKUP_PAT: Not configured (primary backups disabled)" >> $GITHUB_STEP_SUMMARY
+          echo "::error::BACKUP_PAT not configured - backups are REQUIRED"
+          echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> $GITHUB_STEP_SUMMARY
+          exit 1
         else
-          echo "-  BACKUP_PAT: Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
         
         # Check BACKUP_PAT_SECONDARY (optional but recommended)
@@ -350,12 +358,12 @@ jobs:
         echo "** Phase 1: Download Checkpoint from Private Repository**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # Check if BACKUP_PAT is configured
+        # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
-          echo " BACKUP_PAT not configured, starting with empty checkpoint"
-          echo "- Status: No backup available" >> $GITHUB_STEP_SUMMARY
+          echo "::error::BACKUP_PAT not configured - cannot download checkpoint"
+          echo "- Status: ❌ BACKUP_PAT required" >> $GITHUB_STEP_SUMMARY
           echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
-          exit 0
+          exit 1
         fi
         
         # Get repository owner and name from GITHUB_REPOSITORY
@@ -643,16 +651,18 @@ jobs:
         
         # Check if checkpoint directory exists
         if [ ! -d "data/freesound_library" ]; then
-          echo " Checkpoint directory not found, skipping backup"
-          echo "- Status: Backup skipped (no checkpoint)" >> $GITHUB_STEP_SUMMARY
-          exit 0
+          echo "::error::Checkpoint directory not found - BACKUP FAILED"
+          echo "- Status: ❌ No checkpoint to backup (CRITICAL)" >> $GITHUB_STEP_SUMMARY
+          echo "- **CRITICAL**: Pipeline must create checkpoint before backup" >> $GITHUB_STEP_SUMMARY
+          exit 1
         fi
         
-        # Check if BACKUP_PAT is configured
+        # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
-          echo " BACKUP_PAT not configured, skipping backup upload"
-          echo "- Status: Backup skipped (PAT not configured)" >> $GITHUB_STEP_SUMMARY
-          exit 0
+          echo "::error::BACKUP_PAT not configured - BACKUP FAILED"
+          echo "- Status: ❌ PAT not configured (CRITICAL)" >> $GITHUB_STEP_SUMMARY
+          echo "- **CRITICAL**: Backups are required - pipeline cannot continue" >> $GITHUB_STEP_SUMMARY
+          exit 1
         fi
         
         # Determine backup tier based on node count
@@ -720,13 +730,13 @@ jobs:
         RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo "::warning::Release ${release_tag} not found in ${BACKUP_REPO}"
-          echo "- Status: ⚠️ Upload skipped (release not found)" >> $GITHUB_STEP_SUMMARY
+          echo "::error::Release ${release_tag} not found in ${BACKUP_REPO} - BACKUP FAILED"
+          echo "- Status: ❌ Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
           echo "- Tier: \`$tier\`" >> $GITHUB_STEP_SUMMARY
           echo "- Release Tag: \`$release_tag\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Note: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups" >> $GITHUB_STEP_SUMMARY
+          echo "- **CRITICAL**: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups" >> $GITHUB_STEP_SUMMARY
           rm -f "$backup_filename"
-          exit 0
+          exit 1
         fi
         
         # Upload asset
@@ -742,11 +752,12 @@ jobs:
         ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
         
         if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
-          echo "::warning::Failed to upload backup to ${BACKUP_REPO}"
-          echo "- Status: ⚠️ Upload failed" >> $GITHUB_STEP_SUMMARY
+          echo "::error::Failed to upload backup to ${BACKUP_REPO} - BACKUP FAILED"
+          echo "- Status: ❌ Upload failed" >> $GITHUB_STEP_SUMMARY
           echo "- Error: API upload failed (check PAT permissions)" >> $GITHUB_STEP_SUMMARY
+          echo "- **CRITICAL**: Backup is required - pipeline cannot continue without successful backup" >> $GITHUB_STEP_SUMMARY
           rm -f "$backup_filename"
-          exit 0
+          exit 1
         fi
         
         echo " Backup uploaded successfully"
