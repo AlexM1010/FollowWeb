@@ -314,9 +314,26 @@ jobs:
     - name: Validate GitHub Actions workflows
       run: |
         echo "Validating workflow files..."
-        # Install actionlint
+        # Install actionlint with retry logic
         cd ..
-        curl -sSL https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz | tar -xz
+        for i in 1 2 3; do
+          if curl -sSL https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz -o actionlint.tar.gz; then
+            if tar -xzf actionlint.tar.gz; then
+              rm actionlint.tar.gz
+              break
+            fi
+          fi
+          echo "Download attempt $i failed, retrying..."
+          sleep 2
+        done
+        
+        if [ ! -f ./actionlint ]; then
+          echo "::warning::Failed to download actionlint after 3 attempts, skipping workflow validation"
+          echo "### ⚠️ Workflow Validation Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "actionlint download failed - this is a transient CI issue" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
         
         # Run actionlint on all workflow files
         if ! ./actionlint .github/workflows/*.yml; then
