@@ -314,14 +314,11 @@ jobs:
     - name: Validate GitHub Actions workflows
       run: |
         echo "Validating workflow files..."
-        # Install actionlint with retry logic
+        # Install actionlint using bash script installer (more reliable)
         cd ..
         for i in 1 2 3; do
-          if curl -sSL https://github.com/rhysd/actionlint/releases/latest/download/actionlint_linux_amd64.tar.gz -o actionlint.tar.gz; then
-            if tar -xzf actionlint.tar.gz; then
-              rm actionlint.tar.gz
-              break
-            fi
+          if bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 2>/dev/null; then
+            break
           fi
           echo "Download attempt $i failed, retrying..."
           sleep 2
