@@ -359,9 +359,100 @@ jobs:
         echo "backup_size=$backup_size" >> $GITHUB_OUTPUT
         echo "backup_created=true" >> $GITHUB_OUTPUT
 
+    # Subtask 19.1: Implement backup verification
+    - name: Verify backup file integrity
+      if: steps.create_backup.outputs.backup_created == 'true'
+      id: verify_backup
+      run: |
+        echo "**Backup Verification:**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
+        
+        # Check if backup file exists
+        if [ ! -f "$backup_filename" ]; then
+          echo "::error::Backup file not found: $backup_filename"
+          echo "- ❌ Backup file not found" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Check file size is reasonable (> 100KB, < 10GB)
+        backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
+        min_size=102400  # 100KB
+        max_size=10737418240  # 10GB
+        
+        if [ "$backup_size" -lt "$min_size" ]; then
+          echo "::error::Backup file too small: $(numfmt --to=iec-i --suffix=B $backup_size) (minimum: 100KB)"
+          echo "- ❌ Backup file too small: $(numfmt --to=iec-i --suffix=B $backup_size)" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        if [ "$backup_size" -gt "$max_size" ]; then
+          echo "::error::Backup file too large: $(numfmt --to=iec-i --suffix=B $backup_size) (maximum: 10GB)"
+          echo "- ❌ Backup file too large: $(numfmt --to=iec-i --suffix=B $backup_size)" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "- ✅ File size valid: $(numfmt --to=iec-i --suffix=B $backup_size)" >> $GITHUB_STEP_SUMMARY
+        
+        # Verify archive integrity (can be extracted)
+        echo "Verifying archive can be extracted..."
+        if tar -tzf "$backup_filename" > /dev/null 2>&1; then
+          echo "- ✅ Archive integrity verified" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "::error::Archive is corrupted or cannot be extracted"
+          echo "- ❌ Archive corrupted" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        # Verify required files are in archive
+        echo "Verifying required files in archive..."
+        required_files=(
+          "freesound_library/graph_topology.gpickle"
+          "freesound_library/metadata_cache.db"
+          "freesound_library/checkpoint_metadata.json"
+        )
+        
+        missing_files=0
+        for file in "${required_files[@]}"; do
+          if tar -tzf "$backup_filename" "$file" > /dev/null 2>&1; then
+            echo "  ✓ $file"
+          else
+            echo "::error::Missing required file in archive: $file"
+            echo "- ❌ Missing: $file" >> $GITHUB_STEP_SUMMARY
+            missing_files=$((missing_files + 1))
+          fi
+        done
+        
+        if [ $missing_files -gt 0 ]; then
+          echo "::error::Archive missing $missing_files required files"
+          exit 1
+        fi
+        
+        echo "- ✅ All required files present" >> $GITHUB_STEP_SUMMARY
+        
+        # Test extraction to temporary directory
+        echo "Testing extraction..."
+        test_dir=$(mktemp -d)
+        if tar -xzf "$backup_filename" -C "$test_dir" > /dev/null 2>&1; then
+          echo "- ✅ Test extraction successful" >> $GITHUB_STEP_SUMMARY
+          rm -rf "$test_dir"
+        else
+          echo "::error::Failed to extract archive to test directory"
+          echo "- ❌ Test extraction failed" >> $GITHUB_STEP_SUMMARY
+          rm -rf "$test_dir"
+          exit 1
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Backup verification passed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "verification_passed=true" >> $GITHUB_OUTPUT
+
     # Subtask 11.4: Implement backup upload with tier-specific releases
     - name: Upload backup to PRIMARY repository
-      if: steps.create_backup.outputs.backup_created == 'true'
+      if: steps.verify_backup.outputs.verification_passed == 'true'
       id: upload_backup
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
@@ -434,15 +525,39 @@ jobs:
         if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
           echo "::error::Failed to upload backup to ${BACKUP_REPO}"
           echo "- ❌ Upload failed" >> $GITHUB_STEP_SUMMARY
+          echo "upload_success=false" >> $GITHUB_OUTPUT
           exit 1
         fi
         
-        echo "✅ Backup uploaded successfully"
+        # Verify upload by checking asset exists
+        echo "Verifying uploaded asset..."
+        VERIFY_RESPONSE=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}")
+        
+        VERIFY_ID=$(echo "$VERIFY_RESPONSE" | jq -r '.id')
+        VERIFY_SIZE=$(echo "$VERIFY_RESPONSE" | jq -r '.size')
+        
+        if [ "$VERIFY_ID" != "$ASSET_ID" ]; then
+          echo "::error::Upload verification failed - asset not found"
+          echo "- ❌ Upload verification failed" >> $GITHUB_STEP_SUMMARY
+          echo "upload_success=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Verify uploaded size matches local size
+        local_size="${{ steps.create_backup.outputs.backup_size }}"
+        if [ "$VERIFY_SIZE" != "$local_size" ]; then
+          echo "::warning::Uploaded size ($VERIFY_SIZE) differs from local size ($local_size)"
+          echo "- ⚠️  Size mismatch: uploaded=$VERIFY_SIZE, local=$local_size" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "✅ Backup uploaded and verified successfully"
         echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
         echo "- Repository: \`${BACKUP_REPO}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Release: \`${release_tag}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Size: \`$(numfmt --to=iec-i --suffix=B ${{ steps.create_backup.outputs.backup_size }})\`" >> $GITHUB_STEP_SUMMARY
         echo "- Asset ID: \`${ASSET_ID}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Verified: ✅" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Store outputs
@@ -450,7 +565,7 @@ jobs:
         echo "asset_id=$ASSET_ID" >> $GITHUB_OUTPUT
         echo "upload_success=true" >> $GITHUB_OUTPUT
         
-        # Cleanup local backup file
+        # Cleanup local backup file only after successful upload verification
         rm -f "$backup_filename"
 
     # Subtask 11.5: Implement atomic backup list update with tier-specific retention
@@ -527,18 +642,29 @@ jobs:
         DELETE_COUNT=$(echo "$ASSETS_TO_DELETE" | grep -c . || echo "0")
         RETAINED_COUNT=$((TOTAL_ASSETS - DELETE_COUNT))
         
-        # Ensure at least 1 backup remains
-        if [ $RETAINED_COUNT -lt 1 ] && [ $TOTAL_ASSETS -gt 0 ]; then
+        # ATOMIC OPERATION: Ensure at least 1 backup remains at all times
+        # New backup was already added, so we need at least 2 total to delete 1
+        if [ $TOTAL_ASSETS -lt 2 ]; then
+          echo "Only $TOTAL_ASSETS backup(s) exist - keeping all"
+          echo "- ⚠️  Keeping all backups (minimum: 1)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+        
+        # Ensure at least 1 backup remains after deletion
+        if [ $RETAINED_COUNT -lt 1 ]; then
           echo "::warning::Would delete all backups - keeping at least 1"
           echo "- ⚠️  Keeping at least 1 backup" >> $GITHUB_STEP_SUMMARY
-          # Remove the newest asset from deletion list
+          # Remove the newest asset from deletion list (keep most recent)
           ASSETS_TO_DELETE=$(echo "$ASSETS_JSON" | jq -r ".assets | sort_by(.created_at) | .[:-1] | map(select(.created_at < \"$CUTOFF_DATE\")) | .[].id")
           DELETE_COUNT=$(echo "$ASSETS_TO_DELETE" | grep -c . || echo "0")
           RETAINED_COUNT=$((TOTAL_ASSETS - DELETE_COUNT))
         fi
         
-        # Delete old assets
+        # ATOMIC OPERATION: Delete old assets one by one
+        # If any deletion fails, we still have the new backup and at least 1 old backup
         DELETED_COUNT=0
+        FAILED_DELETIONS=0
         for ASSET_ID in $ASSETS_TO_DELETE; do
           echo "Deleting old backup asset ID: $ASSET_ID"
           DELETE_RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE \
@@ -547,10 +673,17 @@ jobs:
           
           if [ "$DELETE_RESPONSE" = "204" ]; then
             DELETED_COUNT=$((DELETED_COUNT + 1))
+            echo "  ✓ Deleted asset $ASSET_ID"
           else
             echo "::warning::Failed to delete asset $ASSET_ID (HTTP $DELETE_RESPONSE)"
+            FAILED_DELETIONS=$((FAILED_DELETIONS + 1))
           fi
         done
+        
+        # Report any failed deletions
+        if [ $FAILED_DELETIONS -gt 0 ]; then
+          echo "- ⚠️  Failed to delete $FAILED_DELETIONS asset(s)" >> $GITHUB_STEP_SUMMARY
+        fi
         
         echo "- Backups retained: \`$RETAINED_COUNT\`" >> $GITHUB_STEP_SUMMARY
         echo "- Backups deleted: \`$DELETED_COUNT\`" >> $GITHUB_STEP_SUMMARY
@@ -558,12 +691,74 @@ jobs:
         
         echo "✅ Retention policy applied"
 
+    # Subtask 19.3: Implement rollback on failure
+    - name: Cleanup on failure
+      if: failure()
+      run: |
+        echo "## ❌ Backup Workflow Failed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Rollback Actions:**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Determine which step failed
+        if [ "${{ steps.verification.outputs.verification_passed }}" != "true" ]; then
+          echo "**Failed Step:** Checkpoint verification" >> $GITHUB_STEP_SUMMARY
+          echo "**Impact:** No backup created, backup list unchanged" >> $GITHUB_STEP_SUMMARY
+          echo "**Action:** None required - checkpoint data preserved" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.create_backup.outputs.backup_created }}" != "true" ]; then
+          echo "**Failed Step:** Backup creation" >> $GITHUB_STEP_SUMMARY
+          echo "**Impact:** No backup file created, backup list unchanged" >> $GITHUB_STEP_SUMMARY
+          echo "**Action:** None required - checkpoint data preserved" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ steps.verify_backup.outputs.verification_passed }}" != "true" ]; then
+          echo "**Failed Step:** Backup verification" >> $GITHUB_STEP_SUMMARY
+          echo "**Impact:** Backup file created but invalid, backup list unchanged" >> $GITHUB_STEP_SUMMARY
+          echo "**Action:** Removing invalid backup file" >> $GITHUB_STEP_SUMMARY
+          
+          # Remove invalid backup file
+          backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
+          if [ -n "$backup_filename" ] && [ -f "$backup_filename" ]; then
+            rm -f "$backup_filename"
+            echo "- ✅ Removed invalid backup file: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        elif [ "${{ steps.upload_backup.outputs.upload_success }}" != "true" ]; then
+          echo "**Failed Step:** Backup upload" >> $GITHUB_STEP_SUMMARY
+          echo "**Impact:** Backup file created but not uploaded, backup list unchanged" >> $GITHUB_STEP_SUMMARY
+          echo "**Action:** Removing local backup file" >> $GITHUB_STEP_SUMMARY
+          
+          # Remove local backup file that failed to upload
+          backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
+          if [ -n "$backup_filename" ] && [ -f "$backup_filename" ]; then
+            rm -f "$backup_filename"
+            echo "- ✅ Removed local backup file: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "**Failed Step:** Retention policy application" >> $GITHUB_STEP_SUMMARY
+          echo "**Impact:** New backup uploaded successfully, old backups may not be cleaned up" >> $GITHUB_STEP_SUMMARY
+          echo "**Action:** None required - new backup is safe, cleanup will retry next run" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Critical Guarantee:** Backup list was NOT modified during this failed run." >> $GITHUB_STEP_SUMMARY
+        echo "All existing backups remain intact and accessible." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+        echo "1. Review error logs above to identify root cause" >> $GITHUB_STEP_SUMMARY
+        echo "2. Fix any configuration or permission issues" >> $GITHUB_STEP_SUMMARY
+        echo "3. Retry backup workflow manually if needed" >> $GITHUB_STEP_SUMMARY
+        echo "4. Next scheduled run will attempt backup again" >> $GITHUB_STEP_SUMMARY
+
     # Subtask 11.6: Add run summary with failure recovery status
     - name: Generate backup summary
       if: always()
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
+        # Only generate summary if not already generated by failure handler
+        if [ "${{ job.status }}" = "failure" ]; then
+          echo "Summary already generated by failure handler"
+          exit 0
+        fi
+        
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "---" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY

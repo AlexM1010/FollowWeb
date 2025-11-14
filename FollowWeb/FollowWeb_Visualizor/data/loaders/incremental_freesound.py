@@ -245,7 +245,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         checkpoint_metadata.get("processed_ids", [])
                     )
                     self.pagination_state = checkpoint_metadata.get(
-                        "pagination_state", {"page": 1, "query": "", "sort": "downloads_desc"}
+                        "pagination_state",
+                        {"page": 1, "query": "", "sort": "downloads_desc"},
                     )
                     last_update = checkpoint_metadata.get("timestamp", "unknown")
 
@@ -370,7 +371,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             "nodes": self.graph.number_of_nodes(),
             "edges": self.graph.number_of_edges(),
             "processed_ids": list(self.processed_ids),
-            "pagination_state": getattr(self, 'pagination_state', {"page": 1, "query": "", "sort": "downloads_desc"}),
+            "pagination_state": getattr(
+                self,
+                "pagination_state",
+                {"page": 1, "query": "", "sort": "downloads_desc"},
+            ),
         }
 
         # Add validation history to metadata if not already present
@@ -856,11 +861,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Generate edges if requested (NO API REQUESTS - uses existing graph data)
         edge_stats = {}
-        
+
         if processed_samples and (
             include_user_edges or include_pack_edges or include_tag_edges
         ):
-            self.logger.info("Generating edges from existing graph data (0 API requests)...")
+            self.logger.info(
+                "Generating edges from existing graph data (0 API requests)..."
+            )
             # Note: Edge generation methods should be implemented in earlier tasks
             # For now, we'll call the existing batch edge generation if available
             try:
@@ -1710,7 +1717,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
     def _add_user_edges_batch(self, usernames: set[str]) -> int:
         """
         Add edges between samples by the same user using existing graph data.
-        
+
         NO API REQUESTS - uses only data already in the graph nodes.
 
         Args:
@@ -1723,11 +1730,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Group samples by username from existing graph data
         samples_by_user: dict[str, list[str]] = {}
-        
+
         for node_id in self.graph.nodes():
             node_data = self.graph.nodes[node_id]
             username = node_data.get("user") or node_data.get("username")
-            
+
             if username:
                 if username not in samples_by_user:
                     samples_by_user[username] = []
@@ -1738,7 +1745,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             # Only create edges if user has multiple samples
             if len(sample_ids) < 2:
                 continue
-                
+
             # Add edges between all pairs
             for j in range(len(sample_ids)):
                 for k in range(j + 1, len(sample_ids)):
@@ -1758,14 +1765,16 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         edge_count += 1
 
         if edge_count > 0:
-            self.logger.info(f"✅ Added {edge_count} user relationship edges (0 API requests)")
+            self.logger.info(
+                f"✅ Added {edge_count} user relationship edges (0 API requests)"
+            )
 
         return edge_count
 
     def _add_pack_edges_batch(self, pack_names: set[str]) -> int:
         """
         Add edges between samples in the same pack using existing graph data.
-        
+
         NO API REQUESTS - uses only data already in the graph nodes.
 
         Args:
@@ -1778,18 +1787,18 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Group samples by pack from existing graph data
         samples_by_pack: dict[str, list[str]] = {}
-        
+
         for node_id in self.graph.nodes():
             node_data = self.graph.nodes[node_id]
             pack = node_data.get("pack")
-            
+
             if pack:
                 # Extract pack name from URI if needed
                 if isinstance(pack, str) and "/" in pack:
                     pack_name = pack.split("/")[-2]
                 else:
                     pack_name = str(pack)
-                
+
                 if pack_name:
                     if pack_name not in samples_by_pack:
                         samples_by_pack[pack_name] = []
@@ -1800,7 +1809,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             # Only create edges if pack has multiple samples
             if len(sample_ids) < 2:
                 continue
-                
+
             # Add edges between all pairs
             for j in range(len(sample_ids)):
                 for k in range(j + 1, len(sample_ids)):
@@ -1820,19 +1829,21 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         edge_count += 1
 
         if edge_count > 0:
-            self.logger.info(f"✅ Added {edge_count} pack relationship edges (0 API requests)")
+            self.logger.info(
+                f"✅ Added {edge_count} pack relationship edges (0 API requests)"
+            )
 
         return edge_count
 
     def _add_tag_edges_batch(self, similarity_threshold: float = 0.3) -> int:
         """
         Add edges between samples with similar tags using Jaccard similarity.
-        
+
         NO API REQUESTS - uses only data already in the graph nodes.
-        
+
         Calculates Jaccard similarity between sample tag sets:
         similarity = |tags1 ∩ tags2| / |tags1 ∪ tags2|
-        
+
         Adds edges for samples with similarity above threshold.
 
         Args:
@@ -1848,14 +1859,16 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         for node_id in self.graph.nodes():
             node_data = self.graph.nodes[node_id]
             tags = node_data.get("tags", [])
-            
+
             if tags and len(tags) > 0:
                 # Convert to set for efficient intersection/union operations
                 tag_set = set(tags) if isinstance(tags, list) else {tags}
                 nodes_with_tags.append((node_id, tag_set))
 
         if len(nodes_with_tags) < 2:
-            self.logger.info("Not enough samples with tags for tag-based edge generation")
+            self.logger.info(
+                "Not enough samples with tags for tag-based edge generation"
+            )
             return 0
 
         self.logger.info(
@@ -1866,34 +1879,30 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Calculate Jaccard similarity for all pairs
         for i in range(len(nodes_with_tags)):
             node1_id, tags1 = nodes_with_tags[i]
-            
+
             for j in range(i + 1, len(nodes_with_tags)):
                 node2_id, tags2 = nodes_with_tags[j]
-                
+
                 # Calculate Jaccard similarity
                 intersection = len(tags1 & tags2)
                 union = len(tags1 | tags2)
-                
+
                 if union == 0:
                     continue
-                
+
                 similarity = intersection / union
-                
+
                 # Add edge if similarity exceeds threshold
                 if similarity >= similarity_threshold:
                     # Add bidirectional edges with similarity as weight
                     if not self.graph.has_edge(node1_id, node2_id):
                         self.graph.add_edge(
-                            node1_id, node2_id, 
-                            type="similar_tags", 
-                            weight=similarity
+                            node1_id, node2_id, type="similar_tags", weight=similarity
                         )
                         edge_count += 1
                     if not self.graph.has_edge(node2_id, node1_id):
                         self.graph.add_edge(
-                            node2_id, node1_id, 
-                            type="similar_tags", 
-                            weight=similarity
+                            node2_id, node1_id, type="similar_tags", weight=similarity
                         )
                         edge_count += 1
 
@@ -1914,10 +1923,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
     ) -> dict[str, int]:
         """
         Generate all edge types from existing graph data.
-        
+
         Wrapper method that calls individual edge generation methods based on flags.
         NO API REQUESTS - all methods work from existing graph node data.
-        
+
         This method is designed for validation/visualization pipelines where edges
         need to be generated after data collection is complete.
 
@@ -2705,24 +2714,34 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             page_size = min(150, max_samples)  # Freesound max page size is 150
 
             # Get pagination state to resume from last position
-            pagination_state = getattr(self, 'pagination_state', {"page": 1, "query": "", "sort": "downloads_desc"})
+            pagination_state = getattr(
+                self,
+                "pagination_state",
+                {"page": 1, "query": "", "sort": "downloads_desc"},
+            )
             start_page = pagination_state.get("page", 1)
             current_sort = pagination_state.get("sort", "downloads_desc")
-            
+
             # Cycle through different sort orders to discover new samples
             # This avoids always getting the same top samples
             sort_strategies = [
                 "downloads_desc",  # Most downloaded
-                "rating_desc",     # Highest rated
-                "created_desc",    # Most recent
-                "duration_desc",   # Longest
-                "duration_asc",    # Shortest
+                "rating_desc",  # Highest rated
+                "created_desc",  # Most recent
+                "duration_desc",  # Longest
+                "duration_asc",  # Shortest
             ]
-            
+
             # If we've processed many samples with current sort, try next strategy
             if len(self.processed_ids) > 0 and len(self.processed_ids) % 1000 == 0:
-                current_index = sort_strategies.index(current_sort) if current_sort in sort_strategies else 0
-                current_sort = sort_strategies[(current_index + 1) % len(sort_strategies)]
+                current_index = (
+                    sort_strategies.index(current_sort)
+                    if current_sort in sort_strategies
+                    else 0
+                )
+                current_sort = sort_strategies[
+                    (current_index + 1) % len(sort_strategies)
+                ]
                 start_page = 1  # Reset to page 1 with new sort
                 self.logger.info(f"Switching to sort strategy: {current_sort}")
 
@@ -2738,12 +2757,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 )
 
             results = self._retry_with_backoff(_do_search)
-            
+
             # Update pagination state
             self.pagination_state = {
                 "page": start_page,
                 "query": query or "",
-                "sort": current_sort
+                "sort": current_sort,
             }
 
             # Extract metadata directly from search results (no follow-up calls needed!)
@@ -2752,7 +2771,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     break
 
                 # Skip if already processed (check SQL cache for O(1) lookup)
-                if hasattr(self, 'metadata_cache') and self.metadata_cache.exists(sound.id):
+                if hasattr(self, "metadata_cache") and self.metadata_cache.exists(
+                    sound.id
+                ):
                     continue
 
                 # Cache the sound object for future use
@@ -2776,7 +2797,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         f"Collected {len(samples)} samples so far."
                     )
                     break
-                    
+
                 self.rate_limiter.acquire()
                 self._increment_request_count()
                 results = self._retry_with_backoff(results.next_page)
@@ -2787,7 +2808,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         break
 
                     # Skip if already processed (check SQL cache for O(1) lookup)
-                    if hasattr(self, 'metadata_cache') and self.metadata_cache.exists(sound.id):
+                    if hasattr(self, "metadata_cache") and self.metadata_cache.exists(
+                        sound.id
+                    ):
                         continue
 
                     # Cache the sound object
@@ -2798,7 +2821,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     sample_data["last_metadata_update_at"] = now
 
                     samples.append(sample_data)
-                
+
                 # Update pagination state after each page
                 self.pagination_state["page"] = current_page
 
