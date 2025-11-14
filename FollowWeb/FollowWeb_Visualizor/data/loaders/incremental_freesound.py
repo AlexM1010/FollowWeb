@@ -10,6 +10,7 @@ Key Features:
     - Checkpoint support for crash recovery and resumable operations
     - Time-limited execution with graceful stopping
     - Progress tracking and statistics
+    - Retry logic with exponential backoff using tenacity library
 
 Queue-Based BFS:
     Uses a FIFO queue (collections.deque) to process samples breadth-first during
@@ -140,6 +141,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self.session_request_count = 0
         self.max_requests = self.config.get("max_requests", 1950)
 
+        # Search pagination state (restored from checkpoint if exists)
+        self.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
+
         # Statistics tracking
         self.stats: dict[str, Union[int, list[int]]] = {
             "api_requests_saved": 0,
@@ -150,6 +154,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             "failed_requests": 0,
             "user_edges_created": 0,
             "pack_edges_created": 0,
+            "tag_edges_created": 0,
         }
 
         # Validate max_samples_mode
@@ -223,6 +228,14 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 # Connect to metadata cache
                 self.metadata_cache = MetadataCache(str(metadata_db_path), self.logger)
 
+                # Restore nodes from metadata cache
+                # The graph topology file only contains edges, nodes must be restored from SQLite
+                all_metadata = self.metadata_cache.get_all_metadata()
+                for sample_id, metadata in all_metadata.items():
+                    node_id = str(sample_id)
+                    if node_id not in self.graph:
+                        self.graph.add_node(node_id, **metadata)
+
                 # Load checkpoint metadata
                 if checkpoint_meta_path.exists():
                     with open(checkpoint_meta_path) as f:
@@ -231,11 +244,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     self.processed_ids = set(
                         checkpoint_metadata.get("processed_ids", [])
                     )
+                    self.pagination_state = checkpoint_metadata.get(
+                        "pagination_state", {"page": 1, "query": "", "sort": "downloads_desc"}
+                    )
                     last_update = checkpoint_metadata.get("timestamp", "unknown")
 
                     self.logger.info(
                         f"Resumed from split checkpoint: {self.graph.number_of_nodes()} nodes, "
                         f"{len(self.processed_ids)} processed samples, "
+                        f"pagination page: {self.pagination_state.get('page', 1)}, "
                         f"last update: {last_update}"
                     )
                 else:
@@ -278,7 +295,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             self.logger.info("Migrating legacy checkpoint to split architecture...")
             self._migrate_to_split_checkpoint()
         else:
-            # No checkpoint exists, initialize metadata cache
+            # No checkpoint exists, initialize metadata cache and pagination state
             from ..storage import MetadataCache
 
             checkpoint_dir = Path(
@@ -286,6 +303,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             )
             metadata_db_path = checkpoint_dir / "metadata_cache.db"
             self.metadata_cache = MetadataCache(str(metadata_db_path), self.logger)
+            self.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
 
     def _migrate_to_split_checkpoint(self) -> None:
         """Migrate legacy checkpoint to split architecture."""
@@ -352,6 +370,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             "nodes": self.graph.number_of_nodes(),
             "edges": self.graph.number_of_edges(),
             "processed_ids": list(self.processed_ids),
+            "pagination_state": getattr(self, 'pagination_state', {"page": 1, "query": "", "sort": "downloads_desc"}),
         }
 
         # Add validation history to metadata if not already present
@@ -540,6 +559,174 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             "eta_minutes": eta_minutes,
         }
 
+    def _search_with_pagination(
+        self,
+        query: Optional[str] = None,
+        tags: Optional[list[str]] = None,
+        sort_order: str = "downloads_desc",
+    ) -> list[dict[str, Any]]:
+        """
+        Search for samples using pagination, continuing from last checkpoint.
+
+        This method implements page-by-page search using Freesound API pagination.
+        It restores pagination state from checkpoint and continues from the last
+        processed page. The circuit breaker stops collection when max_requests is hit.
+
+        Args:
+            query: Text search query (empty string matches all samples)
+            tags: List of tags to filter by
+            sort_order: Sort order for results (default: "downloads_desc")
+
+        Returns:
+            List of sample dictionaries fetched in this session
+
+        Notes:
+            - Checks circuit breaker before each page request
+            - Updates pagination_state.current_page after each successful page
+            - Saves checkpoint with pagination state after each page
+            - Resets pagination when search query or sort order changes
+        """
+        # Check if search parameters changed - reset pagination if so
+        if (
+            self.pagination_state.get("query") != query
+            or self.pagination_state.get("sort") != sort_order
+        ):
+            self.logger.info(
+                f"Search parameters changed, resetting pagination: "
+                f"query '{self.pagination_state.get('query')}' -> '{query}', "
+                f"sort '{self.pagination_state.get('sort')}' -> '{sort_order}'"
+            )
+            self.pagination_state = {
+                "page": 1,
+                "query": query or "",
+                "sort": sort_order,
+            }
+
+        samples = []
+        current_page = self.pagination_state.get("page", 1)
+
+        self.logger.info(
+            f"Starting pagination search from page {current_page}: "
+            f"query='{query}', sort={sort_order}"
+        )
+
+        try:
+            # Build search filter
+            search_filter = ""
+            if tags:
+                tag_filter = " ".join(f"tag:{tag}" for tag in tags)
+                search_filter = tag_filter
+
+            page_size = min(150, self.config.get("page_size", 150))  # API max is 150
+
+            while True:
+                # Check circuit breaker BEFORE making API request
+                if self._check_circuit_breaker():
+                    self.logger.info(
+                        f"Circuit breaker triggered at page {current_page}, "
+                        f"collected {len(samples)} samples this session"
+                    )
+                    break
+
+                # Rate limit the request
+                self.rate_limiter.acquire()
+
+                # Fetch page with retry logic
+                def _do_search():
+                    return self.client.text_search(
+                        query=query or "",
+                        filter=search_filter if search_filter else None,
+                        page=current_page,
+                        page_size=page_size,
+                        sort=sort_order,
+                        fields="id,name,tags,duration,username,previews,num_downloads,avg_rating",
+                    )
+
+                results = self._retry_with_backoff(_do_search)
+                self._increment_request_count()
+
+                # Process results from this page
+                page_samples = []
+                for sound in results:
+                    # Check if sample already exists (duplicate detection)
+                    sample_id = sound.id
+                    if hasattr(self, "metadata_cache") and self.metadata_cache.exists(
+                        sample_id
+                    ):
+                        self.stats["samples_skipped"] = (
+                            cast(int, self.stats["samples_skipped"]) + 1
+                        )
+                        self.stats["api_requests_saved"] = (
+                            cast(int, self.stats["api_requests_saved"]) + 1
+                        )
+                        continue
+
+                    # Check circuit breaker before fetching full metadata
+                    if self._check_circuit_breaker():
+                        break
+
+                    # Fetch full metadata for new sample
+                    try:
+                        self.rate_limiter.acquire()
+                        full_sound = self._retry_with_backoff(
+                            self.client.get_sound, sample_id
+                        )
+                        self._increment_request_count()
+
+                        sample_data = self._extract_sample_metadata(full_sound)
+                        page_samples.append(sample_data)
+                        samples.append(sample_data)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to fetch metadata for sample {sample_id}: {e}"
+                        )
+
+                self.logger.info(
+                    f"Page {current_page}: fetched {len(page_samples)} new samples "
+                    f"(skipped {self.stats['samples_skipped']} duplicates)"
+                )
+
+                # Update pagination state after successful page
+                current_page += 1
+                self.pagination_state["page"] = current_page
+
+                # Save checkpoint with updated pagination state
+                self._save_checkpoint(
+                    {
+                        "pagination_progress": {
+                            "current_page": current_page,
+                            "samples_this_session": len(samples),
+                        }
+                    }
+                )
+
+                # Check if there are more pages
+                if not results.next:
+                    self.logger.info(
+                        f"Reached end of results at page {current_page - 1}, "
+                        f"resetting pagination to page 1"
+                    )
+                    self.pagination_state["page"] = 1
+                    break
+
+        except Exception as e:
+            self.logger.error(f"Pagination search failed at page {current_page}: {e}")
+            # Save checkpoint with current state before raising
+            self._save_checkpoint(
+                {
+                    "pagination_error": str(e),
+                    "last_successful_page": current_page - 1,
+                }
+            )
+            raise
+
+        self.logger.info(
+            f"Pagination search complete: {len(samples)} samples collected, "
+            f"next run will start from page {self.pagination_state['page']}"
+        )
+
+        return samples
+
     def fetch_data(  # type: ignore[override]
         self,
         query: Optional[str] = None,
@@ -551,6 +738,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         include_pack_edges: bool = True,
         include_tag_edges: bool = True,
         tag_similarity_threshold: float = 0.3,
+        use_pagination: bool = False,
+        sort_order: str = "downloads_desc",
     ) -> dict[str, Any]:
         """
         Fetch sample data incrementally with checkpoint support and edge generation.
@@ -561,6 +750,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         - Respects time limits
         - Tracks progress statistics
         - Generates edges based on user, pack, and tag relationships
+        - Supports pagination-based collection mode
 
         Args:
             query: Text search query
@@ -572,6 +762,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             include_pack_edges: Create edges for same-pack samples
             include_tag_edges: Create edges for tag similarity
             tag_similarity_threshold: Minimum Jaccard similarity for tag edges
+            use_pagination: Use pagination-based collection (continues from last page)
+            sort_order: Sort order for pagination search (default: "downloads_desc")
 
         Returns:
             Dictionary with 'samples' and edge statistics
@@ -584,13 +776,21 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         self.start_time = time.time()
 
-        # Search for samples
-        self.logger.info(
-            f"Searching Freesound (incremental): query='{query}', tags={tags}, "
-            f"max_samples={max_samples}, already_processed={len(self.processed_ids)}"
-        )
-
-        all_samples = self._search_samples(query, tags, max_samples)
+        # Choose collection mode: pagination or standard search
+        if use_pagination:
+            self.logger.info(
+                f"Using pagination mode: query='{query}', tags={tags}, "
+                f"sort={sort_order}, current_page={self.pagination_state.get('page', 1)}, "
+                f"already_processed={len(self.processed_ids)}"
+            )
+            all_samples = self._search_with_pagination(query, tags, sort_order)
+        else:
+            # Standard search mode (legacy behavior)
+            self.logger.info(
+                f"Searching Freesound (incremental): query='{query}', tags={tags}, "
+                f"max_samples={max_samples}, already_processed={len(self.processed_ids)}"
+            )
+            all_samples = self._search_samples(query, tags, max_samples)
 
         # Filter out already-processed samples
         new_samples = [s for s in all_samples if str(s["id"]) not in self.processed_ids]
@@ -654,12 +854,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                 tracker.update(i + 1)
 
-        # Generate edges if requested
+        # Generate edges if requested (NO API REQUESTS - uses existing graph data)
         edge_stats = {}
+        
         if processed_samples and (
             include_user_edges or include_pack_edges or include_tag_edges
         ):
-            self.logger.info("Generating edges...")
+            self.logger.info("Generating edges from existing graph data (0 API requests)...")
             # Note: Edge generation methods should be implemented in earlier tasks
             # For now, we'll call the existing batch edge generation if available
             try:
@@ -697,6 +898,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         if include_pack_edges and pack_names:
                             pack_edges = self._add_pack_edges_batch(pack_names)
                             edge_stats["pack_edges_added"] = pack_edges
+
+                    if include_tag_edges:
+                        tag_edges = self._add_tag_edges_batch(tag_similarity_threshold)
+                        edge_stats["tag_edges_added"] = tag_edges
+                        self.stats["tag_edges_created"] = tag_edges
             except Exception as e:
                 self.logger.warning(f"Edge generation failed: {e}")
 
@@ -1433,22 +1639,24 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
     def _add_batch_user_pack_edges(self) -> dict[str, int]:
         """
-        Add user and pack relationship edges using batch filtering.
+        Add user, pack, and tag relationship edges using batch filtering.
 
         This method aggregates unique usernames and pack names from collected samples,
         then uses batch text search filtering to discover relationships efficiently.
+        Also generates tag-based edges using Jaccard similarity.
 
         Returns:
-            Dictionary with statistics: user_edges_added, pack_edges_added
+            Dictionary with statistics: user_edges_added, pack_edges_added, tag_edges_added
         """
-        # Check if user/pack edges are enabled
+        # Check if user/pack/tag edges are enabled
         include_user_edges = self.config.get("include_user_edges", True)
         include_pack_edges = self.config.get("include_pack_edges", True)
+        include_tag_edges = self.config.get("include_tag_edges", False)
 
-        if not include_user_edges and not include_pack_edges:
-            return {"user_edges_added": 0, "pack_edges_added": 0}
+        if not include_user_edges and not include_pack_edges and not include_tag_edges:
+            return {"user_edges_added": 0, "pack_edges_added": 0, "tag_edges_added": 0}
 
-        stats = {"user_edges_added": 0, "pack_edges_added": 0}
+        stats = {"user_edges_added": 0, "pack_edges_added": 0, "tag_edges_added": 0}
 
         # Aggregate unique usernames and pack names from graph
         usernames = set()
@@ -1490,222 +1698,324 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             stats["pack_edges_added"] = pack_edges
             self.stats["pack_edges_created"] = pack_edges
 
+        # Add tag similarity edges
+        if include_tag_edges:
+            tag_similarity_threshold = self.config.get("tag_similarity_threshold", 0.3)
+            tag_edges = self._add_tag_edges_batch(tag_similarity_threshold)
+            stats["tag_edges_added"] = tag_edges
+            self.stats["tag_edges_created"] = tag_edges
+
         return stats
 
     def _add_user_edges_batch(self, usernames: set[str]) -> int:
         """
-        Add edges between samples by the same user using batch filtering.
+        Add edges between samples by the same user using existing graph data.
+        
+        NO API REQUESTS - uses only data already in the graph nodes.
 
         Args:
-            usernames: Set of unique usernames
+            usernames: Set of unique usernames (unused, kept for compatibility)
 
         Returns:
             Number of edges added
         """
         edge_count = 0
 
-        # Process usernames in batches (avoid overly long filter strings)
-        batch_size = 50
-        username_list = list(usernames)
+        # Group samples by username from existing graph data
+        samples_by_user: dict[str, list[str]] = {}
+        
+        for node_id in self.graph.nodes():
+            node_data = self.graph.nodes[node_id]
+            username = node_data.get("user") or node_data.get("username")
+            
+            if username:
+                if username not in samples_by_user:
+                    samples_by_user[username] = []
+                samples_by_user[username].append(node_id)
 
-        for i in range(0, len(username_list), batch_size):
-            batch = username_list[i : i + batch_size]
+        # Add edges between samples by same user
+        for username, sample_ids in samples_by_user.items():
+            # Only create edges if user has multiple samples
+            if len(sample_ids) < 2:
+                continue
+                
+            # Add edges between all pairs
+            for j in range(len(sample_ids)):
+                for k in range(j + 1, len(sample_ids)):
+                    source = sample_ids[j]
+                    target = sample_ids[k]
 
-            # Check circuit breaker
-            if self._check_circuit_breaker():
-                self.logger.warning(
-                    "Circuit breaker triggered during user edge creation"
-                )
-                break
-
-            try:
-                # Build batch filter: username:("user1" OR "user2" OR ...)
-                user_filter = "username:(" + " OR ".join(f'"{u}"' for u in batch) + ")"
-
-                # Rate limit and increment counter
-                self.rate_limiter.acquire()
-                self._increment_request_count()
-
-                # Search with batch filter
-                results = self._retry_with_backoff(
-                    self.client.text_search,
-                    query="",
-                    filter=user_filter,
-                    page_size=150,
-                    fields="id,username",
-                )
-
-                # Group samples by username
-                samples_by_user: dict[str, list[Any]] = {}
-                for sound in results:
-                    username = sound.username if hasattr(sound, "username") else None
-                    if username:
-                        if username not in samples_by_user:
-                            samples_by_user[username] = []
-                        samples_by_user[username].append(str(sound.id))
-
-                # Paginate if needed
-                while results.next:
-                    if self._check_circuit_breaker():
-                        break
-
-                    self.rate_limiter.acquire()
-                    self._increment_request_count()
-                    results = self._retry_with_backoff(results.next_page)
-
-                    for sound in results:
-                        username = (
-                            sound.username if hasattr(sound, "username") else None
+                    # Add bidirectional edges
+                    if not self.graph.has_edge(source, target):
+                        self.graph.add_edge(
+                            source, target, type="by_same_user", weight=1.0
                         )
-                        if username:
-                            if username not in samples_by_user:
-                                samples_by_user[username] = []
-                            samples_by_user[username].append(str(sound.id))
-
-                # Add edges between samples by same user
-                for _username, sample_ids in samples_by_user.items():
-                    # Only add edges for samples in our graph
-                    graph_samples = [sid for sid in sample_ids if sid in self.graph]
-
-                    # Add edges between all pairs
-                    for j in range(len(graph_samples)):
-                        for k in range(j + 1, len(graph_samples)):
-                            source = graph_samples[j]
-                            target = graph_samples[k]
-
-                            # Add bidirectional edges
-                            if not self.graph.has_edge(source, target):
-                                self.graph.add_edge(
-                                    source, target, type="by_same_user", weight=1.0
-                                )
-                                edge_count += 1
-                            if not self.graph.has_edge(target, source):
-                                self.graph.add_edge(
-                                    target, source, type="by_same_user", weight=1.0
-                                )
-                                edge_count += 1
-
-            except Exception as e:
-                self.logger.warning(f"Failed to add user edges for batch: {e}")
+                        edge_count += 1
+                    if not self.graph.has_edge(target, source):
+                        self.graph.add_edge(
+                            target, source, type="by_same_user", weight=1.0
+                        )
+                        edge_count += 1
 
         if edge_count > 0:
-            self.logger.info(f"Added {edge_count} user relationship edges")
+            self.logger.info(f"✅ Added {edge_count} user relationship edges (0 API requests)")
 
         return edge_count
 
     def _add_pack_edges_batch(self, pack_names: set[str]) -> int:
         """
-        Add edges between samples in the same pack using batch filtering.
+        Add edges between samples in the same pack using existing graph data.
+        
+        NO API REQUESTS - uses only data already in the graph nodes.
 
         Args:
-            pack_names: Set of unique pack names
+            pack_names: Set of unique pack names (unused, kept for compatibility)
 
         Returns:
             Number of edges added
         """
         edge_count = 0
 
-        # Process pack names in batches
-        batch_size = 50
-        pack_list = list(pack_names)
+        # Group samples by pack from existing graph data
+        samples_by_pack: dict[str, list[str]] = {}
+        
+        for node_id in self.graph.nodes():
+            node_data = self.graph.nodes[node_id]
+            pack = node_data.get("pack")
+            
+            if pack:
+                # Extract pack name from URI if needed
+                if isinstance(pack, str) and "/" in pack:
+                    pack_name = pack.split("/")[-2]
+                else:
+                    pack_name = str(pack)
+                
+                if pack_name:
+                    if pack_name not in samples_by_pack:
+                        samples_by_pack[pack_name] = []
+                    samples_by_pack[pack_name].append(node_id)
 
-        for i in range(0, len(pack_list), batch_size):
-            batch = pack_list[i : i + batch_size]
+        # Add edges between samples in same pack
+        for pack_name, sample_ids in samples_by_pack.items():
+            # Only create edges if pack has multiple samples
+            if len(sample_ids) < 2:
+                continue
+                
+            # Add edges between all pairs
+            for j in range(len(sample_ids)):
+                for k in range(j + 1, len(sample_ids)):
+                    source = sample_ids[j]
+                    target = sample_ids[k]
 
-            # Check circuit breaker
-            if self._check_circuit_breaker():
-                self.logger.warning(
-                    "Circuit breaker triggered during pack edge creation"
-                )
-                break
-
-            try:
-                # Build batch filter: pack_name:("pack1" OR "pack2" OR ...)
-                pack_filter = (
-                    "pack_tokenized:(" + " OR ".join(f'"{p}"' for p in batch) + ")"
-                )
-
-                # Rate limit and increment counter
-                self.rate_limiter.acquire()
-                self._increment_request_count()
-
-                # Search with batch filter
-                results = self._retry_with_backoff(
-                    self.client.text_search,
-                    query="",
-                    filter=pack_filter,
-                    page_size=150,
-                    fields="id,pack",
-                )
-
-                # Group samples by pack
-                samples_by_pack: dict[str, list[Any]] = {}
-                for sound in results:
-                    pack = sound.pack if hasattr(sound, "pack") else None
-                    if pack:
-                        # Extract pack name from URI if needed
-                        if isinstance(pack, str) and "/" in pack:
-                            pack_name = pack.split("/")[-2]
-                        else:
-                            pack_name = pack
-
-                        if pack_name:
-                            if pack_name not in samples_by_pack:
-                                samples_by_pack[pack_name] = []
-                            samples_by_pack[pack_name].append(str(sound.id))
-
-                # Paginate if needed
-                while results.next:
-                    if self._check_circuit_breaker():
-                        break
-
-                    self.rate_limiter.acquire()
-                    self._increment_request_count()
-                    results = self._retry_with_backoff(results.next_page)
-
-                    for sound in results:
-                        pack = sound.pack if hasattr(sound, "pack") else None
-                        if pack:
-                            if isinstance(pack, str) and "/" in pack:
-                                pack_name = pack.split("/")[-2]
-                            else:
-                                pack_name = pack
-
-                            if pack_name:
-                                if pack_name not in samples_by_pack:
-                                    samples_by_pack[pack_name] = []
-                                samples_by_pack[pack_name].append(str(sound.id))
-
-                # Add edges between samples in same pack
-                for _pack_name, sample_ids in samples_by_pack.items():
-                    # Only add edges for samples in our graph
-                    graph_samples = [sid for sid in sample_ids if sid in self.graph]
-
-                    # Add edges between all pairs
-                    for j in range(len(graph_samples)):
-                        for k in range(j + 1, len(graph_samples)):
-                            source = graph_samples[j]
-                            target = graph_samples[k]
-
-                            # Add bidirectional edges
-                            if not self.graph.has_edge(source, target):
-                                self.graph.add_edge(
-                                    source, target, type="in_same_pack", weight=1.0
-                                )
-                                edge_count += 1
-                            if not self.graph.has_edge(target, source):
-                                self.graph.add_edge(
-                                    target, source, type="in_same_pack", weight=1.0
-                                )
-                                edge_count += 1
-
-            except Exception as e:
-                self.logger.warning(f"Failed to add pack edges for batch: {e}")
+                    # Add bidirectional edges
+                    if not self.graph.has_edge(source, target):
+                        self.graph.add_edge(
+                            source, target, type="in_same_pack", weight=1.0
+                        )
+                        edge_count += 1
+                    if not self.graph.has_edge(target, source):
+                        self.graph.add_edge(
+                            target, source, type="in_same_pack", weight=1.0
+                        )
+                        edge_count += 1
 
         if edge_count > 0:
-            self.logger.info(f"Added {edge_count} pack relationship edges")
+            self.logger.info(f"✅ Added {edge_count} pack relationship edges (0 API requests)")
 
         return edge_count
+
+    def _add_tag_edges_batch(self, similarity_threshold: float = 0.3) -> int:
+        """
+        Add edges between samples with similar tags using Jaccard similarity.
+        
+        NO API REQUESTS - uses only data already in the graph nodes.
+        
+        Calculates Jaccard similarity between sample tag sets:
+        similarity = |tags1 ∩ tags2| / |tags1 ∪ tags2|
+        
+        Adds edges for samples with similarity above threshold.
+
+        Args:
+            similarity_threshold: Minimum Jaccard similarity to create edge (default: 0.3)
+
+        Returns:
+            Number of edges added
+        """
+        edge_count = 0
+
+        # Get all nodes with tags
+        nodes_with_tags = []
+        for node_id in self.graph.nodes():
+            node_data = self.graph.nodes[node_id]
+            tags = node_data.get("tags", [])
+            
+            if tags and len(tags) > 0:
+                # Convert to set for efficient intersection/union operations
+                tag_set = set(tags) if isinstance(tags, list) else {tags}
+                nodes_with_tags.append((node_id, tag_set))
+
+        if len(nodes_with_tags) < 2:
+            self.logger.info("Not enough samples with tags for tag-based edge generation")
+            return 0
+
+        self.logger.info(
+            f"Calculating tag similarity for {len(nodes_with_tags)} samples "
+            f"(threshold: {similarity_threshold})"
+        )
+
+        # Calculate Jaccard similarity for all pairs
+        for i in range(len(nodes_with_tags)):
+            node1_id, tags1 = nodes_with_tags[i]
+            
+            for j in range(i + 1, len(nodes_with_tags)):
+                node2_id, tags2 = nodes_with_tags[j]
+                
+                # Calculate Jaccard similarity
+                intersection = len(tags1 & tags2)
+                union = len(tags1 | tags2)
+                
+                if union == 0:
+                    continue
+                
+                similarity = intersection / union
+                
+                # Add edge if similarity exceeds threshold
+                if similarity >= similarity_threshold:
+                    # Add bidirectional edges with similarity as weight
+                    if not self.graph.has_edge(node1_id, node2_id):
+                        self.graph.add_edge(
+                            node1_id, node2_id, 
+                            type="similar_tags", 
+                            weight=similarity
+                        )
+                        edge_count += 1
+                    if not self.graph.has_edge(node2_id, node1_id):
+                        self.graph.add_edge(
+                            node2_id, node1_id, 
+                            type="similar_tags", 
+                            weight=similarity
+                        )
+                        edge_count += 1
+
+        if edge_count > 0:
+            self.logger.info(
+                f"✅ Added {edge_count} tag similarity edges "
+                f"(threshold: {similarity_threshold}, 0 API requests)"
+            )
+
+        return edge_count
+
+    def _generate_all_edges(
+        self,
+        include_user: bool = True,
+        include_pack: bool = True,
+        include_tag: bool = False,
+        tag_threshold: float = 0.3,
+    ) -> dict[str, int]:
+        """
+        Generate all edge types from existing graph data.
+        
+        Wrapper method that calls individual edge generation methods based on flags.
+        NO API REQUESTS - all methods work from existing graph node data.
+        
+        This method is designed for validation/visualization pipelines where edges
+        need to be generated after data collection is complete.
+
+        Args:
+            include_user: Create edges between samples by same user
+            include_pack: Create edges between samples in same pack
+            include_tag: Create edges based on tag similarity
+            tag_threshold: Minimum Jaccard similarity for tag edges (default: 0.3)
+
+        Returns:
+            Dictionary with edge counts by type:
+                - user_edges: Number of user relationship edges added
+                - pack_edges: Number of pack relationship edges added
+                - tag_edges: Number of tag similarity edges added
+                - total_edges: Total number of edges added
+
+        Example:
+            # Generate all edge types
+            stats = loader._generate_all_edges(
+                include_user=True,
+                include_pack=True,
+                include_tag=True,
+                tag_threshold=0.3
+            )
+            # Returns: {'user_edges': 150, 'pack_edges': 75, 'tag_edges': 200, 'total_edges': 425}
+        """
+        self.logger.info(
+            f"Generating edges from existing graph data: "
+            f"user={include_user}, pack={include_pack}, tag={include_tag}"
+        )
+
+        edge_stats = {
+            "user_edges": 0,
+            "pack_edges": 0,
+            "tag_edges": 0,
+            "total_edges": 0,
+        }
+
+        # Generate user edges if requested
+        if include_user:
+            # Collect unique usernames from graph (parameter unused but kept for compatibility)
+            usernames = set()
+            for node_id in self.graph.nodes():
+                node_data = self.graph.nodes[node_id]
+                username = node_data.get("user") or node_data.get("username")
+                if username:
+                    usernames.add(username)
+
+            if usernames:
+                user_edges = self._add_user_edges_batch(usernames)
+                edge_stats["user_edges"] = user_edges
+                self.stats["user_edges_created"] = user_edges
+            else:
+                self.logger.info("No usernames found in graph, skipping user edges")
+
+        # Generate pack edges if requested
+        if include_pack:
+            # Collect unique pack names from graph (parameter unused but kept for compatibility)
+            pack_names = set()
+            for node_id in self.graph.nodes():
+                node_data = self.graph.nodes[node_id]
+                pack = node_data.get("pack")
+                if pack:
+                    # Extract pack name from URI if needed
+                    if isinstance(pack, str) and "/" in pack:
+                        pack_name = pack.split("/")[-2]
+                    else:
+                        pack_name = str(pack)
+                    if pack_name:
+                        pack_names.add(pack_name)
+
+            if pack_names:
+                pack_edges = self._add_pack_edges_batch(pack_names)
+                edge_stats["pack_edges"] = pack_edges
+                self.stats["pack_edges_created"] = pack_edges
+            else:
+                self.logger.info("No packs found in graph, skipping pack edges")
+
+        # Generate tag edges if requested
+        if include_tag:
+            tag_edges = self._add_tag_edges_batch(tag_threshold)
+            edge_stats["tag_edges"] = tag_edges
+            self.stats["tag_edges_created"] = tag_edges
+
+        # Calculate total edges added
+        edge_stats["total_edges"] = (
+            edge_stats["user_edges"]
+            + edge_stats["pack_edges"]
+            + edge_stats["tag_edges"]
+        )
+
+        self.logger.info(
+            f"Edge generation complete: {edge_stats['total_edges']} total edges added "
+            f"(user: {edge_stats['user_edges']}, pack: {edge_stats['pack_edges']}, "
+            f"tag: {edge_stats['tag_edges']}) - 0 API requests"
+        )
+
+        return edge_stats
 
     def _add_node_to_graph(self, sample: dict[str, Any]) -> None:
         """
@@ -2126,6 +2436,231 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return sample_ids
 
+    def _search_with_pagination(
+        self,
+        query: Optional[str] = None,
+        tags: Optional[list[str]] = None,
+        max_samples: int = 1000,
+        sort: str = "downloads_desc",
+    ) -> dict[str, Any]:
+        """
+        Search for samples using pagination with checkpoint support.
+
+        Implements page-by-page search that:
+        - Resumes from last pagination state in checkpoint
+        - Checks circuit breaker before each page request
+        - Detects duplicates before making API requests
+        - Saves checkpoint with pagination state after each page
+        - Returns when max_samples reached or circuit breaker triggers
+
+        This method is designed for nightly collection workflows where:
+        - Collection continues across multiple runs
+        - API quota is limited (max_requests circuit breaker)
+        - Duplicate detection prevents wasting API calls
+
+        Args:
+            query: Text search query (None = all sounds)
+            tags: List of tags to filter by
+            max_samples: Maximum number of NEW samples to collect
+            sort: Sort order (downloads_desc, rating_desc, created_desc, etc.)
+
+        Returns:
+            Dictionary with:
+                - samples: List of new sample dictionaries
+                - pagination_complete: Boolean indicating if search exhausted
+                - duplicates_skipped: Number of duplicates detected
+                - pages_processed: Number of pages fetched
+
+        Example:
+            # Initial run - starts at page 1
+            result = loader._search_with_pagination(
+                query="jungle",
+                max_samples=250,
+                sort="downloads_desc"
+            )
+            # Collects 250 samples, saves pagination state at page 13
+
+            # Next run - resumes from page 13
+            result = loader._search_with_pagination(
+                query="jungle",
+                max_samples=250,
+                sort="downloads_desc"
+            )
+            # Continues from page 13, collects 250 more samples
+        """
+        # Complete fields parameter (29 response fields)
+        comprehensive_fields = (
+            "id,url,name,tags,description,category,subcategory,geotag,created,"
+            "license,type,channels,filesize,bitrate,bitdepth,duration,samplerate,"
+            "username,pack,previews,images,num_downloads,avg_rating,num_ratings,"
+            "num_comments,comments,similar_sounds,analysis,ac_analysis"
+        )
+
+        # Get current pagination state from checkpoint
+        current_page = self.pagination_state.get("page", 1)
+        saved_query = self.pagination_state.get("query", "")
+        saved_sort = self.pagination_state.get("sort", "downloads_desc")
+
+        # Reset pagination if query or sort changed
+        if saved_query != (query or "") or saved_sort != sort:
+            self.logger.info(
+                f"Query or sort changed (query: '{saved_query}' -> '{query or ''}', "
+                f"sort: '{saved_sort}' -> '{sort}'), resetting pagination to page 1"
+            )
+            current_page = 1
+            self.pagination_state = {
+                "page": 1,
+                "query": query or "",
+                "sort": sort,
+            }
+
+        self.logger.info(
+            f"Starting pagination search: query='{query or ''}', sort={sort}, "
+            f"starting_page={current_page}, max_samples={max_samples}"
+        )
+
+        # Build search filter for tags
+        search_filter = ""
+        if tags:
+            tag_filter = " ".join(f"tag:{tag}" for tag in tags)
+            search_filter = tag_filter
+
+        # Collection state
+        new_samples: list[dict[str, Any]] = []
+        duplicates_skipped = 0
+        pages_processed = 0
+        pagination_complete = False
+        page_size = 150  # Freesound max page size
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        # Fetch pages until we have enough samples or hit limits
+        while len(new_samples) < max_samples:
+            # Check circuit breaker BEFORE making API request
+            if self._check_circuit_breaker():
+                self.logger.info(
+                    f"Circuit breaker triggered at page {current_page}, "
+                    f"collected {len(new_samples)} new samples, "
+                    f"skipped {duplicates_skipped} duplicates"
+                )
+                break
+
+            # Check time limit
+            if self._check_time_limit():
+                self.logger.warning(
+                    f"Time limit reached at page {current_page}, "
+                    f"collected {len(new_samples)} new samples"
+                )
+                break
+
+            try:
+                # Rate limit the request
+                self.rate_limiter.acquire()
+                self._increment_request_count()
+
+                # Fetch page with retry logic
+                def _do_search():
+                    return self.client.text_search(
+                        query=query or "",
+                        filter=search_filter if search_filter else None,
+                        page_size=page_size,
+                        sort=sort,
+                        fields=comprehensive_fields,
+                        page=current_page,
+                    )
+
+                results = self._retry_with_backoff(_do_search)
+                pages_processed += 1
+
+                # Check if we've reached the end of results
+                if not results or len(results.results) == 0:
+                    self.logger.info(
+                        f"Reached end of search results at page {current_page}"
+                    )
+                    pagination_complete = True
+                    break
+
+                # Process samples from this page
+                page_new_samples = 0
+                page_duplicates = 0
+
+                for sound in results.results:
+                    # Stop if we have enough samples
+                    if len(new_samples) >= max_samples:
+                        break
+
+                    sample_id = sound.id
+
+                    # DUPLICATE DETECTION: Check metadata cache before API request
+                    # This is O(1) SQLite lookup - much faster than API call
+                    if hasattr(self, "metadata_cache") and self.metadata_cache.exists(
+                        sample_id
+                    ):
+                        duplicates_skipped += 1
+                        page_duplicates += 1
+                        continue
+
+                    # Also check processed_ids set
+                    if str(sample_id) in self.processed_ids:
+                        duplicates_skipped += 1
+                        page_duplicates += 1
+                        continue
+
+                    # Extract metadata from search result (no additional API call needed)
+                    sample_dict = self._extract_sample_metadata(sound)
+                    sample_dict["collected_at"] = now
+
+                    new_samples.append(sample_dict)
+                    page_new_samples += 1
+
+                self.logger.info(
+                    f"Page {current_page}: {page_new_samples} new samples, "
+                    f"{page_duplicates} duplicates skipped "
+                    f"(total: {len(new_samples)}/{max_samples})"
+                )
+
+                # Update pagination state after successful page
+                current_page += 1
+                self.pagination_state = {
+                    "page": current_page,
+                    "query": query or "",
+                    "sort": sort,
+                }
+
+                # Save checkpoint with updated pagination state
+                # This ensures we can resume from this page if interrupted
+                self._save_checkpoint(
+                    {
+                        "pagination_search_progress": {
+                            "current_page": current_page,
+                            "new_samples_collected": len(new_samples),
+                            "duplicates_skipped": duplicates_skipped,
+                            "pages_processed": pages_processed,
+                        }
+                    }
+                )
+
+            except Exception as e:
+                self.logger.error(
+                    f"Error fetching page {current_page}: {e}, stopping pagination"
+                )
+                break
+
+        # Log final statistics
+        self.logger.info(
+            f"Pagination search complete: {len(new_samples)} new samples collected, "
+            f"{duplicates_skipped} duplicates skipped, "
+            f"{pages_processed} pages processed, "
+            f"final page: {current_page}"
+        )
+
+        return {
+            "samples": new_samples,
+            "pagination_complete": pagination_complete,
+            "duplicates_skipped": duplicates_skipped,
+            "pages_processed": pages_processed,
+        }
+
     def _search_samples(
         self, query: Optional[str], tags: Optional[list[str]], max_samples: int
     ) -> list[dict[str, Any]]:
@@ -2167,8 +2702,29 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             self._increment_request_count()
 
             # Use text_search with pagination and complete fields
-            # Sort by popularity (downloads, ratings) to get most useful samples first
             page_size = min(150, max_samples)  # Freesound max page size is 150
+
+            # Get pagination state to resume from last position
+            pagination_state = getattr(self, 'pagination_state', {"page": 1, "query": "", "sort": "downloads_desc"})
+            start_page = pagination_state.get("page", 1)
+            current_sort = pagination_state.get("sort", "downloads_desc")
+            
+            # Cycle through different sort orders to discover new samples
+            # This avoids always getting the same top samples
+            sort_strategies = [
+                "downloads_desc",  # Most downloaded
+                "rating_desc",     # Highest rated
+                "created_desc",    # Most recent
+                "duration_desc",   # Longest
+                "duration_asc",    # Shortest
+            ]
+            
+            # If we've processed many samples with current sort, try next strategy
+            if len(self.processed_ids) > 0 and len(self.processed_ids) % 1000 == 0:
+                current_index = sort_strategies.index(current_sort) if current_sort in sort_strategies else 0
+                current_sort = sort_strategies[(current_index + 1) % len(sort_strategies)]
+                start_page = 1  # Reset to page 1 with new sort
+                self.logger.info(f"Switching to sort strategy: {current_sort}")
 
             # Wrap API call with retry logic
             def _do_search():
@@ -2176,16 +2732,28 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     query=query or "",
                     filter=search_filter if search_filter else None,
                     page_size=page_size,
-                    sort="downloads_desc",  # Sort by most downloaded (most popular)
+                    sort=current_sort,
                     fields=comprehensive_fields,  # Get ALL metadata in one call!
+                    page=start_page,  # Resume from last page
                 )
 
             results = self._retry_with_backoff(_do_search)
+            
+            # Update pagination state
+            self.pagination_state = {
+                "page": start_page,
+                "query": query or "",
+                "sort": current_sort
+            }
 
             # Extract metadata directly from search results (no follow-up calls needed!)
             for sound in results:
                 if len(samples) >= max_samples:
                     break
+
+                # Skip if already processed (check SQL cache for O(1) lookup)
+                if hasattr(self, 'metadata_cache') and self.metadata_cache.exists(sound.id):
+                    continue
 
                 # Cache the sound object for future use
                 self._sound_cache[sound.id] = sound
@@ -2199,14 +2767,28 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 samples.append(sample_data)
 
             # Fetch additional pages if needed
+            current_page = start_page
             while len(samples) < max_samples and results.next:
+                # Check circuit breaker BEFORE making next request
+                if self._check_circuit_breaker():
+                    self.logger.warning(
+                        f"Circuit breaker triggered during pagination at page {current_page}. "
+                        f"Collected {len(samples)} samples so far."
+                    )
+                    break
+                    
                 self.rate_limiter.acquire()
                 self._increment_request_count()
                 results = self._retry_with_backoff(results.next_page)
+                current_page += 1
 
                 for sound in results:
                     if len(samples) >= max_samples:
                         break
+
+                    # Skip if already processed (check SQL cache for O(1) lookup)
+                    if hasattr(self, 'metadata_cache') and self.metadata_cache.exists(sound.id):
+                        continue
 
                     # Cache the sound object
                     self._sound_cache[sound.id] = sound
@@ -2216,6 +2798,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     sample_data["last_metadata_update_at"] = now
 
                     samples.append(sample_data)
+                
+                # Update pagination state after each page
+                self.pagination_state["page"] = current_page
 
             self.logger.info(
                 f"Search returned {len(samples)} samples with complete metadata "

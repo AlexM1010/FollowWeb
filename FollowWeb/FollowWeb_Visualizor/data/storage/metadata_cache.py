@@ -249,6 +249,28 @@ class MetadataCache:
         cursor = self._conn.execute("SELECT sample_id FROM metadata")
         return [row[0] for row in cursor.fetchall()]
 
+    def get_all_ids(self) -> list[int]:
+        """
+        Get all sample IDs in the cache (alias for get_all_sample_ids).
+
+        Returns:
+            List of sample IDs
+        """
+        return self.get_all_sample_ids()
+
+    def get_all_metadata(self) -> dict[int, dict[str, Any]]:
+        """
+        Get all metadata from the cache.
+
+        Returns:
+            Dictionary mapping sample_id to metadata
+        """
+        if self._conn is None:
+            raise RuntimeError("Database connection not initialized")
+
+        cursor = self._conn.execute("SELECT sample_id, data FROM metadata")
+        return {row[0]: json.loads(row[1]) for row in cursor.fetchall()}
+
     def get_count(self) -> int:
         """
         Get total number of samples in cache.

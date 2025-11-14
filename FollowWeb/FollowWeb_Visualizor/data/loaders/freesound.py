@@ -54,6 +54,7 @@ Notes:
 """
 
 # Standard library imports
+import logging
 import os
 import time
 from typing import Any, Callable, Optional, Union
@@ -61,6 +62,13 @@ from typing import Any, Callable, Optional, Union
 # Third-party imports
 import freesound
 import networkx as nx
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 # Local imports
 from ...core.exceptions import DataProcessingError
@@ -245,26 +253,53 @@ class FreesoundLoader(DataLoader):
             f"{requests_per_minute} requests/minute"
         )
 
+    @staticmethod
+    def _is_retryable_error(exception: Exception) -> bool:
+        """
+        Determine if an exception should trigger a retry.
+
+        Retries on:
+        - ConnectionError: Network connectivity issues
+        - TimeoutError: Request timeouts
+        - freesound.FreesoundException with code 429: Rate limit errors only
+
+        Args:
+            exception: The exception to check
+
+        Returns:
+            True if the exception should trigger a retry, False otherwise
+        """
+        # Always retry network errors
+        if isinstance(exception, (ConnectionError, TimeoutError)):
+            return True
+
+        # Only retry 429 rate limit errors from Freesound API
+        if isinstance(exception, freesound.FreesoundException):
+            return hasattr(exception, "code") and exception.code == 429
+
+        return False
+
     def _retry_with_backoff(
         self,
         func: Callable,
         *args,
         max_retries: int = 3,
-        initial_wait: float = 0.0,
+        initial_wait: float = 2.0,
         **kwargs,
     ) -> Any:
         """
-        Retry a function on rate limit errors.
+        Retry a function on rate limit and network errors using tenacity library.
 
-        Since we already have a rate limiter preventing us from exceeding limits,
-        429 errors are rare and usually transient. Just retry immediately - the
-        rate limiter will handle proper spacing.
+        Uses exponential backoff with configurable retry attempts. Retries on:
+        - ConnectionError: Network connectivity issues
+        - TimeoutError: Request timeouts
+        - freesound.FreesoundException with code 429: Rate limit errors only
 
         Args:
             func: Function to call
             *args: Positional arguments for func
             max_retries: Maximum number of retry attempts (default: 3)
-            initial_wait: Initial wait time in seconds (default: 0 - no wait)
+            initial_wait: Initial wait time in seconds (default: 2.0)
             **kwargs: Keyword arguments for func
 
         Returns:
@@ -273,45 +308,21 @@ class FreesoundLoader(DataLoader):
         Raises:
             Exception: If all retries are exhausted
         """
-        wait_time = initial_wait
+        # Create a retry decorator with custom retry condition
+        retry_decorator = retry(
+            stop=stop_after_attempt(max_retries),
+            wait=wait_exponential(multiplier=1, min=initial_wait, max=10),
+            retry=retry_if_exception(self._is_retryable_error),
+            before_sleep=before_sleep_log(self.logger, logging.WARNING),
+            reraise=True,
+        )
 
-        for attempt in range(max_retries):
-            try:
-                return func(*args, **kwargs)
-            except freesound.FreesoundException as e:
-                # Check if it's a rate limit error (429)
-                if hasattr(e, "code") and e.code == 429:
-                    if attempt < max_retries - 1:
-                        # Calculate wait time in minutes for better readability
-                        wait_time / 60
+        # Wrap the function with retry logic
+        @retry_decorator
+        def _wrapped_func():
+            return func(*args, **kwargs)
 
-                        self.logger.warning(
-                            f"⏳ Rate limit (429) - attempt {attempt + 1}/{max_retries}. "
-                            f"Waiting {wait_time:.0f}s..."
-                        )
-
-                        # Simple wait without countdown for shorter times
-                        time.sleep(wait_time)
-
-                        # Exponential backoff: double the wait time (max 5 minutes)
-                        wait_time = min(wait_time * 2, 300)
-                        continue
-                    else:
-                        self.logger.error(
-                            f"❌ Rate limit hit after {max_retries} retries. "
-                            f"You may have hit the daily limit (2000 requests/day). "
-                            f"Try again tomorrow or contact Freesound for higher limits."
-                        )
-                        raise
-                else:
-                    # Not a rate limit error, re-raise immediately
-                    raise
-            except Exception:
-                # Other exceptions, re-raise immediately
-                raise
-
-        # Should never reach here, but just in case
-        raise DataProcessingError(f"Failed after {max_retries} retries")
+        return _wrapped_func()
 
     def fetch_data(  # type: ignore[override]
         self,

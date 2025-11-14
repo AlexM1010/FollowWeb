@@ -718,3 +718,427 @@ class TestIncrementalFreesoundLoaderIntegration:
                     # Ensure cleanup
                     loader.close()
     
+
+
+class TestIncrementalFreesoundLoaderPagination:
+    """Test pagination-based search collection."""
+
+    def test_search_with_pagination_basic(self, loader_with_mocks):
+        """Test basic pagination search."""
+        loader = loader_with_mocks
+        
+        # Reset pagination state
+        loader.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
+        
+        # Mock search results for multiple pages
+        def mock_text_search(**kwargs):
+            page = kwargs.get('page', 1)
+            
+            # Create mock results
+            mock_results = Mock()
+            
+            if page == 1:
+                # First page: 3 samples
+                sounds = [
+                    create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
+                    for i in range(1, 4)
+                ]
+                mock_results.results = sounds
+            elif page == 2:
+                # Second page: 2 samples
+                sounds = [
+                    create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
+                    for i in range(4, 6)
+                ]
+                mock_results.results = sounds
+            else:
+                # No more results
+                mock_results.results = []
+            
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        
+        # Mock checkpoint save
+        loader.checkpoint.save = Mock()
+        
+        # Search with pagination
+        result = loader._search_with_pagination(
+            query="test",
+            max_samples=5,
+            sort="downloads_desc"
+        )
+        
+        # Should collect 5 samples across 2 pages
+        assert len(result['samples']) == 5
+        assert result['pages_processed'] == 2
+        assert result['duplicates_skipped'] == 0
+        
+        # Pagination state should be updated to page 3
+        assert loader.pagination_state['page'] == 3
+        assert loader.pagination_state['query'] == "test"
+        assert loader.pagination_state['sort'] == "downloads_desc"
+
+    def test_search_with_pagination_resumes_from_checkpoint(self, loader_with_mocks):
+        """Test pagination resumes from saved state."""
+        loader = loader_with_mocks
+        
+        # Set pagination state to page 2 (simulating resume)
+        loader.pagination_state = {"page": 2, "query": "test", "sort": "downloads_desc"}
+        
+        # Mock search results starting from page 2
+        def mock_text_search(**kwargs):
+            page = kwargs.get('page', 1)
+            
+            mock_results = Mock()
+            if page == 2:
+                sounds = [
+                    create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
+                    for i in range(4, 7)
+                ]
+                mock_results.results = sounds
+            else:
+                mock_results.results = []
+            
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        loader.checkpoint.save = Mock()
+        
+        # Search should start from page 2
+        result = loader._search_with_pagination(
+            query="test",
+            max_samples=3,
+            sort="downloads_desc"
+        )
+        
+        assert len(result['samples']) == 3
+        assert result['pages_processed'] == 1
+        
+        # Should have advanced to page 3
+        assert loader.pagination_state['page'] == 3
+
+    def test_search_with_pagination_detects_duplicates(self, loader_with_mocks):
+        """Test pagination skips duplicate samples."""
+        loader = loader_with_mocks
+        
+        # Add some samples to processed_ids
+        loader.processed_ids = {'1', '2'}
+        
+        # Reset pagination state
+        loader.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
+        
+        # Mock search results with some duplicates - only return results on first page
+        def mock_text_search(**kwargs):
+            page = kwargs.get('page', 1)
+            mock_results = Mock()
+            
+            if page == 1:
+                # Return samples 1, 2, 3, 4 (1 and 2 are duplicates)
+                sounds = [
+                    create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
+                    for i in range(1, 5)
+                ]
+                mock_results.results = sounds
+            else:
+                # No more results on subsequent pages
+                mock_results.results = []
+            
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        loader.checkpoint.save = Mock()
+        
+        result = loader._search_with_pagination(
+            query="test",
+            max_samples=10,
+            sort="downloads_desc"
+        )
+        
+        # Should only collect samples 3 and 4 (1 and 2 are duplicates)
+        assert len(result['samples']) == 2
+        assert result['duplicates_skipped'] == 2
+        assert result['samples'][0]['id'] == 3
+        assert result['samples'][1]['id'] == 4
+
+    def test_search_with_pagination_circuit_breaker(self, loader_with_mocks):
+        """Test pagination stops when circuit breaker triggers."""
+        loader = loader_with_mocks
+        
+        # Set circuit breaker to trigger immediately
+        loader.session_request_count = loader.max_requests
+        
+        # Reset pagination state
+        loader.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
+        
+        # Mock search results
+        def mock_text_search(**kwargs):
+            mock_results = Mock()
+            sounds = [
+                create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
+                for i in range(1, 4)
+            ]
+            mock_results.results = sounds
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        loader.checkpoint.save = Mock()
+        
+        result = loader._search_with_pagination(
+            query="test",
+            max_samples=10,
+            sort="downloads_desc"
+        )
+        
+        # Should collect no samples due to circuit breaker
+        assert len(result['samples']) == 0
+        assert result['pages_processed'] == 0
+
+    def test_search_with_pagination_resets_on_query_change(self, loader_with_mocks):
+        """Test pagination resets when query changes."""
+        loader = loader_with_mocks
+        
+        # Set pagination state with different query
+        loader.pagination_state = {"page": 5, "query": "old_query", "sort": "downloads_desc"}
+        
+        # Mock search results
+        def mock_text_search(**kwargs):
+            mock_results = Mock()
+            sounds = [
+                create_mock_sound(i, f"sound{i}", [], 1.0, f"user{i}", {})
+                for i in range(1, 4)
+            ]
+            mock_results.results = sounds
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        loader.checkpoint.save = Mock()
+        
+        # Search with new query
+        result = loader._search_with_pagination(
+            query="new_query",
+            max_samples=3,
+            sort="downloads_desc"
+        )
+        
+        # Should reset to page 1 and then advance to page 2
+        assert loader.pagination_state['page'] == 2
+        assert loader.pagination_state['query'] == "new_query"
+
+    def test_search_with_pagination_saves_checkpoint_after_each_page(self, loader_with_mocks):
+        """Test checkpoint is saved after each page."""
+        loader = loader_with_mocks
+        
+        # Reset pagination state
+        loader.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
+        
+        # Mock search results for 2 pages
+        def mock_text_search(**kwargs):
+            page = kwargs.get('page', 1)
+            mock_results = Mock()
+            
+            if page <= 2:
+                sounds = [
+                    create_mock_sound(i + (page-1)*2, f"sound{i + (page-1)*2}", [], 1.0, f"user{i}", {})
+                    for i in range(1, 3)
+                ]
+                mock_results.results = sounds
+            else:
+                mock_results.results = []
+            
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        loader.checkpoint.save = Mock()
+        
+        result = loader._search_with_pagination(
+            query="test",
+            max_samples=4,
+            sort="downloads_desc"
+        )
+        
+        # Should save checkpoint after each page (2 pages)
+        assert loader.checkpoint.save.call_count >= 2
+        assert len(result['samples']) == 4
+
+    def test_search_with_pagination_handles_empty_results(self, loader_with_mocks):
+        """Test pagination handles empty search results."""
+        loader = loader_with_mocks
+        
+        # Reset pagination state
+        loader.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
+        
+        # Mock empty search results
+        def mock_text_search(**kwargs):
+            mock_results = Mock()
+            mock_results.results = []
+            return mock_results
+        
+        loader.client.text_search.side_effect = mock_text_search
+        loader.checkpoint.save = Mock()
+        
+        result = loader._search_with_pagination(
+            query="test",
+            max_samples=10,
+            sort="downloads_desc"
+        )
+        
+        # Should return empty results and mark pagination as complete
+        assert len(result['samples']) == 0
+        assert result['pagination_complete'] is True
+        assert result['pages_processed'] == 1
+
+
+
+class TestIncrementalFreesoundLoaderTagEdges:
+    """Test tag-based edge generation."""
+
+    def test_add_tag_edges_batch_basic(self, loader_with_mocks):
+        """Test basic tag edge generation with Jaccard similarity."""
+        loader = loader_with_mocks
+        
+        # Add nodes with tags
+        loader.graph.add_node('1', name='sound1', tags=['drum', 'kick', 'bass'])
+        loader.graph.add_node('2', name='sound2', tags=['drum', 'kick'])
+        loader.graph.add_node('3', name='sound3', tags=['synth', 'pad'])
+        
+        # Generate tag edges with default threshold (0.3)
+        edge_count = loader._add_tag_edges_batch(similarity_threshold=0.3)
+        
+        # Samples 1 and 2 share 2/3 tags = 0.67 similarity (above threshold)
+        # Samples 1 and 3 share 0/5 tags = 0.0 similarity (below threshold)
+        # Samples 2 and 3 share 0/4 tags = 0.0 similarity (below threshold)
+        # Should create 2 bidirectional edges (1->2 and 2->1)
+        assert edge_count == 2
+        assert loader.graph.has_edge('1', '2')
+        assert loader.graph.has_edge('2', '1')
+        assert not loader.graph.has_edge('1', '3')
+        assert not loader.graph.has_edge('2', '3')
+
+    def test_add_tag_edges_batch_with_threshold(self, loader_with_mocks):
+        """Test tag edge generation with custom threshold."""
+        loader = loader_with_mocks
+        
+        # Add nodes with varying tag overlap
+        loader.graph.add_node('1', name='sound1', tags=['a', 'b', 'c'])
+        loader.graph.add_node('2', name='sound2', tags=['a', 'b'])  # 2/3 = 0.67 similarity with 1
+        loader.graph.add_node('3', name='sound3', tags=['a'])  # 1/3 = 0.33 similarity with 1, 1/2 = 0.5 with 2
+        
+        # Use high threshold (0.5) - samples 1-2 (0.67) and 2-3 (0.5) should connect
+        edge_count = loader._add_tag_edges_batch(similarity_threshold=0.5)
+        
+        assert edge_count == 4  # Bidirectional edges: 1<->2 and 2<->3
+        assert loader.graph.has_edge('1', '2')
+        assert loader.graph.has_edge('2', '1')
+        assert loader.graph.has_edge('2', '3')
+        assert loader.graph.has_edge('3', '2')
+        assert not loader.graph.has_edge('1', '3')  # 0.33 < 0.5
+
+    def test_add_tag_edges_batch_no_tags(self, loader_with_mocks):
+        """Test tag edge generation with nodes without tags."""
+        loader = loader_with_mocks
+        
+        # Add nodes without tags
+        loader.graph.add_node('1', name='sound1')
+        loader.graph.add_node('2', name='sound2')
+        
+        edge_count = loader._add_tag_edges_batch()
+        
+        # Should not create any edges
+        assert edge_count == 0
+
+    def test_add_tag_edges_batch_empty_tags(self, loader_with_mocks):
+        """Test tag edge generation with empty tag lists."""
+        loader = loader_with_mocks
+        
+        # Add nodes with empty tag lists
+        loader.graph.add_node('1', name='sound1', tags=[])
+        loader.graph.add_node('2', name='sound2', tags=[])
+        
+        edge_count = loader._add_tag_edges_batch()
+        
+        # Should not create any edges
+        assert edge_count == 0
+
+    def test_add_tag_edges_batch_single_node(self, loader_with_mocks):
+        """Test tag edge generation with single node."""
+        loader = loader_with_mocks
+        
+        # Add single node with tags
+        loader.graph.add_node('1', name='sound1', tags=['drum', 'kick'])
+        
+        edge_count = loader._add_tag_edges_batch()
+        
+        # Should not create any edges (need at least 2 nodes)
+        assert edge_count == 0
+
+    def test_add_tag_edges_batch_edge_attributes(self, loader_with_mocks):
+        """Test tag edges have correct attributes."""
+        loader = loader_with_mocks
+        
+        # Add nodes with tags
+        loader.graph.add_node('1', name='sound1', tags=['a', 'b', 'c'])
+        loader.graph.add_node('2', name='sound2', tags=['a', 'b'])
+        
+        edge_count = loader._add_tag_edges_batch(similarity_threshold=0.3)
+        
+        assert edge_count == 2
+        
+        # Check edge attributes
+        edge_data = loader.graph.edges['1', '2']
+        assert edge_data['type'] == 'similar_tags'
+        assert 'weight' in edge_data
+        # Jaccard similarity: |{a,b}| / |{a,b,c}| = 2/3 = 0.67
+        assert abs(edge_data['weight'] - 0.6666666666666666) < 0.01
+
+    def test_add_tag_edges_batch_no_duplicate_edges(self, loader_with_mocks):
+        """Test tag edge generation doesn't create duplicate edges."""
+        loader = loader_with_mocks
+        
+        # Add nodes with tags
+        loader.graph.add_node('1', name='sound1', tags=['a', 'b'])
+        loader.graph.add_node('2', name='sound2', tags=['a', 'b'])
+        
+        # Add edge manually first
+        loader.graph.add_edge('1', '2', type='similar_tags', weight=1.0)
+        
+        # Try to add tag edges again
+        edge_count = loader._add_tag_edges_batch(similarity_threshold=0.3)
+        
+        # Should only add the reverse edge (2->1), not duplicate 1->2
+        assert edge_count == 1
+        assert loader.graph.has_edge('2', '1')
+
+    def test_add_tag_edges_batch_updates_stats(self, loader_with_mocks):
+        """Test tag edge generation updates statistics."""
+        loader = loader_with_mocks
+        
+        # Add nodes with tags
+        loader.graph.add_node('1', name='sound1', tags=['a', 'b'])
+        loader.graph.add_node('2', name='sound2', tags=['a', 'b'])
+        
+        # Call through _add_batch_user_pack_edges with tag edges enabled
+        loader.config['include_tag_edges'] = True
+        loader.config['tag_similarity_threshold'] = 0.3
+        
+        stats = loader._add_batch_user_pack_edges()
+        
+        assert stats['tag_edges_added'] == 2
+        assert loader.stats['tag_edges_created'] == 2
+
+    def test_add_tag_edges_batch_zero_api_requests(self, loader_with_mocks):
+        """Test tag edge generation makes zero API requests."""
+        loader = loader_with_mocks
+        
+        # Add nodes with tags
+        loader.graph.add_node('1', name='sound1', tags=['a', 'b'])
+        loader.graph.add_node('2', name='sound2', tags=['a', 'b'])
+        
+        # Track API calls
+        initial_request_count = loader.session_request_count
+        
+        edge_count = loader._add_tag_edges_batch()
+        
+        # Should not make any API requests
+        assert loader.session_request_count == initial_request_count
+        assert edge_count == 2
