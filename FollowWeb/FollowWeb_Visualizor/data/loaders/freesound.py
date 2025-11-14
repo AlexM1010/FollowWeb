@@ -56,7 +56,6 @@ Notes:
 # Standard library imports
 import logging
 import os
-import time
 from typing import Any, Callable, Optional, Union
 
 # Third-party imports
