@@ -617,9 +617,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 # Check time limit
                 if self._check_time_limit():
                     elapsed = time.time() - self.start_time
-                    stats = self._calculate_progress_stats(
-                        i, len(new_samples), elapsed
-                    )
+                    stats = self._calculate_progress_stats(i, len(new_samples), elapsed)
 
                     self.logger.warning(
                         f"Time limit reached ({self.max_runtime_hours}h). "
@@ -658,17 +656,19 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Generate edges if requested
         edge_stats = {}
-        if processed_samples and (include_user_edges or include_pack_edges or include_tag_edges):
+        if processed_samples and (
+            include_user_edges or include_pack_edges or include_tag_edges
+        ):
             self.logger.info("Generating edges...")
             # Note: Edge generation methods should be implemented in earlier tasks
             # For now, we'll call the existing batch edge generation if available
             try:
-                if hasattr(self, '_generate_all_edges'):
+                if hasattr(self, "_generate_all_edges"):
                     edge_stats = self._generate_all_edges(
                         include_user=include_user_edges,
                         include_pack=include_pack_edges,
                         include_tag=include_tag_edges,
-                        tag_threshold=tag_similarity_threshold
+                        tag_threshold=tag_similarity_threshold,
                     )
                 else:
                     # Fallback to existing methods
@@ -676,22 +676,24 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         # Use existing batch edge generation
                         usernames = set()
                         pack_names = set()
-                        
+
                         for node_id in self.graph.nodes():
                             node_data = self.graph.nodes[node_id]
                             if include_user_edges:
-                                username = node_data.get("user") or node_data.get("username")
+                                username = node_data.get("user") or node_data.get(
+                                    "username"
+                                )
                                 if username:
                                     usernames.add(username)
                             if include_pack_edges:
                                 pack = node_data.get("pack")
                                 if pack:
                                     pack_names.add(pack)
-                        
+
                         if include_user_edges and usernames:
                             user_edges = self._add_user_edges_batch(usernames)
                             edge_stats["user_edges_added"] = user_edges
-                        
+
                         if include_pack_edges and pack_names:
                             pack_edges = self._add_pack_edges_batch(pack_names)
                             edge_stats["pack_edges_added"] = pack_edges
@@ -704,7 +706,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             len(processed_samples), len(new_samples), elapsed
         )
 
-        self._save_checkpoint({"completed": True, "final_stats": final_stats, "edge_stats": edge_stats})
+        self._save_checkpoint(
+            {"completed": True, "final_stats": final_stats, "edge_stats": edge_stats}
+        )
 
         success_msg = EmojiFormatter.format(
             "success",
