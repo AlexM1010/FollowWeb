@@ -1,271 +1,207 @@
 # FollowWeb Test Suite
 
-This directory contains the test suite for FollowWeb with comprehensive coverage of all system components.
+Comprehensive test suite with local CI pipeline replication.
 
-## Directory Structure
-
-```
-tests/
-├── Output/                          # Test output directory (gitignored)
-│   └── test_*_*/                   # Worker-isolated test outputs
-├── unit/                           # Unit tests (fast, isolated)
-│   ├── __init__.py
-│   ├── test_config.py              # Configuration management tests
-│   ├── test_utils.py               # Utility function tests
-│   ├── test_progress.py            # Progress tracking tests
-│   ├── test_analysis.py            # Analysis module tests
-│   ├── test_main.py                # Main pipeline tests
-│   ├── test_k_values.py            # K-value configuration tests
-│   ├── test_shared_metrics.py      # MetricsCalculator and metrics system tests
-│   ├── test_unified_output.py      # Unified output system tests
-│   ├── test_visualization.py       # Visualization module tests
-│   └── test_visualization_renderers.py  # PNG/HTML renderer consistency tests
-├── integration/                    # Integration tests (cross-module)
-│   ├── __init__.py
-│   ├── test_pipeline.py            # End-to-end pipeline tests
-│   ├── test_ui_ux_integration.py   # UI/UX integration tests
-│   └── test_unified_output_integration.py  # Output system integration tests
-├── performance/                    # Performance tests (timing, resources)
-│   ├── __init__.py
-│   ├── test_benchmarks.py          # Performance benchmarking tests
-│   └── test_timing_benchmarks.py   # Performance and timing tests
-├── test_data/                      # Test datasets
-│   ├── dataset_summary.json        # Dataset statistics and metadata
-│   ├── tiny_real.json             # Tiny dataset for fast tests
-│   ├── small_real.json            # Small dataset for unit tests
-│   ├── medium_real.json           # Medium dataset for integration tests
-│   ├── large_real.json            # Large dataset for performance tests
-│   └── full_anonymized.json       # Full dataset for comprehensive tests
-├── __init__.py                     # Test package initialization
-├── conftest.py                     # Shared fixtures and pytest configuration
-├── run_tests.py                    # Consolidated test runner
-├── test.bat                        # Windows batch script for running tests
-
-└── README.md                       # This file
-```
-
-## Test Output Management
-
-All test outputs are centralized in the `tests/Output/` directory to keep the project root clean:
-
-- **Test outputs**: `tests/Output/` - All test-generated files (HTML, PNG, TXT, timing logs)
-- **Coverage reports**: `tests/Output/htmlcov/` - HTML coverage reports
-- **Coverage data**: `tests/Output/.coverage*` - Coverage database files
-- **Worker isolation**: `tests/Output/test_*_*/` - Parallel test worker directories
-
-### Cleaning Test Outputs
+## Quick Start
 
 ```bash
-# Clean test outputs older than 7 days
-make clean-test-outputs
+# Auto-fix code issues (fastest way to fix formatting/linting)
+python tests/run_tests.py fix                    # ONLY fix issues (no checks)
+python tests/run_tests.py quality --autofix      # Fix + verify
+python tests/run_tests.py all --autofix          # Fix + run all checks
 
-# Preview what would be cleaned (dry run)
-make clean-test-outputs-dry
-
-# Manual cleanup with custom age
-python analysis_tools/cleanup_test_outputs.py --days 3
-python analysis_tools/cleanup_test_outputs.py --days 1 --dry-run
-```
-
-### Test Runner (`run_tests.py`)
-The test runner provides a simple interface for running different test categories:
-
-```bash
-# Run all tests
+# Run full CI pipeline locally (recommended before pushing)
 python tests/run_tests.py all
 
 # Run specific test categories
-python tests/run_tests.py unit
-python tests/run_tests.py integration
-python tests/run_tests.py performance
-python tests/run_tests.py benchmark
+python tests/run_tests.py unit         # Fast unit tests (parallel)
+python tests/run_tests.py integration  # Integration tests (parallel)
+python tests/run_tests.py performance  # Performance tests (sequential)
+python tests/run_tests.py benchmark    # Benchmark tests (sequential)
 
-# Run tests sequentially (for debugging)
-python tests/run_tests.py sequential
-
-# Run tests with debug output
-python tests/run_tests.py debug
-
-# Show system resource information
-python tests/run_tests.py system-info
+# Run quality and security checks
+python tests/run_tests.py quality      # Format, lint, type checking
+python tests/run_tests.py security     # Security scans
+python tests/run_tests.py build        # Package build validation
 ```
 
-### Windows Batch Script (`test.bat`)
-For Windows users, the batch script provides a convenient interface:
+## Test Runner Features
 
-```cmd
-# Run all tests
-test.bat all
+The `run_tests.py` script replicates the full CI pipeline locally:
 
-# Run unit tests
-test.bat unit
+### Auto-Fix Mode
+- **`fix` command**: Apply all fixes without running checks (fastest)
+- **`--autofix` flag**: Apply fixes then run checks to verify
+- **Fixes applied**:
+  - Code formatting: `ruff format`
+  - Linting issues: `ruff check --fix`
+  - Import sorting: `ruff check --fix --select I`
 
-# Run benchmark tests
-test.bat benchmark
+### Quality Checks
+- **Code formatting**: `ruff format --check`
+- **Linting**: `ruff check`
+- **Import sorting**: `ruff check --select I`
+- **Type checking**: `mypy`
 
-# Show help
-test.bat help
+### Security Checks
+- **Bandit**: Security linting (medium/high severity)
+- **pip-audit**: Vulnerability scanning
+
+### Test Execution
+- **Unit tests**: Fast, isolated tests (parallel with all CPU cores)
+- **Integration tests**: Cross-module tests (parallel)
+- **Performance tests**: Timing-sensitive tests (sequential)
+- **Benchmark tests**: Performance benchmarks (sequential with pytest-benchmark)
+
+### Package Validation
+- **Manifest check**: `check-manifest`
+- **Build**: Source distribution and wheel
+- **Integrity check**: `twine check`
+
+## Test Organization
+
+```
+tests/
+├── unit/                  # Fast, isolated unit tests
+│   ├── test_config.py
+│   ├── test_utils.py
+│   ├── test_analysis.py
+│   └── test_visualization.py
+├── integration/           # Cross-module integration tests
+│   ├── test_pipeline.py
+│   └── test_ui_ux_integration.py
+├── performance/           # Performance and timing tests
+│   ├── test_benchmarks.py
+│   └── test_timing_benchmarks.py
+├── test_data/            # Test datasets
+│   ├── tiny_real.json
+│   ├── small_real.json
+│   └── medium_real.json
+├── conftest.py           # Shared fixtures
+├── run_tests.py          # Comprehensive test runner
+└── README.md             # This file
 ```
 
-## Test Categories and Coverage
+## Test Markers
 
-### Unit Tests (`-m unit`)
-- **Location**: `tests/unit/`
-- **Characteristics**: Fast, isolated component testing
-- **Worker count**: CPU cores minus one (calculated by `get_safe_worker_count()`)
-- **Purpose**: Test individual components and functions
+Tests are categorized using pytest markers:
 
-**Key Test Modules:**
-- **Configuration Tests**: Dataclass validation, parameter rejection, serialization
-- **Utility Tests**: Filename generation, color schemes, mathematical operations, centralized caching system
-- **Progress Tracking**: Context managers, adaptive display, time estimation
-- **Analysis Tests**: Graph loading, filtering, k-core algorithms, network analysis
-- **Pipeline Tests**: Orchestrator functionality, CLI, logging, error handling
-- **Visualization Tests**: Metrics calculation, rendering, report generation, shared metrics caching
+```python
+@pytest.mark.unit          # Fast, isolated unit tests
+@pytest.mark.integration   # Cross-module integration tests
+@pytest.mark.slow          # Slow tests (>1 second)
+@pytest.mark.performance   # Performance-sensitive tests
+@pytest.mark.benchmark     # Benchmark tests (pytest-benchmark)
 
-### Integration Tests (`-m integration`)
-- **Location**: `tests/integration/`
-- **Characteristics**: Cross-module testing with memory constraints
-- **Worker count**: 75% of available workers (calculated by `get_safe_worker_count()`)
-- **Purpose**: Test component interactions and workflows
+# Category markers
+@pytest.mark.core          # Core functionality
+@pytest.mark.data          # Data loading/storage
+@pytest.mark.analysis      # Network analysis
+@pytest.mark.visualization # Visualization rendering
+@pytest.mark.output        # Output management
+@pytest.mark.utils         # Utility functions
+@pytest.mark.pipeline      # Full pipeline tests
+```
 
-**Key Integration Areas:**
-- **End-to-end Pipeline**: Complete workflow execution for all strategies
-- **UI/UX Integration**: Emoji consistency, console formatting, progress tracking
-- **Output System**: Console and file synchronization, formatting consistency
+## Direct pytest Usage
 
-### Performance Tests (`-m slow` or `-m performance`)
-- **Location**: `tests/performance/`
-- **Characteristics**: Sequential execution for timing accuracy
-- **Worker count**: 1 (sequential only)
-- **Purpose**: Performance benchmarking and timing validation
+For custom test execution, use pytest directly:
 
-**Performance Monitoring:**
-- Pipeline timing accuracy validation
-- Progress tracker performance overhead
-- Memory efficiency testing with centralized caching system
-- Resource usage monitoring
-- Scalability testing with different parameters
-- Cache performance validation (90% hash reduction, 95% conversion reduction, 80% traversal reduction)
-
-### Benchmark Tests (`-m benchmark`)
-- **Location**: `tests/performance/`
-- **Characteristics**: Uses pytest-benchmark for statistical analysis
-- **Worker count**: 1 (sequential only)
-- **Purpose**: Performance profiling with statistical analysis
-
-## Configuration
-
-### Pytest Configuration
-- **Main config**: `pytest.ini` - General pytest settings and benchmark configuration
-- **Tool config**: `pyproject.toml` - Tool-specific configurations
-
-### Test Fixtures
-- **Output directories**: `temp_output_dir` fixture provides isolated test outputs in `tests/Output/`
-- **Test data**: Various dataset fixtures for different test scenarios
-- **Configuration**: Pre-configured test configurations for different scenarios
-
-## Running Tests
-
-### Via Makefile
 ```bash
-make test              # All tests
-make test-unit         # Unit tests only
-make test-integration  # Integration tests only
-make test-performance  # Performance tests only
-make test-benchmark    # Benchmark tests only
-make test-coverage     # Tests with coverage
-make system-info       # Show system resources
-```
-
-### Via Test Runner
-```bash
-python tests/run_tests.py all
-python tests/run_tests.py unit
-python tests/run_tests.py benchmark
-```
-
-### Via Pytest (Direct)
-```bash
-pytest                 # All tests
-pytest -m unit         # Unit tests only
-pytest -m integration  # Integration tests only
-pytest -m slow         # Performance tests only
-pytest -m benchmark    # Benchmark tests only
-```
-
-### Development Scenarios
-
-#### Quick Development Testing
-```bash
-# Run tests with minimal output
-pytest --tb=no
-
-# Run tests quietly with only pass/fail status
-pytest -q
-
-# Run only failed tests from last run
-pytest --lf
-
-# Run failed tests first, then continue
-pytest --ff
-```
-
-#### Debugging and Troubleshooting
-```bash
-# Show full traceback for error analysis
-pytest --tb=long
-
-# Run with maximum verbosity for debugging
-pytest -vv
-
-# Show local variables in tracebacks
-pytest --tb=short --showlocals
-
-# Drop into debugger on failures
-pytest --pdb
-```
-
-#### Performance and Coverage Analysis
-```bash
-# Run with coverage reporting
-pytest --cov=FollowWeb_Visualizor --cov-report=html --cov-report=term
-
-# Run with coverage and missing line reports
+# Run with coverage
 pytest --cov=FollowWeb_Visualizor --cov-report=term-missing
 
-# Run performance tests with timing
-pytest -m slow --durations=10
+# Run specific markers
+pytest -m unit                    # Unit tests only
+pytest -m "unit or integration"   # Unit and integration tests
+pytest -m "not (slow or benchmark)" # Exclude slow and benchmark tests
+
+# Parallel execution (auto-detect workers)
+pytest -n auto
+
+# Parallel execution with specific worker count
+pytest -n 4
+
+# Stop on first failure
+pytest -x --maxfail=1
+
+# Verbose output
+pytest -v
+
+# Show local variables on failure
+pytest -l
+
+# Run specific test file
+pytest tests/unit/test_config.py
+
+# Run specific test function
+pytest tests/unit/test_config.py::test_config_validation
 ```
 
-### Debug Mode
+## CI Pipeline Equivalence
+
+The local test runner replicates the CI pipeline:
+
+| CI Job | Local Command |
+|--------|---------------|
+| Quality Check | `python tests/run_tests.py quality` |
+| Security Scan | `python tests/run_tests.py security` |
+| Unit Tests | `python tests/run_tests.py unit` |
+| Integration Tests | `python tests/run_tests.py integration` |
+| Performance Tests | `python tests/run_tests.py performance` |
+| Benchmark Tests | `python tests/run_tests.py benchmark` |
+| Package Build | `python tests/run_tests.py build` |
+| **Full Pipeline** | `python tests/run_tests.py all` |
+
+## Best Practices
+
+1. **Before committing**: Run `python tests/run_tests.py all` to catch issues early
+2. **During development**: Run `python tests/run_tests.py unit` for fast feedback
+3. **Before pushing**: Run `python tests/run_tests.py quality` to ensure code quality
+4. **Performance changes**: Run `python tests/run_tests.py benchmark` to check impact
+5. **Security updates**: Run `python tests/run_tests.py security` after dependency changes
+
+## Troubleshooting
+
+### Formatting Issues
 ```bash
-python tests/run_tests.py debug
-# or
-make test-debug
+# Fix formatting automatically
+ruff format FollowWeb_Visualizor tests
 ```
 
-### Sequential Mode (for debugging)
+### Linting Issues
 ```bash
-python tests/run_tests.py sequential
-# or
-make test-sequential
+# Auto-fix linting issues
+ruff check --fix FollowWeb_Visualizor tests
 ```
 
-## CI/CD Integration
+### Type Checking Issues
+```bash
+# Run mypy with detailed output
+mypy FollowWeb_Visualizor --show-error-codes --show-traceback
+```
 
-### Parallel Execution Strategies
-- **Unit tests**: Parallel execution with worksteal distribution
-- **Integration tests**: Parallel execution with loadgroup distribution  
-- **Performance tests**: Sequential execution for timing accuracy
-- **Mixed workloads**: Balanced distribution with loadscope
+### Parallel Test Failures
+```bash
+# Run tests sequentially for debugging
+pytest -n 0 -v
+```
 
-## Resource Management
+### Benchmark Plugin Conflicts
+```bash
+# Disable benchmark plugin for parallel tests
+pytest -p no:benchmark -n auto
+```
 
-### Worker Detection
-The test runner calculates worker counts based on:
-- CPU core count (logical and physical cores)
-- Available memory (500MB per worker baseline)
-- Test type (unit/integration/performance)
-- Operating system (Windows/Linux/macOS)
-- CI environment detection
+## Coverage Requirements
+
+- **Minimum coverage**: 70% (enforced in CI)
+- **Coverage calculation**: Only on ubuntu-latest with Python 3.9 in CI
+- **Local coverage**: Run `pytest --cov=FollowWeb_Visualizor --cov-report=html` for detailed report
+
+## Performance Considerations
+
+- **Unit tests**: Run in parallel with all available CPU cores
+- **Integration tests**: Run in parallel with controlled worker count
+- **Performance tests**: Run sequentially to ensure accurate timing
+- **Benchmark tests**: Run sequentially with pytest-benchmark for precise measurements
