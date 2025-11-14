@@ -1,20 +1,22 @@
-# Freesound Nightly Pipeline
+# Freesound Nightly Collection Pipeline
 #
-# Automated pipeline that runs daily to continuously grow the Freesound sample library
-# by consuming the daily API request allowance (2000 requests) and generating updated
-# interactive visualizations.
+# Automated pipeline that runs daily to collect new samples from Freesound API.
+# This workflow is part of a four-pipeline architecture:
+# 1. Collection Pipeline (this workflow): Collects data only
+# 2. Repair Pipeline: Validates and repairs data integrity issues
+# 3. Validation Pipeline: Validates data and generates visualizations
+# 4. Backup Pipeline: Creates and manages backups
 #
 # Architecture:
 # - Persistent Storage: Private GitHub repository release assets (TOS-compliant)
 # - Ephemeral Cache: Workflow cache populated from private repo at start, wiped at end
 # - Split Checkpoint: Graph topology (.gpickle) + SQLite metadata (.db) + metadata JSON
-# - Simplified Collection: Search-based sample collection with edge generation
-# - Edge Types: User relationships, pack membership, and tag similarity
+# - Pagination-based Collection: Continues from last page across runs
+# - Duplicate Detection: Checks metadata cache before API requests
 #
-# Backup Strategy (Triple Redundancy):
-# 1. Primary Backup: Private repo with tiered retention (frequent: 14 days, permanent: unlimited) - REQUIRED
-# 2. Secondary Backup: Separate private repo with 7-day rolling history (disaster recovery) - OPTIONAL
-# 3. Workflow Artifacts: 7-day retention for manual recovery (uploaded on every run) - AUTOMATIC
+# Backup Strategy (Tiered):
+# - Frequent backups (every 25 nodes) → v-checkpoint release (14-day retention)
+# - Milestone backups (every 100 nodes) → v-permanent release (unlimited retention)
 #
 # CRITICAL: Backup Failure = Pipeline Failure
 # - Primary backup (BACKUP_PAT) is REQUIRED - pipeline will fail fast if backup fails
@@ -22,15 +24,19 @@
 # - Ensures data integrity and prevents data loss
 #
 # Features:
-# - Scheduled execution at 2 AM UTC daily
-# - Manual trigger with configurable parameters (discovery mode, edge generation options)
+# - Scheduled execution at 2 AM UTC Monday-Saturday
+# - Manual trigger with configurable parameters
 # - Incremental data collection with checkpoint recovery
-# - Automatic visualization generation
-# - Fail-fast on backup failures (prevents data loss)
-# - Triple-redundant backup system
-# - Comprehensive logging and monitoring
+# - Circuit breaker to limit API requests per run
+# - Cache save with failure recovery (runs even on failure)
+# - Triggers downstream validation and backup workflows
+#
+# Workflow Triggers:
+# - On success: Triggers validation workflow via workflow_run
+# - On completion (success or failure): Triggers backup workflow via workflow_run
+# - Cache key (checkpoint-${{ github.run_id }}) is passed to downstream workflows
 
-name: Freesound Nightly Pipeline
+name: Freesound Nightly Collection
 
 on:
   schedule:
@@ -59,26 +65,6 @@ on:
           - search
           - relationships
           - mixed
-      include_user_edges:
-        description: 'Create edges between samples by the same user'
-        required: false
-        default: true
-        type: boolean
-      include_pack_edges:
-        description: 'Create edges between samples in the same pack'
-        required: false
-        default: true
-        type: boolean
-      include_tag_edges:
-        description: 'Create edges between samples with similar tags'
-        required: false
-        default: true
-        type: boolean
-      tag_similarity_threshold:
-        description: 'Minimum Jaccard similarity for tag edges (0.0-1.0)'
-        required: false
-        default: '0.3'
-        type: string
 
 # Prevent workflow collisions
 concurrency:
@@ -125,7 +111,6 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
-        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
       run: |
         echo "###  Secret Validation" >> $GITHUB_STEP_SUMMARY
         
@@ -150,13 +135,6 @@ jobs:
           exit 1
         else
           echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # Check BACKUP_PAT_SECONDARY (optional)
-        if [ -z "$BACKUP_PAT_SECONDARY" ]; then
-          echo "-  BACKUP_PAT_SECONDARY: ⚠️ Not configured (secondary backups disabled)" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "-  BACKUP_PAT_SECONDARY: ✅ Configured (secondary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
     
@@ -274,8 +252,8 @@ jobs:
         echo "The environment is ready for the Freesound Nightly Pipeline." >> $GITHUB_STEP_SUMMARY
         echo "Proceeding to data collection phase..." >> $GITHUB_STEP_SUMMARY
 
-  freesound-pipeline:
-    name: Freesound Data Collection & Visualization
+  freesound-collection:
+    name: Freesound Data Collection
     runs-on: ubuntu-latest
     timeout-minutes: 120  # 2-hour timeout
     needs: smoke-test  # Only run if smoke test passes
@@ -318,7 +296,6 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
-        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
       run: |
         echo "** Secret Validation**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -340,14 +317,6 @@ jobs:
         else
           echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
         fi
-        
-        # Check BACKUP_PAT_SECONDARY (optional but recommended)
-        if [ -z "$BACKUP_PAT_SECONDARY" ]; then
-          echo "::warning::BACKUP_PAT_SECONDARY not configured - secondary checkpoint backups will be skipped"
-          echo "-  BACKUP_PAT_SECONDARY: Not configured (secondary backups disabled)" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "-  BACKUP_PAT_SECONDARY: Configured (secondary backup repository)" >> $GITHUB_STEP_SUMMARY
-        fi
         echo "" >> $GITHUB_STEP_SUMMARY
     
     - name: Verify installation
@@ -367,18 +336,10 @@ jobs:
           echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> $GITHUB_OUTPUT
           echo "max_requests=${{ github.event.inputs.max_requests }}" >> $GITHUB_OUTPUT
           echo "discovery_mode=${{ github.event.inputs.discovery_mode }}" >> $GITHUB_OUTPUT
-          echo "include_user_edges=${{ github.event.inputs.include_user_edges }}" >> $GITHUB_OUTPUT
-          echo "include_pack_edges=${{ github.event.inputs.include_pack_edges }}" >> $GITHUB_OUTPUT
-          echo "include_tag_edges=${{ github.event.inputs.include_tag_edges }}" >> $GITHUB_OUTPUT
-          echo "tag_similarity_threshold=${{ github.event.inputs.tag_similarity_threshold }}" >> $GITHUB_OUTPUT
         else
           echo "seed_sample_id=" >> $GITHUB_OUTPUT
           echo "max_requests=1950" >> $GITHUB_OUTPUT
           echo "discovery_mode=search" >> $GITHUB_OUTPUT
-          echo "include_user_edges=true" >> $GITHUB_OUTPUT
-          echo "include_pack_edges=true" >> $GITHUB_OUTPUT
-          echo "include_tag_edges=true" >> $GITHUB_OUTPUT
-          echo "tag_similarity_threshold=0.3" >> $GITHUB_OUTPUT
         fi
         
         # Generate execution ID
@@ -486,18 +447,13 @@ jobs:
         fi
         echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> $GITHUB_STEP_SUMMARY
         echo "- Discovery Mode: \`${{ steps.params.outputs.discovery_mode }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Edge Generation:" >> $GITHUB_STEP_SUMMARY
-        echo "  - User Edges: \`${{ steps.params.outputs.include_user_edges }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "  - Pack Edges: \`${{ steps.params.outputs.include_pack_edges }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "  - Tag Edges: \`${{ steps.params.outputs.include_tag_edges }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "  - Tag Similarity Threshold: \`${{ steps.params.outputs.tag_similarity_threshold }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
     
-    - name: Run data collection and visualization
+    - name: Run data collection
       if: steps.orchestration.outputs.can_proceed == 'true'
-      id: pipeline
+      id: collection
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
@@ -511,184 +467,70 @@ jobs:
         fi
         cmd="$cmd --max-requests ${{ steps.params.outputs.max_requests }}"
         cmd="$cmd --discovery-mode ${{ steps.params.outputs.discovery_mode }}"
+        cmd="$cmd --skip-visualization"  # Skip visualization generation
         
-        # Add edge generation flags
-        if [ "${{ steps.params.outputs.include_user_edges }}" = "true" ]; then
-          cmd="$cmd --include-user-edges"
-        fi
-        if [ "${{ steps.params.outputs.include_pack_edges }}" = "true" ]; then
-          cmd="$cmd --include-pack-edges"
-        fi
-        if [ "${{ steps.params.outputs.include_tag_edges }}" = "true" ]; then
-          cmd="$cmd --include-tag-edges"
-        fi
-        cmd="$cmd --tag-similarity-threshold ${{ steps.params.outputs.tag_similarity_threshold }}"
-        
-        # Run the pipeline script
-        eval "$cmd" 2>&1 | tee pipeline_${{ steps.params.outputs.execution_id }}.log
+        # Run the collection script
+        eval "$cmd" 2>&1 | tee collection_${{ steps.params.outputs.execution_id }}.log
         
         # Capture exit code
-        pipeline_exit_code=${PIPESTATUS[0]}
+        collection_exit_code=${PIPESTATUS[0]}
         
-        if [ $pipeline_exit_code -eq 0 ]; then
-          echo " Data collection and visualization completed successfully"
-          echo "pipeline_status=success" >> $GITHUB_OUTPUT
+        if [ $collection_exit_code -eq 0 ]; then
+          echo " Data collection completed successfully"
+          echo "collection_status=success" >> $GITHUB_OUTPUT
         else
-          echo " Pipeline failed with exit code: $pipeline_exit_code"
-          echo "pipeline_status=failed" >> $GITHUB_OUTPUT
-          exit $pipeline_exit_code
+          echo " Collection failed with exit code: $collection_exit_code"
+          echo "collection_status=failed" >> $GITHUB_OUTPUT
+          exit $collection_exit_code
         fi
     
-    - name: Append execution metrics
-      if: steps.pipeline.outputs.pipeline_status == 'success'
+    - name: Extract collection statistics
+      if: steps.orchestration.outputs.can_proceed == 'true'
+      id: stats
       run: |
-        # Extract metrics from log
-        log_file="pipeline_${{ steps.params.outputs.execution_id }}.log"
-        
-        # Create metrics entry
-        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        nodes_added=$(grep -oP "(?<=Nodes added: )\d+" "$log_file" | tail -1 || echo "0")
-        edges_added=$(grep -oP "(?<=Edges added: )\d+" "$log_file" | tail -1 || echo "0")
-        api_requests=$(grep -oP "(?<=API requests: )\d+" "$log_file" | tail -1 || echo "0")
-        duration=$(grep -oP "(?<=Duration: )\d+" "$log_file" | tail -1 || echo "0")
-        
-        # Append to metrics history
-        mkdir -p data
-        echo "{\"timestamp\":\"$timestamp\",\"nodes_added\":$nodes_added,\"edges_added\":$edges_added,\"api_requests\":$api_requests,\"duration\":$duration}" >> data/metrics_history.jsonl
-        
-        echo " Metrics appended to history"
-    
-    - name: Check for milestone
-      if: steps.pipeline.outputs.pipeline_status == 'success'
-      id: milestone
-      run: |
-        python detect_milestone.py \
-          --checkpoint-dir data/freesound_library \
-          --output milestone_status.json
-        
-        # Parse output
-        is_milestone=$(jq -r '.is_milestone' milestone_status.json)
-        milestone_number=$(jq -r '.milestone_number' milestone_status.json)
-        current_nodes=$(jq -r '.current_nodes' milestone_status.json)
-        
-        echo "is_milestone=$is_milestone" >> $GITHUB_OUTPUT
-        echo "milestone_number=$milestone_number" >> $GITHUB_OUTPUT
-        echo "current_nodes=$current_nodes" >> $GITHUB_OUTPUT
-        
-        if [ "$is_milestone" = "true" ]; then
-          echo " Milestone $milestone_number detected at $current_nodes nodes!"
-        fi
-    
-    - name: Run milestone actions in parallel
-      if: steps.milestone.outputs.is_milestone == 'true'
-      id: milestone_actions
-      run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Milestone ${{ steps.milestone.outputs.milestone_number }} Reached!**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Current nodes: \`${{ steps.milestone.outputs.current_nodes }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Running Milestone Actions in Parallel**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Start background jobs
-        echo "Starting parallel jobs..."
-        
-        # Job 1: Validation (background)
-        (
-          echo "Starting validation job..."
-          python validate_pipeline_data.py \
-            --checkpoint-dir data/freesound_library \
-            --metrics-history data/metrics_history.jsonl \
-            --output validation_report.json 2>&1 | tee validation.log
-          echo $? > validation_exit_code.txt
-        ) &
-        VALIDATION_PID=$!
-        
-        # Job 2: Edge generation (background)
-        (
-          echo "Starting edge generation job..."
-          python generate_user_pack_edges.py \
-            --checkpoint-dir data/freesound_library \
-            --output edge_stats.json 2>&1 | tee edge_generation.log
-          echo $? > edges_exit_code.txt
-        ) &
-        EDGES_PID=$!
-        
-        # Job 3: Website deployment (background)
-        (
-          echo "Starting website generation job..."
-          python generate_landing_page.py \
-            --output-dir website \
-            --metrics-history data/metrics_history.jsonl \
-            --milestone-history data/milestone_history.jsonl \
-            --visualizations Output/*.html 2>&1 | tee website.log
-          echo $? > website_exit_code.txt
-        ) &
-        WEBSITE_PID=$!
-        
-        # Wait for all jobs to complete
-        echo "Waiting for parallel jobs to complete..."
-        echo "- Validation PID: $VALIDATION_PID"
-        echo "- Edge Generation PID: $EDGES_PID"
-        echo "- Website PID: $WEBSITE_PID"
-        
-        wait $VALIDATION_PID
-        wait $EDGES_PID
-        wait $WEBSITE_PID
-        
-        # Check exit codes
-        validation_code=$(cat validation_exit_code.txt)
-        edges_code=$(cat edges_exit_code.txt)
-        website_code=$(cat website_exit_code.txt)
-        
-        echo "Exit codes: validation=$validation_code, edges=$edges_code, website=$website_code"
-        
-        # Log results to summary
-        echo "### Parallel Job Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        if [ $validation_code -eq 0 ]; then
-          echo "-  **Validation**: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "-  **Validation**: Failed (exit code: $validation_code)" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ $edges_code -eq 0 ]; then
-          if [ -f edge_stats.json ]; then
-            user_edges=$(jq -r '.user_edges_added // 0' edge_stats.json)
-            pack_edges=$(jq -r '.pack_edges_added // 0' edge_stats.json)
-            echo "-  **Edge Generation**: $user_edges user edges, $pack_edges pack edges" >> $GITHUB_STEP_SUMMARY
+        # Extract statistics from checkpoint metadata
+        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+          total_nodes=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          total_edges=$(jq -r '.total_edges // 0' data/freesound_library/checkpoint_metadata.json)
+          current_page=$(jq -r '.pagination.current_page // 1' data/freesound_library/checkpoint_metadata.json)
+          search_query=$(jq -r '.pagination.search_query // "N/A"' data/freesound_library/checkpoint_metadata.json)
+          
+          # Extract collection stats if available
+          if jq -e '.collection_stats' data/freesound_library/checkpoint_metadata.json > /dev/null 2>&1; then
+            api_requests=$(jq -r '.collection_stats.total_api_requests // 0' data/freesound_library/checkpoint_metadata.json)
+            duplicates_skipped=$(jq -r '.collection_stats.duplicates_skipped // 0' data/freesound_library/checkpoint_metadata.json)
+            new_samples=$(jq -r '.collection_stats.new_samples_added // 0' data/freesound_library/checkpoint_metadata.json)
           else
-            echo "-  **Edge Generation**: Completed" >> $GITHUB_STEP_SUMMARY
+            api_requests="N/A"
+            duplicates_skipped="N/A"
+            new_samples="N/A"
           fi
         else
-          echo "-  **Edge Generation**: Failed (exit code: $edges_code)" >> $GITHUB_STEP_SUMMARY
+          total_nodes="0"
+          total_edges="0"
+          current_page="1"
+          search_query="N/A"
+          api_requests="N/A"
+          duplicates_skipped="N/A"
+          new_samples="N/A"
         fi
         
-        if [ $website_code -eq 0 ]; then
-          echo "-  **Website**: Generated" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "-  **Website**: Failed (exit code: $website_code)" >> $GITHUB_STEP_SUMMARY
-        fi
+        echo "total_nodes=$total_nodes" >> $GITHUB_OUTPUT
+        echo "total_edges=$total_edges" >> $GITHUB_OUTPUT
+        echo "current_page=$current_page" >> $GITHUB_OUTPUT
+        echo "search_query=$search_query" >> $GITHUB_OUTPUT
+        echo "api_requests=$api_requests" >> $GITHUB_OUTPUT
+        echo "duplicates_skipped=$duplicates_skipped" >> $GITHUB_OUTPUT
+        echo "new_samples=$new_samples" >> $GITHUB_OUTPUT
         
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Store exit codes for later steps
-        echo "validation_code=$validation_code" >> $GITHUB_OUTPUT
-        echo "edges_code=$edges_code" >> $GITHUB_OUTPUT
-        echo "website_code=$website_code" >> $GITHUB_OUTPUT
-        
-        # Fail if validation failed (critical)
-        if [ $validation_code -ne 0 ]; then
-          echo "::error::Validation failed - this is a critical error"
-          exit 1
-        fi
-        
-        # Warn if edge generation or website failed (non-critical)
-        if [ $edges_code -ne 0 ] || [ $website_code -ne 0 ]; then
-          echo "::warning::Some milestone actions failed but pipeline continues"
-        fi
+        echo " Statistics extracted from checkpoint"
+    
+    - name: Save checkpoint to cache (failure recovery)
+      if: always() && steps.orchestration.outputs.can_proceed == 'true'
+      uses: actions/cache/save@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-${{ github.run_id }}
     
     - name: Upload checkpoint to private repository
       if: steps.orchestration.outputs.can_proceed == 'true' && always()
@@ -734,8 +576,8 @@ jobs:
         fi
         
         # Check if this is a failure recovery backup
-        pipeline_status="${{ steps.pipeline.outputs.pipeline_status }}"
-        if [ "$pipeline_status" != "success" ]; then
+        collection_status="${{ steps.collection.outputs.collection_status }}"
+        if [ "$collection_status" != "success" ]; then
           echo " Pipeline failed - creating recovery backup"
           echo "- Status: Recovery backup (pipeline failed)" >> $GITHUB_STEP_SUMMARY
           # Force backup creation regardless of interval
@@ -881,149 +723,7 @@ jobs:
         echo "- Asset: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
         echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> $GITHUB_STEP_SUMMARY
         echo "- State: \`$ASSET_STATE\`" >> $GITHUB_STEP_SUMMARY
-    
-    - name: Upload checkpoint to secondary backup repository
-      if: steps.orchestration.outputs.can_proceed == 'true' && (steps.pipeline.outputs.pipeline_status == 'success' || failure())
-      id: upload_secondary_backup
-      env:
-        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
-      run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 4b: Upload to Secondary Backup Repository (7-Day History)**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Check if checkpoint directory exists
-        if [ ! -d "data/freesound_library" ]; then
-          echo " Checkpoint directory not found, skipping secondary backup"
-          echo "- Status: Backup skipped (no checkpoint)" >> $GITHUB_STEP_SUMMARY
-          exit 0
-        fi
-        
-        # Check if BACKUP_PAT_SECONDARY is configured
-        if [ -z "$BACKUP_PAT_SECONDARY" ]; then
-          echo " BACKUP_PAT_SECONDARY not configured, skipping secondary backup"
-          echo "- Status: Backup skipped (PAT not configured)" >> $GITHUB_STEP_SUMMARY
-          exit 0
-        fi
-        
-        # Get node count for filename
-        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
-        else
-          node_count="unknown"
-        fi
-        
-        # Create backup with timestamp for 7-day history tracking
-        timestamp=$(date -u +"%Y%m%d_%H%M%S")
-        backup_filename="checkpoint_backup_${node_count}nodes_${timestamp}_${{ github.run_id }}.tar.gz"
-        echo "Creating secondary backup archive: $backup_filename"
-        tar -czf "$backup_filename" -C data freesound_library/
-        
-        # Get file size
-        backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
-        echo "Backup size: $(numfmt --to=iec-i --suffix=B $backup_size)"
-        
-        # Get repository details
-        REPO_OWNER="${{ github.repository_owner }}"
-        SECONDARY_BACKUP_REPO="${REPO_OWNER}/freesound-backup-secondary"
-        
-        # Get release ID for v-daily tag (7-day rolling history)
-        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT_SECONDARY" \
-          "https://api.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/tags/v-daily")
-        
-        RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
-        
-        if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo " Release v-daily not found in ${SECONDARY_BACKUP_REPO}"
-          echo "- Status: Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
-          echo "- Note: Create release 'v-daily' in ${SECONDARY_BACKUP_REPO}" >> $GITHUB_STEP_SUMMARY
-          rm -f "$backup_filename"
-          exit 0  # Don't fail the workflow
-        fi
-        
-        # Upload asset
-        echo "Uploading backup to ${SECONDARY_BACKUP_REPO} (release: v-daily)..."
-        UPLOAD_URL="https://uploads.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/${RELEASE_ID}/assets?name=${backup_filename}"
-        
-        UPLOAD_RESPONSE=$(curl -s -X POST \
-          -H "Authorization: token $BACKUP_PAT_SECONDARY" \
-          -H "Content-Type: application/gzip" \
-          --data-binary "@${backup_filename}" \
-          "$UPLOAD_URL")
-        
-        ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
-        
-        if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
-          echo " Failed to upload secondary backup"
-          echo "- Status: Upload failed" >> $GITHUB_STEP_SUMMARY
-          rm -f "$backup_filename"
-          exit 0  # Don't fail the workflow
-        fi
-        
-        echo " Secondary backup uploaded successfully"
-        echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Repository: \`${SECONDARY_BACKUP_REPO}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Release Tag: \`v-daily\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Node Count: \`$node_count\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Retention: \`7 days\`" >> $GITHUB_STEP_SUMMARY
-        
-        # Cleanup local backup file
-        rm -f "$backup_filename"
-    
-    - name: Cleanup secondary backup repository (7-day retention)
-      if: steps.upload_secondary_backup.outcome == 'success'
-      env:
-        BACKUP_PAT_SECONDARY: ${{ secrets.BACKUP_PAT_SECONDARY }}
-      run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 4c: Secondary Backup Retention (7-Day Policy)**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        REPO_OWNER="${{ github.repository_owner }}"
-        SECONDARY_BACKUP_REPO="${REPO_OWNER}/freesound-backup-secondary"
-        
-        # Get all assets from v-daily release
-        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT_SECONDARY" \
-          "https://api.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/tags/v-daily")
-        
-        TOTAL_ASSETS=$(echo "$ASSETS_JSON" | jq '.assets | length')
-        echo "Total secondary backups: $TOTAL_ASSETS"
-        
-        # Apply 7-day retention policy
-        CUTOFF_DATE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-7d +%Y-%m-%dT%H:%M:%S 2>/dev/null || echo "")
-        
-        if [ -n "$CUTOFF_DATE" ]; then
-          echo "Cutoff date for secondary backups: $CUTOFF_DATE"
-          
-          # Get assets older than 7 days
-          ASSETS_TO_DELETE=$(echo "$ASSETS_JSON" | jq -r ".assets | map(select(.created_at < \"$CUTOFF_DATE\")) | .[].id")
-          
-          DELETED_COUNT=0
-          for ASSET_ID in $ASSETS_TO_DELETE; do
-            echo "Deleting old secondary backup asset ID: $ASSET_ID"
-            curl -s -X DELETE \
-              -H "Authorization: token $BACKUP_PAT_SECONDARY" \
-              "https://api.github.com/repos/${SECONDARY_BACKUP_REPO}/releases/assets/${ASSET_ID}"
-            
-            if [ $? -eq 0 ]; then
-              DELETED_COUNT=$((DELETED_COUNT + 1))
-            else
-              echo " Failed to delete asset $ASSET_ID"
-            fi
-          done
-          
-          RETAINED_COUNT=$((TOTAL_ASSETS - DELETED_COUNT))
-          echo "- Retention: \`7 days\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Backups retained: \`$RETAINED_COUNT\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Backups deleted: \`$DELETED_COUNT\`" >> $GITHUB_STEP_SUMMARY
-        else
-          echo " Could not calculate cutoff date, skipping cleanup"
-          echo "- Status: Cleanup skipped (date calculation failed)" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo " Secondary backup retention cleanup complete"
+
     
     - name: Upload checkpoint files as workflow artifacts
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
@@ -1038,7 +738,7 @@ jobs:
         if-no-files-found: ignore
     
     - name: Cleanup old backups (retention policy)
-      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
+      if: steps.orchestration.outputs.can_proceed == 'true' && steps.collection.outputs.collection_status == 'success'
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
@@ -1133,100 +833,7 @@ jobs:
         
         echo " Tier-specific retention cleanup complete"
     
-    - name: Extract pipeline statistics
-      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
-      id: stats
-      run: |
-        # Extract statistics from log file
-        log_file="pipeline_${{ steps.params.outputs.execution_id }}.log"
-        
-        # Extract nodes and edges statistics
-        nodes_added=$(grep -oP "(?<=Nodes added: )\d+" "$log_file" | tail -1 || echo "N/A")
-        edges_added=$(grep -oP "(?<=Edges added: )\d+" "$log_file" | tail -1 || echo "N/A")
-        total_nodes=$(grep -oP "(?<=Total nodes: )\d+" "$log_file" | tail -1 || echo "N/A")
-        total_edges=$(grep -oP "(?<=Total edges: )\d+" "$log_file" | tail -1 || echo "N/A")
-        
-        # Extract seed sample information
-        seed_sample_id=$(grep -oP "(?<=Seed sample ID: )\d+" "$log_file" | tail -1 || echo "N/A")
-        seed_sample_name=$(grep -oP "(?<=Seed sample name: ).*" "$log_file" | tail -1 || echo "N/A")
-        
-        # Extract visualization output path
-        viz_path=$(grep -oP "(?<=Output: )Output/.*\.html" "$log_file" | tail -1 || echo "N/A")
-        
-        # Calculate execution time
-        start_time="${{ steps.params.outputs.execution_id }}"
-        start_epoch=$(date -d "${start_time:0:8} ${start_time:9:2}:${start_time:11:2}:${start_time:13:2}" +%s 2>/dev/null || echo "0")
-        current_epoch=$(date +%s)
-        duration_seconds=$((current_epoch - start_epoch))
-        duration_minutes=$((duration_seconds / 60))
-        
-        echo "nodes_added=$nodes_added" >> $GITHUB_OUTPUT
-        echo "edges_added=$edges_added" >> $GITHUB_OUTPUT
-        echo "total_nodes=$total_nodes" >> $GITHUB_OUTPUT
-        echo "total_edges=$total_edges" >> $GITHUB_OUTPUT
-        echo "seed_sample_id=$seed_sample_id" >> $GITHUB_OUTPUT
-        echo "seed_sample_name=$seed_sample_name" >> $GITHUB_OUTPUT
-        echo "viz_path=$viz_path" >> $GITHUB_OUTPUT
-        echo "duration_seconds=$duration_seconds" >> $GITHUB_OUTPUT
-        echo "duration_minutes=$duration_minutes" >> $GITHUB_OUTPUT
-    
-    - name: Commit and push changes
-      if: steps.orchestration.outputs.can_proceed == 'true' && steps.pipeline.outputs.pipeline_status == 'success'
-      run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 6: Git Persistence**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Add ONLY visualizations and metrics (NOT checkpoint data)
-        git add Output/*.html data/metrics_history.jsonl
-        
-        # Add milestone-related files if they exist
-        if [ -f data/milestone_history.jsonl ]; then
-          git add data/milestone_history.jsonl
-        fi
-        if [ -f validation_report.json ]; then
-          git add validation_report.json
-        fi
-        if [ -f edge_stats.json ]; then
-          git add edge_stats.json
-        fi
-        if [ -d website ]; then
-          git add website/
-        fi
-        
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo " No changes to commit"
-          echo "- No new visualizations generated" >> $GITHUB_STEP_SUMMARY
-        else
-          # Create commit message with statistics
-          commit_msg="Nightly pipeline: $(date +'%Y-%m-%d')"
-          if [ "${{ steps.stats.outputs.nodes_added }}" != "N/A" ]; then
-            commit_msg="$commit_msg - +${{ steps.stats.outputs.nodes_added }} nodes, +${{ steps.stats.outputs.edges_added }} edges (total: ${{ steps.stats.outputs.total_nodes }} nodes, ${{ steps.stats.outputs.total_edges }} edges)"
-          fi
-          
-          # Add milestone info to commit message if applicable
-          if [ "${{ steps.milestone.outputs.is_milestone }}" = "true" ]; then
-            commit_msg="$commit_msg [Milestone ${{ steps.milestone.outputs.milestone_number }}]"
-          fi
-          
-          git commit -m "$commit_msg"
-          
-          # Push with retry logic
-          git push || {
-            echo " Push failed, attempting rebase..."
-            git pull --rebase
-            git push || {
-              echo "::error::Failed to push changes after rebase"
-              echo "-  Git push failed after retry" >> $GITHUB_STEP_SUMMARY
-              exit 1
-            }
-          }
-          
-          echo " Changes committed and pushed"
-          echo "- Commit: \`$commit_msg\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Files: Visualizations, metrics history" >> $GITHUB_STEP_SUMMARY
-        fi
+
     
     - name: Cleanup ephemeral cache
       if: always()
@@ -1263,53 +870,60 @@ jobs:
           echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time." >> $GITHUB_STEP_SUMMARY
           echo "The workflow will retry on the next scheduled run." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-        elif [ "${{ steps.pipeline.outputs.pipeline_status }}" = "success" ]; then
-          echo "###  Status: Success" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Execution time
-          duration_min="${{ steps.stats.outputs.duration_minutes }}"
-          duration_sec="${{ steps.stats.outputs.duration_seconds }}"
-          if [ "$duration_min" != "N/A" ] && [ "$duration_min" -gt 0 ]; then
-            echo "** Execution Time:** ${duration_min} minutes (${duration_sec} seconds)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "** Execution Time:** ${duration_sec} seconds" >> $GITHUB_STEP_SUMMARY
-          fi
+        elif [ "${{ steps.collection.outputs.collection_status }}" = "success" ]; then
+          echo "###  Status: Collection Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Data collection statistics
-          echo "###  Data Collection Statistics" >> $GITHUB_STEP_SUMMARY
+          echo "###  Collection Statistics" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Nodes Added** | \`${{ steps.stats.outputs.nodes_added }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Edges Added** | \`${{ steps.stats.outputs.edges_added }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Total Nodes** | \`${{ steps.stats.outputs.total_nodes }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Total Edges** | \`${{ steps.stats.outputs.total_edges }}\` |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.stats.outputs.new_samples }}" != "N/A" ]; then
+            echo "| **New Samples** | \`${{ steps.stats.outputs.new_samples }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.stats.outputs.duplicates_skipped }}" != "N/A" ]; then
+            echo "| **Duplicates Skipped** | \`${{ steps.stats.outputs.duplicates_skipped }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.stats.outputs.api_requests }}" != "N/A" ]; then
+            echo "| **API Requests Used** | \`${{ steps.stats.outputs.api_requests }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Seed sample information
-          if [ "${{ steps.stats.outputs.seed_sample_id }}" != "N/A" ]; then
-            echo "** Seed Sample:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ID: \`${{ steps.stats.outputs.seed_sample_id }}\`" >> $GITHUB_STEP_SUMMARY
-            if [ "${{ steps.stats.outputs.seed_sample_name }}" != "N/A" ]; then
-              echo "- Name: \`${{ steps.stats.outputs.seed_sample_name }}\`" >> $GITHUB_STEP_SUMMARY
-            fi
+          # Pagination state
+          echo "###  Pagination State" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Current Page** | \`${{ steps.stats.outputs.current_page }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Search Query** | \`${{ steps.stats.outputs.search_query }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Backup tier information
+          if [ "${{ steps.upload_checkpoint.outputs.backup_tier }}" != "" ]; then
+            echo "###  Backup Information" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| **Backup Tier** | \`${{ steps.upload_checkpoint.outputs.backup_tier }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Release Tag** | \`${{ steps.upload_checkpoint.outputs.release_tag }}\` |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
           
-          # Visualization output
-          if [ "${{ steps.stats.outputs.viz_path }}" != "N/A" ]; then
-            echo "** Visualization:**" >> $GITHUB_STEP_SUMMARY
-            echo "- Path: \`${{ steps.stats.outputs.viz_path }}\`" >> $GITHUB_STEP_SUMMARY
-            echo "- [View in Repository](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/${{ steps.stats.outputs.viz_path }})" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          # Downstream workflows
+          echo "###  Downstream Workflows" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Repair Pipeline**: Will be triggered automatically to validate and repair data" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Validation Pipeline**: Will be triggered automatically after repair" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **Backup Pipeline**: Will be triggered automatically after validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
         else
-          echo "###  Status: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "###  Status: Collection Failed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The pipeline execution failed. Please check the logs for error details." >> $GITHUB_STEP_SUMMARY
+          echo "The data collection failed. Please check the logs for error details." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
           echo "- API key not configured or invalid" >> $GITHUB_STEP_SUMMARY
@@ -1317,6 +931,9 @@ jobs:
           echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
           echo "- Checkpoint file corruption" >> $GITHUB_STEP_SUMMARY
           echo "- BACKUP_PAT not configured or invalid" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Checkpoint has been saved to cache for failure recovery." >> $GITHUB_STEP_SUMMARY
+          echo "The backup workflow will create a recovery backup." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         fi
         
@@ -1328,29 +945,25 @@ jobs:
         echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| **Trigger** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "| **Cache Key** | \`checkpoint-${{ github.run_id }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Artifacts
         echo "###  Artifacts" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- Pipeline logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
+        echo "- Collection logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
+        echo "- Checkpoint saved to GitHub Actions cache (7-day retention)" >> $GITHUB_STEP_SUMMARY
         echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
     
-    - name: Upload pipeline logs
+    - name: Upload collection logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: pipeline-logs-${{ steps.params.outputs.execution_id }}
+        name: collection-logs-${{ steps.params.outputs.execution_id }}
         path: |
-          pipeline_*.log
+          collection_*.log
           freesound_viz_*.log
           fetch_freesound_*.log
-          validation.log
-          edge_generation.log
-          website.log
-          milestone_status.json
-          validation_report.json
-          edge_stats.json
         retention-days: 30
         if-no-files-found: ignore
