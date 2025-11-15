@@ -202,13 +202,15 @@ jobs:
         echo "Checking code formatting with ruff..."
         if ! ruff format --check FollowWeb_Visualizor tests --diff; then
           echo "::error::Code formatting issues found."
-          echo "### ❌ Formatting Check Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please run locally to fix:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "cd FollowWeb" >> $GITHUB_STEP_SUMMARY
-          echo "ruff format FollowWeb_Visualizor tests" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ❌ Formatting Check Failed"
+            echo ""
+            echo "Please run locally to fix:"
+            echo "\`\`\`bash"
+            echo "cd FollowWeb"
+            echo "ruff format FollowWeb_Visualizor tests"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "✓ Formatting check passed"
@@ -218,13 +220,15 @@ jobs:
         echo "Running ruff linting checks..."
         if ! ruff check FollowWeb_Visualizor tests --output-format=github; then
           echo "::error::Linting issues found."
-          echo "### ❌ Linting Check Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please run locally to fix:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "cd FollowWeb" >> $GITHUB_STEP_SUMMARY
-          echo "ruff check FollowWeb_Visualizor tests --fix" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ❌ Linting Check Failed"
+            echo ""
+            echo "Please run locally to fix:"
+            echo "\`\`\`bash"
+            echo "cd FollowWeb"
+            echo "ruff check FollowWeb_Visualizor tests --fix"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "✓ Linting check passed"
@@ -234,7 +238,7 @@ jobs:
         echo "Checking import sorting..."
         if ! ruff check --select I FollowWeb_Visualizor tests --extend-exclude="*.ipynb"; then
           echo "::error::Import sorting issues found."
-          echo "### ❌ Import Sorting Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Import Sorting Check Failed" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "✓ Import sorting check passed"
@@ -246,13 +250,15 @@ jobs:
         if [ -d "build" ]; then rm -rf build; fi
         if ! mypy FollowWeb_Visualizor --show-error-codes; then
           echo "::error::Type checking failed."
-          echo "### ❌ Type Check Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please run locally to fix:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "cd FollowWeb" >> $GITHUB_STEP_SUMMARY
-          echo "mypy FollowWeb_Visualizor" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ❌ Type Check Failed"
+            echo ""
+            echo "Please run locally to fix:"
+            echo "\`\`\`bash"
+            echo "cd FollowWeb"
+            echo "mypy FollowWeb_Visualizor"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "✓ Type checking passed"
@@ -272,19 +278,23 @@ jobs:
         
         if [ ! -f ./actionlint ]; then
           echo "::warning::Failed to download actionlint after 3 attempts, skipping workflow validation"
-          echo "### ⚠️ Workflow Validation Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "actionlint download failed - this is a transient CI issue" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ⚠️ Workflow Validation Skipped"
+            echo ""
+            echo "actionlint download failed - this is a transient CI issue"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
         
         # Run actionlint on all workflow files
         if ! ./actionlint .github/workflows/*.yml; then
           echo "::error::Workflow validation failed."
-          echo "### ❌ Workflow Validation Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Please fix workflow syntax errors." >> $GITHUB_STEP_SUMMARY
-          echo "See actionlint output above for details." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### ❌ Workflow Validation Failed"
+            echo ""
+            echo "Please fix workflow syntax errors."
+            echo "See actionlint output above for details."
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "✓ Workflow validation passed"
@@ -293,14 +303,16 @@ jobs:
     - name: Quality check summary
       if: success()
       run: |
-        echo "### ✅ Quality Check Passed" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "All code quality checks passed:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Code formatting (ruff format)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Linting (ruff check)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Import sorting (ruff check --select I)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Type checking (mypy)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Workflow validation (actionlint)" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "### ✅ Quality Check Passed"
+          echo ""
+          echo "All code quality checks passed:"
+          echo "- ✓ Code formatting (ruff format)"
+          echo "- ✓ Linting (ruff check)"
+          echo "- ✓ Import sorting (ruff check --select I)"
+          echo "- ✓ Type checking (mypy)"
+          echo "- ✓ Workflow validation (actionlint)"
+        } >> "$GITHUB_STEP_SUMMARY"
   
   # ============================================================================
   # PHASE 2: PARALLEL INITIALIZATION & CHECKS (depends on quality-check)
