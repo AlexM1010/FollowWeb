@@ -33,12 +33,9 @@ name: Freesound Backup
 
 on:
   workflow_run:
-    workflows: ["Freesound Nightly Collection"]
-    types: [completed]
-    branches: [main]
-  
-  workflow_run:
-    workflows: ["Freesound Validation & Visualization"]
+    workflows: 
+      - "Freesound Nightly Collection"
+      - "Freesound Validation & Visualization"
     types: [completed]
     branches: [main]
   
@@ -244,7 +241,7 @@ jobs:
           missing_files=$((missing_files + 1))
         else
           graph_size=$(stat -f%z "$CHECKPOINT_DIR/graph_topology.gpickle" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/graph_topology.gpickle")
-          echo "- ✅ graph_topology.gpickle ($(numfmt --to=iec-i --suffix=B $graph_size))" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ graph_topology.gpickle ($(numfmt --to=iec-i --suffix=B "$graph_size"))" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ ! -f "$CHECKPOINT_DIR/metadata_cache.db" ]; then
@@ -253,7 +250,7 @@ jobs:
           missing_files=$((missing_files + 1))
         else
           db_size=$(stat -f%z "$CHECKPOINT_DIR/metadata_cache.db" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/metadata_cache.db")
-          echo "- ✅ metadata_cache.db ($(numfmt --to=iec-i --suffix=B $db_size))" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ metadata_cache.db ($(numfmt --to=iec-i --suffix=B "$db_size"))" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ ! -f "$CHECKPOINT_DIR/checkpoint_metadata.json" ]; then
@@ -261,7 +258,7 @@ jobs:
           echo "- ⚠️  Missing: checkpoint_metadata.json" >> "$GITHUB_STEP_SUMMARY"
         else
           meta_size=$(stat -f%z "$CHECKPOINT_DIR/checkpoint_metadata.json" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/checkpoint_metadata.json")
-          echo "- ✅ checkpoint_metadata.json ($(numfmt --to=iec-i --suffix=B $meta_size))" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ checkpoint_metadata.json ($(numfmt --to=iec-i --suffix=B "$meta_size"))" >> "$GITHUB_STEP_SUMMARY"
           
           # Extract node count from metadata
           node_count=$(jq -r '.total_nodes // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
@@ -321,7 +318,7 @@ jobs:
         
         # Get file size
         backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
-        echo "Backup size: $(numfmt --to=iec-i --suffix=B $backup_size)"
+        echo "Backup size: $(numfmt --to=iec-i --suffix=B "$backup_size")"
         
         # Create backup metadata JSON
         cat > backup_metadata.json << EOF
@@ -382,18 +379,18 @@ jobs:
         max_size=10737418240  # 10GB
         
         if [ "$backup_size" -lt "$min_size" ]; then
-          echo "::error::Backup file too small: $(numfmt --to=iec-i --suffix=B $backup_size) (minimum: 100KB)"
-          echo "- ❌ Backup file too small: $(numfmt --to=iec-i --suffix=B $backup_size)" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Backup file too small: $(numfmt --to=iec-i --suffix=B "$backup_size") (minimum: 100KB)"
+          echo "- ❌ Backup file too small: $(numfmt --to=iec-i --suffix=B "$backup_size")" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         if [ "$backup_size" -gt "$max_size" ]; then
-          echo "::error::Backup file too large: $(numfmt --to=iec-i --suffix=B $backup_size) (maximum: 10GB)"
-          echo "- ❌ Backup file too large: $(numfmt --to=iec-i --suffix=B $backup_size)" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Backup file too large: $(numfmt --to=iec-i --suffix=B "$backup_size") (maximum: 10GB)"
+          echo "- ❌ Backup file too large: $(numfmt --to=iec-i --suffix=B "$backup_size")" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
-        echo "- ✅ File size valid: $(numfmt --to=iec-i --suffix=B $backup_size)" >> "$GITHUB_STEP_SUMMARY"
+        echo "- ✅ File size valid: $(numfmt --to=iec-i --suffix=B "$backup_size")" >> "$GITHUB_STEP_SUMMARY"
         
         # Verify archive integrity (can be extracted)
         echo "Verifying archive can be extracted..."

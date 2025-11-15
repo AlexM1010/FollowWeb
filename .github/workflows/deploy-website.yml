@@ -101,7 +101,7 @@ jobs:
         mkdir -p website/visualizations
         
         # Copy all HTML visualizations
-        if ls Output/*.html 1> /dev/null 2>&1; then
+        if find Output -maxdepth 1 -name "*.html" -type f | grep -q .; then
           cp Output/*.html website/visualizations/
           viz_count=$(ls Output/*.html | wc -l)
           echo "- ✅ Copied $viz_count visualization(s)" >> "$GITHUB_STEP_SUMMARY"
@@ -133,7 +133,7 @@ jobs:
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./website

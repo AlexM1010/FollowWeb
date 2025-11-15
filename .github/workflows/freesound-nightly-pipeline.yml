@@ -470,7 +470,7 @@ jobs:
         cmd="$cmd --skip-visualization"  # Skip visualization generation
         
         # Run the collection script
-        eval "$cmd" 2>&1 | tee collection_${{ steps.params.outputs.execution_id }}.log
+        eval "$cmd" 2>&1 | tee "collection_${{ steps.params.outputs.execution_id }}.log"
         
         # Capture exit code
         collection_exit_code=${PIPESTATUS[0]}
@@ -587,7 +587,7 @@ jobs:
           echo "Current node count: $node_count"
           
           # Determine tier and release tag using Python
-          tier_info=$(python3 -c "import sys; node_count = $node_count; backup_interval = 25; tier = 'milestone' if node_count % (backup_interval * 20) == 0 else ('moderate' if node_count % (backup_interval * 4) == 0 else ('frequent' if node_count % backup_interval == 0 else 'none')); release_tag = 'v-permanent' if tier in ['milestone', 'moderate'] else ('v-checkpoint' if tier == 'frequent' else 'none'); print(f'{tier}|{release_tag}')")
+          tier_info=$(python3 -c "import sys; node_count = ${node_count}; backup_interval = 25; tier = 'milestone' if node_count % (backup_interval * 20) == 0 else ('moderate' if node_count % (backup_interval * 4) == 0 else ('frequent' if node_count % backup_interval == 0 else 'none')); release_tag = 'v-permanent' if tier in ['milestone', 'moderate'] else ('v-checkpoint' if tier == 'frequent' else 'none'); print(f'{tier}|{release_tag}')")
           
           tier=$(echo "$tier_info" | cut -d'|' -f1)
           release_tag=$(echo "$tier_info" | cut -d'|' -f2)
@@ -699,7 +699,7 @@ jobs:
         ASSET_STATE=$(echo "$LATEST_ASSET" | jq -r '.state')
         
         echo "Verifying backup: $ASSET_NAME"
-        echo "- Size: $(numfmt --to=iec-i --suffix=B $ASSET_SIZE)"
+        echo "- Size: $(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")"
         echo "- State: $ASSET_STATE"
         
         # Verify asset state is 'uploaded'

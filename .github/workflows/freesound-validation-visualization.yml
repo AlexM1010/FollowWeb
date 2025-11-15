@@ -297,7 +297,7 @@ jobs:
         fi
         
         # Find generated visualization
-        VIZ_FILE=$(ls -t Output/freesound_*.html 2>/dev/null | head -n1)
+        VIZ_FILE=$(find Output -maxdepth 1 -name "freesound_*.html" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -n1 | cut -d' ' -f2-)
         
         if [ -n "$VIZ_FILE" ]; then
           echo "visualization_generated=true" >> "$GITHUB_OUTPUT"
