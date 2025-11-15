@@ -245,12 +245,14 @@ jobs:
     - name: Smoke test summary
       if: success()
       run: |
-        echo "---" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "##  All Pre-Flight Checks Passed" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "The environment is ready for the Freesound Nightly Pipeline." >> "$GITHUB_STEP_SUMMARY"
-        echo "Proceeding to data collection phase..." >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "---"
+          echo ""
+          echo "##  All Pre-Flight Checks Passed"
+          echo ""
+          echo "The environment is ready for the Freesound Nightly Pipeline."
+          echo "Proceeding to data collection phase..."
+        } >> "$GITHUB_STEP_SUMMARY"
 
   freesound-collection:
     name: Freesound Data Collection
@@ -855,32 +857,38 @@ jobs:
     - name: Generate execution summary
       if: always()
       run: |
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "---" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "##  Execution Summary" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "---"
+          echo ""
+          echo "##  Execution Summary"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if execution was skipped due to conflicts
         if [ "${{ steps.orchestration.outputs.can_proceed }}" = "false" ]; then
-          echo "###  Status: Skipped" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Reason:** ${{ steps.orchestration.outputs.skip_reason }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time." >> "$GITHUB_STEP_SUMMARY"
-          echo "The workflow will retry on the next scheduled run." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "###  Status: Skipped"
+            echo ""
+            echo "**Reason:** ${{ steps.orchestration.outputs.skip_reason }}"
+            echo ""
+            echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time."
+            echo "The workflow will retry on the next scheduled run."
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.collection.outputs.collection_status }}" = "success" ]; then
-          echo "###  Status: Collection Complete" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          
-          # Data collection statistics
-          echo "###  Collection Statistics" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Total Nodes** | \`${{ steps.stats.outputs.total_nodes }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Total Edges** | \`${{ steps.stats.outputs.total_edges }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "###  Status: Collection Complete"
+            echo ""
+            
+            # Data collection statistics
+            echo "###  Collection Statistics"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| **Total Nodes** | \`${{ steps.stats.outputs.total_nodes }}\` |"
+            echo "| **Total Edges** | \`${{ steps.stats.outputs.total_edges }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.stats.outputs.new_samples }}" != "N/A" ]; then
             echo "| **New Samples** | \`${{ steps.stats.outputs.new_samples }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -890,71 +898,81 @@ jobs:
           if [ "${{ steps.stats.outputs.api_requests }}" != "N/A" ]; then
             echo "| **API Requests Used** | \`${{ steps.stats.outputs.api_requests }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          
-          # Pagination state
-          echo "###  Pagination State" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|----------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Current Page** | \`${{ steps.stats.outputs.current_page }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Search Query** | \`${{ steps.stats.outputs.search_query }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo ""
+            
+            # Pagination state
+            echo "###  Pagination State"
+            echo ""
+            echo "| Property | Value |"
+            echo "|----------|-------|"
+            echo "| **Current Page** | \`${{ steps.stats.outputs.current_page }}\` |"
+            echo "| **Search Query** | \`${{ steps.stats.outputs.search_query }}\` |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           
           # Backup tier information
           if [ "${{ steps.upload_checkpoint.outputs.backup_tier }}" != "" ]; then
-            echo "###  Backup Information" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
-            echo "|----------|-------|" >> "$GITHUB_STEP_SUMMARY"
-            echo "| **Backup Tier** | \`${{ steps.upload_checkpoint.outputs.backup_tier }}\` |" >> "$GITHUB_STEP_SUMMARY"
-            echo "| **Release Tag** | \`${{ steps.upload_checkpoint.outputs.release_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "###  Backup Information"
+              echo ""
+              echo "| Property | Value |"
+              echo "|----------|-------|"
+              echo "| **Backup Tier** | \`${{ steps.upload_checkpoint.outputs.backup_tier }}\` |"
+              echo "| **Release Tag** | \`${{ steps.upload_checkpoint.outputs.release_tag }}\` |"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
           
           # Downstream workflows
-          echo "###  Downstream Workflows" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ **Repair Pipeline**: Will be triggered automatically to validate and repair data" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ **Validation Pipeline**: Will be triggered automatically after repair" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ **Backup Pipeline**: Will be triggered automatically after validation" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "###  Downstream Workflows"
+            echo ""
+            echo "- ✅ **Repair Pipeline**: Will be triggered automatically to validate and repair data"
+            echo "- ✅ **Validation Pipeline**: Will be triggered automatically after repair"
+            echo "- ✅ **Backup Pipeline**: Will be triggered automatically after validation"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           
         else
-          echo "###  Status: Collection Failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "The data collection failed. Please check the logs for error details." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Common issues:**" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API key not configured or invalid" >> "$GITHUB_STEP_SUMMARY"
-          echo "- API rate limit exceeded" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Network connectivity issues" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Checkpoint file corruption" >> "$GITHUB_STEP_SUMMARY"
-          echo "- BACKUP_PAT not configured or invalid" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Note:** Checkpoint has been saved to cache for failure recovery." >> "$GITHUB_STEP_SUMMARY"
-          echo "The backup workflow will create a recovery backup." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "###  Status: Collection Failed"
+            echo ""
+            echo "The data collection failed. Please check the logs for error details."
+            echo ""
+            echo "**Common issues:**"
+            echo "- API key not configured or invalid"
+            echo "- API rate limit exceeded"
+            echo "- Network connectivity issues"
+            echo "- Checkpoint file corruption"
+            echo "- BACKUP_PAT not configured or invalid"
+            echo ""
+            echo "**Note:** Checkpoint has been saved to cache for failure recovery."
+            echo "The backup workflow will create a recovery backup."
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
         # Execution details (always shown)
-        echo "###  Execution Details" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Detail | Value |" >> "$GITHUB_STEP_SUMMARY"
-        echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Cache Key** | \`checkpoint-${{ github.run_id }}\` |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        
-        # Artifacts
-        echo "###  Artifacts" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Collection logs are available as workflow artifacts (30-day retention)" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Checkpoint saved to GitHub Actions cache (7-day retention)" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "###  Execution Details"
+          echo ""
+          echo "| Detail | Value |"
+          echo "|--------|-------|"
+          echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |"
+          echo "| **Trigger** | \`${{ github.event_name }}\` |"
+          echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |"
+          echo "| **Cache Key** | \`checkpoint-${{ github.run_id }}\` |"
+          echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |"
+          echo ""
+          
+          # Artifacts
+          echo "###  Artifacts"
+          echo ""
+          echo "- Collection logs are available as workflow artifacts (30-day retention)"
+          echo "- Checkpoint saved to GitHub Actions cache (7-day retention)"
+          echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Upload collection logs
       if: always()
