@@ -103,7 +103,7 @@ jobs:
         # Copy all HTML visualizations
         if find Output -maxdepth 1 -name "*.html" -type f | grep -q .; then
           cp Output/*.html website/visualizations/
-          viz_count=$(ls Output/*.html | wc -l)
+          viz_count=$(find Output -maxdepth 1 -name "*.html" -type f | wc -l)
           echo "- ✅ Copied $viz_count visualization(s)" >> "$GITHUB_STEP_SUMMARY"
         else
           echo "- ⚠️ No visualizations found in Output/" >> "$GITHUB_STEP_SUMMARY"

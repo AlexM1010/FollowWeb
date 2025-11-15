@@ -157,15 +157,15 @@ jobs:
         
         # Check for broken internal file references
         python ../.github/scripts/ci_helpers.py info "**Internal Link Validation:**" --summary-only
-        broken_links=0
         
         # Check for references to files that might not exist
         for doc_file in README.md docs/*.md; do
           if [ -f "$doc_file" ]; then
             # Look for markdown links to local files
             grep -o '\[.*\]([^)]*\.md\|[^)]*\.py\|[^)]*\.json)' "$doc_file" 2>/dev/null | while read -r link; do
-              # Extract the file path from the link
-              file_path=$(echo "$link" | sed 's/.*(\([^)]*\)).*/\1/')
+              # Extract the file path from the link using bash string manipulation
+              file_path="${link#*\(}"
+              file_path="${file_path%\)*}"
               if [ ! -f "$file_path" ] && [ ! -d "$file_path" ]; then
                 echo "Potential broken link in $doc_file: $file_path" >> broken_links.txt
               fi
@@ -196,7 +196,7 @@ jobs:
           python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
           head -20 todo_comments.txt >> "$GITHUB_STEP_SUMMARY" || true
           if [ "$comment_count" -gt 20 ]; then
-            echo "... and $(($comment_count - 20)) more" >> "$GITHUB_STEP_SUMMARY"
+            echo "... and $((comment_count - 20)) more" >> "$GITHUB_STEP_SUMMARY"
           fi
           python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         else

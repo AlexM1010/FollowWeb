@@ -248,9 +248,11 @@ jobs:
           PACK_EDGES=$(jq -r '.pack_edges_added // 0' edge_stats.json)
           TAG_EDGES=$(jq -r '.tag_edges_added // 0' edge_stats.json)
           
-          echo "user_edges=$USER_EDGES" >> "$GITHUB_OUTPUT"
-          echo "pack_edges=$PACK_EDGES" >> "$GITHUB_OUTPUT"
-          echo "tag_edges=$TAG_EDGES" >> "$GITHUB_OUTPUT"
+          {
+            echo "user_edges=$USER_EDGES"
+            echo "pack_edges=$PACK_EDGES"
+            echo "tag_edges=$TAG_EDGES"
+          } >> "$GITHUB_OUTPUT"
           
           echo "✅ Generated $USER_EDGES user edges, $PACK_EDGES pack edges, $TAG_EDGES tag edges"
         else

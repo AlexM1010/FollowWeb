@@ -84,6 +84,7 @@ dev = [
     "build>=0.10.0",
     "twine>=4.0.0",
     "check-manifest>=0.49",
+    "shellcheck-py>=0.10.0",  # Shell script linting for workflow validation
 ]
 cleanup = [
     # File operations and organization

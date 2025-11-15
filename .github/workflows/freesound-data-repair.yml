@@ -158,9 +158,11 @@ jobs:
         tar -xzf checkpoint_backup.tar.gz -C data/
         rm -f checkpoint_backup.tar.gz
         
-        echo "- Source: \`$ASSET_NAME\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Source: \`$ASSET_NAME\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")\`"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Run validation checks
       id: validation
@@ -200,8 +202,10 @@ jobs:
       if: steps.repair.outputs.repair_success == 'true'
       id: revalidation
       run: |
-        echo "### 🔍 Re-validation After Repairs" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 🔍 Re-validation After Repairs"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Run validation again
         if python scripts/validation/validate_checkpoint.py data/freesound_library; then
@@ -209,9 +213,11 @@ jobs:
           echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
         else
           echo "revalidation_passed=false" >> "$GITHUB_OUTPUT"
-          echo "- Status: ❌ Validation still failing" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Warning:** Repairs did not resolve all issues. Manual intervention may be required." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ❌ Validation still failing"
+            echo ""
+            echo "**Warning:** Repairs did not resolve all issues. Manual intervention may be required."
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"

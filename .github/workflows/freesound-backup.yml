@@ -89,66 +89,92 @@ jobs:
     - name: Set execution parameters
       id: params
       run: |
-        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> "$GITHUB_OUTPUT"
-        echo "timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+        {
+          echo "execution_id=$(date +'%Y%m%d_%H%M%S')"
+          echo "timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        } >> "$GITHUB_OUTPUT"
     
     # Subtask 11.1: Implement failure detection and cache restore
     - name: Detect backup reason and determine cache strategy
       id: backup_reason
       run: |
-        echo "## 💾 Backup Workflow" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "**Configuration:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Trigger: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "## 💾 Backup Workflow"
+          echo ""
+          echo "**Configuration:**"
+          echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`"
+          echo "- Trigger: \`${{ github.event_name }}\`"
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Determine backup reason based on trigger
         if [ "${{ github.event_name }}" = "schedule" ]; then
-          echo "reason=scheduled" >> "$GITHUB_OUTPUT"
-          echo "use_cache=false" >> "$GITHUB_OUTPUT"
-          echo "tier=scheduled" >> "$GITHUB_OUTPUT"
-          echo "- Backup Reason: \`Scheduled (periodic backup)\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Source: Repository checkpoint" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "reason=scheduled"
+            echo "use_cache=false"
+            echo "tier=scheduled"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "- Backup Reason: \`Scheduled (periodic backup)\`"
+            echo "- Source: Repository checkpoint"
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "reason=manual" >> "$GITHUB_OUTPUT"
-          echo "use_cache=false" >> "$GITHUB_OUTPUT"
-          echo "tier=manual" >> "$GITHUB_OUTPUT"
-          echo "- Backup Reason: \`Manual trigger\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Source: Repository checkpoint" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "reason=manual"
+            echo "use_cache=false"
+            echo "tier=manual"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "- Backup Reason: \`Manual trigger\`"
+            echo "- Source: Repository checkpoint"
+          } >> "$GITHUB_STEP_SUMMARY"
         else
           # Triggered by upstream workflow
           upstream_workflow="${{ github.event.workflow_run.name }}"
           upstream_conclusion="${{ github.event.workflow_run.conclusion }}"
           
-          echo "- Upstream Workflow: \`$upstream_workflow\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Upstream Conclusion: \`$upstream_conclusion\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Upstream Run: [#${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Upstream Workflow: \`$upstream_workflow\`"
+            echo "- Upstream Conclusion: \`$upstream_conclusion\`"
+            echo "- Upstream Run: [#${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})"
+          } >> "$GITHUB_STEP_SUMMARY"
           
           # Determine reason based on upstream workflow and conclusion
           if [ "$upstream_workflow" = "Freesound Nightly Pipeline" ]; then
             if [ "$upstream_conclusion" = "success" ]; then
-              echo "reason=collection_success" >> "$GITHUB_OUTPUT"
-              echo "tier=checkpoint" >> "$GITHUB_OUTPUT"
+              {
+                echo "reason=collection_success"
+                echo "tier=checkpoint"
+              } >> "$GITHUB_OUTPUT"
               echo "- Backup Reason: \`Collection pipeline succeeded\`" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "reason=failure_recovery" >> "$GITHUB_OUTPUT"
-              echo "tier=recovery" >> "$GITHUB_OUTPUT"
+              {
+                echo "reason=failure_recovery"
+                echo "tier=recovery"
+              } >> "$GITHUB_OUTPUT"
               echo "- Backup Reason: \`⚠️  Failure Recovery (preserving partial progress)\`" >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "cache_key=checkpoint-${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+            {
+              echo "use_cache=true"
+              echo "cache_key=checkpoint-${{ github.event.workflow_run.id }}"
+            } >> "$GITHUB_OUTPUT"
             echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`" >> "$GITHUB_STEP_SUMMARY"
           elif [ "$upstream_workflow" = "Freesound Validation & Visualization" ]; then
-            echo "reason=validation_success" >> "$GITHUB_OUTPUT"
-            echo "tier=validated" >> "$GITHUB_OUTPUT"
-            echo "use_cache=true" >> "$GITHUB_OUTPUT"
-            echo "cache_key=checkpoint-${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
-            echo "- Backup Reason: \`Validation pipeline succeeded\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "reason=validation_success"
+              echo "tier=validated"
+              echo "use_cache=true"
+              echo "cache_key=checkpoint-${{ github.event.workflow_run.id }}"
+            } >> "$GITHUB_OUTPUT"
+            {
+              echo "- Backup Reason: \`Validation pipeline succeeded\`"
+              echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "reason=unknown" >> "$GITHUB_OUTPUT"
-            echo "tier=unknown" >> "$GITHUB_OUTPUT"
-            echo "use_cache=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "reason=unknown"
+              echo "tier=unknown"
+              echo "use_cache=false"
+            } >> "$GITHUB_OUTPUT"
             echo "- Backup Reason: \`Unknown trigger\`" >> "$GITHUB_STEP_SUMMARY"
           fi
         fi
@@ -263,10 +289,14 @@ jobs:
           # Extract node count from metadata
           node_count=$(jq -r '.total_nodes // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
           edge_count=$(jq -r '.total_edges // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
-          echo "node_count=$node_count" >> "$GITHUB_OUTPUT"
-          echo "edge_count=$edge_count" >> "$GITHUB_OUTPUT"
-          echo "- Nodes: \`$node_count\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Edges: \`$edge_count\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "node_count=$node_count"
+            echo "edge_count=$edge_count"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "- Nodes: \`$node_count\`"
+            echo "- Edges: \`$edge_count\`"
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ "$missing_files" -gt 0 ]; then
@@ -288,9 +318,11 @@ jobs:
         fi
         
         echo "verification_passed=true" >> "$GITHUB_OUTPUT"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "✅ Checkpoint verification passed" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "✅ Checkpoint verification passed"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
 
     # Subtask 11.3: Implement backup creation with tier tagging
     - name: Create backup archive with tier tagging
@@ -345,16 +377,20 @@ jobs:
         fi
         
         # Display metadata
-        echo "Backup metadata:" >> "$GITHUB_STEP_SUMMARY"
-        echo "\`\`\`json" >> "$GITHUB_STEP_SUMMARY"
-        cat backup_metadata.json >> "$GITHUB_STEP_SUMMARY"
-        echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "Backup metadata:"
+          echo "\`\`\`json"
+          cat backup_metadata.json
+          echo "\`\`\`"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Store outputs
-        echo "backup_filename=$backup_filename" >> "$GITHUB_OUTPUT"
-        echo "backup_size=$backup_size" >> "$GITHUB_OUTPUT"
-        echo "backup_created=true" >> "$GITHUB_OUTPUT"
+        {
+          echo "backup_filename=$backup_filename"
+          echo "backup_size=$backup_size"
+          echo "backup_created=true"
+        } >> "$GITHUB_OUTPUT"
 
     # Subtask 19.1: Implement backup verification
     - name: Verify backup file integrity

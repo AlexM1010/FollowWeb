@@ -101,10 +101,30 @@ jobs:
           echo ""
           echo "###  Package Imports"
         } >> "$GITHUB_STEP_SUMMARY"
-        python -c "import FollowWeb_Visualizor" && echo "-  FollowWeb_Visualizor" >> "$GITHUB_STEP_SUMMARY" || { echo "-  FollowWeb_Visualizor" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
-        python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader" && echo "-  IncrementalFreesoundLoader" >> "$GITHUB_STEP_SUMMARY" || { echo "-  IncrementalFreesoundLoader" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
-        python -c "from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer" && echo "-  SigmaRenderer" >> "$GITHUB_STEP_SUMMARY" || { echo "-  SigmaRenderer" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
-        python -c "import networkx" && echo "-  NetworkX" >> "$GITHUB_STEP_SUMMARY" || { echo "-  NetworkX" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        if python -c "import FollowWeb_Visualizor"; then
+          echo "-  FollowWeb_Visualizor" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  FollowWeb_Visualizor" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        if python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader"; then
+          echo "-  IncrementalFreesoundLoader" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  IncrementalFreesoundLoader" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        if python -c "from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer"; then
+          echo "-  SigmaRenderer" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  SigmaRenderer" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        if python -c "import networkx"; then
+          echo "-  NetworkX" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  NetworkX" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Validate secrets
@@ -174,13 +194,27 @@ jobs:
             assert loader.graph.number_of_nodes() == 0, 'Graph should start empty'
             
             print(' Loader initialization successful')
-        " && echo "-  IncrementalFreesoundLoader initialization" >> "$GITHUB_STEP_SUMMARY" || { echo "-  IncrementalFreesoundLoader initialization" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        "
+        loader_exit_code=$?
+        if [ $loader_exit_code -eq 0 ]; then
+          echo "-  IncrementalFreesoundLoader initialization" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  IncrementalFreesoundLoader initialization" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
         
         # Test renderer can be imported (initialization tested in actual pipeline)
         python -c "
         from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer
         print(' SigmaRenderer import successful')
-        " && echo "-  SigmaRenderer import" >> "$GITHUB_STEP_SUMMARY" || { echo "-  SigmaRenderer import" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        "
+        renderer_exit_code=$?
+        if [ $renderer_exit_code -eq 0 ]; then
+          echo "-  SigmaRenderer import" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  SigmaRenderer import" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
         
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
@@ -200,7 +234,14 @@ jobs:
         assert hasattr(checkpoint, 'load'), 'Load method not available'
         
         print(' Checkpoint module validated')
-        " && echo "-  Checkpoint module validation" >> "$GITHUB_STEP_SUMMARY" || { echo "-  Checkpoint module validation" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        "
+        checkpoint_exit_code=$?
+        if [ $checkpoint_exit_code -eq 0 ]; then
+          echo "-  Checkpoint module validation" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  Checkpoint module validation" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
         
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
@@ -238,7 +279,14 @@ jobs:
             raise AssertionError('Non-negative integer validation failed')
         
         print(' All validation tests passed')
-        " && echo "-  Validation utilities" >> "$GITHUB_STEP_SUMMARY" || { echo "-  Validation utilities" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        "
+        validation_exit_code=$?
+        if [ $validation_exit_code -eq 0 ]; then
+          echo "-  Validation utilities" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "-  Validation utilities" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
         
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
@@ -299,27 +347,32 @@ jobs:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "** Secret Validation**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "** Secret Validation**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check FREESOUND_API_KEY (required)
         if [ -z "$FREESOUND_API_KEY" ]; then
           echo "::error::FREESOUND_API_KEY not configured"
           echo "-  FREESOUND_API_KEY: Not configured" >> "$GITHUB_STEP_SUMMARY"
           exit 1
-        else
-          echo "-  FREESOUND_API_KEY: Configured" >> "$GITHUB_STEP_SUMMARY"
         fi
+        API_KEY_STATUS="-  FREESOUND_API_KEY: Configured"
         
         # Check BACKUP_PAT (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - backups are REQUIRED"
           echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
           exit 1
-        else
-          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> "$GITHUB_STEP_SUMMARY"
         fi
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        BACKUP_PAT_STATUS="-  BACKUP_PAT: ✅ Configured (primary backup repository)"
+        
+        {
+          echo "$API_KEY_STATUS"
+          echo "$BACKUP_PAT_STATUS"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Verify installation
       run: |
@@ -352,13 +405,17 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "** Phase 1: Download Checkpoint from Private Repository**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "** Phase 1: Download Checkpoint from Private Repository**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - cannot download checkpoint"
-          echo "- Status: ❌ BACKUP_PAT required" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ❌ BACKUP_PAT required"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
@@ -375,7 +432,9 @@ jobs:
         # Check if release exists
         if echo "$ASSETS_JSON" | grep -q "Not Found"; then
           echo " Release v-checkpoint not found in ${BACKUP_REPO}"
-          echo "- Status: No backup available" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: No backup available"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
@@ -385,7 +444,9 @@ jobs:
         
         if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
           echo " No checkpoint backups found in ${BACKUP_REPO}"
-          echo "- Status: No backup available" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: No backup available"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
@@ -414,9 +475,11 @@ jobs:
         # Verify extraction
         if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
           echo " Checkpoint restored successfully"
-          echo "- Backup: \`$ASSET_NAME\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Created: \`$ASSET_CREATED\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Backup: \`$ASSET_NAME\`"
+            echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`"
+            echo "- Created: \`$ASSET_CREATED\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "checkpoint_restored=true" >> "$GITHUB_OUTPUT"
         else
           echo " Checkpoint extraction failed"
@@ -433,25 +496,34 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Skip orchestration check for now - workflow_orchestrator not in repo
-        echo "can_proceed=true" >> "$GITHUB_OUTPUT"
-        echo "skip_reason=No conflicts" >> "$GITHUB_OUTPUT"
+        {
+          echo "can_proceed=true"
+          echo "skip_reason=No conflicts"
+        } >> "$GITHUB_OUTPUT"
     
     - name: Display pipeline configuration
       if: steps.orchestration.outputs.can_proceed == 'true'
       run: |
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "** Phase 2: Pipeline Configuration**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "** Phase 2: Pipeline Configuration**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+        
         if [ -n "${{ steps.params.outputs.seed_sample_id }}" ]; then
-          echo "- Seed Sample ID: \`${{ steps.params.outputs.seed_sample_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+          SEED_INFO="- Seed Sample ID: \`${{ steps.params.outputs.seed_sample_id }}\`"
         else
-          echo "- Seed Sample: \`Most downloaded sample (auto-detected)\`" >> "$GITHUB_STEP_SUMMARY"
+          SEED_INFO="- Seed Sample: \`Most downloaded sample (auto-detected)\`"
         fi
-        echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Discovery Mode: \`${{ steps.params.outputs.discovery_mode }}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Trigger: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        
+        {
+          echo "$SEED_INFO"
+          echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)"
+          echo "- Discovery Mode: \`${{ steps.params.outputs.discovery_mode }}\`"
+          echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`"
+          echo "- Trigger: \`${{ github.event_name }}\`"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Run data collection
       if: steps.orchestration.outputs.can_proceed == 'true'
