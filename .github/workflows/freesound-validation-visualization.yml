@@ -83,34 +83,38 @@ jobs:
     - name: Set execution parameters
       id: params
       run: |
-        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> "$GITHUB_OUTPUT"
         
         # Determine cache key based on trigger
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           # For manual runs, use latest checkpoint from repo
-          echo "cache_key=manual-run" >> $GITHUB_OUTPUT
-          echo "use_cache=false" >> $GITHUB_OUTPUT
+          echo "cache_key=manual-run" >> "$GITHUB_OUTPUT"
+          echo "use_cache=false" >> "$GITHUB_OUTPUT"
         else
           # For triggered runs, use cache from repair pipeline
           # Try repaired checkpoint first, fall back to original
-          echo "cache_key=checkpoint-repaired-${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
-          echo "use_cache=true" >> $GITHUB_OUTPUT
+          echo "cache_key=checkpoint-repaired-${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+          echo "use_cache=true" >> "$GITHUB_OUTPUT"
         fi
     
     - name: Display workflow configuration
       run: |
-        echo "## 🔍 Validation & Visualization Workflow" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "## 🔍 Validation & Visualization Workflow"
+          echo ""
+          echo "**Configuration:**"
+          echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`"
+          echo "- Trigger: \`${{ github.event_name }}\`"
+        } >> "$GITHUB_STEP_SUMMARY"
         if [ "${{ steps.params.outputs.use_cache }}" = "true" ]; then
-          echo "- Cache Key: \`${{ steps.params.outputs.cache_key }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Upstream Run: [#${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "- Cache Key: \`${{ steps.params.outputs.cache_key }}\`"
+            echo "- Upstream Run: [#${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})"
+          } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- Source: Manual run (using checkpoint from repository)" >> $GITHUB_STEP_SUMMARY
+          echo "- Source: Manual run (using checkpoint from repository)" >> "$GITHUB_STEP_SUMMARY"
         fi
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     # Subtask 10.1: Restore checkpoint from cache
     - name: Restore checkpoint from cache
@@ -157,11 +161,13 @@ jobs:
         echo "✅ All checkpoint files present"
         
         # Display checkpoint info
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Checkpoint Files:**" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        ls -lh $CHECKPOINT_DIR/ >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        {
+          echo ""
+          echo "**Checkpoint Files:**"
+          echo "\`\`\`"
+          ls -lh "$CHECKPOINT_DIR/"
+          echo "\`\`\`"
+        } >> "$GITHUB_STEP_SUMMARY"
     
     # Subtask 10.2: Validate checkpoint integrity
     - name: Validate checkpoint integrity
@@ -174,32 +180,38 @@ jobs:
         VALIDATION_OUTPUT=$(python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1)
         VALIDATION_EXIT_CODE=$?
         
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Validation Results:**" >> $GITHUB_STEP_SUMMARY
+        {
+          echo ""
+          echo "**Validation Results:**"
+        } >> "$GITHUB_STEP_SUMMARY"
         
-        if [ $VALIDATION_EXIT_CODE -eq 0 ]; then
-          echo "validation_passed=true" >> $GITHUB_OUTPUT
-          echo "✅ Validation passed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$VALIDATION_OUTPUT" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        if [ "$VALIDATION_EXIT_CODE" -eq 0 ]; then
+          echo "validation_passed=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "✅ Validation passed"
+            echo ""
+            echo "\`\`\`"
+            echo "$VALIDATION_OUTPUT"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "validation_passed=false" >> $GITHUB_OUTPUT
-          echo "❌ Validation failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$VALIDATION_OUTPUT" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️  **Skipping visualization and deployment due to validation failure**" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review validation errors above" >> $GITHUB_STEP_SUMMARY
-          echo "2. Check data repair workflow logs" >> $GITHUB_STEP_SUMMARY
-          echo "3. Manually trigger repair workflow if needed" >> $GITHUB_STEP_SUMMARY
+          echo "validation_passed=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "❌ Validation failed"
+            echo ""
+            echo "**Error Details:**"
+            echo "\`\`\`"
+            echo "$VALIDATION_OUTPUT"
+            echo "\`\`\`"
+            echo ""
+            echo "⚠️  **Skipping visualization and deployment due to validation failure**"
+            echo "⚠️  **Backup workflow will NOT be triggered**"
+            echo ""
+            echo "**Next Steps:**"
+            echo "1. Review validation errors above"
+            echo "2. Check data repair workflow logs"
+            echo "3. Manually trigger repair workflow if needed"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
     
@@ -209,8 +221,10 @@ jobs:
       id: edge-generation
       run: |
         echo "Generating edges from existing checkpoint data..."
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Edge Generation:**" >> $GITHUB_STEP_SUMMARY
+        {
+          echo ""
+          echo "**Edge Generation:**"
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Generate edges and save statistics
         python scripts/generation/generate_edges.py \
@@ -223,18 +237,20 @@ jobs:
         
         # Display edge statistics
         if [ -f edge_stats.json ]; then
-          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
-          cat edge_stats.json >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "\`\`\`json"
+            cat edge_stats.json
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           
           # Extract counts for output
           USER_EDGES=$(jq -r '.user_edges_added // 0' edge_stats.json)
           PACK_EDGES=$(jq -r '.pack_edges_added // 0' edge_stats.json)
           TAG_EDGES=$(jq -r '.tag_edges_added // 0' edge_stats.json)
           
-          echo "user_edges=$USER_EDGES" >> $GITHUB_OUTPUT
-          echo "pack_edges=$PACK_EDGES" >> $GITHUB_OUTPUT
-          echo "tag_edges=$TAG_EDGES" >> $GITHUB_OUTPUT
+          echo "user_edges=$USER_EDGES" >> "$GITHUB_OUTPUT"
+          echo "pack_edges=$PACK_EDGES" >> "$GITHUB_OUTPUT"
+          echo "tag_edges=$TAG_EDGES" >> "$GITHUB_OUTPUT"
           
           echo "✅ Generated $USER_EDGES user edges, $PACK_EDGES pack edges, $TAG_EDGES tag edges"
         else
@@ -250,8 +266,10 @@ jobs:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
         echo "Generating Sigma.js visualization..."
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Visualization:**" >> $GITHUB_STEP_SUMMARY
+        {
+          echo ""
+          echo "**Visualization:**"
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Generate visualization with audio playback and capture output
         VIZ_OUTPUT=$(python generate_freesound_visualization.py \
@@ -261,17 +279,20 @@ jobs:
           --max-requests 0 2>&1)
         VIZ_EXIT_CODE=$?
         
-        if [ $VIZ_EXIT_CODE -ne 0 ]; then
-          echo "visualization_generated=false" >> $GITHUB_OUTPUT
-          echo "❌ Visualization generation failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$VIZ_OUTPUT" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️  **Previous visualization remains live on GitHub Pages**" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+        if [ "$VIZ_EXIT_CODE" -ne 0 ]; then
+          {
+            echo "visualization_generated=false"
+            echo "❌ Visualization generation failed"
+            echo ""
+            echo "**Error Details:**"
+            echo "\`\`\`"
+            echo "$VIZ_OUTPUT"
+            echo "\`\`\`"
+            echo ""
+            echo "⚠️  **Previous visualization remains live on GitHub Pages**"
+            echo "⚠️  **Backup workflow will NOT be triggered**"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
         
@@ -279,19 +300,22 @@ jobs:
         VIZ_FILE=$(ls -t Output/freesound_*.html 2>/dev/null | head -n1)
         
         if [ -n "$VIZ_FILE" ]; then
-          echo "visualization_generated=true" >> $GITHUB_OUTPUT
-          echo "visualization_file=$VIZ_FILE" >> $GITHUB_OUTPUT
-          echo "✅ Visualization generated: \`$VIZ_FILE\`" >> $GITHUB_STEP_SUMMARY
+          echo "visualization_generated=true" >> "$GITHUB_OUTPUT"
+          echo "visualization_file=$VIZ_FILE" >> "$GITHUB_OUTPUT"
+          echo "✅ Visualization generated: \`$VIZ_FILE\`" >> "$GITHUB_STEP_SUMMARY"
           
           # Get file size
           VIZ_SIZE=$(du -h "$VIZ_FILE" | cut -f1)
-          echo "- File size: $VIZ_SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "- File size: $VIZ_SIZE" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "visualization_generated=false" >> $GITHUB_OUTPUT
-          echo "❌ Visualization file not found" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️  **Previous visualization remains live on GitHub Pages**" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "visualization_generated=false"
+            echo "❌ Visualization file not found"
+            echo ""
+            echo "⚠️  **Previous visualization remains live on GitHub Pages**"
+            echo "⚠️  **Backup workflow will NOT be triggered**"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
     
@@ -307,18 +331,21 @@ jobs:
         LANDING_OUTPUT=$(python generate_landing_page.py 2>&1)
         LANDING_EXIT_CODE=$?
         
-        if [ $LANDING_EXIT_CODE -ne 0 ]; then
-          echo "landing_page_updated=false" >> $GITHUB_OUTPUT
-          echo "❌ Landing page update failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Error Details:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "$LANDING_OUTPUT" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        if [ "$LANDING_EXIT_CODE" -ne 0 ]; then
+          {
+            echo "landing_page_updated=false"
+            echo "❌ Landing page update failed"
+            echo ""
+            echo "**Error Details:**"
+            echo "\`\`\`"
+            echo "$LANDING_OUTPUT"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "landing_page_updated=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
         
-        echo "landing_page_updated=true" >> $GITHUB_OUTPUT
+        echo "landing_page_updated=true" >> "$GITHUB_OUTPUT"
         echo "✅ Landing page updated"
     
     - name: Commit and push changes
@@ -334,8 +361,8 @@ jobs:
         
         # Check if there are changes to commit
         if git diff --staged --quiet; then
-          echo "deployment_successful=true" >> $GITHUB_OUTPUT
-          echo "No changes to commit" >> $GITHUB_STEP_SUMMARY
+          echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
+          echo "No changes to commit" >> "$GITHUB_STEP_SUMMARY"
         else
           git commit -m "🎨 Update visualization from validation pipeline
 
@@ -349,14 +376,17 @@ jobs:
           
           # Push changes and capture result
           if git push origin main; then
-            echo "deployment_successful=true" >> $GITHUB_OUTPUT
-            echo "✅ Changes pushed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+            echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Changes pushed to GitHub Pages" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "deployment_successful=false" >> $GITHUB_OUTPUT
-            echo "❌ Failed to push changes to GitHub Pages" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️  **Previous visualization remains live**" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
+            {
+              echo "deployment_successful=false"
+              echo "❌ Failed to push changes to GitHub Pages"
+              echo ""
+              echo "⚠️  **Previous visualization remains live**"
+              echo "⚠️  **Backup workflow will NOT be triggered**"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "deployment_successful=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
         fi
