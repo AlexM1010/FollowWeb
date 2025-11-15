@@ -80,8 +80,8 @@ jobs:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "## 🔧 Data Remediation" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 🔧 Data Remediation" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ -z "$FREESOUND_API_KEY" ]; then
           echo "::error::FREESOUND_API_KEY not configured"
@@ -97,12 +97,12 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "### 📥 Phase 1: Download Checkpoint" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📥 Phase 1: Download Checkpoint" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ -z "$BACKUP_PAT" ]; then
-          echo "⚠️ No BACKUP_PAT - using local checkpoint if available" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_downloaded=false" >> $GITHUB_OUTPUT
+          echo "⚠️ No BACKUP_PAT - using local checkpoint if available" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_downloaded=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         
@@ -114,16 +114,16 @@ jobs:
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
         
         if echo "$ASSETS_JSON" | grep -q "Not Found"; then
-          echo "⚠️ No backup repository found" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_downloaded=false" >> $GITHUB_OUTPUT
+          echo "⚠️ No backup repository found" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_downloaded=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         
         LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
         
         if [ "$LATEST_ASSET" = "null" ]; then
-          echo "⚠️ No checkpoint backups found" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_downloaded=false" >> $GITHUB_OUTPUT
+          echo "⚠️ No checkpoint backups found" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_downloaded=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         
@@ -139,19 +139,19 @@ jobs:
         tar -xzf checkpoint_backup.tar.gz -C data/
         rm checkpoint_backup.tar.gz
         
-        echo "- ✅ Downloaded: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
-        echo "checkpoint_downloaded=true" >> $GITHUB_OUTPUT
+        echo "- ✅ Downloaded: \`$ASSET_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "checkpoint_downloaded=true" >> "$GITHUB_OUTPUT"
     
     - name: Validate checkpoint integrity
       id: validate
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔍 Phase 2: Validate Data Integrity" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### 🔍 Phase 2: Validate Data Integrity" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ ! -d "data/freesound_library" ]; then
           echo "::error::No checkpoint directory found"
-          echo "- ❌ No checkpoint to remediate" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ No checkpoint to remediate" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
@@ -162,28 +162,28 @@ jobs:
         
         if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
           has_graph=true
-          echo "- ✅ Graph topology file exists" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Graph topology file exists" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- ❌ Graph topology file missing" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ Graph topology file missing" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
           has_metadata=true
-          echo "- ✅ Checkpoint metadata exists" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Checkpoint metadata exists" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- ⚠️ Checkpoint metadata missing (will regenerate)" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ Checkpoint metadata missing (will regenerate)" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ -f "data/freesound_library/metadata_cache.db" ]; then
           has_cache=true
-          echo "- ✅ Metadata cache exists" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Metadata cache exists" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- ⚠️ Metadata cache missing (will regenerate)" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ Metadata cache missing (will regenerate)" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "has_graph=$has_graph" >> $GITHUB_OUTPUT
-        echo "has_metadata=$has_metadata" >> $GITHUB_OUTPUT
-        echo "has_cache=$has_cache" >> $GITHUB_OUTPUT
+        echo "has_graph=$has_graph" >> "$GITHUB_OUTPUT"
+        echo "has_metadata=$has_metadata" >> "$GITHUB_OUTPUT"
+        echo "has_cache=$has_cache" >> "$GITHUB_OUTPUT"
         
         if [ "$has_graph" = "false" ]; then
           echo "::error::Cannot remediate without graph topology file"
@@ -193,9 +193,9 @@ jobs:
     - name: Create backup before remediation
       if: github.event.inputs.validate_only != 'true'
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 💾 Phase 3: Create Safety Backup" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### 💾 Phase 3: Create Safety Backup" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         timestamp=$(date +'%Y%m%d_%H%M%S')
         backup_file="checkpoint_before_remediation_${timestamp}.tar.gz"
@@ -203,22 +203,22 @@ jobs:
         tar -czf "$backup_file" -C data freesound_library/
         
         size=$(stat -c%s "$backup_file" 2>/dev/null || stat -f%z "$backup_file" 2>/dev/null)
-        echo "- ✅ Backup created: \`$backup_file\` ($(numfmt --to=iec-i --suffix=B $size))" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Backup created: \`$backup_file\` ($(numfmt --to=iec-i --suffix=B $size))" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Regenerate checkpoint metadata
       if: github.event.inputs.fix_metadata == 'true' && steps.validate.outputs.has_metadata == 'false'
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔧 Phase 4a: Regenerate Checkpoint Metadata" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### 🔧 Phase 4a: Regenerate Checkpoint Metadata" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ "${{ github.event.inputs.validate_only }}" = "true" ]; then
-          echo "- 🔍 Dry run: Would regenerate checkpoint metadata" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Dry run: Would regenerate checkpoint metadata" >> "$GITHUB_STEP_SUMMARY"
         else
           python3 .github/scripts/regenerate_checkpoint_metadata.py
-          echo "- ✅ Checkpoint metadata regenerated" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Checkpoint metadata regenerated" >> "$GITHUB_STEP_SUMMARY"
         fi
     
     - name: Add missing user/pack edges
@@ -226,12 +226,12 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔧 Phase 4b: Add Missing Edges" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### 🔧 Phase 4b: Add Missing Edges" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ "${{ github.event.inputs.validate_only }}" = "true" ]; then
-          echo "- 🔍 Dry run: Would add missing user/pack edges" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Dry run: Would add missing user/pack edges" >> "$GITHUB_STEP_SUMMARY"
         else
           python generate_user_pack_edges.py \
             --checkpoint-dir data/freesound_library \
@@ -240,9 +240,9 @@ jobs:
           if [ -f edge_remediation_stats.json ]; then
             user_edges=$(jq -r '.user_edges_added // 0' edge_remediation_stats.json)
             pack_edges=$(jq -r '.pack_edges_added // 0' edge_remediation_stats.json)
-            echo "- ✅ Added $user_edges user edges, $pack_edges pack edges" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Added $user_edges user edges, $pack_edges pack edges" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "- ⚠️ Edge generation completed with warnings" >> $GITHUB_STEP_SUMMARY
+            echo "- ⚠️ Edge generation completed with warnings" >> "$GITHUB_STEP_SUMMARY"
           fi
         fi
     
@@ -251,39 +251,39 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔧 Phase 4c: Rebuild Metadata Cache" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### 🔧 Phase 4c: Rebuild Metadata Cache" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ "${{ github.event.inputs.validate_only }}" = "true" ]; then
-          echo "- 🔍 Dry run: Would rebuild metadata cache from graph" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Dry run: Would rebuild metadata cache from graph" >> "$GITHUB_STEP_SUMMARY"
         else
           python3 .github/scripts/rebuild_metadata_cache.py
-          echo "- ✅ Metadata cache rebuilt from graph data" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Metadata cache rebuilt from graph data" >> "$GITHUB_STEP_SUMMARY"
         fi
     
     - name: Validate remediation
       if: github.event.inputs.validate_only != 'true'
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### ✅ Phase 5: Validation" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### ✅ Phase 5: Validation" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check all files exist now
         all_good=true
         
         if [ ! -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          echo "- ❌ Checkpoint metadata still missing" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ Checkpoint metadata still missing" >> "$GITHUB_STEP_SUMMARY"
           all_good=false
         else
           nodes=$(jq -r '.total_nodes' data/freesound_library/checkpoint_metadata.json)
-          echo "- ✅ Checkpoint metadata: $nodes nodes" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Checkpoint metadata: $nodes nodes" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ ! -f "data/freesound_library/metadata_cache.db" ]; then
-          echo "- ⚠️ Metadata cache still missing" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ Metadata cache still missing" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- ✅ Metadata cache exists" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Metadata cache exists" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         if [ "$all_good" = "false" ]; then
@@ -294,45 +294,45 @@ jobs:
     - name: Commit changes
       if: github.event.inputs.validate_only != 'true'
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 💾 Phase 6: Commit Changes" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "### 💾 Phase 6: Commit Changes" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         git add data/freesound_library/
         
         if git diff --staged --quiet; then
-          echo "- ℹ️ No changes to commit" >> $GITHUB_STEP_SUMMARY
+          echo "- ℹ️ No changes to commit" >> "$GITHUB_STEP_SUMMARY"
         else
           git commit -m "Data remediation: Fix incomplete checkpoint data"
           git push
-          echo "- ✅ Changes committed and pushed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Changes committed and pushed" >> "$GITHUB_STEP_SUMMARY"
         fi
     
     - name: Generate summary
       if: always()
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "---" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## 📊 Remediation Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "---" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "## 📊 Remediation Summary" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ "${{ github.event.inputs.validate_only }}" = "true" ]; then
-          echo "### 🔍 Dry Run Mode" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "No changes were made. Review the validation results above." >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 Dry Run Mode" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "No changes were made. Review the validation results above." >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "### ✅ Remediation Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Data integrity issues have been fixed." >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Remediation Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Data integrity issues have been fixed." >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Actions Performed:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Fix Metadata: \`${{ github.event.inputs.fix_metadata }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Fix Edges: \`${{ github.event.inputs.fix_edges }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Fix Cache: \`${{ github.event.inputs.fix_cache }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Validate Only: \`${{ github.event.inputs.validate_only }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "**Actions Performed:**" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Fix Metadata: \`${{ github.event.inputs.fix_metadata }}\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Fix Edges: \`${{ github.event.inputs.fix_edges }}\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Fix Cache: \`${{ github.event.inputs.fix_cache }}\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Validate Only: \`${{ github.event.inputs.validate_only }}\`" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Upload artifacts
       if: always()

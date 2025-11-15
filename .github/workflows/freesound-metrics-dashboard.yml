@@ -38,10 +38,10 @@ jobs:
         id: check_metrics
         run: |
           if [ -f "data/metrics_history.jsonl" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "✅ Metrics file found"
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "⚠️ Metrics file not found - skipping dashboard generation"
           fi
       
@@ -58,11 +58,11 @@ jobs:
         id: check_dashboard
         run: |
           if [ -f "Output/metrics_dashboard.png" ]; then
-            echo "generated=true" >> $GITHUB_OUTPUT
+            echo "generated=true" >> "$GITHUB_OUTPUT"
             echo "✅ Dashboard generated successfully"
             ls -lh Output/metrics_dashboard.png
           else
-            echo "generated=false" >> $GITHUB_OUTPUT
+            echo "generated=false" >> "$GITHUB_OUTPUT"
             echo "❌ Dashboard generation failed"
           fi
       
@@ -93,18 +93,18 @@ jobs:
       - name: Generate step summary
         if: steps.check_metrics.outputs.exists == 'true'
         run: |
-          echo "## 📊 Metrics Dashboard Generation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Metrics Dashboard Generation" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           if [ "${{ steps.check_dashboard.outputs.generated }}" == "true" ]; then
-            echo "✅ **Status:** Dashboard generated successfully" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "📈 **Output:** \`Output/metrics_dashboard.png\`" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Dashboard generated successfully" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "📈 **Output:** \`Output/metrics_dashboard.png\`" >> "$GITHUB_STEP_SUMMARY"
             
             # Count metrics records
             RECORD_COUNT=$(wc -l < data/metrics_history.jsonl)
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "📊 **Metrics Records:** $RECORD_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "📊 **Metrics Records:** $RECORD_COUNT" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ **Status:** Dashboard generation failed" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** Dashboard generation failed" >> "$GITHUB_STEP_SUMMARY"
           fi

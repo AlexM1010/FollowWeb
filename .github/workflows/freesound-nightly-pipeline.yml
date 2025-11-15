@@ -96,53 +96,53 @@ jobs:
     
     - name: Validate environment
       run: |
-        echo "##  Pre-Flight Smoke Test" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        
-        # Test 1: Package imports
-        echo "###  Package Imports" >> $GITHUB_STEP_SUMMARY
-        python -c "import FollowWeb_Visualizor" && echo "-  FollowWeb_Visualizor" >> $GITHUB_STEP_SUMMARY || { echo "-  FollowWeb_Visualizor" >> $GITHUB_STEP_SUMMARY; exit 1; }
-        python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader" && echo "-  IncrementalFreesoundLoader" >> $GITHUB_STEP_SUMMARY || { echo "-  IncrementalFreesoundLoader" >> $GITHUB_STEP_SUMMARY; exit 1; }
-        python -c "from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer" && echo "-  SigmaRenderer" >> $GITHUB_STEP_SUMMARY || { echo "-  SigmaRenderer" >> $GITHUB_STEP_SUMMARY; exit 1; }
-        python -c "import networkx" && echo "-  NetworkX" >> $GITHUB_STEP_SUMMARY || { echo "-  NetworkX" >> $GITHUB_STEP_SUMMARY; exit 1; }
-        echo "" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "##  Pre-Flight Smoke Test"
+          echo ""
+          echo "###  Package Imports"
+        } >> "$GITHUB_STEP_SUMMARY"
+        python -c "import FollowWeb_Visualizor" && echo "-  FollowWeb_Visualizor" >> "$GITHUB_STEP_SUMMARY" || { echo "-  FollowWeb_Visualizor" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        python -c "from FollowWeb_Visualizor.data.loaders import IncrementalFreesoundLoader" && echo "-  IncrementalFreesoundLoader" >> "$GITHUB_STEP_SUMMARY" || { echo "-  IncrementalFreesoundLoader" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        python -c "from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer" && echo "-  SigmaRenderer" >> "$GITHUB_STEP_SUMMARY" || { echo "-  SigmaRenderer" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        python -c "import networkx" && echo "-  NetworkX" >> "$GITHUB_STEP_SUMMARY" || { echo "-  NetworkX" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Validate secrets
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "###  Secret Validation" >> $GITHUB_STEP_SUMMARY
+        echo "###  Secret Validation" >> "$GITHUB_STEP_SUMMARY"
         
         # Check FREESOUND_API_KEY (required)
         if [ -z "$FREESOUND_API_KEY" ]; then
-          echo "-  FREESOUND_API_KEY: ❌ Not configured" >> $GITHUB_STEP_SUMMARY
+          echo "-  FREESOUND_API_KEY: ❌ Not configured" >> "$GITHUB_STEP_SUMMARY"
           echo "::error::FREESOUND_API_KEY not configured"
           exit 1
         else
           # Validate API key format (should be 32 hex characters)
           if [[ "$FREESOUND_API_KEY" =~ ^[a-f0-9]{32}$ ]]; then
-            echo "-  FREESOUND_API_KEY: ✅ Valid format" >> $GITHUB_STEP_SUMMARY
+            echo "-  FREESOUND_API_KEY: ✅ Valid format" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "-  FREESOUND_API_KEY: ⚠️ Configured but format may be invalid" >> $GITHUB_STEP_SUMMARY
+            echo "-  FREESOUND_API_KEY: ⚠️ Configured but format may be invalid" >> "$GITHUB_STEP_SUMMARY"
           fi
         fi
         
         # Check BACKUP_PAT (required)
         if [ -z "$BACKUP_PAT" ]; then
-          echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
           echo "::error::BACKUP_PAT not configured - backups are REQUIRED"
           exit 1
         else
-          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> "$GITHUB_STEP_SUMMARY"
         fi
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Test loader initialization (no API calls)
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        echo "###  Component Tests" >> $GITHUB_STEP_SUMMARY
+        echo "###  Component Tests" >> "$GITHUB_STEP_SUMMARY"
         
         # Test loader initialization without making API calls
         python -c "
@@ -174,19 +174,19 @@ jobs:
             assert loader.graph.number_of_nodes() == 0, 'Graph should start empty'
             
             print(' Loader initialization successful')
-        " && echo "-  IncrementalFreesoundLoader initialization" >> $GITHUB_STEP_SUMMARY || { echo "-  IncrementalFreesoundLoader initialization" >> $GITHUB_STEP_SUMMARY; exit 1; }
+        " && echo "-  IncrementalFreesoundLoader initialization" >> "$GITHUB_STEP_SUMMARY" || { echo "-  IncrementalFreesoundLoader initialization" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
         
         # Test renderer can be imported (initialization tested in actual pipeline)
         python -c "
         from FollowWeb_Visualizor.visualization.renderers import SigmaRenderer
         print(' SigmaRenderer import successful')
-        " && echo "-  SigmaRenderer import" >> $GITHUB_STEP_SUMMARY || { echo "-  SigmaRenderer import" >> $GITHUB_STEP_SUMMARY; exit 1; }
+        " && echo "-  SigmaRenderer import" >> "$GITHUB_STEP_SUMMARY" || { echo "-  SigmaRenderer import" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Test checkpoint operations (no API calls)
       run: |
-        echo "###  Checkpoint Tests" >> $GITHUB_STEP_SUMMARY
+        echo "###  Checkpoint Tests" >> "$GITHUB_STEP_SUMMARY"
         
         # Test checkpoint module can be imported (actual operations tested in pipeline)
         python -c "
@@ -200,13 +200,13 @@ jobs:
         assert hasattr(checkpoint, 'load'), 'Load method not available'
         
         print(' Checkpoint module validated')
-        " && echo "-  Checkpoint module validation" >> $GITHUB_STEP_SUMMARY || { echo "-  Checkpoint module validation" >> $GITHUB_STEP_SUMMARY; exit 1; }
+        " && echo "-  Checkpoint module validation" >> "$GITHUB_STEP_SUMMARY" || { echo "-  Checkpoint module validation" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Test validation functions
       run: |
-        echo "###  Validation Tests" >> $GITHUB_STEP_SUMMARY
+        echo "###  Validation Tests" >> "$GITHUB_STEP_SUMMARY"
         
         # Test validation utilities
         python -c "
@@ -238,19 +238,19 @@ jobs:
             raise AssertionError('Non-negative integer validation failed')
         
         print(' All validation tests passed')
-        " && echo "-  Validation utilities" >> $GITHUB_STEP_SUMMARY || { echo "-  Validation utilities" >> $GITHUB_STEP_SUMMARY; exit 1; }
+        " && echo "-  Validation utilities" >> "$GITHUB_STEP_SUMMARY" || { echo "-  Validation utilities" >> "$GITHUB_STEP_SUMMARY"; exit 1; }
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Smoke test summary
       if: success()
       run: |
-        echo "---" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "##  All Pre-Flight Checks Passed" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "The environment is ready for the Freesound Nightly Pipeline." >> $GITHUB_STEP_SUMMARY
-        echo "Proceeding to data collection phase..." >> $GITHUB_STEP_SUMMARY
+        echo "---" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "##  All Pre-Flight Checks Passed" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "The environment is ready for the Freesound Nightly Pipeline." >> "$GITHUB_STEP_SUMMARY"
+        echo "Proceeding to data collection phase..." >> "$GITHUB_STEP_SUMMARY"
 
   freesound-collection:
     name: Freesound Data Collection
@@ -297,27 +297,27 @@ jobs:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "** Secret Validation**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "** Secret Validation**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check FREESOUND_API_KEY (required)
         if [ -z "$FREESOUND_API_KEY" ]; then
           echo "::error::FREESOUND_API_KEY not configured"
-          echo "-  FREESOUND_API_KEY: Not configured" >> $GITHUB_STEP_SUMMARY
+          echo "-  FREESOUND_API_KEY: Not configured" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         else
-          echo "-  FREESOUND_API_KEY: Configured" >> $GITHUB_STEP_SUMMARY
+          echo "-  FREESOUND_API_KEY: Configured" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         # Check BACKUP_PAT (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - backups are REQUIRED"
-          echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ❌ Not configured (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         else
-          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> $GITHUB_STEP_SUMMARY
+          echo "-  BACKUP_PAT: ✅ Configured (primary backup repository)" >> "$GITHUB_STEP_SUMMARY"
         fi
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Verify installation
       run: |
@@ -333,31 +333,31 @@ jobs:
       run: |
         # Use workflow_dispatch inputs if available, otherwise use defaults
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> $GITHUB_OUTPUT
-          echo "max_requests=${{ github.event.inputs.max_requests }}" >> $GITHUB_OUTPUT
-          echo "discovery_mode=${{ github.event.inputs.discovery_mode }}" >> $GITHUB_OUTPUT
+          echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> "$GITHUB_OUTPUT"
+          echo "max_requests=${{ github.event.inputs.max_requests }}" >> "$GITHUB_OUTPUT"
+          echo "discovery_mode=${{ github.event.inputs.discovery_mode }}" >> "$GITHUB_OUTPUT"
         else
-          echo "seed_sample_id=" >> $GITHUB_OUTPUT
-          echo "max_requests=1950" >> $GITHUB_OUTPUT
-          echo "discovery_mode=search" >> $GITHUB_OUTPUT
+          echo "seed_sample_id=" >> "$GITHUB_OUTPUT"
+          echo "max_requests=1950" >> "$GITHUB_OUTPUT"
+          echo "discovery_mode=search" >> "$GITHUB_OUTPUT"
         fi
         
         # Generate execution ID
-        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+        echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> "$GITHUB_OUTPUT"
     
     - name: Download checkpoint from private repository
       id: download_checkpoint
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "** Phase 1: Download Checkpoint from Private Repository**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "** Phase 1: Download Checkpoint from Private Repository**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - cannot download checkpoint"
-          echo "- Status: ❌ BACKUP_PAT required" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          echo "- Status: ❌ BACKUP_PAT required" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
         
@@ -373,8 +373,8 @@ jobs:
         # Check if release exists
         if echo "$ASSETS_JSON" | grep -q "Not Found"; then
           echo " Release v-checkpoint not found in ${BACKUP_REPO}"
-          echo "- Status: No backup available" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          echo "- Status: No backup available" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         
@@ -383,8 +383,8 @@ jobs:
         
         if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
           echo " No checkpoint backups found in ${BACKUP_REPO}"
-          echo "- Status: No backup available" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          echo "- Status: No backup available" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         
@@ -412,14 +412,14 @@ jobs:
         # Verify extraction
         if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
           echo " Checkpoint restored successfully"
-          echo "- Backup: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Created: \`$ASSET_CREATED\`" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_restored=true" >> $GITHUB_OUTPUT
+          echo "- Backup: \`$ASSET_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Created: \`$ASSET_CREATED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_restored=true" >> "$GITHUB_OUTPUT"
         else
           echo " Checkpoint extraction failed"
-          echo "- Status: Extraction failed" >> $GITHUB_STEP_SUMMARY
-          echo "checkpoint_restored=false" >> $GITHUB_OUTPUT
+          echo "- Status: Extraction failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
         fi
         
         # Cleanup
@@ -431,25 +431,25 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Skip orchestration check for now - workflow_orchestrator not in repo
-        echo "can_proceed=true" >> $GITHUB_OUTPUT
-        echo "skip_reason=No conflicts" >> $GITHUB_OUTPUT
+        echo "can_proceed=true" >> "$GITHUB_OUTPUT"
+        echo "skip_reason=No conflicts" >> "$GITHUB_OUTPUT"
     
     - name: Display pipeline configuration
       if: steps.orchestration.outputs.can_proceed == 'true'
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 2: Pipeline Configuration**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "** Phase 2: Pipeline Configuration**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         if [ -n "${{ steps.params.outputs.seed_sample_id }}" ]; then
-          echo "- Seed Sample ID: \`${{ steps.params.outputs.seed_sample_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Seed Sample ID: \`${{ steps.params.outputs.seed_sample_id }}\`" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- Seed Sample: \`Most downloaded sample (auto-detected)\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Seed Sample: \`Most downloaded sample (auto-detected)\`" >> "$GITHUB_STEP_SUMMARY"
         fi
-        echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> $GITHUB_STEP_SUMMARY
-        echo "- Discovery Mode: \`${{ steps.params.outputs.discovery_mode }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Trigger: \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Max Requests: \`${{ steps.params.outputs.max_requests }}\` (circuit breaker)" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Discovery Mode: \`${{ steps.params.outputs.discovery_mode }}\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Execution ID: \`${{ steps.params.outputs.execution_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Trigger: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Run data collection
       if: steps.orchestration.outputs.can_proceed == 'true'
@@ -457,8 +457,8 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        echo "** Phase 3: Data Collection**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "** Phase 3: Data Collection**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Build command with optional seed sample ID
         cmd="python generate_freesound_visualization.py"
@@ -475,12 +475,12 @@ jobs:
         # Capture exit code
         collection_exit_code=${PIPESTATUS[0]}
         
-        if [ $collection_exit_code -eq 0 ]; then
+        if [ "$collection_exit_code" -eq 0 ]; then
           echo " Data collection completed successfully"
-          echo "collection_status=success" >> $GITHUB_OUTPUT
+          echo "collection_status=success" >> "$GITHUB_OUTPUT"
         else
           echo " Collection failed with exit code: $collection_exit_code"
-          echo "collection_status=failed" >> $GITHUB_OUTPUT
+          echo "collection_status=failed" >> "$GITHUB_OUTPUT"
           exit $collection_exit_code
         fi
     
@@ -515,13 +515,13 @@ jobs:
           new_samples="N/A"
         fi
         
-        echo "total_nodes=$total_nodes" >> $GITHUB_OUTPUT
-        echo "total_edges=$total_edges" >> $GITHUB_OUTPUT
-        echo "current_page=$current_page" >> $GITHUB_OUTPUT
-        echo "search_query=$search_query" >> $GITHUB_OUTPUT
-        echo "api_requests=$api_requests" >> $GITHUB_OUTPUT
-        echo "duplicates_skipped=$duplicates_skipped" >> $GITHUB_OUTPUT
-        echo "new_samples=$new_samples" >> $GITHUB_OUTPUT
+        echo "total_nodes=$total_nodes" >> "$GITHUB_OUTPUT"
+        echo "total_edges=$total_edges" >> "$GITHUB_OUTPUT"
+        echo "current_page=$current_page" >> "$GITHUB_OUTPUT"
+        echo "search_query=$search_query" >> "$GITHUB_OUTPUT"
+        echo "api_requests=$api_requests" >> "$GITHUB_OUTPUT"
+        echo "duplicates_skipped=$duplicates_skipped" >> "$GITHUB_OUTPUT"
+        echo "new_samples=$new_samples" >> "$GITHUB_OUTPUT"
         
         echo " Statistics extracted from checkpoint"
     
@@ -538,23 +538,23 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 4: Upload Checkpoint to Private Repository**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "** Phase 4: Upload Checkpoint to Private Repository**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check if checkpoint directory exists
         if [ ! -d "data/freesound_library" ]; then
           echo "::error::Checkpoint directory not found - BACKUP FAILED"
-          echo "- Status: ❌ No checkpoint to backup (CRITICAL)" >> $GITHUB_STEP_SUMMARY
-          echo "- **CRITICAL**: Pipeline must create checkpoint before backup" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ❌ No checkpoint to backup (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CRITICAL**: Pipeline must create checkpoint before backup" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - BACKUP FAILED"
-          echo "- Status: ❌ PAT not configured (CRITICAL)" >> $GITHUB_STEP_SUMMARY
-          echo "- **CRITICAL**: Backups are required - pipeline cannot continue" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ❌ PAT not configured (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CRITICAL**: Backups are required - pipeline cannot continue" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
@@ -563,15 +563,15 @@ jobs:
           node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
         else
           echo "::warning::Checkpoint metadata not found - data may be incomplete"
-          echo "- Status: ⚠️ Metadata missing (data integrity issue)" >> $GITHUB_STEP_SUMMARY
-          echo "- Action: Creating backup anyway, but remediation recommended" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ⚠️ Metadata missing (data integrity issue)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Action: Creating backup anyway, but remediation recommended" >> "$GITHUB_STEP_SUMMARY"
           # Try to get node count from graph file
           if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
             node_count=$(python3 -c "import pickle; g = pickle.load(open('data/freesound_library/graph_topology.gpickle', 'rb')); print(g.number_of_nodes())" 2>/dev/null || echo "0")
-            echo "- Estimated nodes from graph: $node_count" >> $GITHUB_STEP_SUMMARY
+            echo "- Estimated nodes from graph: $node_count" >> "$GITHUB_STEP_SUMMARY"
           else
             node_count=0
-            echo "- No graph file found either" >> $GITHUB_STEP_SUMMARY
+            echo "- No graph file found either" >> "$GITHUB_STEP_SUMMARY"
           fi
         fi
         
@@ -579,7 +579,7 @@ jobs:
         collection_status="${{ steps.collection.outputs.collection_status }}"
         if [ "$collection_status" != "success" ]; then
           echo " Pipeline failed - creating recovery backup"
-          echo "- Status: Recovery backup (pipeline failed)" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Recovery backup (pipeline failed)" >> "$GITHUB_STEP_SUMMARY"
           # Force backup creation regardless of interval
           tier="recovery"
           release_tag="v-checkpoint"
@@ -595,7 +595,7 @@ jobs:
           # Check if backup should be created
           if [ "$tier" = "none" ]; then
             echo " Node count ($node_count) not at backup interval, skipping backup"
-            echo "- Status: Backup skipped (not at interval)" >> $GITHUB_STEP_SUMMARY
+            echo "- Status: Backup skipped (not at interval)" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
         fi
@@ -624,10 +624,10 @@ jobs:
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
           echo "::error::Release ${release_tag} not found in ${BACKUP_REPO} - BACKUP FAILED"
-          echo "- Status: ❌ Upload failed (release not found)" >> $GITHUB_STEP_SUMMARY
-          echo "- Tier: \`$tier\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Release Tag: \`$release_tag\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **CRITICAL**: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ❌ Upload failed (release not found)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tier: \`$tier\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release Tag: \`$release_tag\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CRITICAL**: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups" >> "$GITHUB_STEP_SUMMARY"
           rm -f "$backup_filename"
           exit 1
         fi
@@ -646,25 +646,25 @@ jobs:
         
         if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
           echo "::error::Failed to upload backup to ${BACKUP_REPO} - BACKUP FAILED"
-          echo "- Status: ❌ Upload failed" >> $GITHUB_STEP_SUMMARY
-          echo "- Error: API upload failed (check PAT permissions)" >> $GITHUB_STEP_SUMMARY
-          echo "- **CRITICAL**: Backup is required - pipeline cannot continue without successful backup" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ❌ Upload failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Error: API upload failed (check PAT permissions)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CRITICAL**: Backup is required - pipeline cannot continue without successful backup" >> "$GITHUB_STEP_SUMMARY"
           rm -f "$backup_filename"
           exit 1
         fi
         
         echo " Backup uploaded successfully"
-        echo "- Backup: \`$backup_filename\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Tier: \`$tier\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Release Tag: \`$release_tag\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Node Count: \`$node_count\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Run ID: \`${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Backup: \`$backup_filename\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Tier: \`$tier\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Release Tag: \`$release_tag\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Node Count: \`$node_count\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Run ID: \`${{ github.run_id }}\`" >> "$GITHUB_STEP_SUMMARY"
         
         # Store tier info for retention cleanup
-        echo "backup_tier=$tier" >> $GITHUB_OUTPUT
-        echo "release_tag=$release_tag" >> $GITHUB_OUTPUT
-        echo "backup_uploaded=true" >> $GITHUB_OUTPUT
+        echo "backup_tier=$tier" >> "$GITHUB_OUTPUT"
+        echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+        echo "backup_uploaded=true" >> "$GITHUB_OUTPUT"
         
         # Cleanup local backup file
         rm -f "$backup_filename"
@@ -674,9 +674,9 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 4a: Verify Backup Integrity**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "** Phase 4a: Verify Backup Integrity**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
@@ -690,7 +690,7 @@ jobs:
         
         if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
           echo " Could not verify backup - asset not found"
-          echo "- Status: Verification skipped" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Verification skipped" >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
         
@@ -705,24 +705,24 @@ jobs:
         # Verify asset state is 'uploaded'
         if [ "$ASSET_STATE" != "uploaded" ]; then
           echo " Backup verification failed - asset state: $ASSET_STATE"
-          echo "- Status:  Verification failed" >> $GITHUB_STEP_SUMMARY
-          echo "- Asset State: \`$ASSET_STATE\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Status:  Verification failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Asset State: \`$ASSET_STATE\`" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         # Verify asset size is reasonable (> 1KB)
         if [ "$ASSET_SIZE" -lt 1024 ]; then
           echo " Backup verification failed - asset too small: $ASSET_SIZE bytes"
-          echo "- Status:  Verification failed" >> $GITHUB_STEP_SUMMARY
-          echo "- Asset Size: \`$ASSET_SIZE bytes\` (too small)" >> $GITHUB_STEP_SUMMARY
+          echo "- Status:  Verification failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Asset Size: \`$ASSET_SIZE bytes\` (too small)" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         echo " Backup verification passed"
-        echo "- Status:  Verified" >> $GITHUB_STEP_SUMMARY
-        echo "- Asset: \`$ASSET_NAME\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> $GITHUB_STEP_SUMMARY
-        echo "- State: \`$ASSET_STATE\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Status:  Verified" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Asset: \`$ASSET_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- State: \`$ASSET_STATE\`" >> "$GITHUB_STEP_SUMMARY"
 
     
     - name: Upload checkpoint files as workflow artifacts
@@ -742,9 +742,9 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 5: Backup Retention Policy**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "** Phase 5: Backup Retention Policy**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check if BACKUP_PAT is configured
         if [ -z "$BACKUP_PAT" ]; then
@@ -756,8 +756,8 @@ jobs:
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
         
         # Process v-checkpoint release (frequent tier with 14-day retention)
-        echo "### v-checkpoint Release (Frequent Tier)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### v-checkpoint Release (Frequent Tier)" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         CHECKPOINT_ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
@@ -789,12 +789,12 @@ jobs:
           done
           
           CHECKPOINT_RETAINED=$((CHECKPOINT_TOTAL - CHECKPOINT_DELETED))
-          echo "- Retention: \`14 days\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Backups retained: \`$CHECKPOINT_RETAINED\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Backups deleted: \`$CHECKPOINT_DELETED\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Retention: \`14 days\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backups retained: \`$CHECKPOINT_RETAINED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Backups deleted: \`$CHECKPOINT_DELETED\`" >> "$GITHUB_STEP_SUMMARY"
         else
           echo " Could not calculate cutoff date, skipping time-based cleanup"
-          echo "- Status: Cleanup skipped (date calculation failed)" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Cleanup skipped (date calculation failed)" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         # Also enforce max count limit (keep last 10 backups)
@@ -813,11 +813,11 @@ jobs:
           done
         fi
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Process v-permanent release (moderate and milestone tiers - no deletion)
-        echo "### v-permanent Release (Moderate & Milestone Tiers)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### v-permanent Release (Moderate & Milestone Tiers)" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         PERMANENT_ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-permanent")
@@ -826,10 +826,10 @@ jobs:
         echo "Total v-permanent backups: $PERMANENT_TOTAL"
         
         # No deletion for permanent backups
-        echo "- Retention: \`Permanent (no expiration)\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Backups retained: \`$PERMANENT_TOTAL\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Backups deleted: \`0\` (permanent tier never deleted)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Retention: \`Permanent (no expiration)\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Backups retained: \`$PERMANENT_TOTAL\`" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Backups deleted: \`0\` (permanent tier never deleted)" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         echo " Tier-specific retention cleanup complete"
     
@@ -838,123 +838,123 @@ jobs:
     - name: Cleanup ephemeral cache
       if: always()
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "** Phase 7: Cleanup Ephemeral Cache**" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "** Phase 7: Cleanup Ephemeral Cache**" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Delete checkpoint directory
         if [ -d "data/freesound_library" ]; then
           rm -rf data/freesound_library
           echo " Ephemeral cache wiped"
-          echo "- Status: Cache deleted" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Cache deleted" >> "$GITHUB_STEP_SUMMARY"
         else
           echo " No cache to clean"
-          echo "- Status: No cache found" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: No cache found" >> "$GITHUB_STEP_SUMMARY"
         fi
     
     - name: Generate execution summary
       if: always()
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "---" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "##  Execution Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "---" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "##  Execution Summary" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check if execution was skipped due to conflicts
         if [ "${{ steps.orchestration.outputs.can_proceed }}" = "false" ]; then
-          echo "###  Status: Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Reason:** ${{ steps.orchestration.outputs.skip_reason }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time." >> $GITHUB_STEP_SUMMARY
-          echo "The workflow will retry on the next scheduled run." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "###  Status: Skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Reason:** ${{ steps.orchestration.outputs.skip_reason }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The workflow detected a conflicting workflow and waited for 2 hours, but it did not complete in time." >> "$GITHUB_STEP_SUMMARY"
+          echo "The workflow will retry on the next scheduled run." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.collection.outputs.collection_status }}" = "success" ]; then
-          echo "###  Status: Collection Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "###  Status: Collection Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           # Data collection statistics
-          echo "###  Collection Statistics" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Total Nodes** | \`${{ steps.stats.outputs.total_nodes }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Total Edges** | \`${{ steps.stats.outputs.total_edges }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "###  Collection Statistics" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Total Nodes** | \`${{ steps.stats.outputs.total_nodes }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Total Edges** | \`${{ steps.stats.outputs.total_edges }}\` |" >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.stats.outputs.new_samples }}" != "N/A" ]; then
-            echo "| **New Samples** | \`${{ steps.stats.outputs.new_samples }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **New Samples** | \`${{ steps.stats.outputs.new_samples }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "${{ steps.stats.outputs.duplicates_skipped }}" != "N/A" ]; then
-            echo "| **Duplicates Skipped** | \`${{ steps.stats.outputs.duplicates_skipped }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Duplicates Skipped** | \`${{ steps.stats.outputs.duplicates_skipped }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ "${{ steps.stats.outputs.api_requests }}" != "N/A" ]; then
-            echo "| **API Requests Used** | \`${{ steps.stats.outputs.api_requests }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| **API Requests Used** | \`${{ steps.stats.outputs.api_requests }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           # Pagination state
-          echo "###  Pagination State" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Current Page** | \`${{ steps.stats.outputs.current_page }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Search Query** | \`${{ steps.stats.outputs.search_query }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "###  Pagination State" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Current Page** | \`${{ steps.stats.outputs.current_page }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Search Query** | \`${{ steps.stats.outputs.search_query }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
           # Backup tier information
           if [ "${{ steps.upload_checkpoint.outputs.backup_tier }}" != "" ]; then
-            echo "###  Backup Information" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| **Backup Tier** | \`${{ steps.upload_checkpoint.outputs.backup_tier }}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "| **Release Tag** | \`${{ steps.upload_checkpoint.outputs.release_tag }}\` |" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "###  Backup Information" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Property | Value |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|----------|-------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| **Backup Tier** | \`${{ steps.upload_checkpoint.outputs.backup_tier }}\` |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| **Release Tag** | \`${{ steps.upload_checkpoint.outputs.release_tag }}\` |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           # Downstream workflows
-          echo "###  Downstream Workflows" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Repair Pipeline**: Will be triggered automatically to validate and repair data" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Validation Pipeline**: Will be triggered automatically after repair" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ **Backup Pipeline**: Will be triggered automatically after validation" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "###  Downstream Workflows" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ **Repair Pipeline**: Will be triggered automatically to validate and repair data" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ **Validation Pipeline**: Will be triggered automatically after repair" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ✅ **Backup Pipeline**: Will be triggered automatically after validation" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           
         else
-          echo "###  Status: Collection Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The data collection failed. Please check the logs for error details." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
-          echo "- API key not configured or invalid" >> $GITHUB_STEP_SUMMARY
-          echo "- API rate limit exceeded" >> $GITHUB_STEP_SUMMARY
-          echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
-          echo "- Checkpoint file corruption" >> $GITHUB_STEP_SUMMARY
-          echo "- BACKUP_PAT not configured or invalid" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Note:** Checkpoint has been saved to cache for failure recovery." >> $GITHUB_STEP_SUMMARY
-          echo "The backup workflow will create a recovery backup." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "###  Status: Collection Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The data collection failed. Please check the logs for error details." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Common issues:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API key not configured or invalid" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API rate limit exceeded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Network connectivity issues" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Checkpoint file corruption" >> "$GITHUB_STEP_SUMMARY"
+          echo "- BACKUP_PAT not configured or invalid" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Note:** Checkpoint has been saved to cache for failure recovery." >> "$GITHUB_STEP_SUMMARY"
+          echo "The backup workflow will create a recovery backup." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         # Execution details (always shown)
-        echo "###  Execution Details" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
-        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-        echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |" >> $GITHUB_STEP_SUMMARY
-        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
-        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
-        echo "| **Cache Key** | \`checkpoint-${{ github.run_id }}\` |" >> $GITHUB_STEP_SUMMARY
-        echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "###  Execution Details" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Detail | Value |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+        echo "| **Execution ID** | \`${{ steps.params.outputs.execution_id }}\` |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| **Cache Key** | \`checkpoint-${{ github.run_id }}\` |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| **Commit** | [\`${GITHUB_SHA:0:7}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Artifacts
-        echo "###  Artifacts" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- Collection logs are available as workflow artifacts (30-day retention)" >> $GITHUB_STEP_SUMMARY
-        echo "- Checkpoint saved to GitHub Actions cache (7-day retention)" >> $GITHUB_STEP_SUMMARY
-        echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "###  Artifacts" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Collection logs are available as workflow artifacts (30-day retention)" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Checkpoint saved to GitHub Actions cache (7-day retention)" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Download from the [workflow run page](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Upload collection logs
       if: always()

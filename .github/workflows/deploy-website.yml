@@ -57,12 +57,12 @@ jobs:
       env:
         PLAUSIBLE_DOMAIN: ${{ secrets.PLAUSIBLE_DOMAIN }}
       run: |
-        echo "## Website Generation" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Website Generation" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Check if generate_landing_page.py exists
         if [ ! -f "generate_landing_page.py" ]; then
-          echo "Landing page generator not found, using index.html if available" >> $GITHUB_STEP_SUMMARY
+          echo "Landing page generator not found, using index.html if available" >> "$GITHUB_STEP_SUMMARY"
           
           # Create basic website directory structure
           mkdir -p website/visualizations
@@ -70,9 +70,9 @@ jobs:
           # Copy existing index.html if available, otherwise skip
           if [ -f "index.html" ]; then
             cp index.html website/
-            echo "- Copied existing index.html" >> $GITHUB_STEP_SUMMARY
+            echo "- Copied existing index.html" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "- No index.html found, website will only contain visualizations" >> $GITHUB_STEP_SUMMARY
+            echo "- No index.html found, website will only contain visualizations" >> "$GITHUB_STEP_SUMMARY"
           fi
         else
           # Use the landing page generator script
@@ -81,21 +81,21 @@ jobs:
           # Add Plausible domain if configured
           if [ -n "$PLAUSIBLE_DOMAIN" ]; then
             cmd="$cmd --plausible-domain $PLAUSIBLE_DOMAIN"
-            echo "- Plausible Analytics enabled for: $PLAUSIBLE_DOMAIN" >> $GITHUB_STEP_SUMMARY
+            echo "- Plausible Analytics enabled for: $PLAUSIBLE_DOMAIN" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           # Execute command
           eval "$cmd"
           
-          echo "- Generated landing page" >> $GITHUB_STEP_SUMMARY
+          echo "- Generated landing page" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Copy visualizations
       run: |
-        echo "### 📊 Copying Visualizations" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Copying Visualizations" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Create visualizations directory
         mkdir -p website/visualizations
@@ -104,33 +104,33 @@ jobs:
         if ls Output/*.html 1> /dev/null 2>&1; then
           cp Output/*.html website/visualizations/
           viz_count=$(ls Output/*.html | wc -l)
-          echo "- ✅ Copied $viz_count visualization(s)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Copied $viz_count visualization(s)" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- ⚠️ No visualizations found in Output/" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ No visualizations found in Output/" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         # Copy library dependencies if they exist
         if [ -d "lib" ]; then
           cp -r lib website/
-          echo "- ✅ Copied library dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Copied library dependencies" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Copy CNAME for custom domain
       run: |
-        echo "### 🌐 Configuring Custom Domain" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 Configuring Custom Domain" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Copy CNAME file if it exists
         if [ -f "CNAME" ]; then
           cp CNAME website/
-          echo "- ✅ Copied CNAME file for custom domain: $(cat CNAME)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Copied CNAME file for custom domain: $(cat CNAME)" >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "- ⚠️ No CNAME file found (using default GitHub Pages URL)" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚠️ No CNAME file found (using default GitHub Pages URL)" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
@@ -145,10 +145,10 @@ jobs:
     
     - name: Deployment summary
       run: |
-        echo "### ✅ Deployment Complete" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Website deployed to GitHub Pages!" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Public URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Note: It may take a few minutes for changes to appear." >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Deployment Complete" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "Website deployed to GitHub Pages!" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "**Public URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "Note: It may take a few minutes for changes to appear." >> "$GITHUB_STEP_SUMMARY"

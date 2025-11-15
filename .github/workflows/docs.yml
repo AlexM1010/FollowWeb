@@ -108,7 +108,7 @@ jobs:
           fi
         done
         
-        if [ $missing_count -eq 0 ]; then
+        if [ "$missing_count" -eq 0 ]; then
           python ../.github/scripts/ci_helpers.py success "All required documentation files present" --summary-only
         else
           python ../.github/scripts/ci_helpers.py error "$missing_count required documentation files missing" --summary-only
@@ -177,7 +177,7 @@ jobs:
           link_count=$(wc -l < broken_links.txt)
           python ../.github/scripts/ci_helpers.py warning "Found $link_count potential broken internal links" --summary-only
           python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-          cat broken_links.txt >> $GITHUB_STEP_SUMMARY || true
+          cat broken_links.txt >> "$GITHUB_STEP_SUMMARY" || true
           python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         else
           python ../.github/scripts/ci_helpers.py success "No broken internal links detected" --summary-only
@@ -194,9 +194,9 @@ jobs:
           comment_count=$(wc -l < todo_comments.txt)
           python ../.github/scripts/ci_helpers.py warning "Found $comment_count TODO/FIXME comments in code" --summary-only
           python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-          head -20 todo_comments.txt >> $GITHUB_STEP_SUMMARY || true
-          if [ $comment_count -gt 20 ]; then
-            echo "... and $(($comment_count - 20)) more" >> $GITHUB_STEP_SUMMARY
+          head -20 todo_comments.txt >> "$GITHUB_STEP_SUMMARY" || true
+          if [ "$comment_count" -gt 20 ]; then
+            echo "... and $(($comment_count - 20)) more" >> "$GITHUB_STEP_SUMMARY"
           fi
           python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         else
@@ -206,7 +206,7 @@ jobs:
         # Check README quality
         python ../.github/scripts/ci_helpers.py info "**README.md Quality Check:**" --summary-only
         readme_lines=$(wc -l < README.md)
-        if [ $readme_lines -gt 50 ]; then
+        if [ "$readme_lines" -gt 50 ]; then
           python ../.github/scripts/ci_helpers.py success "README.md is comprehensive ($readme_lines lines)" --summary-only
         else
           python ../.github/scripts/ci_helpers.py warning "README.md might need more detail ($readme_lines lines)" --summary-only
@@ -225,7 +225,7 @@ jobs:
           if [ -f "$doc_file" ]; then
             doc_lines=$(wc -l < "$doc_file")
             doc_name=$(basename "$doc_file")
-            if [ $doc_lines -gt 30 ]; then
+            if [ "$doc_lines" -gt 30 ]; then
               python ../.github/scripts/ci_helpers.py success "$doc_name is detailed ($doc_lines lines)" --summary-only
             else
               python ../.github/scripts/ci_helpers.py info "$doc_name has $doc_lines lines" --summary-only
@@ -319,7 +319,7 @@ jobs:
         # Add detailed results to summary
         python ../.github/scripts/ci_helpers.py info "**Detailed Coverage Results:**" --summary-only
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
-        cat interrogate_output.txt >> $GITHUB_STEP_SUMMARY || true
+        cat interrogate_output.txt >> "$GITHUB_STEP_SUMMARY" || true
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
     
     - name: Upload docstring coverage reports
@@ -408,7 +408,7 @@ jobs:
         total_count=0
         
         echo "Checking commits for conventional commit format..." | tee -a $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         for commit in $commits; do
           total_count=$((total_count + 1))
@@ -417,14 +417,14 @@ jobs:
           
           if echo "$message" | grep -qE "$pattern"; then
             valid_count=$((valid_count + 1))
-            echo "✅ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+            echo "✅ $short_hash: $message" >> "$GITHUB_STEP_SUMMARY"
           else
             invalid_commits="$invalid_commits\n❌ $short_hash: $message"
-            echo "❌ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+            echo "❌ $short_hash: $message" >> "$GITHUB_STEP_SUMMARY"
           fi
         done
         
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if [ -n "$invalid_commits" ]; then
           python .github/scripts/ci_helpers.py warning "Found $((total_count - valid_count)) commit(s) not following conventional commit format" --summary-only
@@ -458,13 +458,13 @@ jobs:
         pattern="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|security)(\(.+\))?: .+"
         
         echo "Checking latest commit for conventional commit format..." | tee -a $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "" >> "$GITHUB_STEP_SUMMARY"
         
         if echo "$message" | grep -qE "$pattern"; then
-          echo "✅ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          echo "✅ $short_hash: $message" >> "$GITHUB_STEP_SUMMARY"
           python .github/scripts/ci_helpers.py success "Latest commit follows conventional commit format" --summary-only
         else
-          echo "❌ $short_hash: $message" >> $GITHUB_STEP_SUMMARY
+          echo "❌ $short_hash: $message" >> "$GITHUB_STEP_SUMMARY"
           python .github/scripts/ci_helpers.py warning "Latest commit does not follow conventional commit format" --summary-only
           python .github/scripts/ci_helpers.py info "" --summary-only
           python .github/scripts/ci_helpers.py info "**Conventional Commit Format:**" --summary-only

@@ -38,8 +38,8 @@ jobs:
         id: cache-info
         run: |
           CACHE_KEY="prebuild-${{ runner.os }}-py3.12-${{ hashFiles('FollowWeb/requirements-ci.txt', 'FollowWeb/pyproject.toml') }}"
-          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
-          echo "python-version=3.12" >> $GITHUB_OUTPUT
+          echo "cache-key=$CACHE_KEY" >> "$GITHUB_OUTPUT"
+          echo "python-version=3.12" >> "$GITHUB_OUTPUT"
           echo "Generated cache key: $CACHE_KEY"
       
       - name: Cache prebuild environment

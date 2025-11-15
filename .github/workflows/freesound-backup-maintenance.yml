@@ -30,7 +30,7 @@ jobs:
         id: size_before
         run: |
           SIZE_BEFORE=$(du -sh .git | cut -f1)
-          echo "size=$SIZE_BEFORE" >> $GITHUB_OUTPUT
+          echo "size=$SIZE_BEFORE" >> "$GITHUB_OUTPUT"
           echo "📦 Repository size before cleanup: $SIZE_BEFORE"
       
       - name: Run git gc (garbage collection)
@@ -43,7 +43,7 @@ jobs:
         id: size_after
         run: |
           SIZE_AFTER=$(du -sh .git | cut -f1)
-          echo "size=$SIZE_AFTER" >> $GITHUB_OUTPUT
+          echo "size=$SIZE_AFTER" >> "$GITHUB_OUTPUT"
           echo "📦 Repository size after cleanup: $SIZE_AFTER"
       
       - name: Push changes
@@ -55,16 +55,16 @@ jobs:
       
       - name: Generate step summary
         run: |
-          echo "## 🧹 Backup Repository Maintenance" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Status:** Git garbage collection completed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **Size Before:** ${{ steps.size_before.outputs.size }}" >> $GITHUB_STEP_SUMMARY
-          echo "📦 **Size After:** ${{ steps.size_after.outputs.size }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "🔧 **Operation:** \`git gc --prune=now --aggressive\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "💡 **Purpose:** Compact repository and optimize storage" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧹 Backup Repository Maintenance" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ **Status:** Git garbage collection completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "📦 **Size Before:** ${{ steps.size_before.outputs.size }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "📦 **Size After:** ${{ steps.size_after.outputs.size }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "🔧 **Operation:** \`git gc --prune=now --aggressive\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "💡 **Purpose:** Compact repository and optimize storage" >> "$GITHUB_STEP_SUMMARY"
       
       - name: Notify on failure
         if: failure() && vars.SLACK_WEBHOOK_URL != ''
