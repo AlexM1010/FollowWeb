@@ -128,6 +128,9 @@ def run_shellcheck(script_content, workflow_name, script_path, shell_type='bash'
         # SC2148 - missing shebang (GitHub Actions doesn't require shebangs)
         # SC1091 - not following sourced files (external files not available)
         # SC2164 - cd without error handling (CI stops on any failure)
+        # 
+        # Match actionlint's shellcheck configuration (used in CI)
+        # This ensures local validation matches CI validation
         cmd = ['shellcheck', '-s', shellcheck_shell, '-f', 'gcc', '-e', 'SC2148,SC1091,SC2164', temp_file]
         result = subprocess.run(
             cmd,

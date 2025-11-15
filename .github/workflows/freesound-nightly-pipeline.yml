@@ -816,9 +816,11 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "** Phase 5: Backup Retention Policy**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "** Phase 5: Backup Retention Policy**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if BACKUP_PAT is configured
         if [ -z "$BACKUP_PAT" ]; then
@@ -830,8 +832,10 @@ jobs:
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
         
         # Process v-checkpoint release (frequent tier with 14-day retention)
-        echo "### v-checkpoint Release (Frequent Tier)" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### v-checkpoint Release (Frequent Tier)"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         CHECKPOINT_ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
@@ -851,11 +855,9 @@ jobs:
           CHECKPOINT_DELETED=0
           for ASSET_ID in $CHECKPOINT_TO_DELETE; do
             echo "Deleting old v-checkpoint asset ID: $ASSET_ID"
-            curl -s -X DELETE \
+            if curl -s -X DELETE \
               -H "Authorization: token $BACKUP_PAT" \
-              "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}"
-            
-            if [ $? -eq 0 ]; then
+              "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}"; then
               CHECKPOINT_DELETED=$((CHECKPOINT_DELETED + 1))
             else
               echo " Failed to delete asset $ASSET_ID"
@@ -863,9 +865,11 @@ jobs:
           done
           
           CHECKPOINT_RETAINED=$((CHECKPOINT_TOTAL - CHECKPOINT_DELETED))
-          echo "- Retention: \`14 days\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Backups retained: \`$CHECKPOINT_RETAINED\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Backups deleted: \`$CHECKPOINT_DELETED\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Retention: \`14 days\`"
+            echo "- Backups retained: \`$CHECKPOINT_RETAINED\`"
+            echo "- Backups deleted: \`$CHECKPOINT_DELETED\`"
+          } >> "$GITHUB_STEP_SUMMARY"
         else
           echo " Could not calculate cutoff date, skipping time-based cleanup"
           echo "- Status: Cleanup skipped (date calculation failed)" >> "$GITHUB_STEP_SUMMARY"
@@ -890,8 +894,10 @@ jobs:
         echo "" >> "$GITHUB_STEP_SUMMARY"
         
         # Process v-permanent release (moderate and milestone tiers - no deletion)
-        echo "### v-permanent Release (Moderate & Milestone Tiers)" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### v-permanent Release (Moderate & Milestone Tiers)"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         PERMANENT_ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-permanent")
@@ -900,10 +906,12 @@ jobs:
         echo "Total v-permanent backups: $PERMANENT_TOTAL"
         
         # No deletion for permanent backups
-        echo "- Retention: \`Permanent (no expiration)\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Backups retained: \`$PERMANENT_TOTAL\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Backups deleted: \`0\` (permanent tier never deleted)" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Retention: \`Permanent (no expiration)\`"
+          echo "- Backups retained: \`$PERMANENT_TOTAL\`"
+          echo "- Backups deleted: \`0\` (permanent tier never deleted)"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         echo " Tier-specific retention cleanup complete"
     
@@ -912,9 +920,11 @@ jobs:
     - name: Cleanup ephemeral cache
       if: always()
       run: |
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "** Phase 7: Cleanup Ephemeral Cache**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "** Phase 7: Cleanup Ephemeral Cache**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Delete checkpoint directory
         if [ -d "data/freesound_library" ]; then
