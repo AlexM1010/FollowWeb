@@ -111,8 +111,12 @@ def run_actionlint(workflow_files):
         actionlint_cmd = 'actionlint'  # Use system-installed version
     
     try:
-        # Run actionlint on all workflow files
-        cmd = [actionlint_cmd, '-format', '{{range $err := .}}{{$err.Filepath}}:{{$err.Line}}:{{$err.Column}}: {{$err.Kind}}: {{$err.Message}} [{{$err.Code}}]{{"\n"}}{{end}}']
+        # Run actionlint on all workflow files with config
+        config_file = Path('.github/actionlint.yaml')
+        cmd = [actionlint_cmd]
+        if config_file.exists():
+            cmd.extend(['-config-file', str(config_file)])
+        cmd.extend(['-format', '{{range $err := .}}{{$err.Filepath}}:{{$err.Line}}:{{$err.Column}}: {{$err.Kind}}: {{$err.Message}} [{{$err.Code}}]{{"\n"}}{{end}}'])
         cmd.extend([str(f) for f in workflow_files])
         
         result = subprocess.run(

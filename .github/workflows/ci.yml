@@ -286,8 +286,8 @@ jobs:
           exit 0
         fi
         
-        # Run actionlint on all workflow files
-        if ! ./actionlint .github/workflows/*.yml; then
+        # Run actionlint on all workflow files with config
+        if ! ./actionlint -config-file .github/actionlint.yaml .github/workflows/*.yml; then
           echo "::error::Workflow validation failed."
           {
             echo "### ❌ Workflow Validation Failed"
