@@ -389,81 +389,83 @@ jobs:
     - name: Generate workflow summary
       if: always()
       run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "---" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Workflow Results:**" >> $GITHUB_STEP_SUMMARY
-        
-        # Validation status
-        if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
-          echo "- ✅ Validation: Passed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "- ❌ Validation: Failed" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # Edge generation status
-        if [ -n "${{ steps.edge-generation.outputs.user_edges }}" ]; then
-          echo "- ✅ Edge Generation: Complete" >> $GITHUB_STEP_SUMMARY
-          echo "  - User edges: ${{ steps.edge-generation.outputs.user_edges }}" >> $GITHUB_STEP_SUMMARY
-          echo "  - Pack edges: ${{ steps.edge-generation.outputs.pack_edges }}" >> $GITHUB_STEP_SUMMARY
-          echo "  - Tag edges: ${{ steps.edge-generation.outputs.tag_edges }}" >> $GITHUB_STEP_SUMMARY
-        elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
-          echo "- ⚠️  Edge Generation: Skipped or failed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "- ⏭️  Edge Generation: Skipped (validation failed)" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # Visualization status
-        if [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ]; then
-          echo "- ✅ Visualization: Generated" >> $GITHUB_STEP_SUMMARY
-        elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
-          echo "- ❌ Visualization: Failed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "- ⏭️  Visualization: Skipped (validation failed)" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # Deployment status
-        if [ "${{ steps.deployment.outputs.deployment_successful }}" = "true" ]; then
-          echo "- ✅ Deployment: Complete" >> $GITHUB_STEP_SUMMARY
-        elif [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ]; then
-          echo "- ❌ Deployment: Failed" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "- ⏭️  Deployment: Skipped (visualization failed or validation failed)" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
-        
-        # Determine if backup workflow should be triggered
-        WORKFLOW_SUCCESS="false"
-        if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ] && \
-           [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ] && \
-           [ "${{ steps.deployment.outputs.deployment_successful }}" = "true" ]; then
-          WORKFLOW_SUCCESS="true"
-        fi
-        
-        if [ "$WORKFLOW_SUCCESS" = "true" ]; then
-          echo "- ✅ Backup workflow will be triggered automatically" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ All pipeline stages completed successfully" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "- ⚠️  **Backup workflow will NOT be triggered**" >> $GITHUB_STEP_SUMMARY
-          echo "- ⚠️  **Previous visualization remains live on GitHub Pages**" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Failure Reason:**" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.validation.outputs.validation_passed }}" != "true" ]; then
-            echo "- Validation failed - check validation errors above" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.visualization.outputs.visualization_generated }}" != "true" ]; then
-            echo "- Visualization generation failed - check visualization errors above" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ steps.deployment.outputs.deployment_successful }}" != "true" ]; then
-            echo "- Deployment failed - check deployment errors above" >> $GITHUB_STEP_SUMMARY
+        {
+          echo ""
+          echo "---"
+          echo ""
+          echo "**Workflow Results:**"
+          
+          # Validation status
+          if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+            echo "- ✅ Validation: Passed"
+          else
+            echo "- ❌ Validation: Failed"
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Recovery Actions:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review error details in the failed step above" >> $GITHUB_STEP_SUMMARY
-          echo "2. Check data repair workflow logs if validation failed" >> $GITHUB_STEP_SUMMARY
-          echo "3. Manually trigger repair workflow if needed" >> $GITHUB_STEP_SUMMARY
-          echo "4. Manually trigger this workflow again after fixes" >> $GITHUB_STEP_SUMMARY
-        fi
+          
+          # Edge generation status
+          if [ -n "${{ steps.edge-generation.outputs.user_edges }}" ]; then
+            echo "- ✅ Edge Generation: Complete"
+            echo "  - User edges: ${{ steps.edge-generation.outputs.user_edges }}"
+            echo "  - Pack edges: ${{ steps.edge-generation.outputs.pack_edges }}"
+            echo "  - Tag edges: ${{ steps.edge-generation.outputs.tag_edges }}"
+          elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+            echo "- ⚠️  Edge Generation: Skipped or failed"
+          else
+            echo "- ⏭️  Edge Generation: Skipped (validation failed)"
+          fi
+          
+          # Visualization status
+          if [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ]; then
+            echo "- ✅ Visualization: Generated"
+          elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+            echo "- ❌ Visualization: Failed"
+          else
+            echo "- ⏭️  Visualization: Skipped (validation failed)"
+          fi
+          
+          # Deployment status
+          if [ "${{ steps.deployment.outputs.deployment_successful }}" = "true" ]; then
+            echo "- ✅ Deployment: Complete"
+          elif [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ]; then
+            echo "- ❌ Deployment: Failed"
+          else
+            echo "- ⏭️  Deployment: Skipped (visualization failed or validation failed)"
+          fi
+          
+          echo ""
+          echo "**Next Steps:**"
+          
+          # Determine if backup workflow should be triggered
+          WORKFLOW_SUCCESS="false"
+          if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ] && \
+             [ "${{ steps.visualization.outputs.visualization_generated }}" = "true" ] && \
+             [ "${{ steps.deployment.outputs.deployment_successful }}" = "true" ]; then
+            WORKFLOW_SUCCESS="true"
+          fi
+          
+          if [ "$WORKFLOW_SUCCESS" = "true" ]; then
+            echo "- ✅ Backup workflow will be triggered automatically"
+            echo "- ✅ All pipeline stages completed successfully"
+          else
+            echo "- ⚠️  **Backup workflow will NOT be triggered**"
+            echo "- ⚠️  **Previous visualization remains live on GitHub Pages**"
+            echo ""
+            echo "**Failure Reason:**"
+            if [ "${{ steps.validation.outputs.validation_passed }}" != "true" ]; then
+              echo "- Validation failed - check validation errors above"
+            elif [ "${{ steps.visualization.outputs.visualization_generated }}" != "true" ]; then
+              echo "- Visualization generation failed - check visualization errors above"
+            elif [ "${{ steps.deployment.outputs.deployment_successful }}" != "true" ]; then
+              echo "- Deployment failed - check deployment errors above"
+            fi
+            echo ""
+            echo "**Recovery Actions:**"
+            echo "1. Review error details in the failed step above"
+            echo "2. Check data repair workflow logs if validation failed"
+            echo "3. Manually trigger repair workflow if needed"
+            echo "4. Manually trigger this workflow again after fixes"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
 
 # Note: Subtask 10.6 - Backup workflow trigger
 # The backup workflow (freesound-backup.yml) is configured with:

@@ -154,7 +154,7 @@ jobs:
       run: |
         twine upload --repository testpypi dist/* --verbose
         python ../.github/scripts/ci_helpers.py success "Package published to Test PyPI" --summary-only
-        echo "Install with: pip install -i https://test.pypi.org/simple/ followweb-visualizor" >> $GITHUB_STEP_SUMMARY
+        echo "Install with: pip install -i https://test.pypi.org/simple/ followweb-visualizor" >> "$GITHUB_STEP_SUMMARY"
 
   publish-pypi:
     name: Publish to PyPI
@@ -190,4 +190,4 @@ jobs:
       run: |
         twine upload dist/* --verbose
         python ../.github/scripts/ci_helpers.py completion "Package published to PyPI" --summary-only
-        echo "Install with: pip install followweb-visualizor" >> $GITHUB_STEP_SUMMARY
+        echo "Install with: pip install followweb-visualizor" >> "$GITHUB_STEP_SUMMARY"

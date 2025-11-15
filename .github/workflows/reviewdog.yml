@@ -179,15 +179,17 @@ jobs:
     - name: Generate summary
       if: always()
       run: |
-        echo "## Reviewdog Analysis Complete" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Analysis tools executed:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Ruff (linter)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Mypy (type checker)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ AI Language Scanner" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Duplication Detector" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Cross-Platform Analyzer" >> $GITHUB_STEP_SUMMARY
-        echo "- ✓ Pattern Detector" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Results saved to \`analysis_reports/\` directory" >> $GITHUB_STEP_SUMMARY
-        echo "SARIF report uploaded to GitHub Code Scanning" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "## Reviewdog Analysis Complete"
+          echo ""
+          echo "Analysis tools executed:"
+          echo "- ✓ Ruff (linter)"
+          echo "- ✓ Mypy (type checker)"
+          echo "- ✓ AI Language Scanner"
+          echo "- ✓ Duplication Detector"
+          echo "- ✓ Cross-Platform Analyzer"
+          echo "- ✓ Pattern Detector"
+          echo ""
+          echo "Results saved to \`analysis_reports/\` directory"
+          echo "SARIF report uploaded to GitHub Code Scanning"
+        } >> "$GITHUB_STEP_SUMMARY"

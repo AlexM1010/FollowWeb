@@ -68,7 +68,7 @@ jobs:
     - name: Run quick smoke tests
       run: |
         cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
-        python -m pytest -p no:benchmark -m unit -x --maxfail=1 --tb=short -v -n $cpu_count
+        python -m pytest -p no:benchmark -m unit -x --maxfail=1 --tb=short -v -n "$cpu_count"
       env:
         MPLBACKEND: Agg
   
@@ -100,29 +100,33 @@ jobs:
     
     - name: Check for security vulnerabilities
       run: |
-        echo "**Nightly Security Scan**" >> $GITHUB_STEP_SUMMARY
-        echo "**pip-audit Results (Strict)**" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        # FAIL on ANY vulnerabilities in nightly builds (stricter than CI)
-        pip-audit --desc >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        
-        echo "**Bandit Results (All Severity)**" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        # Check ALL severity levels (stricter than CI which only checks medium/high)
-        bandit -r FollowWeb_Visualizor >> $GITHUB_STEP_SUMMARY || echo "Security issues found - review above"
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "**Nightly Security Scan**"
+          echo "**pip-audit Results (Strict)**"
+          echo "\`\`\`"
+          # FAIL on ANY vulnerabilities in nightly builds (stricter than CI)
+          pip-audit --desc
+          echo "\`\`\`"
+          
+          echo "**Bandit Results (All Severity)**"
+          echo "\`\`\`"
+          # Check ALL severity levels (stricter than CI which only checks medium/high)
+          bandit -r FollowWeb_Visualizor || echo "Security issues found - review above"
+          echo "\`\`\`"
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Check for outdated dependencies
       run: |
-        echo "**Outdated Dependencies**" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        python -m pip list --outdated >> $GITHUB_STEP_SUMMARY || echo "All dependencies up to date" >> $GITHUB_STEP_SUMMARY
-        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        {
+          echo "**Outdated Dependencies**"
+          echo "\`\`\`"
+          python -m pip list --outdated || echo "All dependencies up to date"
+          echo "\`\`\`"
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Test with latest dependency versions
       run: |
-        echo "**Testing with Latest Dependencies**" >> $GITHUB_STEP_SUMMARY
+        echo "**Testing with Latest Dependencies**" >> "$GITHUB_STEP_SUMMARY"
         # Create a test environment with latest versions
         python -m venv test_latest
         source test_latest/bin/activate || test_latest\\Scripts\\activate

@@ -291,18 +291,20 @@ jobs:
       
       - name: Summary
         run: |
-          echo "## Large Graph Analysis Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ -f merge_metadata.json ]; then
-            echo "### Results" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat merge_metadata.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- Final graph: \`final_graph.gpickle\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Merge metadata: \`merge_metadata.json\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Visualizations: \`Output/\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Large Graph Analysis Complete"
+            echo ""
+            
+            if [ -f merge_metadata.json ]; then
+              echo "### Results"
+              echo '```json'
+              cat merge_metadata.json
+              echo '```'
+            fi
+            
+            echo ""
+            echo "### Artifacts"
+            echo "- Final graph: \`final_graph.gpickle\`"
+            echo "- Merge metadata: \`merge_metadata.json\`"
+            echo "- Visualizations: \`Output/\`"
+          } >> "$GITHUB_STEP_SUMMARY"
