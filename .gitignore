@@ -41,6 +41,10 @@ logs/pipeline_*.log
 .workflow_locks/
 *.lock
 
+# Workflow validation tools (auto-downloaded binaries)
+actionlint
+actionlint
+
 # Temporary test scripts (root level only - not in FollowWeb/)
 /test_*.py
 /*_test.py

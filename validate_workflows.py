@@ -1,8 +1,23 @@
-"""Validate workflow YAML files and embedded shell scripts."""
+"""Validate GitHub Actions workflow files using actionlint.
+
+Actionlint is a comprehensive static checker for GitHub Actions workflows that:
+- Validates YAML syntax and structure
+- Checks GitHub Actions-specific semantics (keys, inputs/outputs, reusable workflows)
+- Detects security risks and best practice violations
+- Integrates ShellCheck to analyze shell scripts in 'run:' steps
+- Understands GitHub Actions expressions (${{ }}) to avoid false positives
+- Catches workflow-specific errors beyond shell scripting issues
+
+This provides complete workflow validation matching CI behavior.
+"""
 import sys
 import subprocess
-import tempfile
+import platform
 from pathlib import Path
+import urllib.request
+import tarfile
+import zipfile
+import os
 
 # Ensure UTF-8 output on Windows
 if sys.platform == 'win32':
@@ -10,18 +25,12 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-try:
-    import yaml
-except ImportError:
-    print("PyYAML not installed. Install with: pip install pyyaml")
-    sys.exit(1)
 
-# Check if shellcheck binary is available (installed via shellcheck-py)
-def check_shellcheck_available():
-    """Check if shellcheck binary is available."""
+def check_actionlint_available():
+    """Check if actionlint binary is available."""
     try:
         result = subprocess.run(
-            ['shellcheck', '--version'],
+            ['actionlint', '-version'],
             capture_output=True,
             text=True,
             timeout=5
@@ -30,145 +39,118 @@ def check_shellcheck_available():
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
 
-SHELLCHECK_AVAILABLE = check_shellcheck_available()
 
-
-def extract_shell_scripts(workflow_data, workflow_name):
-    """Extract shell scripts from workflow YAML with shell type detection."""
-    scripts = []
+def download_actionlint():
+    """Download actionlint binary for the current platform."""
+    system = platform.system().lower()
+    machine = platform.machine().lower()
     
-    def traverse(obj, path="", job_shell=None):
-        """Recursively traverse YAML structure to find 'run' keys.
-        
-        Args:
-            obj: Current YAML object being traversed
-            path: Current path in the YAML structure
-            job_shell: Default shell specified at job level
-        """
-        if isinstance(obj, dict):
-            # Check for job-level default shell
-            current_shell = job_shell
-            if 'defaults' in obj and isinstance(obj['defaults'], dict):
-                if 'run' in obj['defaults'] and isinstance(obj['defaults']['run'], dict):
-                    current_shell = obj['defaults']['run'].get('shell', job_shell)
-            
-            # Check for step-level shell override
-            step_shell = obj.get('shell', current_shell)
-            
-            for key, value in obj.items():
-                if key == 'run' and isinstance(value, str):
-                    # Check if it's a multi-line script (likely bash)
-                    if '\n' in value or '|' in str(value):
-                        scripts.append({
-                            'content': value,
-                            'path': f"{path}.{key}" if path else key,
-                            'workflow': workflow_name,
-                            'shell': step_shell or 'bash'  # Default to bash if not specified
-                        })
-                traverse(value, f"{path}.{key}" if path else key, current_shell)
-        elif isinstance(obj, list):
-            for i, item in enumerate(obj):
-                traverse(item, f"{path}[{i}]", job_shell)
+    # Map platform names
+    if system == 'darwin':
+        system = 'darwin'
+    elif system == 'windows':
+        system = 'windows'
+    else:
+        system = 'linux'
     
-    traverse(workflow_data)
-    return scripts
-
-
-def run_shellcheck(script_content, workflow_name, script_path, shell_type='bash'):
-    """Run shellcheck on a shell script.
+    # Map architecture names
+    if machine in ['x86_64', 'amd64']:
+        arch = 'amd64'
+    elif machine in ['aarch64', 'arm64']:
+        arch = 'arm64'
+    elif machine in ['i386', 'i686']:
+        arch = '386'
+    else:
+        arch = 'amd64'
     
-    Args:
-        script_content: The shell script content to check
-        workflow_name: Name of the workflow file
-        script_path: Path within the workflow structure
-        shell_type: Shell type (bash, sh, dash, ksh, etc.)
-    """
-    if not SHELLCHECK_AVAILABLE:
-        return {'errors': [], 'warnings': [], 'notes': []}
+    # Construct download URL
+    version = '1.7.1'
+    if system == 'windows':
+        filename = f'actionlint_{version}_windows_{arch}.zip'
+        binary_name = 'actionlint.exe'
+    else:
+        filename = f'actionlint_{version}_{system}_{arch}.tar.gz'
+        binary_name = 'actionlint'
     
-    # Normalize line endings (remove carriage returns)
-    script_content = script_content.replace('\r\n', '\n').replace('\r', '\n')
+    url = f'https://github.com/rhysd/actionlint/releases/download/v{version}/{filename}'
     
-    # Skip scripts with GitHub Actions expressions (shellcheck doesn't understand them)
-    if '${{' in script_content or '}}' in script_content:
-        return {'errors': [], 'warnings': [], 'notes': []}
-    
-    # Create a temporary file with the script content
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False, encoding='utf-8', newline='\n') as f:
-        f.write(script_content)
-        temp_file = f.name
+    print(f"Downloading actionlint from {url}...")
     
     try:
-        # Determine shell flag based on shell type
-        # Extract base shell name (e.g., 'bash' from 'bash -e' or '/bin/bash')
-        base_shell = shell_type.split()[0].split('/')[-1] if shell_type else 'bash'
+        # Download file
+        download_path = Path(filename)
+        urllib.request.urlretrieve(url, download_path)
         
-        # Map common shell types to shellcheck shell names
-        shell_map = {
-            'bash': 'bash',
-            'sh': 'sh',
-            'dash': 'dash',
-            'ksh': 'ksh',
-            'powershell': None,  # Skip PowerShell scripts
-            'pwsh': None,        # Skip PowerShell Core scripts
-            'python': None,      # Skip Python scripts
-            'cmd': None,         # Skip Windows cmd scripts
-        }
+        # Extract binary
+        if system == 'windows':
+            with zipfile.ZipFile(download_path, 'r') as zip_ref:
+                zip_ref.extract(binary_name)
+        else:
+            with tarfile.open(download_path, 'r:gz') as tar_ref:
+                tar_ref.extract(binary_name)
         
-        shellcheck_shell = shell_map.get(base_shell, 'bash')
+        # Make executable on Unix-like systems
+        if system != 'windows':
+            os.chmod(binary_name, 0o755)
         
-        # Skip non-POSIX shells
-        if shellcheck_shell is None:
-            return {'errors': [], 'warnings': [], 'notes': []}
+        # Clean up download
+        download_path.unlink()
         
-        # Use shellcheck binary (installed via shellcheck-py package)
-        # Exclude common GitHub Actions workflow patterns:
-        # 
-        # CRITICAL EXCLUSIONS (CI-specific):
-        # SC2148 - missing shebang (GitHub Actions doesn't require shebangs)
-        # SC1091 - not following sourced files (external files not available)
-        # SC2164 - cd without error handling (CI stops on any failure)
-        # 
-        # Match actionlint's shellcheck configuration (used in CI)
-        # This ensures local validation matches CI validation
-        cmd = ['shellcheck', '-s', shellcheck_shell, '-f', 'gcc', '-e', 'SC2148,SC1091,SC2164', temp_file]
+        print(f"✓ Downloaded actionlint to ./{binary_name}")
+        return True
+    except Exception as e:
+        print(f"✗ Failed to download actionlint: {e}")
+        return False
+
+
+def run_actionlint(workflow_files):
+    """Run actionlint on workflow files."""
+    # Determine actionlint binary name
+    actionlint_cmd = 'actionlint.exe' if platform.system() == 'Windows' else './actionlint'
+    if check_actionlint_available():
+        actionlint_cmd = 'actionlint'  # Use system-installed version
+    
+    try:
+        # Run actionlint on all workflow files
+        cmd = [actionlint_cmd, '-format', '{{range $err := .}}{{$err.Filepath}}:{{$err.Line}}:{{$err.Column}}: {{$err.Kind}}: {{$err.Message}} [{{$err.Code}}]{{"\n"}}{{end}}']
+        cmd.extend([str(f) for f in workflow_files])
+        
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=30
         )
         
-        if result.returncode != 0:
-            # Parse shellcheck output and format it
-            errors = []
-            warnings = []
-            notes = []
+        errors = []
+        warnings = []
+        notes = []
+        
+        if result.returncode != 0 or result.stdout:
+            # Parse actionlint output
             for line in result.stdout.strip().split('\n'):
                 if line:
-                    # Replace temp filename with workflow context
-                    line = line.replace(temp_file, f"{workflow_name}:{script_path}")
                     # Categorize by severity
                     if ': error:' in line:
                         errors.append(line)
-                    elif ': warning:' in line:
+                    elif ': warning:' in line or ': style:' in line:
                         warnings.append(line)
                     elif ': note:' in line:
                         notes.append(line)
                     else:
-                        errors.append(line)  # Default to error if unknown
-            return {'errors': errors, 'warnings': warnings, 'notes': notes}
-        return {'errors': [], 'warnings': [], 'notes': []}
+                        # Default to warning for shellcheck issues
+                        warnings.append(line)
+        
+        return errors, warnings, notes
+        
     except subprocess.TimeoutExpired:
-        return {'errors': [f"{workflow_name}:{script_path}: shellcheck timeout"], 'warnings': [], 'notes': []}
+        return [f"actionlint timeout after 30 seconds"], [], []
     except Exception as e:
-        return {'errors': [f"{workflow_name}:{script_path}: shellcheck error: {e}"], 'warnings': [], 'notes': []}
-    finally:
-        Path(temp_file).unlink(missing_ok=True)
+        return [f"actionlint error: {e}"], [], []
 
 
 def validate_workflows():
-    """Validate all workflow YAML files and embedded shell scripts."""
+    """Validate all GitHub Actions workflow files using actionlint."""
     workflows_dir = Path('.github/workflows')
     workflow_files = list(workflows_dir.glob('*.yml'))
     
@@ -176,81 +158,59 @@ def validate_workflows():
         print("No workflow files found")
         return False
     
-    yaml_errors = []
-    shellcheck_errors = []
-    shellcheck_warnings = []
-    shellcheck_notes = []
-    valid_count = 0
+    # Check if actionlint is available, download if needed
+    if not check_actionlint_available():
+        print("⚠️  actionlint not found - attempting to download...")
+        if not download_actionlint():
+            print("✗ Failed to download actionlint")
+            print("  Install manually from: https://github.com/rhysd/actionlint")
+            return False
     
-    # Check if shellcheck is available
-    if not SHELLCHECK_AVAILABLE:
-        print("⚠️  shellcheck-py not found - skipping shell script validation")
-        print("   Install with: pip install shellcheck-py")
-        print()
+    print(f"Validating {len(workflow_files)} workflow files with actionlint...\n")
     
-    # Validate YAML syntax
+    # Run actionlint on all workflows
+    errors, warnings, notes = run_actionlint(workflow_files)
+    
+    # Count valid workflows
+    valid_count = len(workflow_files)
+    if errors:
+        failed_files = set()
+        for error in errors:
+            if ':' in error:
+                failed_files.add(error.split(':')[0])
+        valid_count = len(workflow_files) - len(failed_files)
+    
+    # Print individual workflow status
     for workflow_file in workflow_files:
-        try:
-            with open(workflow_file, 'r', encoding='utf-8') as f:
-                workflow_data = yaml.safe_load(f)
-            
-            valid_count += 1
-            print(f"✓ {workflow_file.name}")
-            
-            # Extract and validate shell scripts if shellcheck is available
-            if SHELLCHECK_AVAILABLE and workflow_data:
-                scripts = extract_shell_scripts(workflow_data, workflow_file.name)
-                for script in scripts:
-                    results = run_shellcheck(
-                        script['content'], 
-                        script['workflow'], 
-                        script['path'],
-                        script.get('shell', 'bash')
-                    )
-                    if isinstance(results, dict):
-                        if results.get('errors'):
-                            shellcheck_errors.extend(results['errors'])
-                        if results.get('warnings'):
-                            shellcheck_warnings.extend(results['warnings'])
-                        if results.get('notes'):
-                            shellcheck_notes.extend(results['notes'])
-                    else:
-                        # Fallback for old format (shouldn't happen)
-                        shellcheck_errors.extend(results if results else [])
-                        
-        except yaml.YAMLError as e:
-            yaml_errors.append(f"✗ {workflow_file.name}: {e}")
-        except Exception as e:
-            yaml_errors.append(f"✗ {workflow_file.name}: {e}")
+        workflow_name = workflow_file.name
+        has_error = any(workflow_name in e for e in errors)
+        if has_error:
+            print(f"✗ {workflow_name}")
+        else:
+            print(f"✓ {workflow_name}")
     
     print(f"\nValidated {valid_count}/{len(workflow_files)} workflows")
     
-    # Report YAML errors
-    if yaml_errors:
-        print("\n❌ YAML Syntax Errors:")
-        for error in yaml_errors:
+    # Report errors
+    if errors:
+        print(f"\n❌ Errors ({len(errors)} found):")
+        for error in errors:
             print(f"  {error}")
     
-    # Report shellcheck errors
-    if shellcheck_errors:
-        print(f"\n❌ Shellcheck Errors ({len(shellcheck_errors)} found):")
-        for error in shellcheck_errors:
-            print(f"  {error}")
-    
-    # Report shellcheck warnings
-    if shellcheck_warnings:
-        print(f"\n⚠️  Shellcheck Warnings ({len(shellcheck_warnings)} found):")
-        for warning in shellcheck_warnings:
+    # Report warnings
+    if warnings:
+        print(f"\n⚠️  Warnings ({len(warnings)} found):")
+        for warning in warnings:
             print(f"  {warning}")
     
-    # Report shellcheck notes (informational only, don't fail)
-    if shellcheck_notes:
-        print(f"\n💡 Shellcheck Notes ({len(shellcheck_notes)} found):")
-        for note in shellcheck_notes:
+    # Report notes (informational only, don't fail)
+    if notes:
+        print(f"\n💡 Notes ({len(notes)} found):")
+        for note in notes:
             print(f"  {note}")
     
     # Only fail on errors and warnings, not notes
-    return len(yaml_errors) == 0 and len(shellcheck_errors) == 0 and len(shellcheck_warnings) == 0
+    return len(errors) == 0 and len(warnings) == 0
 
 
 if __name__ == '__main__':
