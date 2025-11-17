@@ -52,8 +52,8 @@ jobs:
           from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
           
           # Load graph
-          print('Loading graph from ${{ inputs.graph_file }}')
-          with open('${{ inputs.graph_file }}', 'rb') as f:
+          print("Loading graph from ${{ inputs.graph_file }}")
+          with open("${{ inputs.graph_file }}", "rb") as f:
               graph = pickle.load(f)
           print(f'Loaded graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges')
           
@@ -61,37 +61,37 @@ jobs:
           partitioner = GraphPartitioner()
           
           # Determine number of partitions
-          if '${{ inputs.num_partitions }}' and '${{ inputs.num_partitions }}' != '':
-              num_partitions = int('${{ inputs.num_partitions }}')
-              print(f'Using manual partition count: {num_partitions}')
-          elif '${{ inputs.auto_scale }}' == 'true':
+          if "${{ inputs.num_partitions }}" and "${{ inputs.num_partitions }}" != "":
+              num_partitions = int("${{ inputs.num_partitions }}")
+              print(f"Using manual partition count: {num_partitions}")
+          elif "${{ inputs.auto_scale }}" == "true":
               num_partitions = partitioner.calculate_optimal_partitions(graph.number_of_nodes())
-              print(f'Auto-scaled partition count: {num_partitions}')
+              print(f"Auto-scaled partition count: {num_partitions}")
           else:
               num_partitions = 1
-              print('No partitioning requested')
+              print("No partitioning requested")
           
           # Partition graph
           partitions = partitioner.partition_graph(graph, num_partitions)
-          print(f'Created {len(partitions)} partitions')
+          print(f"Created {len(partitions)} partitions")
           
           # Save partitions
           import os
           os.makedirs('partitions', exist_ok=True)
           
           for i, partition in enumerate(partitions):
-              path = partitioner.save_partition(partition, i, 'partitions')
-              print(f'Saved partition {i}: {partition.number_of_nodes()} nodes -> {path}')
+              path = partitioner.save_partition(partition, i, "partitions")
+              print(f"Saved partition {i}: {partition.number_of_nodes()} nodes -> {path}")
           
           # Output for next job
           partition_ids = list(range(len(partitions)))
-          print(f'num_partitions={len(partitions)}')
-          print(f'partition_ids={json.dumps(partition_ids)}')
+          print(f"num_partitions={len(partitions)}")
+          print(f"partition_ids={json.dumps(partition_ids)}")
           
           # Set outputs
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'num_partitions={len(partitions)}\n')
-              f.write(f'partition_ids={json.dumps(partition_ids)}\n')
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"num_partitions={len(partitions)}\n")
+              f.write(f"partition_ids={json.dumps(partition_ids)}\n")
           "
       
       - name: Upload partitions
@@ -143,25 +143,25 @@ jobs:
           from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
           
           partition_id = ${{ matrix.partition_id }}
-          print(f'Analyzing partition {partition_id}')
+          print(f"Analyzing partition {partition_id}")
           
           # Load partition
           partitioner = GraphPartitioner()
-          partition = partitioner.load_partition(partition_id, 'partitions')
-          print(f'Loaded partition {partition_id}: {partition.number_of_nodes()} nodes')
+          partition = partitioner.load_partition(partition_id, "partitions")
+          print(f"Loaded partition {partition_id}: {partition.number_of_nodes()} nodes")
           
           # Analyze partition
           worker = PartitionAnalysisWorker(partition_id)
           results = worker.analyze_partition(partition)
-          print(f'Analysis complete for partition {partition_id}')
-          print(f'  Communities: {results.metrics[\"community_count\"]}')
-          print(f'  Boundary nodes: {results.metrics[\"boundary_node_count\"]}')
+          print(f"Analysis complete for partition {partition_id}")
+          print(f"  Communities: {results.metrics[\"community_count\"]}")
+          print(f"  Boundary nodes: {results.metrics[\"boundary_node_count\"]}")
           
           # Save results
-          os.makedirs('results', exist_ok=True)
-          result_file = f'results/partition-{partition_id}-results.pkl'
+          os.makedirs("results", exist_ok=True)
+          result_file = f"results/partition-{partition_id}-results.pkl"
           joblib.dump(results, result_file, compress=3)
-          print(f'Saved results to {result_file}')
+          print(f"Saved results to {result_file}")
           "
       
       - name: Upload results
@@ -212,39 +212,39 @@ jobs:
           import pickle
           from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
           
-          print('Merging partition results')
+          print(\"Merging partition results\")
           
           # Load original graph
-          print('Loading original graph')
-          with open('original_graph.gpickle', 'rb') as f:
+          print(\"Loading original graph\")
+          with open(\"original_graph.gpickle\", \"rb\") as f:
               original_graph = pickle.load(f)
-          print(f'Loaded graph: {original_graph.number_of_nodes()} nodes')
+          print(f\"Loaded graph: {original_graph.number_of_nodes()} nodes\")
           
           # Load and merge results
           merger = PartitionResultsMerger()
-          partition_results = merger.load_all_results('results')
-          print(f'Loaded {len(partition_results)} partition results')
+          partition_results = merger.load_all_results(\"results\")
+          print(f\"Loaded {len(partition_results)} partition results\")
           
           merged_results = merger.merge_all(partition_results, original_graph)
-          print(f'Merge complete: {merged_results.total_nodes} nodes in {merged_results.merge_time:.2f}s')
+          print(f\"Merge complete: {merged_results.total_nodes} nodes in {merged_results.merge_time:.2f}s\")
           
           # Save final graph
-          with open('final_graph.gpickle', 'wb') as f:
+          with open(\"final_graph.gpickle\", \"wb\") as f:
               pickle.dump(original_graph, f, protocol=pickle.HIGHEST_PROTOCOL)
-          print('Saved final graph to final_graph.gpickle')
+          print(\"Saved final graph to final_graph.gpickle\")
           
           # Save merged results metadata
           import json
           metadata = {
-              'partition_count': merged_results.partition_count,
-              'total_nodes': merged_results.total_nodes,
-              'merge_time': merged_results.merge_time,
-              'community_count': len(set(merged_results.global_communities.values())),
-              'logs': merged_results.logs
+              \"partition_count\": merged_results.partition_count,
+              \"total_nodes\": merged_results.total_nodes,
+              \"merge_time\": merged_results.merge_time,
+              \"community_count\": len(set(merged_results.global_communities.values())),
+              \"logs\": merged_results.logs
           }
-          with open('merge_metadata.json', 'w') as f:
+          with open(\"merge_metadata.json\", \"w\") as f:
               json.dump(metadata, f, indent=2)
-          print('Saved merge metadata')
+          print(\"Saved merge metadata\")
           "
       
       - name: Generate visualization
@@ -255,26 +255,26 @@ jobs:
           from FollowWeb_Visualizor.main import FollowWebPipeline
           from FollowWeb_Visualizor.core.config import Config
           
-          print('Generating visualization')
+          print(\"Generating visualization\")
           
           # Load final graph
-          with open('final_graph.gpickle', 'rb') as f:
+          with open(\"final_graph.gpickle\", \"rb\") as f:
               graph = pickle.load(f)
-          print(f'Loaded final graph: {graph.number_of_nodes()} nodes')
+          print(f\"Loaded final graph: {graph.number_of_nodes()} nodes\")
           
           # Create config for visualization
           config = Config(
-              renderer_type='sigma',
-              output_dir='Output',
-              output_filename='large_graph_analysis'
+              renderer_type=\"sigma\",
+              output_dir=\"Output\",
+              output_filename=\"large_graph_analysis\"
           )
           
           # Generate visualization
           pipeline = FollowWebPipeline(config)
           # Note: This is a simplified example - actual implementation would need
           # to integrate with the pipeline's graph loading mechanism
-          print('Visualization generation would happen here')
-          print('(Full integration requires pipeline modifications)')
+          print(\"Visualization generation would happen here\")
+          print(\"(Full integration requires pipeline modifications)\")
           "
       
       - name: Upload final outputs

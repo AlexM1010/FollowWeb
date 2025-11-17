@@ -18,9 +18,11 @@ shellcheck:
   # SC2164 - cd without error handling (CI stops on any failure)
   # SC2129 - grouped redirects (style preference, not a bug)
   # SC2086 - double quote to prevent globbing (often intentional in CI scripts)
+  # SC2034 - unused variables (often used for documentation or future use)
   exclude-codes:
     - SC2148
     - SC1091
     - SC2164
     - SC2129
     - SC2086
+    - SC2034

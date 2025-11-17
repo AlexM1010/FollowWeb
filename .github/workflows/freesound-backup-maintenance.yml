@@ -55,31 +55,35 @@ jobs:
       
       - name: Generate step summary
         run: |
-          echo "## 🧹 Backup Repository Maintenance" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "✅ **Status:** Git garbage collection completed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "📦 **Size Before:** ${{ steps.size_before.outputs.size }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "📦 **Size After:** ${{ steps.size_after.outputs.size }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "🔧 **Operation:** \`git gc --prune=now --aggressive\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "💡 **Purpose:** Compact repository and optimize storage" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## 🧹 Backup Repository Maintenance"
+            echo ""
+            echo "✅ **Status:** Git garbage collection completed"
+            echo ""
+            echo "📦 **Size Before:** ${{ steps.size_before.outputs.size }}"
+            echo "📦 **Size After:** ${{ steps.size_after.outputs.size }}"
+            echo ""
+            echo "🔧 **Operation:** \`git gc --prune=now --aggressive\`"
+            echo ""
+            echo "💡 **Purpose:** Compact repository and optimize storage"
+          } >> "$GITHUB_STEP_SUMMARY"
       
       - name: Notify on failure
         if: failure() && vars.SLACK_WEBHOOK_URL != ''
         run: |
-          curl -X POST ${{ vars.SLACK_WEBHOOK_URL }} \
+          curl -X POST "${{ vars.SLACK_WEBHOOK_URL }}" \
             -H 'Content-Type: application/json' \
-            -d '{
-              "text": "❌ Freesound backup maintenance failed",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Freesound Backup Maintenance Failed*\n\nWorkflow: `${{ github.workflow }}`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
-                  }
+            -d @- <<EOF
+          {
+            "text": "❌ Freesound backup maintenance failed",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Freesound Backup Maintenance Failed*\n\nWorkflow: \`${{ github.workflow }}\`\nRun: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
                 }
-              ]
-            }'
+              }
+            ]
+          }
+          EOF

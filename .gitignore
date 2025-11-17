@@ -43,7 +43,7 @@ logs/pipeline_*.log
 
 # Workflow validation tools (auto-downloaded binaries)
 actionlint
-actionlint
+actionlint.exe
 
 # Temporary test scripts (root level only - not in FollowWeb/)
 /test_*.py

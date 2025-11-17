@@ -88,13 +88,17 @@ jobs:
         # Determine cache key based on trigger
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           # For manual runs, use latest checkpoint from repo
-          echo "cache_key=manual-run" >> "$GITHUB_OUTPUT"
-          echo "use_cache=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "cache_key=manual-run"
+            echo "use_cache=false"
+          } >> "$GITHUB_OUTPUT"
         else
           # For triggered runs, use cache from repair pipeline
           # Try repaired checkpoint first, fall back to original
-          echo "cache_key=checkpoint-repaired-${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
-          echo "use_cache=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "cache_key=checkpoint-repaired-${{ github.event.workflow_run.id }}"
+            echo "use_cache=true"
+          } >> "$GITHUB_OUTPUT"
         fi
     
     - name: Display workflow configuration
@@ -165,7 +169,7 @@ jobs:
           echo ""
           echo "**Checkpoint Files:**"
           echo "\`\`\`"
-          ls -lh "$CHECKPOINT_DIR/"
+          find "$CHECKPOINT_DIR/" -maxdepth 1 -type f -exec ls -lh {} \;
           echo "\`\`\`"
         } >> "$GITHUB_STEP_SUMMARY"
     
@@ -302,8 +306,10 @@ jobs:
         VIZ_FILE=$(find Output -maxdepth 1 -name "freesound_*.html" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -n1 | cut -d' ' -f2-)
         
         if [ -n "$VIZ_FILE" ]; then
-          echo "visualization_generated=true" >> "$GITHUB_OUTPUT"
-          echo "visualization_file=$VIZ_FILE" >> "$GITHUB_OUTPUT"
+          {
+            echo "visualization_generated=true"
+            echo "visualization_file=$VIZ_FILE"
+          } >> "$GITHUB_OUTPUT"
           echo "✅ Visualization generated: \`$VIZ_FILE\`" >> "$GITHUB_STEP_SUMMARY"
           
           # Get file size
