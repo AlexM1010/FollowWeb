@@ -2,11 +2,11 @@
 Graph partitioning system for large-scale network analysis.
 
 This module provides graph partitioning capabilities for distributed processing
-of large graphs (600K+ nodes) across GitHub Actions runners. It uses METIS
-algorithm for optimal partitioning with NetworkX fallback.
+of large graphs (600K+ nodes) across GitHub Actions runners using the METIS
+algorithm for optimal partitioning with minimal edge cuts.
 
 Classes:
-    GraphPartitioner: Partitions graphs using METIS or NetworkX fallback
+    GraphPartitioner: Partitions graphs using METIS algorithm
     PartitionInfo: Metadata about a graph partition
 """
 
@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import networkx as nx
+import pymetis
 
 from ..utils.parallel import ParallelProcessingManager
 
@@ -36,12 +37,11 @@ class GraphPartitioner:
     Partition large graphs for distributed processing.
 
     Uses METIS algorithm (via pymetis) for optimal partitioning with minimal
-    edge cuts. Falls back to NetworkX-based partitioning if METIS unavailable.
+    edge cuts.
 
     Features:
     - Auto-scaling partition size based on detected RAM
     - METIS partitioning for minimal edge cuts
-    - NetworkX fallback for development/testing
     - Compressed partition storage with joblib
     """
 
@@ -51,9 +51,6 @@ class GraphPartitioner:
         self.parallel_manager = ParallelProcessingManager()
         self.detected_cores = self.parallel_manager._cpu_count
         self.detected_ram = self._detect_available_ram()
-
-        # Check METIS availability
-        self.metis_available = self._check_metis_availability()
 
     def _detect_available_ram(self) -> int:
         """
@@ -69,23 +66,6 @@ class GraphPartitioner:
         except ImportError:
             self.logger.debug("psutil not available, using default RAM estimate")
             return 7  # Default to GitHub Actions standard
-
-    def _check_metis_availability(self) -> bool:
-        """
-        Check if pymetis is available and working.
-
-        Returns:
-            bool: True if pymetis is available and functional
-        """
-        try:
-            import pymetis  # noqa: F401
-
-            return True
-        except ImportError:
-            self.logger.info(
-                "pymetis not available, will use NetworkX fallback for partitioning"
-            )
-            return False
 
     def calculate_optimal_partitions(self, total_nodes: int) -> int:
         """
@@ -122,32 +102,7 @@ class GraphPartitioner:
         self, graph: nx.DiGraph, num_partitions: int
     ) -> list[nx.DiGraph]:
         """
-        Partition graph using METIS to minimize edge cuts.
-
-        Uses METIS algorithm (industry standard) for optimal partitioning.
-        Falls back to NetworkX-based partitioning if METIS unavailable.
-
-        Args:
-            graph: NetworkX directed graph to partition
-            num_partitions: Number of partitions to create
-
-        Returns:
-            List[nx.DiGraph]: List of graph partitions
-        """
-        if num_partitions <= 1:
-            self.logger.info("Single partition requested, returning original graph")
-            return [graph]
-
-        if self.metis_available:
-            return self._partition_with_metis(graph, num_partitions)
-        else:
-            return self._partition_networkx_fallback(graph, num_partitions)
-
-    def _partition_with_metis(
-        self, graph: nx.DiGraph, num_partitions: int
-    ) -> list[nx.DiGraph]:
-        """
-        Partition graph using METIS algorithm.
+        Partition graph using METIS algorithm to minimize edge cuts.
 
         METIS provides optimal partitioning with minimal edge cuts and
         balanced partition sizes.
@@ -159,7 +114,9 @@ class GraphPartitioner:
         Returns:
             List[nx.DiGraph]: List of graph partitions
         """
-        import pymetis
+        if num_partitions <= 1:
+            self.logger.info("Single partition requested, returning original graph")
+            return [graph]
 
         self.logger.info(
             f"Partitioning graph with {graph.number_of_nodes()} nodes "
@@ -180,111 +137,21 @@ class GraphPartitioner:
             adjacency.append(neighbors)
 
         # Run METIS partitioning
-        try:
-            n_cuts, membership = pymetis.part_graph(num_partitions, adjacency=adjacency)
+        n_cuts, membership = pymetis.part_graph(num_partitions, adjacency=adjacency)
 
-            self.logger.info(f"METIS partitioning complete with {n_cuts} edge cuts")
-
-            # Create partition subgraphs
-            partitions = []
-            for partition_id in range(num_partitions):
-                # Get nodes in this partition
-                partition_nodes = [
-                    node_list[idx]
-                    for idx, part in enumerate(membership)
-                    if part == partition_id
-                ]
-
-                # Create subgraph (directed)
-                partition_graph = nx.DiGraph(graph.subgraph(partition_nodes))
-                partitions.append(partition_graph)
-
-                self.logger.debug(
-                    f"Partition {partition_id}: {partition_graph.number_of_nodes()} nodes, "
-                    f"{partition_graph.number_of_edges()} edges"
-                )
-
-            return partitions
-
-        except Exception as e:
-            self.logger.warning(
-                f"METIS partitioning failed: {e}, falling back to NetworkX"
-            )
-            return self._partition_networkx_fallback(graph, num_partitions)
-
-    def _partition_networkx_fallback(
-        self, graph: nx.DiGraph, num_partitions: int
-    ) -> list[nx.DiGraph]:
-        """
-        Partition graph using NetworkX-based approach (fallback).
-
-        Uses community detection to create balanced partitions when METIS
-        is unavailable. Less optimal than METIS but acceptable for development.
-
-        Args:
-            graph: NetworkX directed graph to partition
-            num_partitions: Number of partitions to create
-
-        Returns:
-            List[nx.DiGraph]: List of graph partitions
-        """
-        self.logger.info(
-            f"Partitioning graph with {graph.number_of_nodes()} nodes "
-            f"into {num_partitions} partitions using NetworkX fallback"
-        )
-
-        # Convert to undirected for community detection
-        undirected = graph.to_undirected()
-
-        # Use Louvain community detection
-        from networkx.algorithms import community
-
-        communities = list(community.louvain_communities(undirected, seed=123))
-
-        self.logger.debug(f"Detected {len(communities)} communities")
-
-        # Ensure all nodes are accounted for
-        all_community_nodes = set()
-        for comm in communities:
-            all_community_nodes.update(comm)
-
-        # Add any missing nodes as singleton communities
-        missing_nodes = set(graph.nodes()) - all_community_nodes
-        if missing_nodes:
-            self.logger.debug(
-                f"Adding {len(missing_nodes)} isolated nodes as singleton communities"
-            )
-            for node in missing_nodes:
-                communities.append({node})
-
-        # Merge communities to reach target partition count
-        if len(communities) > num_partitions:
-            # Sort by size (largest first) and merge smaller communities into larger ones
-            communities = sorted(communities, key=len, reverse=True)
-            merged = list(communities[:num_partitions])
-
-            # Distribute remaining communities across the partitions
-            for i, comm in enumerate(communities[num_partitions:]):
-                # Add to smallest partition to balance
-                smallest_idx = min(range(len(merged)), key=lambda i: len(merged[i]))
-                merged[smallest_idx] = merged[smallest_idx].union(comm)
-        else:
-            # Split largest communities if needed
-            merged = list(communities)
-            while len(merged) < num_partitions:
-                # Find largest community
-                largest_idx = max(range(len(merged)), key=lambda i: len(merged[i]))
-                largest = merged[largest_idx]
-
-                # Split in half
-                nodes = list(largest)
-                mid = len(nodes) // 2
-                merged[largest_idx] = set(nodes[:mid])
-                merged.append(set(nodes[mid:]))
+        self.logger.info(f"METIS partitioning complete with {n_cuts} edge cuts")
 
         # Create partition subgraphs
         partitions = []
-        for partition_id, partition_nodes in enumerate(merged):
+        for partition_id in range(num_partitions):
+            # Get nodes in this partition
+            partition_nodes = [
+                node_list[idx]
+                for idx, part in enumerate(membership)
+                if part == partition_id
+            ]
+
+            # Create subgraph (directed)
             partition_graph = nx.DiGraph(graph.subgraph(partition_nodes))
             partitions.append(partition_graph)
 

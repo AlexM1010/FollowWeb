@@ -120,7 +120,6 @@ class TestPartitioningPerformance:
     @pytest.mark.slow
     def test_benchmark_partition_time_vs_graph_size(self, benchmark):
         """Benchmark partition time vs graph size."""
-        # Use smaller sizes for CI (NetworkX fallback is slow without pymetis)
         graph_sizes = [1000, 5000, 10000]
 
         def run_partition_benchmark(size):

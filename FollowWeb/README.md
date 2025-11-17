@@ -95,6 +95,8 @@ For detailed information about the Freesound pipeline:
 ## Quick Setup
 
 ### Installation
+
+#### Basic Installation
 ```bash
 # Install production dependencies
 pip install -r requirements.txt
@@ -104,6 +106,26 @@ pip install -e .
 
 # Or install with development dependencies
 pip install -e ".[dev]"
+```
+
+**Note on pymetis**: The package requires pymetis for fast graph partitioning. If installation fails on your platform, you can install system dependencies first:
+
+```bash
+# Linux (Ubuntu/Debian)
+sudo apt-get install libmetis-dev
+pip install pymetis
+
+# macOS
+brew install metis
+pip install pymetis
+
+# Windows (requires Visual C++ Build Tools)
+# Download from: https://visualstudio.microsoft.com/downloads/
+pip install pymetis
+
+# Conda (all platforms - recommended if pip fails)
+conda install -c conda-forge metis
+pip install pymetis
 ```
 
 ### Basic Usage
