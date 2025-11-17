@@ -197,7 +197,7 @@ jobs:
         else
           echo "❌ Validation failed with exit code: $validation_exit_code"
           echo "validation_status=failed" >> "$GITHUB_OUTPUT"
-          exit $validation_exit_code
+          exit "$validation_exit_code"
         fi
     
     - name: Extract validation statistics
