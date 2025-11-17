@@ -5,7 +5,7 @@
 networkx>=2.8.0            # BSD License - Graph analysis and algorithms
 nx-parallel>=0.3.0; python_version>="3.11"  # BSD License - Parallel processing backend
 scipy>=1.9.0               # BSD License - Scientific computing library
-pymetis>=2023.1            # Apache 2.0 License - Fast graph partitioning
+pymetis>=2023.1; sys_platform != "win32"  # Apache 2.0 License - Fast graph partitioning (Unix/Linux/macOS only)
 
 # Data manipulation and analysis  
 pandas>=1.5.0              # BSD License - Data manipulation and analysis

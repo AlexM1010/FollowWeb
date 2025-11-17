@@ -16,7 +16,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import networkx as nx
-import pymetis
+
+try:
+    import pymetis
+
+    PYMETIS_AVAILABLE = True
+except ImportError:
+    PYMETIS_AVAILABLE = False
 
 from ..utils.parallel import ParallelProcessingManager
 
@@ -48,6 +54,17 @@ class GraphPartitioner:
     def __init__(self):
         """Initialize graph partitioner with resource detection."""
         self.logger = logging.getLogger(__name__)
+
+        if not PYMETIS_AVAILABLE:
+            self.logger.warning(
+                "pymetis is not available. Graph partitioning features are disabled. "
+                "pymetis is only supported on Linux and macOS."
+            )
+            self.parallel_manager = None
+            self.detected_cores = 0
+            self.detected_ram = 0
+            return
+
         self.parallel_manager = ParallelProcessingManager()
         self.detected_cores = self.parallel_manager._cpu_count
         self.detected_ram = self._detect_available_ram()
@@ -82,6 +99,12 @@ class GraphPartitioner:
         Returns:
             int: Optimal number of partitions
         """
+        if not PYMETIS_AVAILABLE:
+            raise ImportError(
+                "pymetis is required for graph partitioning but is not available. "
+                "pymetis is only supported on Linux and macOS."
+            )
+
         if self.detected_ram >= 7:
             nodes_per_partition = 50000  # Optimal for 7 GB
         elif self.detected_ram >= 4:
@@ -114,6 +137,12 @@ class GraphPartitioner:
         Returns:
             List[nx.DiGraph]: List of graph partitions
         """
+        if not PYMETIS_AVAILABLE:
+            raise ImportError(
+                "pymetis is required for graph partitioning but is not available. "
+                "pymetis is only supported on Linux and macOS."
+            )
+
         if num_partitions <= 1:
             self.logger.info("Single partition requested, returning original graph")
             return [graph]

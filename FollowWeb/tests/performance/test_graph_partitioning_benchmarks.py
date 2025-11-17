@@ -5,6 +5,7 @@ Benchmarks partition time, analysis time, and merge time for various
 graph sizes to verify performance targets.
 """
 
+import sys
 import time
 
 import networkx as nx
@@ -14,7 +15,15 @@ from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerge
 from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
-pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
+# Skip all tests in this module on Windows (pymetis not available)
+pytestmark = [
+    pytest.mark.performance,
+    pytest.mark.benchmark,
+    pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="pymetis not available on Windows - graph partitioning not supported",
+    ),
+]
 # ============================================================================
 # Helper Functions
 # ============================================================================

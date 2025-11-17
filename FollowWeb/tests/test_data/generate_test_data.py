@@ -15,7 +15,6 @@ import hashlib
 import json
 import os
 import random
-import secrets
 from pathlib import Path
 from typing import Any
 
@@ -43,7 +42,7 @@ def load_or_generate_salt() -> bytes:
         print("\nTo generate secure test data, you need a secret salt.")
         print("\nSteps to set up:")
         print("1. Generate a new salt:")
-        print("   python -c \"import secrets; print(secrets.token_hex(32))\"")
+        print('   python -c "import secrets; print(secrets.token_hex(32))"')
         print("\n2. Create a .env file in the project root with:")
         print("   TEST_DATA_SALT=<your_generated_salt>")
         print("\n3. NEVER commit the .env file to git!")
@@ -54,12 +53,14 @@ def load_or_generate_salt() -> bytes:
     try:
         salt = bytes.fromhex(salt_hex)
         if len(salt) != 32:
-            raise ValueError(f"Salt must be 32 bytes (64 hex chars), got {len(salt)} bytes")
+            raise ValueError(
+                f"Salt must be 32 bytes (64 hex chars), got {len(salt)} bytes"
+            )
         return salt
     except ValueError as e:
         print(f"\nERROR: Invalid TEST_DATA_SALT format: {e}")
         print("Generate a valid salt with:")
-        print("  python -c \"import secrets; print(secrets.token_hex(32))\"")
+        print('  python -c "import secrets; print(secrets.token_hex(32))"')
         raise
 
 
@@ -555,7 +556,7 @@ def main():
     print(f"\nGenerating anonymized datasets from {args.input}")
     print(f"Output directory: {output_dir}")
     print(f"Random seed: {args.seed}")
-    print(f"Security: PBKDF2-HMAC-SHA256 with 100,000 iterations")
+    print("Security: PBKDF2-HMAC-SHA256 with 100,000 iterations")
 
     # Load original data
     load_start = time.time()

@@ -13,22 +13,32 @@ class TestDependencies:
 
     def test_pymetis_required(self):
         """
-        Test that pymetis is installed (required dependency).
+        Test that pymetis is installed (required dependency on Unix/Linux/macOS).
 
         pymetis is required for fast graph partitioning using the METIS algorithm.
+        On Windows, pymetis is not available and graph partitioning is not supported.
         """
-        try:
-            import pymetis  # noqa: F401
+        import sys
 
-            print("\n✓ pymetis is installed")
-            print("  Using fast METIS partitioning (10-100x faster for large graphs)")
-            assert True
-        except ImportError:
-            pytest.fail(
-                "pymetis is not installed but is required.\n"
-                "Install with: pip install pymetis\n"
-                "See requirements.txt or README.md for platform-specific instructions."
-            )
+        if sys.platform == "win32":
+            print("\n⚠ pymetis is not available on Windows (Unix/Linux/macOS only)")
+            print("  Graph partitioning features are not supported on Windows")
+            pytest.skip("pymetis not available on Windows")
+        else:
+            try:
+                import pymetis  # noqa: F401
+
+                print("\n✓ pymetis is installed")
+                print(
+                    "  Using fast METIS partitioning (10-100x faster for large graphs)"
+                )
+                assert True
+            except ImportError:
+                pytest.fail(
+                    "pymetis is not installed but is required on Unix/Linux/macOS.\n"
+                    "Install with: pip install pymetis\n"
+                    "See requirements.txt or README.md for platform-specific instructions."
+                )
 
     def test_nx_parallel_availability(self):
         """
@@ -43,7 +53,9 @@ class TestDependencies:
             try:
                 import nx_parallel  # noqa: F401
 
-                print("\n✓ nx-parallel is available - parallel NetworkX operations enabled")
+                print(
+                    "\n✓ nx-parallel is available - parallel NetworkX operations enabled"
+                )
                 assert True
             except ImportError:
                 print("\n⚠ nx-parallel not available (Python 3.11+ only)")
@@ -57,16 +69,23 @@ class TestDependencies:
 
     def test_dependencies_report(self):
         """Generate a report of all dependencies."""
+        import sys
+
+        # pymetis is only required on Unix/Linux/macOS, not on Windows
+        pymetis_required = sys.platform != "win32"
+
         dependencies = {
             "pymetis": {
                 "purpose": "Fast graph partitioning using METIS algorithm",
-                "required": True,
+                "required": pymetis_required,
                 "python_version": "any",
+                "platform": "Unix/Linux/macOS only",
             },
             "nx_parallel": {
                 "purpose": "Parallel NetworkX operations",
                 "required": False,
                 "python_version": "3.11+",
+                "platform": "all",
             },
         }
 
@@ -89,15 +108,16 @@ class TestDependencies:
             print(f"  Purpose: {info['purpose']}")
             print(f"  Required: {'Yes' if info['required'] else 'No'}")
             print(f"  Python: {info['python_version']}")
+            print(f"  Platform: {info['platform']}")
 
         print("\n" + "=" * 70)
-        
+
         if not all_installed:
             print("⚠ Some required dependencies are missing!")
             print("  Install with: pip install -r requirements.txt")
         else:
             print("✓ All required dependencies are installed")
-        
+
         print("=" * 70)
 
         assert all_installed, "Required dependencies are missing"

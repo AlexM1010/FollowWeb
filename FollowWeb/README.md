@@ -108,7 +108,12 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
-**Note on pymetis**: The package requires pymetis for fast graph partitioning. If installation fails on your platform, you can install system dependencies first:
+**Note on pymetis (Optional)**: The package includes optional support for pymetis, which provides fast graph partitioning for very large networks (600K+ nodes). This is primarily used in CI/CD pipelines and is **not required** for normal usage.
+
+- **Linux/macOS**: pymetis will be automatically installed
+- **Windows**: pymetis is not supported (requires Unix-specific headers) and will be automatically skipped during installation. All standard features work without it.
+
+If you need graph partitioning features on Linux/macOS and encounter installation issues:
 
 ```bash
 # Linux (Ubuntu/Debian)
@@ -117,14 +122,6 @@ pip install pymetis
 
 # macOS
 brew install metis
-pip install pymetis
-
-# Windows (requires Visual C++ Build Tools)
-# Download from: https://visualstudio.microsoft.com/downloads/
-pip install pymetis
-
-# Conda (all platforms - recommended if pip fails)
-conda install -c conda-forge metis
 pip install pymetis
 ```
 

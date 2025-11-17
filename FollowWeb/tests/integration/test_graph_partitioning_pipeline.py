@@ -5,6 +5,7 @@ Tests the complete partitioning workflow from graph partitioning through
 analysis to result merging for various graph sizes.
 """
 
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -16,7 +17,15 @@ from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerge
 from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
-pytestmark = [pytest.mark.integration, pytest.mark.analysis]
+# Skip all tests in this module on Windows (pymetis not available)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.analysis,
+    pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="pymetis not available on Windows - graph partitioning not supported",
+    ),
+]
 # ============================================================================
 # Test Fixtures
 # ============================================================================

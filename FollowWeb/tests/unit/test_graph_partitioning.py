@@ -5,6 +5,7 @@ Tests GraphPartitioner, PartitionAnalysisWorker, and PartitionResultsMerger
 for large-scale graph analysis with distributed processing.
 """
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -21,7 +22,15 @@ from FollowWeb_Visualizor.analysis.partition_worker import (
 )
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner, PartitionInfo
 
-pytestmark = [pytest.mark.unit, pytest.mark.analysis]
+# Skip all tests in this module on Windows (pymetis not available)
+pytestmark = [
+    pytest.mark.unit,
+    pytest.mark.analysis,
+    pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="pymetis not available on Windows - graph partitioning not supported",
+    ),
+]
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -117,7 +126,6 @@ class TestGraphPartitioner:
         assert partitioner is not None
         assert partitioner.detected_cores > 0
         assert partitioner.detected_ram > 0
-        assert isinstance(partitioner.metis_available, bool)
 
     def test_calculate_optimal_partitions_7gb_ram(self):
         """Test partition calculation with 7 GB RAM."""
@@ -193,15 +201,10 @@ class TestGraphPartitioner:
         partitions = partitioner.partition_graph(small_graph, num_partitions=2)
 
         assert len(partitions) == 2
-        # Verify all nodes are distributed (or most nodes if using NetworkX fallback)
+        # Verify all nodes are distributed
         total_nodes = sum(p.number_of_nodes() for p in partitions)
-        # NetworkX fallback may not preserve all nodes if there are many small communities
-        # METIS will preserve all nodes
-        if partitioner.metis_available:
-            assert total_nodes == small_graph.number_of_nodes()
-        else:
-            # NetworkX fallback should preserve at least 30% of nodes
-            assert total_nodes >= small_graph.number_of_nodes() * 0.3
+        # METIS preserves all nodes
+        assert total_nodes == small_graph.number_of_nodes()
 
         # Verify partitions are non-empty
         for partition in partitions:
