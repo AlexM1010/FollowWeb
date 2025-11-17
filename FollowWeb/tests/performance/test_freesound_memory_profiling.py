@@ -115,7 +115,7 @@ def loader_config(temp_checkpoint_dir):
         "data_source": "freesound",
         "api_key": "test_key",
         "checkpoint_dir": temp_checkpoint_dir,
-        "checkpoint_interval": 50,
+        "checkpoint_interval": 999999,  # Effectively infinite for test purposes (avoids Mock pickle errors)
         "max_runtime_hours": None,
         "max_requests": 2000,
         "backup_interval_nodes": 100,

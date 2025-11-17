@@ -57,7 +57,6 @@ dependencies = [
     "nx-parallel>=0.3.0; python_version>='3.11'",
     "typing_extensions>=4.0.0",
     "freesound-api>=1.1.0",
-    "python-dotenv>=1.0.0",
     "scipy>=1.9.0",
     "joblib>=1.3.0",
     "tenacity>=8.2.0",
@@ -69,7 +68,6 @@ dependencies = [
     "starlette>=0.49.1",
     "tornado>=6.5",
     "authlib>=1.6.5",
-    "pypdf>=6.1.3",
 ]
 
 [project.optional-dependencies]
@@ -87,8 +85,6 @@ dev = [
     "shellcheck-py>=0.10.0",  # Shell script linting for workflow validation
 ]
 cleanup = [
-    # File operations and organization
-    "organize-tool>=3.2.0",
     # Git operations
     "GitPython>=3.1.40",
     "git-filter-repo>=2.38.0",
