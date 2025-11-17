@@ -146,8 +146,8 @@ jobs:
         
         # Validate workflows (exclude large files that cause actionlint to hang)
         echo "Validating workflows (excluding large files)..."
-        shopt -s extglob
-        if ./actionlint -config-file .github/actionlint.yaml .github/workflows/!(freesound-nightly-pipeline|freesound-full-validation|freesound-backup).yml; then
+        workflows_to_check=$(find .github/workflows -name '*.yml' -not -name 'freesound-nightly-pipeline.yml' -not -name 'freesound-full-validation.yml' -not -name 'freesound-backup.yml')
+        if ./actionlint -config-file .github/actionlint.yaml $workflows_to_check; then
           echo "✓ Workflow validation passed"
         else
           echo "::error::Workflow validation failed"
