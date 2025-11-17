@@ -462,7 +462,7 @@ jobs:
         ASSET_CREATED=$(echo "$LATEST_ASSET" | jq -r '.created_at')
         
         echo " Found latest backup: $ASSET_NAME"
-        echo "- Size: $(numfmt --to=iec-i --suffix=B $ASSET_SIZE)"
+        echo "- Size: $(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")"
         echo "- Created: $ASSET_CREATED"
         
         # Download asset
@@ -481,7 +481,7 @@ jobs:
           echo " Checkpoint restored successfully"
           {
             echo "- Backup: \`$ASSET_NAME\`"
-            echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`"
+            echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")\`"
             echo "- Created: \`$ASSET_CREATED\`"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "checkpoint_restored=true" >> "$GITHUB_OUTPUT"
@@ -724,7 +724,7 @@ jobs:
         
         # Get file size
         backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
-        echo "Backup size: $(numfmt --to=iec-i --suffix=B $backup_size)"
+        echo "Backup size: $(numfmt --to=iec-i --suffix=B "$backup_size")"
         
         # Get repository details
         REPO_OWNER="${{ github.repository_owner }}"
@@ -850,7 +850,7 @@ jobs:
         {
           echo "- Status:  Verified"
           echo "- Asset: \`$ASSET_NAME\`"
-          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")\`"
           echo "- State: \`$ASSET_STATE\`"
         } >> "$GITHUB_STEP_SUMMARY"
 
