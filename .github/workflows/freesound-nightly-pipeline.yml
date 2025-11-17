@@ -585,7 +585,7 @@ jobs:
         else
           echo " Collection failed with exit code: $collection_exit_code"
           echo "collection_status=failed" >> "$GITHUB_OUTPUT"
-          exit $collection_exit_code
+          exit "$collection_exit_code"
         fi
     
     - name: Extract collection statistics
@@ -776,7 +776,7 @@ jobs:
           echo "- Backup: \`$backup_filename\`"
           echo "- Tier: \`$tier\`"
           echo "- Release Tag: \`$release_tag\`"
-          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$backup_size")\`"
           echo "- Node Count: \`$node_count\`"
           echo "- Run ID: \`${{ github.run_id }}\`"
         } >> "$GITHUB_STEP_SUMMARY"
