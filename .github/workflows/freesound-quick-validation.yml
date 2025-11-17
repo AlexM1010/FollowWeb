@@ -46,11 +46,13 @@ jobs:
       id: orchestration
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PYTHONPATH: ${{ github.workspace }}
       run: |
         python -c "
-        from workflow_orchestrator import WorkflowOrchestrator
-        import os
         import sys
+        sys.path.insert(0, '${{ github.workspace }}')
+        from scripts.analysis.workflow_orchestrator import WorkflowOrchestrator
+        import os
         
         orchestrator = WorkflowOrchestrator(
             github_token=os.environ['GITHUB_TOKEN'],
@@ -115,14 +117,14 @@ jobs:
         # Check if full validation workflow ran today
         full_validation_today=$(gh run list \
           --workflow=freesound-full-validation.yml \
-          --created="$today" \
+          --created="${today}" \
           --status=completed \
           --json conclusion \
           --jq 'length')
         
-        if [ "$full_validation_today" -gt 0 ]; then
+        if [ "${full_validation_today}" -gt 0 ]; then
           echo "skip=true" >> "$GITHUB_OUTPUT"
-          echo "Full validation already ran today ($today), skipping quick validation"
+          echo "Full validation already ran today (${today}), skipping quick validation"
         else
           echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "No full validation today, proceeding with quick validation"

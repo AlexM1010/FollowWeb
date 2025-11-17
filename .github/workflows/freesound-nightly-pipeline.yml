@@ -388,13 +388,17 @@ jobs:
       run: |
         # Use workflow_dispatch inputs if available, otherwise use defaults
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}" >> "$GITHUB_OUTPUT"
-          echo "max_requests=${{ github.event.inputs.max_requests }}" >> "$GITHUB_OUTPUT"
-          echo "discovery_mode=${{ github.event.inputs.discovery_mode }}" >> "$GITHUB_OUTPUT"
+          {
+            echo "seed_sample_id=${{ github.event.inputs.seed_sample_id }}"
+            echo "max_requests=${{ github.event.inputs.max_requests }}"
+            echo "discovery_mode=${{ github.event.inputs.discovery_mode }}"
+          } >> "$GITHUB_OUTPUT"
         else
-          echo "seed_sample_id=" >> "$GITHUB_OUTPUT"
-          echo "max_requests=1950" >> "$GITHUB_OUTPUT"
-          echo "discovery_mode=search" >> "$GITHUB_OUTPUT"
+          {
+            echo "seed_sample_id="
+            echo "max_requests=1950"
+            echo "discovery_mode=search"
+          } >> "$GITHUB_OUTPUT"
         fi
         
         # Generate execution ID
@@ -494,12 +498,36 @@ jobs:
       id: orchestration
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PYTHONPATH: ${{ github.workspace }}
       run: |
-        # Skip orchestration check for now - workflow_orchestrator not in repo
-        {
-          echo "can_proceed=true"
-          echo "skip_reason=No conflicts"
-        } >> "$GITHUB_OUTPUT"
+        python -c "
+        import sys
+        sys.path.insert(0, '${{ github.workspace }}')
+        from scripts.analysis.workflow_orchestrator import WorkflowOrchestrator
+        import os
+        
+        orchestrator = WorkflowOrchestrator(
+            github_token=os.environ['GITHUB_TOKEN'],
+            repository='${{ github.repository }}'
+        )
+        
+        can_proceed, reason = orchestrator.check_and_wait_for_conflicts(
+            current_workflow='freesound-nightly-pipeline',
+            timeout=7200
+        )
+        
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f'can_proceed={str(can_proceed).lower()}\n')
+            f.write(f'skip_reason={reason}\n')
+        
+        if not can_proceed:
+            print(f'⚠️ SKIPPING EXECUTION: {reason}')
+            with open(os.environ.get('GITHUB_STEP_SUMMARY', '/dev/null'), 'a') as f:
+                f.write(f'## ⚠️ Execution Skipped\n\n')
+                f.write(f'**Reason:** {reason}\n\n')
+                f.write(f'The workflow will retry on the next scheduled run.\n')
+        "
+
     
     - name: Display pipeline configuration
       if: steps.orchestration.outputs.can_proceed == 'true'
@@ -531,8 +559,10 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        echo "** Phase 3: Data Collection**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "** Phase 3: Data Collection**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Build command with optional seed sample ID
         cmd="python generate_freesound_visualization.py"
@@ -589,13 +619,15 @@ jobs:
           new_samples="N/A"
         fi
         
-        echo "total_nodes=$total_nodes" >> "$GITHUB_OUTPUT"
-        echo "total_edges=$total_edges" >> "$GITHUB_OUTPUT"
-        echo "current_page=$current_page" >> "$GITHUB_OUTPUT"
-        echo "search_query=$search_query" >> "$GITHUB_OUTPUT"
-        echo "api_requests=$api_requests" >> "$GITHUB_OUTPUT"
-        echo "duplicates_skipped=$duplicates_skipped" >> "$GITHUB_OUTPUT"
-        echo "new_samples=$new_samples" >> "$GITHUB_OUTPUT"
+        {
+          echo "total_nodes=$total_nodes"
+          echo "total_edges=$total_edges"
+          echo "current_page=$current_page"
+          echo "search_query=$search_query"
+          echo "api_requests=$api_requests"
+          echo "duplicates_skipped=$duplicates_skipped"
+          echo "new_samples=$new_samples"
+        } >> "$GITHUB_OUTPUT"
         
         echo " Statistics extracted from checkpoint"
     
@@ -612,23 +644,29 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "** Phase 4: Upload Checkpoint to Private Repository**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "** Phase 4: Upload Checkpoint to Private Repository**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if checkpoint directory exists
         if [ ! -d "data/freesound_library" ]; then
           echo "::error::Checkpoint directory not found - BACKUP FAILED"
-          echo "- Status: ❌ No checkpoint to backup (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **CRITICAL**: Pipeline must create checkpoint before backup" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ❌ No checkpoint to backup (CRITICAL)"
+            echo "- **CRITICAL**: Pipeline must create checkpoint before backup"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - BACKUP FAILED"
-          echo "- Status: ❌ PAT not configured (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **CRITICAL**: Backups are required - pipeline cannot continue" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ❌ PAT not configured (CRITICAL)"
+            echo "- **CRITICAL**: Backups are required - pipeline cannot continue"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
@@ -637,8 +675,10 @@ jobs:
           node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
         else
           echo "::warning::Checkpoint metadata not found - data may be incomplete"
-          echo "- Status: ⚠️ Metadata missing (data integrity issue)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Action: Creating backup anyway, but remediation recommended" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ⚠️ Metadata missing (data integrity issue)"
+            echo "- Action: Creating backup anyway, but remediation recommended"
+          } >> "$GITHUB_STEP_SUMMARY"
           # Try to get node count from graph file
           if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
             node_count=$(python3 -c "import pickle; g = pickle.load(open('data/freesound_library/graph_topology.gpickle', 'rb')); print(g.number_of_nodes())" 2>/dev/null || echo "0")
@@ -698,10 +738,12 @@ jobs:
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
           echo "::error::Release ${release_tag} not found in ${BACKUP_REPO} - BACKUP FAILED"
-          echo "- Status: ❌ Upload failed (release not found)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tier: \`$tier\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Release Tag: \`$release_tag\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **CRITICAL**: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ❌ Upload failed (release not found)"
+            echo "- Tier: \`$tier\`"
+            echo "- Release Tag: \`$release_tag\`"
+            echo "- **CRITICAL**: Create release '${release_tag}' in ${BACKUP_REPO} to enable backups"
+          } >> "$GITHUB_STEP_SUMMARY"
           rm -f "$backup_filename"
           exit 1
         fi
@@ -720,25 +762,31 @@ jobs:
         
         if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
           echo "::error::Failed to upload backup to ${BACKUP_REPO} - BACKUP FAILED"
-          echo "- Status: ❌ Upload failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Error: API upload failed (check PAT permissions)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **CRITICAL**: Backup is required - pipeline cannot continue without successful backup" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status: ❌ Upload failed"
+            echo "- Error: API upload failed (check PAT permissions)"
+            echo "- **CRITICAL**: Backup is required - pipeline cannot continue without successful backup"
+          } >> "$GITHUB_STEP_SUMMARY"
           rm -f "$backup_filename"
           exit 1
         fi
         
         echo " Backup uploaded successfully"
-        echo "- Backup: \`$backup_filename\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Tier: \`$tier\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Release Tag: \`$release_tag\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Node Count: \`$node_count\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Run ID: \`${{ github.run_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Backup: \`$backup_filename\`"
+          echo "- Tier: \`$tier\`"
+          echo "- Release Tag: \`$release_tag\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $backup_size)\`"
+          echo "- Node Count: \`$node_count\`"
+          echo "- Run ID: \`${{ github.run_id }}\`"
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Store tier info for retention cleanup
-        echo "backup_tier=$tier" >> "$GITHUB_OUTPUT"
-        echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-        echo "backup_uploaded=true" >> "$GITHUB_OUTPUT"
+        {
+          echo "backup_tier=$tier"
+          echo "release_tag=$release_tag"
+          echo "backup_uploaded=true"
+        } >> "$GITHUB_OUTPUT"
         
         # Cleanup local backup file
         rm -f "$backup_filename"
@@ -748,9 +796,11 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "** Phase 4a: Verify Backup Integrity**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "** Phase 4a: Verify Backup Integrity**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
@@ -779,24 +829,30 @@ jobs:
         # Verify asset state is 'uploaded'
         if [ "$ASSET_STATE" != "uploaded" ]; then
           echo " Backup verification failed - asset state: $ASSET_STATE"
-          echo "- Status:  Verification failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Asset State: \`$ASSET_STATE\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status:  Verification failed"
+            echo "- Asset State: \`$ASSET_STATE\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         # Verify asset size is reasonable (> 1KB)
         if [ "$ASSET_SIZE" -lt 1024 ]; then
           echo " Backup verification failed - asset too small: $ASSET_SIZE bytes"
-          echo "- Status:  Verification failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Asset Size: \`$ASSET_SIZE bytes\` (too small)" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Status:  Verification failed"
+            echo "- Asset Size: \`$ASSET_SIZE bytes\` (too small)"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         echo " Backup verification passed"
-        echo "- Status:  Verified" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Asset: \`$ASSET_NAME\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- State: \`$ASSET_STATE\`" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Status:  Verified"
+          echo "- Asset: \`$ASSET_NAME\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B $ASSET_SIZE)\`"
+          echo "- State: \`$ASSET_STATE\`"
+        } >> "$GITHUB_STEP_SUMMARY"
 
     
     - name: Upload checkpoint files as workflow artifacts

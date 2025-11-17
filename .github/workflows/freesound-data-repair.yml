@@ -95,10 +95,12 @@ jobs:
           echo "source=cache" >> "$GITHUB_OUTPUT"
         fi
         
-        echo "## 🔧 Data Repair Pipeline" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "**Trigger:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "## 🔧 Data Repair Pipeline"
+          echo ""
+          echo "**Trigger:** \`${{ github.event_name }}\`"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Restore checkpoint from cache
       if: steps.source.outputs.source == 'cache'
@@ -115,8 +117,10 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "### 📥 Download Checkpoint" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 📥 Download Checkpoint"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured"
@@ -167,8 +171,10 @@ jobs:
     - name: Run validation checks
       id: validation
       run: |
-        echo "### 🔍 Validation Checks" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 🔍 Validation Checks"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Run validation script and capture output
         if python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log; then
@@ -184,8 +190,10 @@ jobs:
       if: steps.validation.outputs.validation_passed == 'false'
       id: repair
       run: |
-        echo "### 🔧 Repair Operations" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 🔧 Repair Operations"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Run repair script and capture output
         if python scripts/validation/repair_checkpoint.py data/freesound_library 2>&1 | tee repair_output.log; then
@@ -234,8 +242,10 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "### 📤 Upload Repaired Checkpoint" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 📤 Upload Repaired Checkpoint"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         if [ -z "$BACKUP_PAT" ]; then
           echo "::warning::BACKUP_PAT not configured, skipping upload"
@@ -283,61 +293,79 @@ jobs:
           exit 1
         fi
         
-        echo "- Backup: \`$backup_filename\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$backup_size")\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Status: ✅ Uploaded successfully" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Backup: \`$backup_filename\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$backup_size")\`"
+          echo "- Status: ✅ Uploaded successfully"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         rm -f "$backup_filename"
     
     - name: Generate repair summary
       if: always()
       run: |
-        echo "---" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "## 📊 Repair Summary" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "---"
+          echo ""
+          echo "## 📊 Repair Summary"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
-          echo "### ✅ No Repairs Needed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "All validation checks passed. Checkpoint is healthy." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ✅ No Repairs Needed"
+            echo ""
+            echo "All validation checks passed. Checkpoint is healthy."
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.repair.outputs.repair_success }}" = "true" ] && [ "${{ steps.revalidation.outputs.revalidation_passed }}" = "true" ]; then
-          echo "### ✅ Repairs Successful" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Checkpoint issues were detected and successfully repaired." >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Actions Taken:**" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Validation identified issues" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Repair operations applied" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Re-validation confirmed fixes" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Repaired checkpoint uploaded to backup repository" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ✅ Repairs Successful"
+            echo ""
+            echo "Checkpoint issues were detected and successfully repaired."
+            echo ""
+            echo "**Actions Taken:**"
+            echo "- Validation identified issues"
+            echo "- Repair operations applied"
+            echo "- Re-validation confirmed fixes"
+            echo "- Repaired checkpoint uploaded to backup repository"
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.repair.outputs.repair_success }}" = "false" ]; then
-          echo "### ❌ Repairs Failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Repair operations failed. Manual intervention required." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ❌ Repairs Failed"
+            echo ""
+            echo "Repair operations failed. Manual intervention required."
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.revalidation.outputs.revalidation_passed }}" = "false" ]; then
-          echo "### ⚠️ Partial Repair" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Repairs were applied but validation still fails. Additional investigation needed." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ⚠️ Partial Repair"
+            echo ""
+            echo "Repairs were applied but validation still fails. Additional investigation needed."
+          } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "### ❌ Repair Pipeline Error" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "An unexpected error occurred during the repair process." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ❌ Repair Pipeline Error"
+            echo ""
+            echo "An unexpected error occurred during the repair process."
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "### 📋 Execution Details" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "| Detail | Value |" >> "$GITHUB_STEP_SUMMARY"
-        echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> "$GITHUB_STEP_SUMMARY"
-        echo "| **Trigger** | \`${{ github.event_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "### 📋 Execution Details"
+          echo ""
+          echo "| Detail | Value |"
+          echo "|--------|-------|"
+          echo "| **Workflow Run** | [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |"
+          echo "| **Trigger** | \`${{ github.event_name }}\` |"
+        } >> "$GITHUB_STEP_SUMMARY"
         if [ "${{ github.event_name }}" = "workflow_run" ]; then
           echo "| **Source Workflow** | [Run #${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}) |" >> "$GITHUB_STEP_SUMMARY"
         fi
-        echo "| **Checkpoint Source** | \`${{ steps.source.outputs.source }}\` |" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "| **Checkpoint Source** | \`${{ steps.source.outputs.source }}\` |"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Upload repair logs
       if: always()

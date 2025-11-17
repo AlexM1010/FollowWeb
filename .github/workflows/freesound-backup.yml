@@ -98,6 +98,7 @@ jobs:
     - name: Detect backup reason and determine cache strategy
       id: backup_reason
       run: |
+        # shellcheck disable=SC2129
         {
           echo "## 💾 Backup Workflow"
           echo ""
@@ -145,19 +146,25 @@ jobs:
                 echo "reason=collection_success"
                 echo "tier=checkpoint"
               } >> "$GITHUB_OUTPUT"
-              echo "- Backup Reason: \`Collection pipeline succeeded\`" >> "$GITHUB_STEP_SUMMARY"
+              {
+                echo "- Backup Reason: \`Collection pipeline succeeded\`"
+              } >> "$GITHUB_STEP_SUMMARY"
             else
               {
                 echo "reason=failure_recovery"
                 echo "tier=recovery"
               } >> "$GITHUB_OUTPUT"
-              echo "- Backup Reason: \`⚠️  Failure Recovery (preserving partial progress)\`" >> "$GITHUB_STEP_SUMMARY"
+              {
+                echo "- Backup Reason: \`⚠️  Failure Recovery (preserving partial progress)\`"
+              } >> "$GITHUB_STEP_SUMMARY"
             fi
             {
               echo "use_cache=true"
               echo "cache_key=checkpoint-${{ github.event.workflow_run.id }}"
             } >> "$GITHUB_OUTPUT"
-            echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
           elif [ "$upstream_workflow" = "Freesound Validation & Visualization" ]; then
             {
               echo "reason=validation_success"
@@ -175,7 +182,9 @@ jobs:
               echo "tier=unknown"
               echo "use_cache=false"
             } >> "$GITHUB_OUTPUT"
-            echo "- Backup Reason: \`Unknown trigger\`" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "- Backup Reason: \`Unknown trigger\`"
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
         fi
         
@@ -246,8 +255,10 @@ jobs:
     - name: Verify checkpoint integrity
       id: verification
       run: |
-        echo "**Checkpoint Verification:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "**Checkpoint Verification:**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if checkpoint directory exists
         if [ ! -d "data/freesound_library" ]; then
@@ -329,8 +340,10 @@ jobs:
       if: steps.verification.outputs.verification_passed == 'true'
       id: create_backup
       run: |
-        echo "**Backup Creation:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "**Backup Creation:**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Get backup tier and reason
         tier="${{ steps.backup_reason.outputs.tier }}"
@@ -397,8 +410,10 @@ jobs:
       if: steps.create_backup.outputs.backup_created == 'true'
       id: verify_backup
       run: |
-        echo "**Backup Verification:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "**Backup Verification:**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
         
@@ -477,9 +492,11 @@ jobs:
           exit 1
         fi
         
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "✅ Backup verification passed" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "✅ Backup verification passed"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         echo "verification_passed=true" >> "$GITHUB_OUTPUT"
 
@@ -490,19 +507,23 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "**Backup Upload:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "**Backup Upload:**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if BACKUP_PAT is configured (required)
         if [ -z "$BACKUP_PAT" ]; then
           echo "::error::BACKUP_PAT not configured - cannot upload backup"
-          echo "- ❌ BACKUP_PAT not configured (CRITICAL)" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- ❌ BACKUP_PAT not configured (CRITICAL)"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
         backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
         tier="${{ steps.backup_reason.outputs.tier }}"
-        reason="${{ steps.backup_reason.outputs.reason }}"
+        # reason variable available for future use: ${{ steps.backup_reason.outputs.reason }}
         
         # Map tier to release tag
         case "$tier" in
@@ -525,7 +546,9 @@ jobs:
         esac
         
         echo "Uploading to release: $release_tag"
-        echo "- Release Tag: \`$release_tag\`" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Release Tag: \`$release_tag\`"
+        } >> "$GITHUB_STEP_SUMMARY"
         
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
@@ -538,8 +561,10 @@ jobs:
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
           echo "::error::Release ${release_tag} not found in ${BACKUP_REPO}"
-          echo "- ❌ Release not found: \`${release_tag}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Action Required**: Create release '${release_tag}' in ${BACKUP_REPO}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- ❌ Release not found: \`${release_tag}\`"
+            echo "- **Action Required**: Create release '${release_tag}' in ${BACKUP_REPO}"
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
@@ -557,7 +582,9 @@ jobs:
         
         if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
           echo "::error::Failed to upload backup to ${BACKUP_REPO}"
-          echo "- ❌ Upload failed" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- ❌ Upload failed"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "upload_success=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
@@ -572,7 +599,9 @@ jobs:
         
         if [ "$VERIFY_ID" != "$ASSET_ID" ]; then
           echo "::error::Upload verification failed - asset not found"
-          echo "- ❌ Upload verification failed" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- ❌ Upload verification failed"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "upload_success=false" >> "$GITHUB_OUTPUT"
           exit 1
         fi
@@ -581,22 +610,28 @@ jobs:
         local_size="${{ steps.create_backup.outputs.backup_size }}"
         if [ "$VERIFY_SIZE" != "$local_size" ]; then
           echo "::warning::Uploaded size ($VERIFY_SIZE) differs from local size ($local_size)"
-          echo "- ⚠️  Size mismatch: uploaded=$VERIFY_SIZE, local=$local_size" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- ⚠️  Size mismatch: uploaded=$VERIFY_SIZE, local=$local_size"
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
         echo "✅ Backup uploaded and verified successfully"
-        echo "- Backup: \`$backup_filename\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Repository: \`${BACKUP_REPO}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Release: \`${release_tag}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Size: \`$(numfmt --to=iec-i --suffix=B ${{ steps.create_backup.outputs.backup_size }})\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Asset ID: \`${ASSET_ID}\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Verified: ✅" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Backup: \`$backup_filename\`"
+          echo "- Repository: \`${BACKUP_REPO}\`"
+          echo "- Release: \`${release_tag}\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B ${{ steps.create_backup.outputs.backup_size }})\`"
+          echo "- Asset ID: \`${ASSET_ID}\`"
+          echo "- Verified: ✅"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Store outputs
-        echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-        echo "asset_id=$ASSET_ID" >> "$GITHUB_OUTPUT"
-        echo "upload_success=true" >> "$GITHUB_OUTPUT"
+        {
+          echo "release_tag=$release_tag"
+          echo "asset_id=$ASSET_ID"
+          echo "upload_success=true"
+        } >> "$GITHUB_OUTPUT"
         
         # Cleanup local backup file only after successful upload verification
         rm -f "$backup_filename"
@@ -608,8 +643,10 @@ jobs:
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
-        echo "**Retention Policy:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "**Retention Policy:**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
@@ -640,8 +677,10 @@ jobs:
         esac
         
         echo "Applying retention policy for $release_tag: $retention_label"
-        echo "- Release: \`$release_tag\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Retention: \`$retention_label\`" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Release: \`$release_tag\`"
+          echo "- Retention: \`$retention_label\`"
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Get all assets from the release
         ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
@@ -652,8 +691,10 @@ jobs:
         
         # Skip retention for permanent tier
         if [ "$release_tag" = "v-permanent" ]; then
-          echo "- Action: No cleanup (permanent tier)" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- Action: No cleanup (permanent tier)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
         
@@ -679,8 +720,10 @@ jobs:
         # New backup was already added, so we need at least 2 total to delete 1
         if [ "$TOTAL_ASSETS" -lt 2 ]; then
           echo "Only $TOTAL_ASSETS backup(s) exist - keeping all"
-          echo "- ⚠️  Keeping all backups (minimum: 1)" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "- ⚠️  Keeping all backups (minimum: 1)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
         
@@ -718,9 +761,11 @@ jobs:
           echo "- ⚠️  Failed to delete $FAILED_DELETIONS asset(s)" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "- Backups retained: \`$RETAINED_COUNT\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "- Backups deleted: \`$DELETED_COUNT\`" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "- Backups retained: \`$RETAINED_COUNT\`"
+          echo "- Backups deleted: \`$DELETED_COUNT\`"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         echo "✅ Retention policy applied"
 
@@ -728,24 +773,32 @@ jobs:
     - name: Cleanup on failure
       if: failure()
       run: |
-        echo "## ❌ Backup Workflow Failed" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "**Rollback Actions:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "## ❌ Backup Workflow Failed"
+          echo ""
+          echo "**Rollback Actions:**"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Determine which step failed
         if [ "${{ steps.verification.outputs.verification_passed }}" != "true" ]; then
-          echo "**Failed Step:** Checkpoint verification" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Impact:** No backup created, backup list unchanged" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Action:** None required - checkpoint data preserved" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Failed Step:** Checkpoint verification"
+            echo "**Impact:** No backup created, backup list unchanged"
+            echo "**Action:** None required - checkpoint data preserved"
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.create_backup.outputs.backup_created }}" != "true" ]; then
-          echo "**Failed Step:** Backup creation" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Impact:** No backup file created, backup list unchanged" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Action:** None required - checkpoint data preserved" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Failed Step:** Backup creation"
+            echo "**Impact:** No backup file created, backup list unchanged"
+            echo "**Action:** None required - checkpoint data preserved"
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.verify_backup.outputs.verification_passed }}" != "true" ]; then
-          echo "**Failed Step:** Backup verification" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Impact:** Backup file created but invalid, backup list unchanged" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Action:** Removing invalid backup file" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Failed Step:** Backup verification"
+            echo "**Impact:** Backup file created but invalid, backup list unchanged"
+            echo "**Action:** Removing invalid backup file"
+          } >> "$GITHUB_STEP_SUMMARY"
           
           # Remove invalid backup file
           backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
@@ -754,9 +807,11 @@ jobs:
             echo "- ✅ Removed invalid backup file: \`$backup_filename\`" >> "$GITHUB_STEP_SUMMARY"
           fi
         elif [ "${{ steps.upload_backup.outputs.upload_success }}" != "true" ]; then
-          echo "**Failed Step:** Backup upload" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Impact:** Backup file created but not uploaded, backup list unchanged" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Action:** Removing local backup file" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Failed Step:** Backup upload"
+            echo "**Impact:** Backup file created but not uploaded, backup list unchanged"
+            echo "**Action:** Removing local backup file"
+          } >> "$GITHUB_STEP_SUMMARY"
           
           # Remove local backup file that failed to upload
           backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
@@ -765,20 +820,24 @@ jobs:
             echo "- ✅ Removed local backup file: \`$backup_filename\`" >> "$GITHUB_STEP_SUMMARY"
           fi
         else
-          echo "**Failed Step:** Retention policy application" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Impact:** New backup uploaded successfully, old backups may not be cleaned up" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Action:** None required - new backup is safe, cleanup will retry next run" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Failed Step:** Retention policy application"
+            echo "**Impact:** New backup uploaded successfully, old backups may not be cleaned up"
+            echo "**Action:** None required - new backup is safe, cleanup will retry next run"
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "**Critical Guarantee:** Backup list was NOT modified during this failed run." >> "$GITHUB_STEP_SUMMARY"
-        echo "All existing backups remain intact and accessible." >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "**Next Steps:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "1. Review error logs above to identify root cause" >> "$GITHUB_STEP_SUMMARY"
-        echo "2. Fix any configuration or permission issues" >> "$GITHUB_STEP_SUMMARY"
-        echo "3. Retry backup workflow manually if needed" >> "$GITHUB_STEP_SUMMARY"
-        echo "4. Next scheduled run will attempt backup again" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "**Critical Guarantee:** Backup list was NOT modified during this failed run."
+          echo "All existing backups remain intact and accessible."
+          echo ""
+          echo "**Next Steps:**"
+          echo "1. Review error logs above to identify root cause"
+          echo "2. Fix any configuration or permission issues"
+          echo "3. Retry backup workflow manually if needed"
+          echo "4. Next scheduled run will attempt backup again"
+        } >> "$GITHUB_STEP_SUMMARY"
 
     # Subtask 11.6: Add run summary with failure recovery status
     - name: Generate backup summary
@@ -792,40 +851,50 @@ jobs:
           exit 0
         fi
         
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "---" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "## 📊 Backup Summary" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo ""
+          echo "---"
+          echo ""
+          echo "## 📊 Backup Summary"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Display backup status
         if [ "${{ steps.upload_backup.outputs.upload_success }}" = "true" ]; then
-          echo "### ✅ Backup Successful" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ✅ Backup Successful"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           
           reason="${{ steps.backup_reason.outputs.reason }}"
           tier="${{ steps.backup_reason.outputs.tier }}"
           
           # Highlight failure recovery
           if [ "$reason" = "failure_recovery" ]; then
-            echo "**⚠️  Failure Recovery Backup**" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "This backup preserves partial progress from a failed collection run." >> "$GITHUB_STEP_SUMMARY"
-            echo "The checkpoint contains ${{ steps.verification.outputs.node_count }} samples that were successfully collected before the failure." >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "**⚠️  Failure Recovery Backup**"
+              echo ""
+              echo "This backup preserves partial progress from a failed collection run."
+              echo "The checkpoint contains ${{ steps.verification.outputs.node_count }} samples that were successfully collected before the failure."
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
           
-          echo "**Backup Details:**" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Filename: \`${{ steps.create_backup.outputs.backup_filename }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Size: \`$(numfmt --to=iec-i --suffix=B ${{ steps.create_backup.outputs.backup_size }})\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Samples: \`${{ steps.verification.outputs.node_count }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Edges: \`${{ steps.verification.outputs.edge_count }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tier: \`$tier\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Release: \`${{ steps.upload_backup.outputs.release_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Backup Details:**"
+            echo "- Filename: \`${{ steps.create_backup.outputs.backup_filename }}\`"
+            echo "- Size: \`$(numfmt --to=iec-i --suffix=B ${{ steps.create_backup.outputs.backup_size }})\`"
+            echo "- Samples: \`${{ steps.verification.outputs.node_count }}\`"
+            echo "- Edges: \`${{ steps.verification.outputs.edge_count }}\`"
+            echo "- Tier: \`$tier\`"
+            echo "- Release: \`${{ steps.upload_backup.outputs.release_tag }}\`"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "### ❌ Backup Failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ❌ Backup Failed"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           
           if [ "${{ steps.verification.outputs.verification_passed }}" != "true" ]; then
             echo "**Reason:** Checkpoint verification failed" >> "$GITHUB_STEP_SUMMARY"
@@ -839,8 +908,10 @@ jobs:
         
         # Display backup list status per tier
         if [ -n "$BACKUP_PAT" ]; then
-          echo "**Backup Repository Status:**" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "**Backup Repository Status:**"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           
           REPO_OWNER="${{ github.repository_owner }}"
           BACKUP_REPO="${REPO_OWNER}/freesound-backup"
@@ -876,8 +947,10 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        echo "**Retention Policies:**" >> "$GITHUB_STEP_SUMMARY"
-        echo "- \`v-recovery\`: 7 days (failure recovery backups)" >> "$GITHUB_STEP_SUMMARY"
-        echo "- \`v-validated\`: 30 days (validated checkpoints)" >> "$GITHUB_STEP_SUMMARY"
-        echo "- \`v-checkpoint\`: 14 days (frequent backups from collection)" >> "$GITHUB_STEP_SUMMARY"
-        echo "- \`v-permanent\`: Unlimited (milestone backups from collection)" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "**Retention Policies:**"
+          echo "- \`v-recovery\`: 7 days (failure recovery backups)"
+          echo "- \`v-validated\`: 30 days (validated checkpoints)"
+          echo "- \`v-checkpoint\`: 14 days (frequent backups from collection)"
+          echo "- \`v-permanent\`: Unlimited (milestone backups from collection)"
+        } >> "$GITHUB_STEP_SUMMARY"

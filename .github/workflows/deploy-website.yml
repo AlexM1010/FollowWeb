@@ -57,8 +57,10 @@ jobs:
       env:
         PLAUSIBLE_DOMAIN: ${{ secrets.PLAUSIBLE_DOMAIN }}
       run: |
-        echo "## Website Generation" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "## Website Generation"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Check if generate_landing_page.py exists
         if [ ! -f "generate_landing_page.py" ]; then
@@ -94,8 +96,10 @@ jobs:
     
     - name: Copy visualizations
       run: |
-        echo "### 📊 Copying Visualizations" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 📊 Copying Visualizations"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Create visualizations directory
         mkdir -p website/visualizations
@@ -119,8 +123,10 @@ jobs:
     
     - name: Copy CNAME for custom domain
       run: |
-        echo "### 🌐 Configuring Custom Domain" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### 🌐 Configuring Custom Domain"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
         
         # Copy CNAME file if it exists
         if [ -f "CNAME" ]; then
@@ -145,10 +151,12 @@ jobs:
     
     - name: Deployment summary
       run: |
-        echo "### ✅ Deployment Complete" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "Website deployed to GitHub Pages!" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "**Public URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_STEP_SUMMARY"
-        echo "" >> "$GITHUB_STEP_SUMMARY"
-        echo "Note: It may take a few minutes for changes to appear." >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "### ✅ Deployment Complete"
+          echo ""
+          echo "Website deployed to GitHub Pages!"
+          echo ""
+          echo "**Public URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo ""
+          echo "Note: It may take a few minutes for changes to appear."
+        } >> "$GITHUB_STEP_SUMMARY"

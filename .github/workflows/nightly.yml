@@ -68,7 +68,7 @@ jobs:
     - name: Run quick smoke tests
       run: |
         cpu_count=$(python -c "import os; print(os.cpu_count() or 1)")
-        python -m pytest -p no:benchmark -m unit -x --maxfail=1 --tb=short -v -n "$cpu_count"
+        python -m pytest -p no:benchmark -m unit -x --maxfail=1 --tb=short -v -n "${cpu_count}"
       env:
         MPLBACKEND: Agg
   
