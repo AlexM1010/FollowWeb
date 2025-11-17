@@ -9,8 +9,6 @@ self-hosted-runner:
   # No self-hosted runners
   labels: []
 
-config-variables: false
-
 # Shellcheck integration settings
 # Exclude codes that are style preferences or don't apply to GitHub Actions context
 shellcheck:

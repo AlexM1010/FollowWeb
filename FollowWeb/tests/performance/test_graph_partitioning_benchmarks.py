@@ -189,7 +189,6 @@ class TestPartitioningPerformance:
             ratio = results[8] / results[2]
             assert ratio < 8, f"Merge time scaling too poor: {ratio}x"
 
-    @pytest.mark.slow
     def test_verify_1m_nodes_under_30_minutes(self):
         """Verify 1M nodes completes in under 30 minutes target."""
         # Create a very sparse 1M node graph
@@ -227,7 +226,6 @@ class TestPartitioningPerformance:
             f"Estimated time too slow: {estimated_total * 2:.2f}s"
         )
 
-    @pytest.mark.slow
     def test_benchmark_full_pipeline_100k(self):
         """Benchmark complete pipeline for 100K nodes."""
         graph = create_sparse_graph(100000)
