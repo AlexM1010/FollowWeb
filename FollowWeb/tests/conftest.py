@@ -607,8 +607,8 @@ def ci_optimized_config(
 
     config = default_config.copy()
     config["input_file"] = str(
-        Path("tests") / "test_data" / "small_real.json"
-    )  # Use small dataset in CI (tiny is too small with only 1 node)
+        Path("tests") / "test_data" / "tiny_real.json"
+    )  # Use tiny dataset for fast CI tests (1 user, 30 connections)
     config["output_file_prefix"] = str(Path(temp_output_dir) / "ci_test_output")
 
     # CI-specific optimizations
@@ -665,7 +665,7 @@ def ci_optimized_config(
                 )
     else:
         # Local development - use appropriate k-values
-        k_values = calculate_appropriate_k_values("small_real")
+        k_values = calculate_appropriate_k_values("tiny_real")
         config["k_values"] = k_values
 
     return config

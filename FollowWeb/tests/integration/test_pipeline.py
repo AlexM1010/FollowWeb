@@ -356,7 +356,7 @@ class TestPipelineConfiguration:
         assert success is True
 
     @pytest.mark.integration
-    @pytest.mark.parametrize("metric", ["degree"])  # Reduced from 3 to 1 for faster CI
+    @pytest.mark.parametrize("metric", ["degree", "betweenness", "eigenvector"])
     def test_visualization_configuration_options(
         self, fast_config: dict[str, Any], sample_data_exists: bool, metric: str
     ):
@@ -381,7 +381,7 @@ class TestPipelineConfiguration:
 
     @pytest.mark.integration
     @pytest.mark.slow
-    @pytest.mark.parametrize("layout", ["spring"])  # Reduced from 3 to 1 for faster CI
+    @pytest.mark.parametrize("layout", ["spring", "kamada_kawai", "circular"])
     def test_static_image_layout_options(
         self, fast_config: dict[str, Any], sample_data_exists: bool, layout: str
     ):
@@ -404,7 +404,7 @@ class TestPipelineConfiguration:
         assert success is True
 
     @pytest.mark.integration
-    @pytest.mark.parametrize("algorithm", ["logarithmic"])  # Reduced from 2 to 1 for faster CI
+    @pytest.mark.parametrize("algorithm", ["logarithmic", "linear"])
     def test_scaling_algorithm_options(
         self, fast_config: dict[str, Any], sample_data_exists: bool, algorithm: str
     ):
