@@ -1,0 +1,5 @@
+# Ignore all generated test data files
+*.json
+
+# Keep the directory structure
+!.gitkeep

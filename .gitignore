@@ -22,6 +22,10 @@ milestone_status.json
 .env
 .env.local
 
+# Test Data (contains anonymized but potentially reversible data)
+FollowWeb/tests/test_data/*.json
+!FollowWeb/tests/test_data/.gitkeep
+
 # Temporary checkpoints (old location - not persistent)
 checkpoints/
 custom_checkpoints/

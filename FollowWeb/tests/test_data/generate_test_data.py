@@ -3,14 +3,19 @@
 Generate anonymized test datasets from followers_following.json
 
 This script creates tiny (5%), small (15%), medium (33%), large (66%), and full (100%)
-anonymized datasets for testing purposes, replacing real usernames with simple fake names
-like 'alice_smith_a1b2c3'.
+anonymized datasets for testing purposes, using cryptographically secure hashing
+to ensure original usernames cannot be recovered.
+
+Security: Uses PBKDF2-HMAC-SHA256 with 100,000 iterations and a secret salt.
+The salt must be stored in .env file and never committed to the repository.
 """
 
 import argparse
 import hashlib
 import json
+import os
 import random
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -19,117 +24,108 @@ import numpy as np
 import pandas as pd
 
 
-def create_username_mapping(all_usernames: list[str]) -> dict[str, str]:
+def load_or_generate_salt() -> bytes:
     """
-    Create a mapping from original usernames to unique fake names.
+    Load salt from .env file or generate a new one.
 
-    Generates names in format: name_name_hash
+    Returns:
+        32-byte salt for PBKDF2
+
+    Raises:
+        ValueError: If TEST_DATA_SALT is not set in environment
+    """
+    salt_hex = os.getenv("TEST_DATA_SALT")
+
+    if not salt_hex:
+        print("\n" + "=" * 70)
+        print("ERROR: TEST_DATA_SALT not found in environment!")
+        print("=" * 70)
+        print("\nTo generate secure test data, you need a secret salt.")
+        print("\nSteps to set up:")
+        print("1. Generate a new salt:")
+        print("   python -c \"import secrets; print(secrets.token_hex(32))\"")
+        print("\n2. Create a .env file in the project root with:")
+        print("   TEST_DATA_SALT=<your_generated_salt>")
+        print("\n3. NEVER commit the .env file to git!")
+        print("\nSee .env.example for a template.")
+        print("=" * 70 + "\n")
+        raise ValueError("TEST_DATA_SALT environment variable not set")
+
+    try:
+        salt = bytes.fromhex(salt_hex)
+        if len(salt) != 32:
+            raise ValueError(f"Salt must be 32 bytes (64 hex chars), got {len(salt)} bytes")
+        return salt
+    except ValueError as e:
+        print(f"\nERROR: Invalid TEST_DATA_SALT format: {e}")
+        print("Generate a valid salt with:")
+        print("  python -c \"import secrets; print(secrets.token_hex(32))\"")
+        raise
+
+
+def hash_username_secure(username: str, salt: bytes, iterations: int = 100_000) -> str:
+    """
+    Create cryptographically secure hash of username using PBKDF2-HMAC-SHA256.
+
+    This makes it computationally infeasible to reverse-engineer the original
+    username, even with knowledge of the hashing algorithm.
+
+    Args:
+        username: Original username to hash
+        salt: Secret 32-byte salt (must be kept secret)
+        iterations: Number of PBKDF2 iterations (default: 100,000)
+
+    Returns:
+        64-character hex string of the hashed username
+    """
+    hash_bytes = hashlib.pbkdf2_hmac(
+        "sha256",
+        username.encode("utf-8"),
+        salt,
+        iterations,
+        dklen=32,  # 32 bytes = 256 bits
+    )
+    return hash_bytes.hex()
+
+
+def create_username_mapping(all_usernames: list[str], salt: bytes) -> dict[str, str]:
+    """
+    Create a secure mapping from original usernames to anonymized identifiers.
+
+    Uses PBKDF2-HMAC-SHA256 with 100,000 iterations to make the mapping
+    cryptographically irreversible.
+
+    Format: user_{64_character_hex_hash}
 
     Args:
         all_usernames: List of all original usernames to map
+        salt: Secret 32-byte salt for PBKDF2
 
     Returns:
-        Dictionary mapping original usernames to unique fake names
+        Dictionary mapping original usernames to secure anonymized identifiers
     """
-    # Simple fake names for readable test data
-    first_names = [
-        "alice",
-        "bob",
-        "charlie",
-        "diana",
-        "eve",
-        "frank",
-        "grace",
-        "henry",
-        "iris",
-        "jack",
-        "kate",
-        "liam",
-        "maya",
-        "noah",
-        "olivia",
-        "peter",
-        "quinn",
-        "ruby",
-        "sam",
-        "tara",
-        "uma",
-        "victor",
-        "wendy",
-        "xavier",
-        "yara",
-        "zoe",
-        "alex",
-        "blake",
-        "casey",
-        "drew",
-        "emery",
-        "finley",
-    ]
-
-    last_names = [
-        "smith",
-        "jones",
-        "brown",
-        "davis",
-        "miller",
-        "wilson",
-        "moore",
-        "taylor",
-        "anderson",
-        "thomas",
-        "jackson",
-        "white",
-        "harris",
-        "martin",
-        "garcia",
-        "martinez",
-        "robinson",
-        "clark",
-        "rodriguez",
-        "lewis",
-        "lee",
-        "walker",
-        "hall",
-        "allen",
-        "young",
-        "hernandez",
-        "king",
-        "wright",
-        "lopez",
-        "hill",
-        "scott",
-        "green",
-        "adams",
-        "baker",
-        "gonzalez",
-        "nelson",
-        "carter",
-        "mitchell",
-    ]
-
     username_mapping = {}
 
     # Sort usernames for consistent ordering
     sorted_usernames = sorted(all_usernames)
 
-    for username in sorted_usernames:
-        # Generate hash for this username
-        hash_input = f"followweb_test_{username}".encode()
-        hash_hex = hashlib.sha256(hash_input).hexdigest()
+    print(f"\nGenerating secure hashes for {len(sorted_usernames)} usernames...")
+    print("(This may take a moment due to PBKDF2 iterations)")
 
-        # Use hash to select first and last name
-        hash_int = int(hash_hex, 16)
-        first_idx = hash_int % len(first_names)
-        last_idx = (hash_int // len(first_names)) % len(last_names)
+    for i, username in enumerate(sorted_usernames):
+        # Generate cryptographically secure hash
+        hash_hex = hash_username_secure(username, salt)
 
-        # Take first 6 characters of hash for uniqueness
-        hash_suffix = hash_hex[:6]
-
-        # Create name in format: firstname_lastname_hash
-        fake_name = f"{first_names[first_idx]}_{last_names[last_idx]}_{hash_suffix}"
+        # Create anonymized identifier
+        fake_name = f"user_{hash_hex}"
 
         username_mapping[username] = fake_name
+
+        # Progress indicator for large datasets
+        if (i + 1) % 100 == 0:
+            print(f"  Processed {i + 1}/{len(sorted_usernames)} usernames...")
+
+    print(f"✓ Completed hashing {len(sorted_usernames)} usernames\n")
 
     return username_mapping
 
@@ -271,17 +267,18 @@ def analyze_graph_structure(data: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def create_anonymized_dataset(
-    data: list[dict[str, Any]], max_users: int = None
+    data: list[dict[str, Any]], salt: bytes, max_users: int = None
 ) -> list[dict[str, Any]]:
     """
     Create an anonymized dataset with optional size limit.
 
     Args:
         data: Original data
+        salt: Secret salt for secure hashing
         max_users: Maximum number of users to include (None for all)
 
     Returns:
-        Anonymized dataset
+        Anonymized dataset with cryptographically secure hashes
     """
     if not data:
         return []
@@ -304,8 +301,8 @@ def create_anonymized_dataset(
         if following:
             all_usernames.update(following)
 
-    # Create unique username mapping
-    username_mapping = create_username_mapping(list(all_usernames))
+    # Create secure username mapping
+    username_mapping = create_username_mapping(list(all_usernames), salt)
 
     # Create anonymized dataset with optimized filtering
     result = []
@@ -542,14 +539,23 @@ def main():
 
     # Set random seed for reproducibility
     random.seed(args.seed)
+    np.random.seed(args.seed)
+
+    # Load salt from environment
+    try:
+        salt = load_or_generate_salt()
+        print("✓ Loaded TEST_DATA_SALT from environment")
+    except ValueError:
+        return 1
 
     # Create output directory
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
 
-    print(f"Generating anonymized datasets from {args.input}")
+    print(f"\nGenerating anonymized datasets from {args.input}")
     print(f"Output directory: {output_dir}")
     print(f"Random seed: {args.seed}")
+    print(f"Security: PBKDF2-HMAC-SHA256 with 100,000 iterations")
 
     # Load original data
     load_start = time.time()
@@ -611,7 +617,7 @@ def main():
     else:
         tiny_real = original_data[:tiny_size]
 
-    tiny_anonymized = create_anonymized_dataset(tiny_real)
+    tiny_anonymized = create_anonymized_dataset(tiny_real, salt)
     datasets.append(
         (tiny_anonymized, output_dir / "tiny_real.json", "Tiny Real Dataset (5%)")
     )
@@ -624,7 +630,7 @@ def main():
     else:
         small_real = original_data[:small_size]
 
-    small_anonymized = create_anonymized_dataset(small_real)
+    small_anonymized = create_anonymized_dataset(small_real, salt)
     datasets.append(
         (small_anonymized, output_dir / "small_real.json", "Small Real Dataset (15%)")
     )
@@ -637,7 +643,7 @@ def main():
     else:
         medium_real = original_data[:medium_size]
 
-    medium_anonymized = create_anonymized_dataset(medium_real)
+    medium_anonymized = create_anonymized_dataset(medium_real, salt)
     datasets.append(
         (
             medium_anonymized,
@@ -654,7 +660,7 @@ def main():
     else:
         large_real = original_data[:large_size]
 
-    large_anonymized = create_anonymized_dataset(large_real)
+    large_anonymized = create_anonymized_dataset(large_real, salt)
     datasets.append(
         (large_anonymized, output_dir / "large_real.json", "Large Real Dataset (66%)")
     )
@@ -662,7 +668,7 @@ def main():
 
     # 5. Full dataset (100% - anonymized)
     full_start = time.time()
-    full_anonymized = create_anonymized_dataset(original_data)
+    full_anonymized = create_anonymized_dataset(original_data, salt)
     datasets.append(
         (
             full_anonymized,
