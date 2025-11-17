@@ -1,13 +1,6 @@
 # Actionlint configuration for FollowWeb
 # https://github.com/rhysd/actionlint/blob/main/docs/config.md
 
-# Exclude large workflow files that cause actionlint to hang/timeout
-# These workflows are too complex for actionlint to process efficiently
-ignore:
-  - '.github/workflows/freesound-nightly-pipeline.yml'
-  - '.github/workflows/freesound-full-validation.yml'
-  - '.github/workflows/freesound-backup.yml'
-
 # Self-hosted runner configuration
 self-hosted-runner:
   labels: []
