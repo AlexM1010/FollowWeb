@@ -695,13 +695,13 @@ jobs:
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
         
         # Check if benchmark data exists before trying to display it
-        if [ -f ".benchmarks/ci_run/0001_"*.json ]; then
+        if compgen -G ".benchmarks/ci_run/0001_*.json" > /dev/null; then
           # Display current benchmark results with comparison
           python -m pytest -m benchmark --benchmark-only --benchmark-compare=ci_run --benchmark-storage=.benchmarks --tb=no -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
         else
           echo "No previous benchmark data found - this is the baseline run" | tee -a "$GITHUB_STEP_SUMMARY"
           # Just show the current results if they exist
-          if ls .benchmarks/**/0001_*.json 1> /dev/null 2>&1; then
+          if compgen -G ".benchmarks/**/0001_*.json" > /dev/null; then
             python -m pytest -m benchmark --benchmark-only --benchmark-storage=.benchmarks --tb=no -v 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           else
             echo "No benchmark data available to display" | tee -a "$GITHUB_STEP_SUMMARY"
