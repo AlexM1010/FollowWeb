@@ -216,7 +216,7 @@ FollowWeb is built upon excellent open-source libraries and tools. We gratefully
 - **[pyvis](https://pyvis.readthedocs.io/)** - Interactive network visualizations
 - **[Sigma.js](https://www.sigmajs.org/)** - High-performance WebGL graph visualization (via CDN)
 - **[Howler.js](https://howlerjs.com/)** - Audio playback library for Freesound samples (via CDN)
-- **[freesound-python](https://github.com/MTG/freesound-python)** - Official Freesound API client
+- **[freesound-api](https://github.com/MTG/freesound-api)** - Official Freesound API client
 - **[Jinja2](https://jinja.palletsprojects.com/)** - Template engine for HTML generation
 - **[joblib](https://joblib.readthedocs.io/)** - Checkpoint persistence and compression
 

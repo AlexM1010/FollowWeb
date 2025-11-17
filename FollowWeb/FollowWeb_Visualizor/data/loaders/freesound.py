@@ -83,7 +83,7 @@ class FreesoundLoader(DataLoader):
 
     This loader handles audio sample data from the Freesound API, creating networks
     where nodes represent audio samples and edges represent similarity relationships.
-    It uses the official freesound-python library for API access with additional
+    It uses the official freesound-api library for API access with additional
     rate limiting and caching.
 
     The loader supports:
@@ -194,7 +194,7 @@ class FreesoundLoader(DataLoader):
         -----
         The loader initializes:
 
-        - Official freesound-python client for API access
+        - Official freesound-api client for API access
         - Custom rate limiter for request throttling
         - Internal sound cache for reducing API calls
         - Cache hit/miss counters for monitoring

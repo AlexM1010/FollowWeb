@@ -2,7 +2,7 @@
 Unit tests for FreesoundLoader.
 
 Tests Freesound API integration, search functionality, graph construction,
-and error handling with mocked freesound-python client responses.
+and error handling with mocked freesound-api client responses.
 """
 
 from unittest.mock import MagicMock, patch

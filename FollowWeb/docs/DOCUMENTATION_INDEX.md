@@ -206,7 +206,7 @@ Complete index of all FollowWeb documentation.
 ### Freesound
 - [Freesound Website](https://freesound.org/)
 - [Freesound API Documentation](https://freesound.org/docs/api/)
-- [freesound-python Library](https://github.com/MTG/freesound-python)
+- [freesound-api Library](https://github.com/MTG/freesound-api)
 
 ### Visualization Libraries
 - [Sigma.js Documentation](https://www.sigmajs.org/)
