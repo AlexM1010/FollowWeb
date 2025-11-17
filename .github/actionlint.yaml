@@ -1,6 +1,0 @@
-# Actionlint configuration for FollowWeb
-# https://github.com/rhysd/actionlint/blob/main/docs/config.md
-
-# Self-hosted runner configuration
-self-hosted-runner:
-  labels: []
