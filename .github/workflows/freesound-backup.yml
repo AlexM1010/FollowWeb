@@ -345,9 +345,8 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Get backup tier and reason
+        # Get backup tier
         tier="${{ steps.backup_reason.outputs.tier }}"
-        reason="${{ steps.backup_reason.outputs.reason }}"
         node_count="${{ steps.verification.outputs.node_count }}"
         edge_count="${{ steps.verification.outputs.edge_count }}"
         

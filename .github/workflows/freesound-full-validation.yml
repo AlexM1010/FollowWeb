@@ -330,7 +330,7 @@ jobs:
           # Execution time
           duration_min="${{ steps.stats.outputs.duration_minutes }}"
           duration_sec="${{ steps.stats.outputs.duration_seconds }}"
-          if [ "$duration_min" != "N/A" ] && [ "$duration_min" -gt 0 ] 2>/dev/null; then
+          if [ "$duration_min" != "N/A" ] && [ "$duration_min" -gt 0 ]; then
             echo "**⏱️ Execution Time:** ${duration_min} minutes (${duration_sec} seconds)" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "**⏱️ Execution Time:** ${duration_sec} seconds" >> "$GITHUB_STEP_SUMMARY"

@@ -44,7 +44,7 @@ jobs:
       - name: Partition graph
         id: partition
         run: |
-          python -c "
+          python -c '
           import sys
           import json
           import networkx as nx
@@ -55,7 +55,7 @@ jobs:
           print("Loading graph from ${{ inputs.graph_file }}")
           with open("${{ inputs.graph_file }}", "rb") as f:
               graph = pickle.load(f)
-          print(f'Loaded graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges')
+          print(f"Loaded graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges")
           
           # Create partitioner
           partitioner = GraphPartitioner()
@@ -77,7 +77,7 @@ jobs:
           
           # Save partitions
           import os
-          os.makedirs('partitions', exist_ok=True)
+          os.makedirs("partitions", exist_ok=True)
           
           for i, partition in enumerate(partitions):
               path = partitioner.save_partition(partition, i, "partitions")
@@ -92,7 +92,7 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"num_partitions={len(partitions)}\n")
               f.write(f"partition_ids={json.dumps(partition_ids)}\n")
-          "
+          '
       
       - name: Upload partitions
         uses: actions/upload-artifact@v4
@@ -136,7 +136,7 @@ jobs:
       
       - name: Analyze partition
         run: |
-          python -c "
+          python -c '
           import os
           import joblib
           from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
@@ -162,7 +162,7 @@ jobs:
           result_file = f"results/partition-{partition_id}-results.pkl"
           joblib.dump(results, result_file, compress=3)
           print(f"Saved results to {result_file}")
-          "
+          '
       
       - name: Upload results
         uses: actions/upload-artifact@v4
