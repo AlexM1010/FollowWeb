@@ -463,5 +463,3 @@ class TestEdgeGenerationBenchmarks:
             print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
 
             assert edge_count >= 0, "Should create some pack edges"
-
-
