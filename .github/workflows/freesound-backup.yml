@@ -5,15 +5,16 @@
 # retention policies and failure recovery support.
 #
 # Architecture:
-# - Triggered ONLY by: Collection/Repair/Validation pipelines (on completion)
+# - Triggered ONLY by: Validation pipeline (final step after Collection → Repair → Validation)
 # - Restores checkpoint from GitHub Actions cache (NEW data only)
 # - Creates compressed backup with tier tagging
 # - Uploads to PRIMARY backup repository ONLY
 # - Applies tier-specific retention policies
-# - Supports failure recovery to preserve partial progress
+# - Manual trigger allowed for testing
 #
-# IMPORTANT: Manual and scheduled triggers are DISABLED to prevent circular backups
-# (downloading from backup just to create another backup of the same data)
+# Pipeline Flow:
+# Collection → Repair → Validation → Backup (this workflow)
+# This ensures backup only runs once after the entire pipeline completes successfully
 #
 # Backup Strategy (simplified):
 # - Every 100 nodes → v-checkpoint release (14-day retention, max 10)
@@ -44,14 +45,12 @@ name: Freesound Backup
 on:
   workflow_run:
     workflows: 
-      - "Freesound Nightly Collection"
-      - "Freesound Data Repair"
       - "Freesound Validation & Visualization"
     types: [completed]
     branches: [main]
   
   workflow_dispatch:
-    # Allow manual triggering for testing (will skip to avoid duplicate backups)
+    # Allow manual triggering for testing
 
 # Allow concurrent backups but cancel older ones if new one starts
 # This prevents backup queue buildup and allows fast failure
@@ -80,29 +79,12 @@ jobs:
         SKIP_REASON=""
         TRIGGER_WORKFLOW="${{ github.event.workflow_run.name }}"
         
-        # Manual trigger - SKIP (would just backup existing backup)
+        # Manual trigger - allow for testing
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          SHOULD_BACKUP="false"
-          SKIP_REASON="Manual triggers are disabled - backup should only run after collection/repair/validation"
-          echo "⏭️  Manual trigger - skipping (would create duplicate backup)"
-        
-        # Scheduled run - SKIP (would just backup existing backup)
-        elif [ "${{ github.event_name }}" = "schedule" ]; then
-          SHOULD_BACKUP="false"
-          SKIP_REASON="Scheduled backups are disabled - backup runs automatically after collection"
-          echo "⏭️  Scheduled run - skipping (redundant with collection-triggered backups)"
-        
-        # Collection pipeline - always backup (success or failure for recovery)
-        elif [ "${{ github.event.workflow_run.name }}" = "Freesound Nightly Collection" ]; then
           SHOULD_BACKUP="true"
-          echo "✅ Collection pipeline completed - backup will proceed"
+          echo "✅ Manual trigger - backup will proceed"
         
-        # Data Repair pipeline - always backup (success or failure for recovery)
-        elif [ "${{ github.event.workflow_run.name }}" = "Freesound Data Repair" ]; then
-          SHOULD_BACKUP="true"
-          echo "✅ Data Repair pipeline completed - backup will proceed"
-        
-        # Validation pipeline - only backup on success
+        # Validation pipeline - only backup on success (this is the final step in the pipeline)
         elif [ "${{ github.event.workflow_run.name }}" = "Freesound Validation & Visualization" ]; then
           if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
             SHOULD_BACKUP="true"
