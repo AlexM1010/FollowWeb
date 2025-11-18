@@ -1036,17 +1036,18 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
 
   # Job to explicitly notify when backup is skipped
+  # This job FAILS to make the workflow status reflect the skip
   backup-skipped:
-    name: Backup Skipped Notification
+    name: Backup Skipped - Workflow Failed
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: check-trigger
     if: needs.check-trigger.outputs.should_backup != 'true'
     steps:
-    - name: Log skip reason
+    - name: Log skip reason and fail
       run: |
         {
-          echo "## ⏭️  Backup Skipped"
+          echo "## ❌ Backup Skipped - Workflow Failed"
           echo ""
           echo "**Reason:** ${{ needs.check-trigger.outputs.skip_reason }}"
           echo ""
@@ -1059,6 +1060,10 @@ jobs:
           echo "- Validation workflows only trigger backup on success"
           echo "- Collection and repair workflows always trigger backup (for recovery)"
           echo "- Manual and scheduled runs always trigger backup"
+          echo ""
+          echo "**This workflow is marked as FAILED to indicate backup was skipped.**"
         } >> "$GITHUB_STEP_SUMMARY"
         
-        echo "⏭️  Backup skipped: ${{ needs.check-trigger.outputs.skip_reason }}"
+        echo "❌ Backup skipped: ${{ needs.check-trigger.outputs.skip_reason }}"
+        echo "::error::Backup was skipped - ${{ needs.check-trigger.outputs.skip_reason }}"
+        exit 1
