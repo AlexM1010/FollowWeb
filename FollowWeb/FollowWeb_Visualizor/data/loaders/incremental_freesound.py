@@ -720,6 +720,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         # Technical: type, samplerate, channels (audio properties)
                         # Visual: images (waveforms/spectrograms for tooltips)
                         # Geographic: geotag (location-based features)
+                        # Note: download and analysis_files can be fetched on-demand later
                         fields="id,name,tags,description,duration,username,pack,license,created,type,channels,filesize,samplerate,category,category_code,category_is_user_provided,previews,images,num_downloads,num_ratings,avg_rating,num_comments,geotag,url",
                     )
 
@@ -2149,6 +2150,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
                 previews=sample.get("previews", {}),  # All preview URLs (mp3/ogg, hq/lq)
                 images=sample.get("images", {}),  # Waveform and spectrogram URLs
+                # Note: download and analysis_files can be fetched on-demand via API
                 # Engagement and quality metrics
                 num_downloads=sample.get("num_downloads", 0),
                 num_ratings=sample.get("num_ratings", 0),  # Sample size for avg_rating
@@ -2217,6 +2219,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
                 previews=sample.get("previews", {}),  # All preview URLs (mp3/ogg, hq/lq)
                 images=sample.get("images", {}),  # Waveform and spectrogram URLs
+                # Note: download and analysis_files can be fetched on-demand via API
                 # Engagement and quality metrics
                 num_downloads=sample.get("num_downloads", 0),
                 num_ratings=sample.get("num_ratings", 0),  # Sample size for avg_rating
