@@ -48,7 +48,7 @@ def pytest_runtest_teardown(item, nextitem):
 def cleanup_loader():
     """
     Fixture to ensure IncrementalFreesoundLoader instances are properly closed.
-    
+
     Usage:
         def test_something(cleanup_loader):
             loader = IncrementalFreesoundLoader(config)
@@ -57,18 +57,18 @@ def cleanup_loader():
             # loader.close() will be called automatically
     """
     loaders = []
-    
+
     def register(loader):
         """Register a loader for cleanup."""
         loaders.append(loader)
         return loader
-    
+
     yield register
-    
+
     # Cleanup all registered loaders
     for loader in loaders:
         try:
-            if hasattr(loader, 'close'):
+            if hasattr(loader, "close"):
                 loader.close()
         except Exception:
             pass  # Ignore cleanup errors
@@ -82,14 +82,14 @@ def auto_cleanup_database_connections():
     directories are cleaned up.
     """
     yield
-    
+
     # Force close all SQLite connections
     import gc
     import sqlite3
-    
+
     # Collect garbage to trigger __del__ methods
     gc.collect()
-    
+
     # Find and close any remaining SQLite connections
     for obj in gc.get_objects():
         try:

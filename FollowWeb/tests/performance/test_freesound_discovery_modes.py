@@ -218,7 +218,9 @@ class TestDiscoveryModeComparisons:
                 )
 
                 # Verify search mode characteristics
-                assert metrics["samples_per_second"] >= 10.0, "Search mode should be fast"
+                assert metrics["samples_per_second"] >= 10.0, (
+                    "Search mode should be fast"
+                )
                 assert metrics["calls_per_sample"] < 0.1, (
                     "Search mode should be API-efficient"
                 )
