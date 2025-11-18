@@ -2248,6 +2248,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                     # Try to fetch the sound
                     self.client.get_sound(int(node_id))
+                    self._increment_request_count()
 
                 except Exception as e:
                     # Check if it's a 404 error
@@ -2325,6 +2326,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                     # Fetch fresh metadata
                     sound = self.client.get_sound(int(node_id))
+                    self._increment_request_count()
                     new_metadata = self._extract_sample_metadata(sound)
 
                     # Get current attributes
@@ -2768,6 +2770,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 page_size=150,  # API maximum for list endpoints
                 fields=comprehensive_fields,
             )
+            self._increment_request_count()  # Count the get_similar API call
 
             # Extract IDs and scores, cache metadata for similar sounds
             now = datetime.now(timezone.utc).isoformat()

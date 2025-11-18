@@ -48,9 +48,9 @@ on:
         default: ''
         type: string
       max_requests:
-        description: 'Maximum API requests (circuit breaker, default: 1950)'
+        description: 'Maximum API requests (circuit breaker, default: 10 for testing, 1950 for production)'
         required: false
-        default: '1950'
+        default: '10'
         type: string
       discovery_mode:
         description: 'Discovery strategy: search, relationships, or mixed'

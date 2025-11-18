@@ -54,6 +54,10 @@ concurrency:
   group: freesound-repair
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   repair-checkpoint:
     name: Validate and Repair Checkpoint
@@ -494,6 +498,7 @@ jobs:
     
     - name: Create issue on failure
       if: failure()
+      continue-on-error: true
       uses: actions/github-script@v7
       with:
         script: |
