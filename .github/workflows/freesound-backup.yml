@@ -207,11 +207,24 @@ jobs:
       with:
         path: data/freesound_library
         key: ${{ steps.backup_reason.outputs.cache_key }}
+        fail-on-cache-miss: false
         # Note: Cache restore works even if upstream workflow failed
         # because cache is saved with if: always() condition
     
-    - name: Download checkpoint from repository (scheduled/manual runs)
-      if: steps.backup_reason.outputs.use_cache == 'false'
+    - name: Check cache restore status
+      if: steps.backup_reason.outputs.use_cache == 'true'
+      id: cache-check
+      run: |
+        if [ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]; then
+          echo "⚠️  Cache restore failed - will attempt repository download"
+          echo "cache_restored=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "✅ Cache restored successfully"
+          echo "cache_restored=true" >> "$GITHUB_OUTPUT"
+        fi
+    
+    - name: Download checkpoint from repository (scheduled/manual runs or cache fallback)
+      if: steps.backup_reason.outputs.use_cache == 'false' || (steps.backup_reason.outputs.use_cache == 'true' && steps.cache-check.outputs.cache_restored != 'true')
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
