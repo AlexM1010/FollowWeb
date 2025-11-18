@@ -224,7 +224,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           
           # Determine reason based on upstream workflow and conclusion
-          if [ "$upstream_workflow" = "Freesound Nightly Pipeline" ]; then
+          if [ "$upstream_workflow" = "Freesound Nightly Collection" ]; then
             if [ "$upstream_conclusion" = "success" ]; then
               {
                 echo "reason=collection_success"
