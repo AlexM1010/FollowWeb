@@ -180,10 +180,10 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run validation script and capture exit code
+        # Run validation script and capture exit code (use PIPESTATUS to get python exit code, not tee)
         set +e  # Disable exit on error temporarily
         python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log
-        VALIDATION_EXIT_CODE=$?
+        VALIDATION_EXIT_CODE=${PIPESTATUS[0]}
         set -e  # Re-enable exit on error
         
         if [ "$VALIDATION_EXIT_CODE" -eq 0 ]; then
