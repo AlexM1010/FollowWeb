@@ -118,32 +118,29 @@ def main():
             # Generate output filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_filename = f"freesound_{timestamp}.html"
+            output_path = output_dir / output_filename
             
-            # Import OutputConfig
-            from FollowWeb_Visualizor.core.config import OutputConfig
-            
-            # Create configs
+            # Create visualization config
             vis_config = {
                 'show_labels': True,
                 'show_tooltips': True,
                 'enable_audio_player': True,
             }
             
-            output_config = OutputConfig(
-                output_dir=str(output_dir),
-                output_filename=output_filename,
-                console_output=True,
-                text_file_output=False
+            # Create renderer and generate visualization
+            renderer = SigmaRenderer(vis_config=vis_config)
+            success = renderer.generate_visualization(
+                graph=graph,
+                output_filename=str(output_path),
+                metrics=None  # Let renderer calculate metrics
             )
             
-            renderer = SigmaRenderer(
-                vis_config=vis_config,
-                output_config=output_config
-            )
-            
-            output_file = renderer.render(graph)
-            logger.info(f"✅ Visualization generated: {output_file}")
-            return 0
+            if success:
+                logger.info(f"✅ Visualization generated: {output_path}")
+                return 0
+            else:
+                logger.error("Failed to generate visualization")
+                return 2
         else:
             logger.error(f"Unsupported renderer type: {args.renderer_type}")
             return 2
