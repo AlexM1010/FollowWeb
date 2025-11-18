@@ -119,17 +119,29 @@ def main():
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_filename = f"freesound_{timestamp}.html"
             
-            renderer = SigmaRenderer(
-                graph=graph,
+            # Import OutputConfig
+            from FollowWeb_Visualizor.core.config import OutputConfig
+            
+            # Create configs
+            vis_config = {
+                'show_labels': True,
+                'show_tooltips': True,
+                'enable_audio_player': True,
+            }
+            
+            output_config = OutputConfig(
                 output_dir=str(output_dir),
                 output_filename=output_filename,
-                config={
-                    'show_labels': True,
-                    'show_tooltips': True,
-                    'enable_audio_player': True,
-                }
+                console_output=True,
+                text_file_output=False
             )
-            output_file = renderer.render()
+            
+            renderer = SigmaRenderer(
+                vis_config=vis_config,
+                output_config=output_config
+            )
+            
+            output_file = renderer.render(graph)
             logger.info(f"✅ Visualization generated: {output_file}")
             return 0
         else:
