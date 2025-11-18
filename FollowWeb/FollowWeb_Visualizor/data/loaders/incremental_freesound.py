@@ -712,7 +712,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         page=page,
                         page_size=page_size,
                         sort=sort_order,
-                        fields="id,name,tags,duration,username,pack,previews,num_downloads,avg_rating",
+                        # Collect comprehensive metadata in single API request
+                        # Legal: url, license (attribution/compliance)
+                        # Taxonomy: category, category_code, category_is_user_provided
+                        # Temporal: created (time-series analysis)
+                        # Quality: num_ratings, num_comments (confidence metrics)
+                        # Technical: type, samplerate, channels (audio properties)
+                        # Visual: images (waveforms/spectrograms for tooltips)
+                        # Geographic: geotag (location-based features)
+                        fields="id,name,tags,description,duration,username,pack,license,created,type,channels,filesize,samplerate,category,category_code,category_is_user_provided,previews,images,num_downloads,num_ratings,avg_rating,num_comments,geotag,url",
                     )
 
                 results = self._retry_with_backoff(_do_search)
@@ -2114,14 +2122,42 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
             self.graph.add_node(
                 sample_id,
+                # Basic metadata
                 name=sample["name"],
                 tags=sample.get("tags", []),
+                description=sample.get("description", ""),
                 duration=sample.get("duration", 0),
+                # User and pack relationships (for edge generation)
                 user=sample.get("username", ""),
                 username=sample.get("username", ""),  # Store both for compatibility
                 pack=sample.get("pack", ""),  # Pack URI or empty string
-                audio_url=sample.get("audio_url", ""),
-                type="sample",
+                # License and attribution (LEGAL REQUIREMENT)
+                license=sample.get("license", ""),
+                created=sample.get("created", ""),  # Upload timestamp
+                url=sample.get("url", ""),  # Freesound website URL (for attribution)
+                # Sound taxonomy (Broad Sound Taxonomy)
+                category=sample.get("category", []),  # [category, subcategory]
+                category_code=sample.get("category_code", ""),  # e.g. "fx-a"
+                category_is_user_provided=sample.get("category_is_user_provided", False),
+                # Technical audio properties
+                type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
+                file_type=sample.get("type", ""),  # Alias for compatibility
+                channels=sample.get("channels", 0),  # Mono=1, Stereo=2
+                filesize=sample.get("filesize", 0),  # Bytes
+                samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
+                # URLs and media assets
+                audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
+                previews=sample.get("previews", {}),  # All preview URLs (mp3/ogg, hq/lq)
+                images=sample.get("images", {}),  # Waveform and spectrogram URLs
+                # Engagement and quality metrics
+                num_downloads=sample.get("num_downloads", 0),
+                num_ratings=sample.get("num_ratings", 0),  # Sample size for avg_rating
+                avg_rating=sample.get("avg_rating", 0.0),  # 0-5 scale
+                num_comments=sample.get("num_comments", 0),  # Community engagement
+                # Geographic metadata
+                geotag=sample.get("geotag", ""),  # "lat lon" format
+                # Internal metadata
+                node_type="sample",  # For compatibility
                 collected_at=now,
                 # Validation history timestamps (ISO format)
                 last_existence_check_at=None,  # When we last verified sample exists
@@ -2154,14 +2190,42 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
             self.graph.add_node(
                 sample_id,
+                # Basic metadata
                 name=sample["name"],
                 tags=sample.get("tags", []),
+                description=sample.get("description", ""),
                 duration=sample.get("duration", 0),
+                # User and pack relationships (for edge generation)
                 user=sample.get("username", ""),
                 username=sample.get("username", ""),  # Store both for compatibility
                 pack=sample.get("pack", ""),  # Pack URI or empty string
-                audio_url=sample.get("audio_url", ""),
-                type="sample",
+                # License and attribution (LEGAL REQUIREMENT)
+                license=sample.get("license", ""),
+                created=sample.get("created", ""),  # Upload timestamp
+                url=sample.get("url", ""),  # Freesound website URL (for attribution)
+                # Sound taxonomy (Broad Sound Taxonomy)
+                category=sample.get("category", []),  # [category, subcategory]
+                category_code=sample.get("category_code", ""),  # e.g. "fx-a"
+                category_is_user_provided=sample.get("category_is_user_provided", False),
+                # Technical audio properties
+                type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
+                file_type=sample.get("type", ""),  # Alias for compatibility
+                channels=sample.get("channels", 0),  # Mono=1, Stereo=2
+                filesize=sample.get("filesize", 0),  # Bytes
+                samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
+                # URLs and media assets
+                audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
+                previews=sample.get("previews", {}),  # All preview URLs (mp3/ogg, hq/lq)
+                images=sample.get("images", {}),  # Waveform and spectrogram URLs
+                # Engagement and quality metrics
+                num_downloads=sample.get("num_downloads", 0),
+                num_ratings=sample.get("num_ratings", 0),  # Sample size for avg_rating
+                avg_rating=sample.get("avg_rating", 0.0),  # 0-5 scale
+                num_comments=sample.get("num_comments", 0),  # Community engagement
+                # Geographic metadata
+                geotag=sample.get("geotag", ""),  # "lat lon" format
+                # Internal metadata
+                node_type="sample",  # For compatibility
                 collected_at=now,
                 # Validation history timestamps (ISO format)
                 last_existence_check_at=None,  # When we last verified sample exists
