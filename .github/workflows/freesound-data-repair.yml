@@ -180,8 +180,13 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run validation script and capture output (always succeed to allow repair to run)
-        if python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log; then
+        # Run validation script and capture exit code
+        set +e  # Disable exit on error temporarily
+        python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log
+        VALIDATION_EXIT_CODE=$?
+        set -e  # Re-enable exit on error
+        
+        if [ "$VALIDATION_EXIT_CODE" -eq 0 ]; then
           echo "validation_passed=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
         else
@@ -189,9 +194,6 @@ jobs:
           echo "- Status: ❌ Validation failed" >> "$GITHUB_STEP_SUMMARY"
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
-        
-        # Always exit 0 to allow repair step to run
-        exit 0
     
     - name: Run repair operations
       if: steps.validation.outputs.validation_passed == 'false'
