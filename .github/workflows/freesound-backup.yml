@@ -45,6 +45,7 @@ on:
   workflow_run:
     workflows: 
       - "Freesound Nightly Collection"
+      - "Freesound Data Repair"
       - "Freesound Validation & Visualization"
     types: [completed]
     branches: [main]
@@ -62,20 +63,92 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check-trigger:
+    name: Check Backup Trigger Conditions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_backup: ${{ steps.check.outputs.should_backup }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
+      trigger_workflow: ${{ steps.check.outputs.trigger_workflow }}
+    steps:
+    - name: Evaluate backup conditions
+      id: check
+      run: |
+        echo "Event: ${{ github.event_name }}"
+        echo "Workflow: ${{ github.event.workflow_run.name }}"
+        echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+        
+        SHOULD_BACKUP="false"
+        SKIP_REASON=""
+        TRIGGER_WORKFLOW="${{ github.event.workflow_run.name }}"
+        
+        # Manual trigger - always backup
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          SHOULD_BACKUP="true"
+          echo "✅ Manual trigger - backup will proceed"
+        
+        # Scheduled run - always backup
+        elif [ "${{ github.event_name }}" = "schedule" ]; then
+          SHOULD_BACKUP="true"
+          echo "✅ Scheduled run - backup will proceed"
+        
+        # Collection pipeline - always backup (success or failure for recovery)
+        elif [ "${{ github.event.workflow_run.name }}" = "Freesound Nightly Collection" ]; then
+          SHOULD_BACKUP="true"
+          echo "✅ Collection pipeline completed - backup will proceed"
+        
+        # Data Repair pipeline - always backup (success or failure for recovery)
+        elif [ "${{ github.event.workflow_run.name }}" = "Freesound Data Repair" ]; then
+          SHOULD_BACKUP="true"
+          echo "✅ Data Repair pipeline completed - backup will proceed"
+        
+        # Validation pipeline - only backup on success
+        elif [ "${{ github.event.workflow_run.name }}" = "Freesound Validation & Visualization" ]; then
+          if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+            SHOULD_BACKUP="true"
+            echo "✅ Validation pipeline succeeded - backup will proceed"
+          else
+            SHOULD_BACKUP="false"
+            SKIP_REASON="Validation pipeline did not succeed (conclusion: ${{ github.event.workflow_run.conclusion }})"
+            echo "⏭️  Validation pipeline failed - skipping backup"
+          fi
+        
+        # Unknown trigger
+        else
+          SHOULD_BACKUP="false"
+          SKIP_REASON="Unknown trigger: event=${{ github.event_name }}, workflow=${{ github.event.workflow_run.name }}"
+          echo "❌ Unknown trigger - skipping backup"
+        fi
+        
+        {
+          echo "should_backup=$SHOULD_BACKUP"
+          echo "skip_reason=$SKIP_REASON"
+          echo "trigger_workflow=$TRIGGER_WORKFLOW"
+        } >> "$GITHUB_OUTPUT"
+        
+        # Create summary
+        {
+          echo "## 🔍 Backup Trigger Check"
+          echo ""
+          echo "**Event:** \`${{ github.event_name }}\`"
+          if [ -n "$TRIGGER_WORKFLOW" ]; then
+            echo "**Triggering Workflow:** \`$TRIGGER_WORKFLOW\`"
+            echo "**Workflow Conclusion:** \`${{ github.event.workflow_run.conclusion }}\`"
+          fi
+          echo "**Should Backup:** \`$SHOULD_BACKUP\`"
+          if [ -n "$SKIP_REASON" ]; then
+            echo ""
+            echo "**⚠️  Skip Reason:** $SKIP_REASON"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+  
   backup-checkpoint:
     name: Create and Manage Checkpoint Backup
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Only run if:
-    # - Manual trigger (workflow_dispatch)
-    # - Scheduled run
-    # - Collection pipeline completed (success or failure - for failure recovery)
-    # - Validation pipeline succeeded (NOT on failure)
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      (github.event.workflow_run.name == 'Freesound Nightly Collection') ||
-      (github.event.workflow_run.name == 'Freesound Validation & Visualization' && github.event.workflow_run.conclusion == 'success')
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_backup == 'true'
     
     steps:
     - name: Checkout code
@@ -961,3 +1034,31 @@ jobs:
           echo "**Retention Policy:**"
           echo "- \`v-checkpoint\`: 14 days (max 10 backups, never delete last backup)"
         } >> "$GITHUB_STEP_SUMMARY"
+
+  # Job to explicitly notify when backup is skipped
+  backup-skipped:
+    name: Backup Skipped Notification
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_backup != 'true'
+    steps:
+    - name: Log skip reason
+      run: |
+        {
+          echo "## ⏭️  Backup Skipped"
+          echo ""
+          echo "**Reason:** ${{ needs.check-trigger.outputs.skip_reason }}"
+          echo ""
+          echo "**Trigger Details:**"
+          echo "- Event: \`${{ github.event_name }}\`"
+          echo "- Workflow: \`${{ needs.check-trigger.outputs.trigger_workflow }}\`"
+          echo "- Conclusion: \`${{ github.event.workflow_run.conclusion }}\`"
+          echo ""
+          echo "**Expected Behavior:**"
+          echo "- Validation workflows only trigger backup on success"
+          echo "- Collection and repair workflows always trigger backup (for recovery)"
+          echo "- Manual and scheduled runs always trigger backup"
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        echo "⏭️  Backup skipped: ${{ needs.check-trigger.outputs.skip_reason }}"

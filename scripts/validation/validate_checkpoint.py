@@ -465,11 +465,27 @@ class CheckpointValidator:
 
 def main():
     """Main entry point."""
+    # Import emoji formatter for cross-platform emoji support
+    from FollowWeb.FollowWeb_Visualizor.output.formatters import EmojiFormatter
+    
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+    
+    # Set emoji fallback level based on environment
+    # Use "text" for maximum compatibility (pure ASCII)
+    import os
+    if os.getenv('CI') or os.getenv('GITHUB_ACTIONS'):
+        # CI environments: use text for maximum compatibility
+        EmojiFormatter.set_fallback_level("text")
+    elif sys.platform == 'win32' and sys.stdout.encoding not in ('utf-8', 'UTF-8'):
+        # Windows with non-UTF-8 console: use text
+        EmojiFormatter.set_fallback_level("text")
+    else:
+        # Unix/Linux or UTF-8 console: use full emojis
+        EmojiFormatter.set_fallback_level("full")
 
     # Get checkpoint directory from command line or use default
     if len(sys.argv) > 1:
@@ -482,18 +498,23 @@ def main():
         validator = CheckpointValidator(checkpoint_dir)
         result = validator.validate()
     except (ValueError, FileNotFoundError) as e:
-        print(f"\n❌ Error: {e}\n")
+        print(f"\n{EmojiFormatter.format('error', f'Error: {e}')}\n")
         sys.exit(2)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}\n")
+        print(f"\n{EmojiFormatter.format('error', f'Unexpected error: {e}')}\n")
         logging.exception("Unexpected error during validation")
         sys.exit(2)
 
-    # Print results
+    # Print results using EmojiFormatter for cross-platform compatibility
     print("\n" + "=" * 60)
     print("CHECKPOINT VALIDATION RESULTS")
     print("=" * 60)
-    print(f"Status: {'✅ PASSED' if result.passed else '❌ FAILED'}")
+    
+    if result.passed:
+        print(f"Status: {EmojiFormatter.format('success', 'PASSED')}")
+    else:
+        print(f"Status: {EmojiFormatter.format('error', 'FAILED')}")
+    
     print(f"Checks: {result.checks_passed}/{result.checks_run} passed")
     print()
 
@@ -506,13 +527,13 @@ def main():
     if result.errors:
         print("Errors:")
         for error in result.errors:
-            print(f"  ❌ {error}")
+            print(f"  {EmojiFormatter.format('error', error)}")
         print()
 
     if result.warnings:
         print("Warnings:")
         for warning in result.warnings:
-            print(f"  ⚠️  {warning}")
+            print(f"  {EmojiFormatter.format('warning', warning)}")
         print()
 
     print("=" * 60)

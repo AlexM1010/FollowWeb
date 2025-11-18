@@ -607,6 +607,19 @@ jobs:
         
         echo " Statistics extracted from checkpoint"
     
+    # Debug: List checkpoint files before caching
+    - name: Debug - List checkpoint files
+      if: always() && steps.orchestration.outputs.can_proceed == 'true'
+      run: |
+        echo "Listing checkpoint directory contents:"
+        ls -laR data/freesound_library/ || echo "Directory not found"
+        echo ""
+        echo "File sizes:"
+        du -h data/freesound_library/* || echo "No files found"
+        echo ""
+        echo "Total directory size:"
+        du -sh data/freesound_library/ || echo "Directory not found"
+    
     # Save checkpoint to cache - backup workflow handles permanent storage
     - name: Save checkpoint to cache
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
@@ -615,6 +628,11 @@ jobs:
       with:
         path: data/freesound_library
         key: checkpoint-${{ github.run_id }}
+        # CRITICAL: Include files that are in .gitignore
+        # The checkpoint files (*.gpickle, *.db, *.json) are gitignored but must be cached
+        enableCrossOsArchive: false
+        # Note: GitHub Actions cache respects .gitignore by default, but we need these files
+        # The cache action will include them because we're explicitly specifying the path
     
     - name: Verify cache save
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
