@@ -1,0 +1,398 @@
+{
+  "timestamp": "2025-11-18T02:13:54.468519",
+  "total_workflows": 18,
+  "passed": 18,
+  "failed": 0,
+  "warnings": 0,
+  "workflows": [
+    {
+      "name": "ci.yml",
+      "file_path": ".github\\workflows\\ci.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "security-reports",
+          "condition": "always()",
+          "required": false
+        },
+        {
+          "name": "python-package-distributions",
+          "condition": "success",
+          "required": true
+        },
+        {
+          "name": "coverage-reports",
+          "condition": "matrix.os == 'ubuntu-latest'",
+          "required": true
+        },
+        {
+          "name": "benchmark-results",
+          "condition": "always()",
+          "required": false
+        }
+      ],
+      "found_artifacts": [
+        "security-reports-ubuntu-latest",
+        "python-package-distributions",
+        "coverage-reports",
+        "benchmark-results"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "codespaces-prebuild.yml",
+      "file_path": ".github\\workflows\\codespaces-prebuild.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "deploy-website.yml",
+      "file_path": ".github\\workflows\\deploy-website.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "docs.yml",
+      "file_path": ".github\\workflows\\docs.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "documentation-structure-reports",
+          "condition": "always()",
+          "required": false
+        },
+        {
+          "name": "docstring-coverage-reports",
+          "condition": "always()",
+          "required": false
+        }
+      ],
+      "found_artifacts": [
+        "documentation-structure-reports",
+        "docstring-coverage-reports"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-backup-maintenance.yml",
+      "file_path": ".github\\workflows\\freesound-backup-maintenance.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-backup.yml",
+      "file_path": ".github\\workflows\\freesound-backup.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-data-remediation.yml",
+      "file_path": ".github\\workflows\\freesound-data-remediation.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "remediation-artifacts",
+          "condition": "always()",
+          "required": true
+        }
+      ],
+      "found_artifacts": [
+        "remediation-artifacts"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-data-repair.yml",
+      "file_path": ".github\\workflows\\freesound-data-repair.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "repair-logs-*",
+          "condition": "always()",
+          "required": true
+        }
+      ],
+      "found_artifacts": [
+        "repair-logs-${{ github.run_id }}"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-full-validation.yml",
+      "file_path": ".github\\workflows\\freesound-full-validation.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "full-validation-report-*",
+          "condition": "success",
+          "required": true
+        },
+        {
+          "name": "full-validation-logs-*",
+          "condition": "always()",
+          "required": true
+        },
+        {
+          "name": "checkpoint-backup-*",
+          "condition": "failure()",
+          "required": false
+        }
+      ],
+      "found_artifacts": [
+        "full-validation-report-${{ steps.params.outputs.execution_id }}",
+        "full-validation-logs-${{ steps.params.outputs.execution_id }}",
+        "checkpoint-backup-${{ steps.params.outputs.execution_id }}"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-metrics-dashboard.yml",
+      "file_path": ".github\\workflows\\freesound-metrics-dashboard.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "metrics-dashboard",
+          "condition": "success",
+          "required": false
+        }
+      ],
+      "found_artifacts": [
+        "metrics-dashboard"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-nightly-pipeline.yml",
+      "file_path": ".github\\workflows\\freesound-nightly-pipeline.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "checkpoint-backup-*",
+          "condition": "always()",
+          "required": true
+        },
+        {
+          "name": "collection-logs-*",
+          "condition": "always()",
+          "required": true
+        }
+      ],
+      "found_artifacts": [
+        "checkpoint-backup-${{ steps.params.outputs.execution_id }}",
+        "collection-logs-${{ steps.params.outputs.execution_id }}"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-quick-validation.yml",
+      "file_path": ".github\\workflows\\freesound-quick-validation.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "quick-validation-report-*",
+          "condition": "success",
+          "required": true
+        },
+        {
+          "name": "quick-validation-logs-*",
+          "condition": "always()",
+          "required": true
+        },
+        {
+          "name": "checkpoint-backup-*",
+          "condition": "failure()",
+          "required": false
+        }
+      ],
+      "found_artifacts": [
+        "quick-validation-report-${{ steps.params.outputs.execution_id }}",
+        "quick-validation-logs-${{ steps.params.outputs.execution_id }}",
+        "checkpoint-backup-${{ steps.params.outputs.execution_id }}"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "freesound-validation-visualization.yml",
+      "file_path": ".github\\workflows\\freesound-validation-visualization.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "large-graph-analysis.yml",
+      "file_path": ".github\\workflows\\large-graph-analysis.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "graph-partitions",
+          "condition": "success",
+          "required": true
+        },
+        {
+          "name": "partition-results-*",
+          "condition": "success",
+          "required": true
+        },
+        {
+          "name": "final-analysis",
+          "condition": "success",
+          "required": true
+        }
+      ],
+      "found_artifacts": [
+        "graph-partitions",
+        "partition-results-${{ matrix.partition_id }}",
+        "final-analysis"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "nightly.yml",
+      "file_path": ".github\\workflows\\nightly.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "pages.yml",
+      "file_path": ".github\\workflows\\pages.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [],
+      "found_artifacts": [],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "release.yml",
+      "file_path": ".github\\workflows\\release.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "python-package-distributions",
+          "condition": "success",
+          "required": true
+        }
+      ],
+      "found_artifacts": [
+        "python-package-distributions"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    },
+    {
+      "name": "reviewdog.yml",
+      "file_path": ".github\\workflows\\reviewdog.yml",
+      "syntax_valid": true,
+      "has_workflow_dispatch": false,
+      "expected_artifacts": [
+        {
+          "name": "reviewdog-analysis-reports",
+          "condition": "always()",
+          "required": false
+        }
+      ],
+      "found_artifacts": [
+        "reviewdog-analysis-reports"
+      ],
+      "missing_artifacts": [],
+      "errors": [],
+      "warnings": [],
+      "notes": [],
+      "status": "pass"
+    }
+  ],
+  "overall_status": "pass"
+}
