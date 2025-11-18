@@ -420,6 +420,14 @@ class FreesoundLoader(DataLoader):
             # Sort by popularity (downloads, ratings) to get most useful samples first
             page_size = min(150, max_samples)  # Freesound max page size is 150
 
+            # Request ALL fields we need in the search (no need for get_sound() calls!)
+            # This reduces API calls from 1+N to just pagination calls
+            all_fields = (
+                "id,name,tags,duration,username,pack,license,created,url,"
+                "type,channels,filesize,samplerate,previews,images,"
+                "num_downloads,avg_rating,num_ratings,num_comments,category"
+            )
+            
             # Wrap API call with retry logic
             def _do_search():
                 return self.client.text_search(
@@ -427,42 +435,40 @@ class FreesoundLoader(DataLoader):
                     filter=search_filter if search_filter else None,
                     page_size=page_size,
                     sort="downloads_desc",  # Sort by most downloaded (most popular)
-                    fields="id,name,tags,duration,username,previews,num_downloads,avg_rating",
+                    fields=all_fields,
                 )
 
             results = self._retry_with_backoff(_do_search)
 
-            # Collect sample IDs from first page
-            sample_ids: list[int] = []
+            # Extract metadata directly from search results (no additional API calls!)
             for sound in results:
-                if len(sample_ids) >= max_samples:
+                if len(samples) >= max_samples:
                     break
-                sample_ids.append(sound.id)
+                try:
+                    sample_data = self._extract_sample_metadata(sound)
+                    samples.append(sample_data)
+                except Exception as e:
+                    self.logger.warning(
+                        f"Failed to extract metadata for sample {sound.id}: {e}"
+                    )
+                    continue
 
             # Fetch additional pages if needed
-            while len(sample_ids) < max_samples and results.next:
+            while len(samples) < max_samples and results.next:
                 self.rate_limiter.acquire()
                 results = self._retry_with_backoff(results.next_page)
 
                 for sound in results:
-                    if len(sample_ids) >= max_samples:
+                    if len(samples) >= max_samples:
                         break
-                    sample_ids.append(sound.id)
-
-            # Now fetch full metadata for each sample (including preview URLs)
-            for sample_id in sample_ids:
-                try:
-                    self.rate_limiter.acquire()
-                    full_sound = self._retry_with_backoff(
-                        self.client.get_sound, sample_id
-                    )
-                    sample_data = self._extract_sample_metadata(full_sound)
-                    samples.append(sample_data)
-                except Exception as e:
-                    self.logger.warning(
-                        f"Failed to fetch full metadata for sample {sample_id}: {e}"
-                    )
-                    # Continue with other samples
+                    try:
+                        sample_data = self._extract_sample_metadata(sound)
+                        samples.append(sample_data)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to extract metadata for sample {sound.id}: {e}"
+                        )
+                        continue
 
         except Exception as e:
             raise DataProcessingError(f"Failed to search Freesound API: {e}") from e
@@ -479,31 +485,44 @@ class FreesoundLoader(DataLoader):
         Returns:
             Dictionary with sample metadata including audio preview URL
         """
-        # Extract preview URLs from full sound object
-        # Note: sound.previews is a FreesoundObject, need to convert to dict
-        audio_url = ""
-        if hasattr(sound, "previews"):
-            # Get the dict representation of previews
-            sound_dict = sound.as_dict()
-            previews = sound_dict.get("previews", {})
-
-            if isinstance(previews, dict):
-                # Try high-quality MP3 first, then fallback to other formats
-                # Note: Keys use underscores, not hyphens!
-                audio_url = (
-                    previews.get("preview_hq_mp3", "")
-                    or previews.get("preview_lq_mp3", "")
-                    or previews.get("preview_hq_ogg", "")
-                )
-
+        import re
+        
         # Get full metadata dict - this contains EVERYTHING from the API
         sound_dict = sound.as_dict()
 
         # Start with the complete API response (saves everything!)
         metadata = sound_dict.copy()
-
-        # Add our processed audio_url for convenience
-        metadata["audio_url"] = audio_url
+        
+        # Remove description field to save storage (~10% reduction)
+        # Description often contains lengthy license text (2-3KB per sample)
+        # We keep the 'license' field which has the license URL
+        if 'description' in metadata:
+            del metadata['description']
+        
+        # Optimize URL storage (~38% reduction)
+        # Store base paths instead of full URLs for previews and images
+        
+        # Optimize previews: 4 URLs → 1 base path
+        if 'previews' in metadata and isinstance(metadata['previews'], dict):
+            preview_url = metadata['previews'].get('preview_hq_mp3', '')
+            if preview_url:
+                # Extract: previews/0/406_196 from full URL
+                match = re.search(r'previews/(\d+/\d+_\d+)', preview_url)
+                if match:
+                    metadata['preview_base'] = f"previews/{match.group(1)}"
+                    # Remove full previews dict
+                    del metadata['previews']
+        
+        # Optimize images: 8 URLs → 1 base path
+        if 'images' in metadata and isinstance(metadata['images'], dict):
+            image_url = metadata['images'].get('waveform_m', '')
+            if image_url:
+                # Extract: displays/0/406_196 from full URL
+                match = re.search(r'displays/(\d+/\d+_\d+)', image_url)
+                if match:
+                    metadata['image_base'] = f"displays/{match.group(1)}"
+                    # Remove full images dict
+                    del metadata['images']
 
         # Ensure critical fields are present (for backward compatibility)
         metadata.setdefault("id", sound.id)

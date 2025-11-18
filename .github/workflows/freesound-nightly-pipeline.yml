@@ -616,6 +616,63 @@ jobs:
         
         echo " Statistics extracted from checkpoint"
     
+    # Monitor cache size and trigger early backup if needed
+    - name: Monitor cache size
+      if: always() && steps.orchestration.outputs.can_proceed == 'true'
+      id: cache_monitor
+      run: |
+        python scripts/cache_monitor.py --checkpoint-dir data/freesound_library
+        cache_exit_code=$?
+        
+        # Store exit code for later steps
+        echo "cache_check_exit_code=$cache_exit_code" >> "$GITHUB_OUTPUT"
+        
+        # Exit code 0 = OK, 1 = Warning (trigger backup), 2 = Critical (trigger backup)
+        if [ "$cache_exit_code" -eq 2 ]; then
+          echo "::error::Cache size critical - immediate backup required"
+          echo "trigger_early_backup=true" >> "$GITHUB_OUTPUT"
+        elif [ "$cache_exit_code" -eq 1 ]; then
+          echo "::warning::Cache size warning - early backup recommended"
+          echo "trigger_early_backup=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "trigger_early_backup=false" >> "$GITHUB_OUTPUT"
+        fi
+    
+    # Check total repository cache usage
+    - name: Check total repository cache usage
+      if: always() && steps.orchestration.outputs.can_proceed == 'true'
+      id: total_cache_check
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "Checking total repository cache usage..."
+        
+        # Get all caches for this repository
+        CACHES_JSON=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/caches")
+        
+        TOTAL_CACHES=$(echo "$CACHES_JSON" | jq '.total_count // 0')
+        TOTAL_SIZE=$(echo "$CACHES_JSON" | jq '[.actions_caches[].size_in_bytes] | add // 0')
+        TOTAL_SIZE_MB=$((TOTAL_SIZE / 1024 / 1024))
+        TOTAL_SIZE_GB=$(echo "scale=2; $TOTAL_SIZE_MB / 1024" | bc)
+        
+        echo "Total caches: $TOTAL_CACHES"
+        echo "Total size: ${TOTAL_SIZE_MB}MB (${TOTAL_SIZE_GB}GB)"
+        
+        # Store for summary
+        {
+          echo "total_caches=$TOTAL_CACHES"
+          echo "total_cache_size_mb=$TOTAL_SIZE_MB"
+          echo "total_cache_size_gb=$TOTAL_SIZE_GB"
+        } >> "$GITHUB_OUTPUT"
+        
+        # Warn if approaching 10GB limit
+        if [ "$TOTAL_SIZE_MB" -gt 9500 ]; then
+          echo "::error::Total repository cache size (${TOTAL_SIZE_GB}GB) exceeds 9.5GB - critical!"
+        elif [ "$TOTAL_SIZE_MB" -gt 8000 ]; then
+          echo "::warning::Total repository cache size (${TOTAL_SIZE_GB}GB) exceeds 8GB"
+        fi
+    
     # Debug: List checkpoint files before caching
     - name: Debug - List checkpoint files
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
@@ -710,10 +767,23 @@ jobs:
           echo ""
           echo "- Cache Key: \`checkpoint-${{ github.run_id }}\`"
           echo "- Retention: 7 days"
+          echo "- Size Limit: 10GB"
         } >> "$GITHUB_STEP_SUMMARY"
         
         if [ "${{ steps.verify_checkpoint.outputs.has_data }}" = "true" ]; then
           echo "- Status: ✅ Saved" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Add cache size warning if needed
+          if [ "${{ steps.cache_monitor.outputs.trigger_early_backup }}" = "true" ]; then
+            {
+              echo ""
+              echo "⚠️ **Cache Size Alert**"
+              echo ""
+              echo "Cache size: \`${{ steps.cache_monitor.outputs.cache_size_human }}\` (\`${{ steps.cache_monitor.outputs.cache_percent }}%\` of 10GB limit)"
+              echo ""
+              echo "**Action:** Backup workflow will be triggered to prevent cache eviction"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
         else
           echo "- Status: ⏭️ Skipped (empty checkpoint)" >> "$GITHUB_STEP_SUMMARY"
         fi
@@ -811,6 +881,39 @@ jobs:
             echo "| **Search Query** | \`${{ steps.stats.outputs.search_query }}\` |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
+          
+          # Cache size status
+          if [ -n "${{ steps.cache_monitor.outputs.cache_size_human }}" ]; then
+            {
+              echo "###  Cache Status"
+              echo ""
+              echo "| Metric | Value |"
+              echo "|--------|-------|"
+              echo "| **Checkpoint Size** | \`${{ steps.cache_monitor.outputs.cache_size_human }}\` |"
+              echo "| **Checkpoint Usage** | \`${{ steps.cache_monitor.outputs.cache_percent }}%\` of 10GB limit |"
+            } >> "$GITHUB_STEP_SUMMARY"
+            
+            # Add total repository cache info if available
+            if [ -n "${{ steps.total_cache_check.outputs.total_caches }}" ]; then
+              {
+                echo "| **Total Caches** | \`${{ steps.total_cache_check.outputs.total_caches }}\` |"
+                echo "| **Total Cache Size** | \`${{ steps.total_cache_check.outputs.total_cache_size_gb }}GB\` |"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            
+            echo "| **Status** | \`${{ steps.cache_monitor.outputs.cache_status }}\` |" >> "$GITHUB_STEP_SUMMARY"
+            
+            if [ "${{ steps.cache_monitor.outputs.trigger_early_backup }}" = "true" ]; then
+              echo "| **Action** | ⚠️ Early backup triggered |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            
+            {
+              echo ""
+              echo "**Note:** GitHub's 10GB cache limit is shared across ALL caches in the repository."
+              echo "Backup workflow will clear all caches after successful backup."
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
           
           # Downstream workflows
           {
