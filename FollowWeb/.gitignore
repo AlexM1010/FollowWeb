@@ -65,3 +65,10 @@ TestOutput*.txt
 tests/Output/
 *.log
 *.cpython
+
+# Build artifacts and caches
+.benchmarks/
+.mypy_cache/
+.ruff_cache/
+test_env/
+custom_checkpoints/
