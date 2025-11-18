@@ -2112,15 +2112,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return edge_stats
 
-    def _validate_sample_filesize(self, sample: dict[str, Any]) -> None:
+    def _validate_sample_filesize(self, sample: dict[str, Any]) -> bool:
         """
         Validate sample has non-zero filesize.
 
         Args:
             sample: Sample dictionary with metadata
 
-        Raises:
-            ValueError: If sample has invalid filesize (0 or missing)
+        Returns:
+            True if sample is valid, False if it should be skipped
         """
         sample_id = str(sample["id"])
         filesize = sample.get("filesize", 0)
@@ -2130,7 +2130,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 f"Skipping sample {sample_id} ({sample.get('name', 'unknown')}): "
                 f"invalid filesize (0 bytes)"
             )
-            raise ValueError(f"Sample {sample_id} has invalid filesize: 0 bytes")
+            # Don't raise - just skip this sample
+            return False
+        return True
 
     def _add_node_to_graph(self, sample: dict[str, Any]) -> None:
         """
@@ -2140,14 +2142,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         Args:
             sample: Sample dictionary with metadata
-
-        Raises:
-            ValueError: If sample has invalid filesize (0 or missing)
         """
         sample_id = str(sample["id"])
 
-        # Validate filesize - reject empty files
-        self._validate_sample_filesize(sample)
+        # Validate filesize - skip empty files
+        if not self._validate_sample_filesize(sample):
+            return  # Skip this sample
 
         # Add node if not already in graph
         if sample_id not in self.graph:
@@ -2219,14 +2219,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         Args:
             sample: Sample dictionary with metadata
             include_similar: Whether to fetch and add similar sounds
-
-        Raises:
-            ValueError: If sample has invalid filesize (0 or missing)
         """
         sample_id = str(sample["id"])
 
-        # Validate filesize - reject empty files
-        self._validate_sample_filesize(sample)
+        # Validate filesize - skip empty files
+        if not self._validate_sample_filesize(sample):
+            return  # Skip this sample
 
         # Add node if not already in graph
         if sample_id not in self.graph:

@@ -331,21 +331,11 @@ def main():
             "max_runtime_hours": None,  # No time limit - let it run as long as needed
             "max_requests": max_requests,  # Circuit breaker
             "page_size": page_size,  # Results per API request
-            # Backup configuration (Phase 1 & 2 implementation)
-            "backup_interval_nodes": 25,  # Backup every 25 nodes (~1/4 of previous 100)
-            "backup_retention_count": 10,  # Keep last 10 backups per tier
-            "backup_compression": True,  # Compress backups older than 7 days
-            "tiered_backups": True,  # Enable multi-tier backup strategy
-            "compression_age_days": 7,  # Compress backups after 7 days
         }
         loader = IncrementalFreesoundLoader(loader_config)
         logger.info("✅ Checkpoint interval: 1 (saving after every sample)")
         logger.info("✅ Persistent storage: data/freesound_library/ (committed to Git)")
-        logger.info(
-            "✅ Tiered backups: every 25 (frequent), 100 (moderate), 500 (milestone) nodes"
-        )
-        logger.info("✅ Backup retention: 5 frequent, 10 moderate, unlimited milestone")
-        logger.info("✅ Automatic compression: backups older than 7 days")
+        logger.info("✅ Backup: Handled by dedicated backup workflow after collection")
         logger.info("✅ Circuit breaker: stops at max_requests to prevent API limit")
         logger.info(
             "✅ No time limit - will handle rate limits with exponential backoff"
