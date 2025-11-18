@@ -168,18 +168,18 @@ class ComprehensiveRepairer:
             metadata_cache: Metadata cache
         """
         nodes_to_remove = []
-        
+
         for node_id in graph.nodes():
             self.stats["nodes_checked"] += 1
 
             # Get current metadata
             node_data = graph.nodes[node_id]
             metadata = metadata_cache.get(node_id)
-            
+
             # Check for invalid filesize (0 bytes) - mark for removal
-            filesize = node_data.get('filesize', 0)
+            filesize = node_data.get("filesize", 0)
             if filesize == 0:
-                sample_name = node_data.get('name', 'unknown')
+                sample_name = node_data.get("name", "unknown")
                 self.logger.warning(
                     f"Node {node_id} ({sample_name}) has invalid filesize: 0 bytes - marking for removal"
                 )
@@ -217,7 +217,7 @@ class ComprehensiveRepairer:
                         node_id, missing_fields, graph, metadata_cache
                     )
                     self.stats["nodes_repaired"] += 1
-        
+
         # Remove nodes with invalid filesize
         if nodes_to_remove:
             self.logger.info(
@@ -272,7 +272,7 @@ class ComprehensiveRepairer:
             data = response.json()
 
             self.stats["api_requests_made"] += 1
-            
+
             # Validate filesize before updating
             filesize = data.get("filesize", 0)
             if filesize == 0:
@@ -289,7 +289,7 @@ class ComprehensiveRepairer:
                     graph.nodes[node_id][field] = data[field]
                     updated_metadata[field] = data[field]
                     self.stats["fields_added"] += 1
-            
+
             # Update metadata cache with all fields at once
             if updated_metadata:
                 metadata_cache.set(int(node_id), updated_metadata)

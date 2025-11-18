@@ -9,17 +9,17 @@ sys.path.insert(0, str(Path(__file__).parent / "FollowWeb"))
 from FollowWeb_Visualizor.data.checkpoint import GraphCheckpoint
 
 # Check old checkpoint
-checkpoint = GraphCheckpoint('checkpoints/freesound_1762742088.pkl')
+checkpoint = GraphCheckpoint("checkpoints/freesound_1762742088.pkl")
 data = checkpoint.load()
 
 if data:
-    graph = data['graph']
+    graph = data["graph"]
     print(f"Checkpoint loaded: {graph.number_of_nodes()} nodes")
-    
+
     if graph.number_of_nodes() > 0:
         # Get first node
         node_id, attrs = list(graph.nodes(data=True))[0]
-        
+
         print(f"\nSample Node: {node_id}")
         print(f"Total fields: {len(attrs)}")
         print("\nAll fields:")

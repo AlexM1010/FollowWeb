@@ -60,22 +60,28 @@ class CheckpointVerifier:
         MIN_PICKLE_SIZE = 100  # Minimum 100 bytes for valid pickle
         MIN_DB_SIZE = 8192  # Minimum 8KB for valid SQLite database (2 pages)
         MIN_JSON_SIZE = 10  # Minimum 10 bytes for valid JSON (e.g., "{}")
-        
+
         empty_files = []
         if topology_path.stat().st_size == 0:
             empty_files.append("graph_topology.gpickle (0 bytes)")
         elif topology_path.stat().st_size < MIN_PICKLE_SIZE:
-            empty_files.append(f"graph_topology.gpickle ({topology_path.stat().st_size} bytes, minimum {MIN_PICKLE_SIZE})")
-            
+            empty_files.append(
+                f"graph_topology.gpickle ({topology_path.stat().st_size} bytes, minimum {MIN_PICKLE_SIZE})"
+            )
+
         if metadata_db_path.stat().st_size == 0:
             empty_files.append("metadata_cache.db (0 bytes)")
         elif metadata_db_path.stat().st_size < MIN_DB_SIZE:
-            empty_files.append(f"metadata_cache.db ({metadata_db_path.stat().st_size} bytes, minimum {MIN_DB_SIZE})")
-            
+            empty_files.append(
+                f"metadata_cache.db ({metadata_db_path.stat().st_size} bytes, minimum {MIN_DB_SIZE})"
+            )
+
         if checkpoint_meta_path.stat().st_size == 0:
             empty_files.append("checkpoint_metadata.json (0 bytes)")
         elif checkpoint_meta_path.stat().st_size < MIN_JSON_SIZE:
-            empty_files.append(f"checkpoint_metadata.json ({checkpoint_meta_path.stat().st_size} bytes, minimum {MIN_JSON_SIZE})")
+            empty_files.append(
+                f"checkpoint_metadata.json ({checkpoint_meta_path.stat().st_size} bytes, minimum {MIN_JSON_SIZE})"
+            )
 
         if empty_files:
             message = f"Empty or too small checkpoint files: {', '.join(empty_files)}"
@@ -99,20 +105,23 @@ class CheckpointVerifier:
 
             with open(topology_path, "rb") as f:
                 graph = pickle.load(f)
-            
+
             # Verify it's a NetworkX graph
             import networkx as nx
-            if not isinstance(graph, (nx.Graph, nx.DiGraph, nx.MultiGraph, nx.MultiDiGraph)):
+
+            if not isinstance(
+                graph, (nx.Graph, nx.DiGraph, nx.MultiGraph, nx.MultiDiGraph)
+            ):
                 message = f"graph_topology.gpickle contains invalid type: {type(graph)}"
                 self.logger.error(f"❌ Checkpoint verification failed: {message}")
                 return False, message
-            
+
             # Verify graph has nodes
             if graph.number_of_nodes() == 0:
                 message = "graph_topology.gpickle contains empty graph (0 nodes)"
                 self.logger.error(f"❌ Checkpoint verification failed: {message}")
                 return False, message
-                
+
         except Exception as e:
             message = f"Invalid graph_topology.gpickle: {e}"
             self.logger.error(f"❌ Checkpoint verification failed: {message}")
@@ -126,23 +135,23 @@ class CheckpointVerifier:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = cursor.fetchall()
-            
+
             if not tables:
                 conn.close()
                 message = "metadata_cache.db has no tables"
                 self.logger.error(f"❌ Checkpoint verification failed: {message}")
                 return False, message
-            
+
             # Verify metadata table has data
             cursor.execute("SELECT COUNT(*) FROM metadata")
             count = cursor.fetchone()[0]
             conn.close()
-            
+
             if count == 0:
                 message = "metadata_cache.db has no data (0 rows)"
                 self.logger.error(f"❌ Checkpoint verification failed: {message}")
                 return False, message
-                
+
         except Exception as e:
             message = f"Invalid metadata_cache.db: {e}"
             self.logger.error(f"❌ Checkpoint verification failed: {message}")

@@ -1,5 +1,6 @@
 """Check color similarity for new palette additions."""
 
+
 def rgb_to_lab(r, g, b):
     """Convert RGB to LAB color space."""
     r = r / 255.0
@@ -57,16 +58,66 @@ base_colors = {
 
 # Muted colors - new proposed set
 proposed = [
-    "#87BDFF", "#FFBC7B", "#FC9CB7", "#F591B3", "#F06292", "#FF79A7",
-    "#FFC97F", "#FFA07B", "#FD9C5B", "#FEB959", "#7AC0F8", "#69CBF9",
-    "#4EC3F7", "#4CD0FF", "#4CC0DE", "#79D5FF", "#C47ED0", "#B968C8",
-    "#CE95D8", "#A489D4", "#B49EEB", "#B9DB93", "#ADD580", "#C6F04D",
-    "#D7FF4D", "#9FFF4F", "#F48684", "#EC7471", "#F77B72", "#67C0B8",
-    "#4CC4D3", "#4CD2C0", "#60EFCA", "#92FFE5", "#7885CB", "#8C97D2",
-    "#A1AACF", "#4CB5AB", "#82CBCA", "#A6DADC", "#E06D6D", "#D76868",
-    "#C55A89", "#AF65C3", "#9475CC", "#7885CB", "#63B5F6", "#4EC3F7",
-    "#4CD0E0", "#4CB5AB", "#81C784", "#ADD580", "#DCE674", "#FFF175",
-    "#FFD351", "#FFB64D", "#FF8964", "#F77B72", "#F06292", "#B968C8",
+    "#87BDFF",
+    "#FFBC7B",
+    "#FC9CB7",
+    "#F591B3",
+    "#F06292",
+    "#FF79A7",
+    "#FFC97F",
+    "#FFA07B",
+    "#FD9C5B",
+    "#FEB959",
+    "#7AC0F8",
+    "#69CBF9",
+    "#4EC3F7",
+    "#4CD0FF",
+    "#4CC0DE",
+    "#79D5FF",
+    "#C47ED0",
+    "#B968C8",
+    "#CE95D8",
+    "#A489D4",
+    "#B49EEB",
+    "#B9DB93",
+    "#ADD580",
+    "#C6F04D",
+    "#D7FF4D",
+    "#9FFF4F",
+    "#F48684",
+    "#EC7471",
+    "#F77B72",
+    "#67C0B8",
+    "#4CC4D3",
+    "#4CD2C0",
+    "#60EFCA",
+    "#92FFE5",
+    "#7885CB",
+    "#8C97D2",
+    "#A1AACF",
+    "#4CB5AB",
+    "#82CBCA",
+    "#A6DADC",
+    "#E06D6D",
+    "#D76868",
+    "#C55A89",
+    "#AF65C3",
+    "#9475CC",
+    "#7885CB",
+    "#63B5F6",
+    "#4EC3F7",
+    "#4CD0E0",
+    "#4CB5AB",
+    "#81C784",
+    "#ADD580",
+    "#DCE674",
+    "#FFF175",
+    "#FFD351",
+    "#FFB64D",
+    "#FF8964",
+    "#F77B72",
+    "#F06292",
+    "#B968C8",
 ]
 
 # Remove duplicates
@@ -81,23 +132,23 @@ approved = []
 rejected = []
 
 for color in proposed:
-    min_delta = float('inf')
+    min_delta = float("inf")
     closest_base = None
-    
+
     # Check against base colors
     for name, base_color in base_colors.items():
         de = delta_e(color, base_color)
         if de < min_delta:
             min_delta = de
             closest_base = name
-    
+
     # Check against already approved colors
     for approved_color in approved:
         de = delta_e(color, approved_color)
         if de < min_delta:
             min_delta = de
             closest_base = f"approved {approved_color}"
-    
+
     if min_delta >= MIN_DELTA_E:
         approved.append(color)
         print(f"✓ {color} - Delta E: {min_delta:.1f} (closest: {closest_base})")

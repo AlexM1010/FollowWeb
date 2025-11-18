@@ -138,9 +138,7 @@ class EdgeGenerator:
 
         return edge_stats
 
-    def _add_user_edges(
-        self, graph: nx.Graph, metadata_cache: MetadataCache
-    ) -> int:
+    def _add_user_edges(self, graph: nx.Graph, metadata_cache: MetadataCache) -> int:
         """
         Generate edges between samples by the same user.
 
@@ -173,9 +171,7 @@ class EdgeGenerator:
 
         return edges_added
 
-    def _add_pack_edges(
-        self, graph: nx.Graph, metadata_cache: MetadataCache
-    ) -> int:
+    def _add_pack_edges(self, graph: nx.Graph, metadata_cache: MetadataCache) -> int:
         """
         Generate edges between samples in the same pack.
 
@@ -272,9 +268,7 @@ class EdgeGenerator:
                 similarity = intersection / union
 
                 if similarity >= threshold:
-                    graph.add_edge(
-                        node1, node2, edge_type="tag", similarity=similarity
-                    )
+                    graph.add_edge(node1, node2, edge_type="tag", similarity=similarity)
                     edges_added += 1
 
         return edges_added

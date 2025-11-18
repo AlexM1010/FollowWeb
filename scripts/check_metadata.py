@@ -40,11 +40,15 @@ cursor.execute("SELECT id, username, pack_id, tags FROM samples LIMIT 5")
 samples = cursor.fetchall()
 print("Sample data (first 5):")
 for sample in samples:
-    print(f"  ID: {sample[0]}, User: {sample[1]}, Pack: {sample[2]}, Tags: {sample[3][:50] if sample[3] else None}...")
+    print(
+        f"  ID: {sample[0]}, User: {sample[1]}, Pack: {sample[2]}, Tags: {sample[3][:50] if sample[3] else None}..."
+    )
 print()
 
 # Check for relationship data
-cursor.execute("SELECT id, username, pack_id FROM samples WHERE username IS NOT NULL LIMIT 10")
+cursor.execute(
+    "SELECT id, username, pack_id FROM samples WHERE username IS NOT NULL LIMIT 10"
+)
 user_samples = cursor.fetchall()
 print(f"Samples with username: {len(user_samples)}")
 
@@ -52,7 +56,9 @@ cursor.execute("SELECT id, pack_id FROM samples WHERE pack_id IS NOT NULL LIMIT 
 pack_samples = cursor.fetchall()
 print(f"Samples with pack_id: {len(pack_samples)}")
 
-cursor.execute("SELECT id, tags FROM samples WHERE tags IS NOT NULL AND tags != '' LIMIT 10")
+cursor.execute(
+    "SELECT id, tags FROM samples WHERE tags IS NOT NULL AND tags != '' LIMIT 10"
+)
 tag_samples = cursor.fetchall()
 print(f"Samples with tags: {len(tag_samples)}")
 

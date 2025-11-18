@@ -130,9 +130,7 @@ class IntegrityValidator:
         invalid_samples = self._validate_samples(graph)
 
         if invalid_samples:
-            self.logger.warning(
-                f"⚠️  Found {len(invalid_samples)} samples with issues"
-            )
+            self.logger.warning(f"⚠️  Found {len(invalid_samples)} samples with issues")
 
             if self.fix:
                 self.logger.info("Removing invalid samples...")
@@ -141,9 +139,7 @@ class IntegrityValidator:
                     f"✅ Removed {self.stats['samples_removed']} invalid samples"
                 )
             else:
-                self.logger.warning(
-                    "Run with --fix to remove invalid samples"
-                )
+                self.logger.warning("Run with --fix to remove invalid samples")
         else:
             self.logger.info("✅ All samples validated")
 

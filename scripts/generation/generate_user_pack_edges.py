@@ -74,9 +74,7 @@ def generate_edges(checkpoint_dir: str, api_key: str, logger: logging.Logger) ->
     # Check if checkpoint exists
     if loader.graph.number_of_nodes() == 0:
         logger.error(
-            EmojiFormatter.format(
-                "error", f"No checkpoint found in {checkpoint_dir}"
-            )
+            EmojiFormatter.format("error", f"No checkpoint found in {checkpoint_dir}")
         )
         return {
             "user_edges_added": 0,
@@ -96,9 +94,7 @@ def generate_edges(checkpoint_dir: str, api_key: str, logger: logging.Logger) ->
     )
 
     # Generate edges
-    logger.info(
-        EmojiFormatter.format("progress", "Generating user and pack edges...")
-    )
+    logger.info(EmojiFormatter.format("progress", "Generating user and pack edges..."))
     start_time = time.time()
 
     try:
@@ -137,9 +133,7 @@ def generate_edges(checkpoint_dir: str, api_key: str, logger: logging.Logger) ->
 
     except Exception as e:
         duration = time.time() - start_time
-        logger.error(
-            EmojiFormatter.format("error", f"Edge generation failed: {e}")
-        )
+        logger.error(EmojiFormatter.format("error", f"Edge generation failed: {e}"))
         return {
             "user_edges_added": 0,
             "pack_edges_added": 0,

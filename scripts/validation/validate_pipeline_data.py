@@ -61,7 +61,9 @@ class ValidationReport:
         }
 
 
-def validate_checkpoint_integrity(checkpoint_dir: Path, report: ValidationReport) -> tuple[nx.DiGraph | None, dict | None]:
+def validate_checkpoint_integrity(
+    checkpoint_dir: Path, report: ValidationReport
+) -> tuple[nx.DiGraph | None, dict | None]:
     """
     Validate checkpoint file integrity.
 
@@ -104,15 +106,11 @@ def validate_checkpoint_integrity(checkpoint_dir: Path, report: ValidationReport
 
     # Check files are not empty
     if topology_path.stat().st_size == 0:
-        report.add_check(
-            "file_integrity", "failed", "Graph topology file is empty"
-        )
+        report.add_check("file_integrity", "failed", "Graph topology file is empty")
         return None, None
 
     if metadata_db_path.stat().st_size == 0:
-        report.add_check(
-            "file_integrity", "failed", "Metadata database file is empty"
-        )
+        report.add_check("file_integrity", "failed", "Metadata database file is empty")
         return None, None
 
     # Try loading graph topology
@@ -134,9 +132,7 @@ def validate_checkpoint_integrity(checkpoint_dir: Path, report: ValidationReport
             f"Graph loaded successfully: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges",
         )
     except Exception as e:
-        report.add_check(
-            "graph_load", "failed", f"Failed to load graph topology: {e}"
-        )
+        report.add_check("graph_load", "failed", f"Failed to load graph topology: {e}")
         return None, None
 
     # Try opening SQLite database
@@ -168,9 +164,7 @@ def validate_checkpoint_integrity(checkpoint_dir: Path, report: ValidationReport
             conn.close()
             return None, None
 
-        report.add_check(
-            "sqlite_integrity", "passed", "SQLite database is valid"
-        )
+        report.add_check("sqlite_integrity", "passed", "SQLite database is valid")
 
     except Exception as e:
         report.add_check(
@@ -259,7 +253,7 @@ def validate_graph_structure(graph: nx.DiGraph, report: ValidationReport) -> boo
 
     # Check edge weights (if present - topology may not include attributes)
     edges_with_attrs = sum(1 for _, _, attrs in graph.edges(data=True) if attrs)
-    
+
     if edges_with_attrs > 0:
         # Graph has edge attributes, validate them
         invalid_weights = []
@@ -360,9 +354,7 @@ def validate_metadata_consistency(
         )
         return False
 
-    report.add_check(
-        "metadata_coverage", "passed", "All graph nodes have metadata"
-    )
+    report.add_check("metadata_coverage", "passed", "All graph nodes have metadata")
 
     # Check for orphaned metadata
     orphaned_metadata = metadata_ids - graph_node_ids
@@ -373,9 +365,7 @@ def validate_metadata_consistency(
             f"Found {len(orphaned_metadata)} metadata entries without corresponding nodes",
         )
     else:
-        report.add_check(
-            "orphaned_metadata", "passed", "No orphaned metadata entries"
-        )
+        report.add_check("orphaned_metadata", "passed", "No orphaned metadata entries")
 
     # Check for duplicate sample IDs
     cursor.execute(
@@ -396,9 +386,7 @@ def validate_metadata_consistency(
         )
         return False
 
-    report.add_check(
-        "metadata_uniqueness", "passed", "All sample IDs are unique"
-    )
+    report.add_check("metadata_uniqueness", "passed", "All sample IDs are unique")
 
     # Check metadata has required fields
     cursor.execute("SELECT sample_id, data FROM metadata LIMIT 10")
@@ -426,9 +414,7 @@ def validate_metadata_consistency(
             f"Found {missing_fields_count} metadata entries with missing required fields",
         )
     else:
-        report.add_check(
-            "metadata_fields", "passed", "Metadata has required fields"
-        )
+        report.add_check("metadata_fields", "passed", "Metadata has required fields")
 
     return True
 
@@ -471,9 +457,7 @@ def detect_anomalies(
 
                 # Check for node count drop
                 if prev_nodes > 0:
-                    node_drop_pct = (
-                        (prev_nodes - current_nodes) / prev_nodes * 100
-                    )
+                    node_drop_pct = (prev_nodes - current_nodes) / prev_nodes * 100
                     if node_drop_pct > 10:
                         report.add_check(
                             "node_count_anomaly",
@@ -484,9 +468,7 @@ def detect_anomalies(
 
                 # Check for edge count drop
                 if prev_edges > 0:
-                    edge_drop_pct = (
-                        (prev_edges - current_edges) / prev_edges * 100
-                    )
+                    edge_drop_pct = (prev_edges - current_edges) / prev_edges * 100
                     if edge_drop_pct > 10:
                         report.add_check(
                             "edge_count_anomaly",
@@ -579,9 +561,7 @@ def main():
 
     # Step 1: Validate checkpoint integrity
     print("  ├─ Checking file integrity...")
-    graph, metadata_conn = validate_checkpoint_integrity(
-        args.checkpoint_dir, report
-    )
+    graph, metadata_conn = validate_checkpoint_integrity(args.checkpoint_dir, report)
 
     if graph is None or metadata_conn is None:
         print("  └─ ❌ Checkpoint integrity check failed")
@@ -606,9 +586,7 @@ def main():
 
         # Step 3: Validate metadata consistency
         print("  ├─ Validating metadata consistency...")
-        metadata_valid = validate_metadata_consistency(
-            graph, metadata_conn, report
-        )
+        metadata_valid = validate_metadata_consistency(graph, metadata_conn, report)
         if metadata_valid:
             print("  ├─ ✅ Metadata is consistent")
         else:
@@ -655,9 +633,9 @@ def main():
     print(f"  └─ 📄 Report saved to: {args.output}")
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Validation Status: {report.status.upper()}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if report.errors:
         print("\n❌ Errors:")
