@@ -427,7 +427,7 @@ class FreesoundLoader(DataLoader):
                 "type,channels,filesize,samplerate,previews,images,"
                 "num_downloads,avg_rating,num_ratings,num_comments,category"
             )
-            
+
             # Wrap API call with retry logic
             def _do_search():
                 return self.client.text_search(
@@ -486,43 +486,43 @@ class FreesoundLoader(DataLoader):
             Dictionary with sample metadata including audio preview URL
         """
         import re
-        
+
         # Get full metadata dict - this contains EVERYTHING from the API
         sound_dict = sound.as_dict()
 
         # Start with the complete API response (saves everything!)
         metadata = sound_dict.copy()
-        
+
         # Remove description field to save storage (~10% reduction)
         # Description often contains lengthy license text (2-3KB per sample)
         # We keep the 'license' field which has the license URL
-        if 'description' in metadata:
-            del metadata['description']
-        
+        if "description" in metadata:
+            del metadata["description"]
+
         # Optimize URL storage (~38% reduction)
         # Store base paths instead of full URLs for previews and images
-        
+
         # Optimize previews: 4 URLs → 1 base path
-        if 'previews' in metadata and isinstance(metadata['previews'], dict):
-            preview_url = metadata['previews'].get('preview_hq_mp3', '')
+        if "previews" in metadata and isinstance(metadata["previews"], dict):
+            preview_url = metadata["previews"].get("preview_hq_mp3", "")
             if preview_url:
                 # Extract: previews/0/406_196 from full URL
-                match = re.search(r'previews/(\d+/\d+_\d+)', preview_url)
+                match = re.search(r"previews/(\d+/\d+_\d+)", preview_url)
                 if match:
-                    metadata['preview_base'] = f"previews/{match.group(1)}"
+                    metadata["preview_base"] = f"previews/{match.group(1)}"
                     # Remove full previews dict
-                    del metadata['previews']
-        
+                    del metadata["previews"]
+
         # Optimize images: 8 URLs → 1 base path
-        if 'images' in metadata and isinstance(metadata['images'], dict):
-            image_url = metadata['images'].get('waveform_m', '')
+        if "images" in metadata and isinstance(metadata["images"], dict):
+            image_url = metadata["images"].get("waveform_m", "")
             if image_url:
                 # Extract: displays/0/406_196 from full URL
-                match = re.search(r'displays/(\d+/\d+_\d+)', image_url)
+                match = re.search(r"displays/(\d+/\d+_\d+)", image_url)
                 if match:
-                    metadata['image_base'] = f"displays/{match.group(1)}"
+                    metadata["image_base"] = f"displays/{match.group(1)}"
                     # Remove full images dict
-                    del metadata['images']
+                    del metadata["images"]
 
         # Ensure critical fields are present (for backward compatibility)
         metadata.setdefault("id", sound.id)

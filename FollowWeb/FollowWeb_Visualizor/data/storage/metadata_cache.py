@@ -44,9 +44,15 @@ class MetadataCache:
     - Scales to millions of samples
     """
 
-    DEFAULT_BATCH_SIZE = 200  # Flush writes every 200 samples (increased from 50 for better performance)
-    MAX_BATCH_SIZE = 999  # SQLite SQLITE_MAX_VARIABLE_NUMBER default (conservative estimate)
-    SAFE_MAX_BATCH_SIZE = 1000  # Safe limit based on testing (your SQLite supports 10,000+)
+    DEFAULT_BATCH_SIZE = (
+        200  # Flush writes every 200 samples (increased from 50 for better performance)
+    )
+    MAX_BATCH_SIZE = (
+        999  # SQLite SQLITE_MAX_VARIABLE_NUMBER default (conservative estimate)
+    )
+    SAFE_MAX_BATCH_SIZE = (
+        1000  # Safe limit based on testing (your SQLite supports 10,000+)
+    )
     # Note: Actual limit on this system is 10,000+ rows (60,000+ parameters)
     # Using 1000 as safe max to balance performance vs memory usage
 
@@ -66,7 +72,7 @@ class MetadataCache:
         """
         self.db_path = Path(db_path)
         self.logger = logger or logging.getLogger(__name__)
-        
+
         # Validate and cap batch size
         requested_batch_size = batch_size or self.DEFAULT_BATCH_SIZE
         if requested_batch_size > self.SAFE_MAX_BATCH_SIZE:
@@ -77,7 +83,7 @@ class MetadataCache:
             self.batch_size = self.SAFE_MAX_BATCH_SIZE
         else:
             self.batch_size = requested_batch_size
-        
+
         self._pending_writes: list[tuple] = []
         self._conn: Optional[sqlite3.Connection] = None
 
@@ -212,7 +218,7 @@ class MetadataCache:
     def bulk_insert(self, metadata_dict: dict[int, dict[str, Any]]) -> None:
         """
         Bulk insert metadata for multiple samples.
-        
+
         Automatically chunks large inserts to stay within SQLite limits.
         SQLite has a default SQLITE_MAX_VARIABLE_NUMBER of 999, and we use
         6 parameters per row, so max ~166 rows per insert. We use 500 as
@@ -249,9 +255,9 @@ class MetadataCache:
             self.logger.info(
                 f"Chunking {total_rows} rows into batches of {self.SAFE_MAX_BATCH_SIZE}"
             )
-            
+
             for i in range(0, total_rows, self.SAFE_MAX_BATCH_SIZE):
-                chunk = rows[i:i + self.SAFE_MAX_BATCH_SIZE]
+                chunk = rows[i : i + self.SAFE_MAX_BATCH_SIZE]
                 self._conn.executemany(
                     """
                     INSERT OR REPLACE INTO metadata
@@ -260,10 +266,14 @@ class MetadataCache:
                 """,
                     chunk,
                 )
-                self.logger.debug(f"Inserted chunk {i//self.SAFE_MAX_BATCH_SIZE + 1}: {len(chunk)} rows")
-            
+                self.logger.debug(
+                    f"Inserted chunk {i // self.SAFE_MAX_BATCH_SIZE + 1}: {len(chunk)} rows"
+                )
+
             self._conn.commit()
-            self.logger.info(f"Bulk inserted {total_rows} metadata entries in {(total_rows + self.SAFE_MAX_BATCH_SIZE - 1) // self.SAFE_MAX_BATCH_SIZE} chunks")
+            self.logger.info(
+                f"Bulk inserted {total_rows} metadata entries in {(total_rows + self.SAFE_MAX_BATCH_SIZE - 1) // self.SAFE_MAX_BATCH_SIZE} chunks"
+            )
         else:
             # Single batch insert
             self._conn.executemany(
