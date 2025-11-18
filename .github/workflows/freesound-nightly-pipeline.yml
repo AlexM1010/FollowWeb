@@ -633,9 +633,10 @@ jobs:
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
       id: verify_checkpoint
       run: |
-        # Extract node count from checkpoint metadata (support both field names)
+        # Extract node and edge counts from checkpoint metadata (support both field names)
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
           node_count=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          edge_count=$(jq -r '.edges // 0' data/freesound_library/checkpoint_metadata.json)
           
           if [ "$node_count" -eq 0 ]; then
             echo "::warning::Checkpoint has 0 nodes - skipping cache save to prevent corruption"
@@ -652,8 +653,23 @@ jobs:
               echo "- Checkpoint initialization failed"
             } >> "$GITHUB_STEP_SUMMARY"
             echo "has_data=false" >> "$GITHUB_OUTPUT"
+          elif [ "$edge_count" -eq 0 ]; then
+            echo "::warning::Checkpoint has 0 edges - skipping cache save to prevent corruption"
+            {
+              echo ""
+              echo "⚠️ **Warning: Checkpoint Missing Edges**"
+              echo ""
+              echo "The checkpoint has $node_count nodes but 0 edges. This checkpoint will NOT be cached"
+              echo "to prevent corrupting downstream workflows with incomplete graph data."
+              echo ""
+              echo "**Possible Causes:**"
+              echo "- Edge generation failed"
+              echo "- Graph topology not properly saved"
+              echo "- Checkpoint corruption during save"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "has_data=false" >> "$GITHUB_OUTPUT"
           else
-            echo "✅ Checkpoint has $node_count nodes - safe to cache"
+            echo "✅ Checkpoint has $node_count nodes and $edge_count edges - safe to cache"
             echo "has_data=true" >> "$GITHUB_OUTPUT"
           fi
         else

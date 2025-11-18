@@ -439,7 +439,7 @@ jobs:
         edge_count="${{ steps.verification.outputs.edge_count }}"
         reason="${{ steps.backup_reason.outputs.reason }}"
         
-        # CRITICAL: Prevent 0-node backups from being created
+        # CRITICAL: Prevent 0-node or 0-edge backups from being created
         if [ "$node_count" -eq 0 ]; then
           echo "::error::Cannot create backup with 0 nodes - checkpoint is empty or corrupted"
           {
@@ -450,6 +450,20 @@ jobs:
             echo "This indicates an empty or corrupted checkpoint. Refusing to create backup to prevent pipeline corruption."
             echo ""
             echo "**Action Required:** Investigate why checkpoint has no data"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        if [ "$edge_count" -eq 0 ]; then
+          echo "::error::Cannot create backup with 0 edges - checkpoint graph is incomplete"
+          {
+            echo "**❌ Backup Creation Failed**"
+            echo ""
+            echo "**Reason:** Checkpoint has $node_count nodes but 0 edges"
+            echo ""
+            echo "This indicates an incomplete graph (nodes without relationships). Refusing to create backup to prevent pipeline corruption."
+            echo ""
+            echo "**Action Required:** Investigate why edge generation failed"
           } >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
