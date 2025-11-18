@@ -2139,7 +2139,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 # Sound taxonomy (Broad Sound Taxonomy)
                 category=sample.get("category", []),  # [category, subcategory]
                 category_code=sample.get("category_code", ""),  # e.g. "fx-a"
-                category_is_user_provided=sample.get("category_is_user_provided", False),
+                category_is_user_provided=sample.get(
+                    "category_is_user_provided", False
+                ),
                 # Technical audio properties
                 type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
                 file_type=sample.get("type", ""),  # Alias for compatibility
@@ -2148,7 +2150,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
                 # URLs and media assets
                 audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
-                previews=sample.get("previews", {}),  # All preview URLs (mp3/ogg, hq/lq)
+                previews=sample.get(
+                    "previews", {}
+                ),  # All preview URLs (mp3/ogg, hq/lq)
                 images=sample.get("images", {}),  # Waveform and spectrogram URLs
                 # Note: download and analysis_files can be fetched on-demand via API
                 # Engagement and quality metrics
@@ -2208,7 +2212,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 # Sound taxonomy (Broad Sound Taxonomy)
                 category=sample.get("category", []),  # [category, subcategory]
                 category_code=sample.get("category_code", ""),  # e.g. "fx-a"
-                category_is_user_provided=sample.get("category_is_user_provided", False),
+                category_is_user_provided=sample.get(
+                    "category_is_user_provided", False
+                ),
                 # Technical audio properties
                 type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
                 file_type=sample.get("type", ""),  # Alias for compatibility
@@ -2217,7 +2223,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
                 # URLs and media assets
                 audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
-                previews=sample.get("previews", {}),  # All preview URLs (mp3/ogg, hq/lq)
+                previews=sample.get(
+                    "previews", {}
+                ),  # All preview URLs (mp3/ogg, hq/lq)
                 images=sample.get("images", {}),  # Waveform and spectrogram URLs
                 # Note: download and analysis_files can be fetched on-demand via API
                 # Engagement and quality metrics
