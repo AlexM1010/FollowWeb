@@ -174,14 +174,13 @@ jobs:
     
     - name: Run validation checks
       id: validation
-      continue-on-error: true
       run: |
         {
           echo "### 🔍 Validation Checks"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run validation script and capture output
+        # Run validation script and capture output (always succeed to allow repair to run)
         if python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log; then
           echo "validation_passed=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
@@ -190,6 +189,9 @@ jobs:
           echo "- Status: ❌ Validation failed" >> "$GITHUB_STEP_SUMMARY"
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
+        
+        # Always exit 0 to allow repair step to run
+        exit 0
     
     - name: Run repair operations
       if: steps.validation.outputs.validation_passed == 'false'
