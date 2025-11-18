@@ -32,7 +32,7 @@ def mock_freesound_client():
         end_idx = min(start_idx + page_size, total_samples)
 
         if start_idx >= total_samples:
-            return Mock(count=total_samples, results=[])
+            return []
 
         results = []
         for i in range(start_idx, end_idx):
@@ -65,7 +65,7 @@ def mock_freesound_client():
                 )
             )
 
-        return Mock(count=total_samples, results=results)
+        return results
 
     client.text_search.side_effect = mock_text_search
 

@@ -702,56 +702,85 @@ class TestIncrementalFreesoundLoaderIntegration:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {"api_key": "test_key", "checkpoint_dir": tmpdir}
-            # Mock the split checkpoint files to not exist
-            with patch("pathlib.Path.exists", return_value=False):
-                loader = IncrementalFreesoundLoader(config=config)
 
-                try:
-                    # Verify checkpoint was loaded
-                    assert "1" in loader.processed_ids
+            # Create split checkpoint files to pass verification
+            import json
+            import pickle
+            from pathlib import Path
 
-                    # Mock _search_samples to return properly formatted sample dictionaries
-                    sample_dicts = [
-                        {
-                            "id": 1,
-                            "name": "sound1",
-                            "tags": [],
-                            "duration": 1.0,
-                            "username": "user1",
-                            "audio_url": "http://example.com/sound1.mp3",
-                            "previews": {},
-                            "num_downloads": 100,
-                            "avg_rating": 4.0,
-                            "num_ratings": 10,
-                        },
-                        {
-                            "id": 2,
-                            "name": "sound2",
-                            "tags": [],
-                            "duration": 1.0,
-                            "username": "user2",
-                            "audio_url": "http://example.com/sound2.mp3",
-                            "previews": {},
-                            "num_downloads": 100,
-                            "avg_rating": 4.0,
-                            "num_ratings": 10,
-                        },
-                    ]
+            checkpoint_dir = Path(tmpdir)
 
+            # Create graph topology file
+            topology_path = checkpoint_dir / "graph_topology.gpickle"
+            with open(topology_path, "wb") as f:
+                pickle.dump(existing_graph, f)
+
+            # Create metadata database
+            from FollowWeb_Visualizor.data.storage import MetadataCache
+
+            metadata_cache = MetadataCache(str(checkpoint_dir / "metadata_cache.db"))
+            metadata_cache.bulk_insert({1: {"name": "sound1"}})
+            metadata_cache.close()
+
+            # Create checkpoint metadata
+            checkpoint_meta_path = checkpoint_dir / "checkpoint_metadata.json"
+            with open(checkpoint_meta_path, "w") as f:
+                json.dump(
+                    {
+                        "nodes": 1,
+                        "edges": 0,
+                        "processed_samples": 1,
+                        "processed_ids": ["1"],
+                    },
+                    f,
+                )
+
+            loader = IncrementalFreesoundLoader(config=config)
+
+            try:
+                # Verify checkpoint was loaded
+                assert "1" in loader.processed_ids
+
+                # Mock _search_samples to return properly formatted sample dictionaries
+                sample_dicts = [
+                    {
+                        "id": 1,
+                        "name": "sound1",
+                        "tags": [],
+                        "duration": 1.0,
+                        "username": "user1",
+                        "audio_url": "http://example.com/sound1.mp3",
+                        "previews": {},
+                        "num_downloads": 100,
+                        "avg_rating": 4.0,
+                        "num_ratings": 10,
+                    },
+                    {
+                        "id": 2,
+                        "name": "sound2",
+                        "tags": [],
+                        "duration": 1.0,
+                        "username": "user2",
+                        "audio_url": "http://example.com/sound2.mp3",
+                        "previews": {},
+                        "num_downloads": 100,
+                        "avg_rating": 4.0,
+                        "num_ratings": 10,
+                    },
+                ]
+
+                with patch.object(loader, "_search_samples", return_value=sample_dicts):
                     with patch.object(
-                        loader, "_search_samples", return_value=sample_dicts
+                        loader, "_fetch_similar_sounds_for_sample", return_value=[]
                     ):
-                        with patch.object(
-                            loader, "_fetch_similar_sounds_for_sample", return_value=[]
-                        ):
-                            data = loader.fetch_data(query="test", max_samples=10)
+                        data = loader.fetch_data(query="test", max_samples=10)
 
-                    # Should only process sample 2 (sample 1 is already processed)
-                    assert len(data["samples"]) == 1
-                    assert data["samples"][0]["id"] == 2
-                finally:
-                    # Ensure cleanup
-                    loader.close()
+                # Should only process sample 2 (sample 1 is already processed)
+                assert len(data["samples"]) == 1
+                assert data["samples"][0]["id"] == 2
+            finally:
+                # Ensure cleanup
+                loader.close()
 
 
 class TestIncrementalFreesoundLoaderPagination:

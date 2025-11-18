@@ -34,7 +34,7 @@ def mock_freesound_client():
         end_idx = min(start_idx + page_size, total_samples)
 
         if start_idx >= total_samples:
-            return Mock(count=total_samples, results=[])
+            return []
 
         results = []
         for i in range(start_idx, end_idx):
@@ -70,7 +70,7 @@ def mock_freesound_client():
                 )
             )
 
-        return Mock(count=total_samples, results=results)
+        return results
 
     client.text_search.side_effect = mock_text_search
 
@@ -184,46 +184,48 @@ class TestDiscoveryModeComparisons:
 
         with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
             loader = IncrementalFreesoundLoader(loader_config)
+            try:
+                mock_freesound_client.text_search.reset_mock()
+                mock_freesound_client.get_sound.reset_mock()
 
-            mock_freesound_client.text_search.reset_mock()
-            mock_freesound_client.get_sound.reset_mock()
+                start_time = time.time()
 
-            start_time = time.time()
+                loader.fetch_data(
+                    query="drum",
+                    max_samples=300,
+                    discovery_mode="search",
+                    include_user_edges=True,
+                    include_pack_edges=True,
+                    include_tag_edges=False,
+                )
 
-            loader.fetch_data(
-                query="drum",
-                max_samples=300,
-                discovery_mode="search",
-                include_user_edges=True,
-                include_pack_edges=True,
-                include_tag_edges=False,
-            )
+                elapsed = time.time() - start_time
+                metrics = collect_metrics(loader, elapsed, mock_freesound_client)
 
-            elapsed = time.time() - start_time
-            metrics = collect_metrics(loader, elapsed, mock_freesound_client)
+                print("\n=== Search Mode Performance ===")
+                print(f"Nodes: {metrics['nodes']}")
+                print(f"Edges: {metrics['edges']}")
+                print(f"Graph density: {metrics['density']:.6f}")
+                print(f"Time: {metrics['elapsed_time']:.2f}s")
+                print(f"Samples/sec: {metrics['samples_per_second']:.2f}")
+                print(
+                    f"API calls: {metrics['total_calls']} ({metrics['calls_per_sample']:.3f} per sample)"
+                )
+                print(f"  Search calls: {metrics['search_calls']}")
+                print(f"  Get calls: {metrics['get_calls']}")
+                print(
+                    f"Pending nodes: {metrics['pending_nodes']} ({metrics['discovery_rate']:.2f} per node)"
+                )
 
-            print("\n=== Search Mode Performance ===")
-            print(f"Nodes: {metrics['nodes']}")
-            print(f"Edges: {metrics['edges']}")
-            print(f"Graph density: {metrics['density']:.6f}")
-            print(f"Time: {metrics['elapsed_time']:.2f}s")
-            print(f"Samples/sec: {metrics['samples_per_second']:.2f}")
-            print(
-                f"API calls: {metrics['total_calls']} ({metrics['calls_per_sample']:.3f} per sample)"
-            )
-            print(f"  Search calls: {metrics['search_calls']}")
-            print(f"  Get calls: {metrics['get_calls']}")
-            print(
-                f"Pending nodes: {metrics['pending_nodes']} ({metrics['discovery_rate']:.2f} per node)"
-            )
+                # Verify search mode characteristics
+                assert metrics["samples_per_second"] >= 10.0, "Search mode should be fast"
+                assert metrics["calls_per_sample"] < 0.1, (
+                    "Search mode should be API-efficient"
+                )
 
-            # Verify search mode characteristics
-            assert metrics["samples_per_second"] >= 10.0, "Search mode should be fast"
-            assert metrics["calls_per_sample"] < 0.1, (
-                "Search mode should be API-efficient"
-            )
-
-            return metrics
+                return metrics
+            finally:
+                loader.close()
 
     @pytest.mark.performance
     def test_relationships_mode_performance(self, loader_config, mock_freesound_client):

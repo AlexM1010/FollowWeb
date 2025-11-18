@@ -44,6 +44,61 @@ def pytest_runtest_teardown(item, nextitem):
         gc.collect(generation=2)  # Full collection including oldest generation
 
 
+@pytest.fixture
+def cleanup_loader():
+    """
+    Fixture to ensure IncrementalFreesoundLoader instances are properly closed.
+    
+    Usage:
+        def test_something(cleanup_loader):
+            loader = IncrementalFreesoundLoader(config)
+            cleanup_loader(loader)  # Register for cleanup
+            # ... test code ...
+            # loader.close() will be called automatically
+    """
+    loaders = []
+    
+    def register(loader):
+        """Register a loader for cleanup."""
+        loaders.append(loader)
+        return loader
+    
+    yield register
+    
+    # Cleanup all registered loaders
+    for loader in loaders:
+        try:
+            if hasattr(loader, 'close'):
+                loader.close()
+        except Exception:
+            pass  # Ignore cleanup errors
+
+
+@pytest.fixture(autouse=True, scope="function")
+def auto_cleanup_database_connections():
+    """
+    Automatically close all SQLite database connections after each test.
+    This prevents "database is locked" errors on Windows when temporary
+    directories are cleaned up.
+    """
+    yield
+    
+    # Force close all SQLite connections
+    import gc
+    import sqlite3
+    
+    # Collect garbage to trigger __del__ methods
+    gc.collect()
+    
+    # Find and close any remaining SQLite connections
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, sqlite3.Connection):
+                obj.close()
+        except Exception:
+            pass  # Ignore errors during cleanup
+
+
 # Cache for dataset summary to avoid repeated file reads
 _dataset_summary_cache = None
 
