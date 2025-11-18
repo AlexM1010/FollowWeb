@@ -24,6 +24,7 @@ from .cache import (
     get_cached_undirected_graph,
 )
 from .checkpoint import GraphCheckpoint
+from .checkpoint_verifier import CheckpointVerifier
 from .loaders import (
     DataLoader,
     FreesoundLoader,
@@ -47,6 +48,7 @@ __all__ = [
     "IncrementalFreesoundLoader",
     # Checkpoint management
     "GraphCheckpoint",
+    "CheckpointVerifier",
     # Graph processing
     "GraphProcessor",
 ]

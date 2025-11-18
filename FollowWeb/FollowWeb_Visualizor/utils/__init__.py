@@ -15,6 +15,7 @@ Modules:
 """
 
 # Import all utility functions to maintain backward compatibility
+from .failure_handler import FailureHandler
 from .files import (
     ErrorRecoveryManager,
     FileOperationHandler,
@@ -24,6 +25,7 @@ from .files import (
     handle_common_exceptions,
     safe_file_cleanup,
 )
+from .github_issue_creator import GitHubIssueCreator
 from .math import (
     clamp_value,
     format_number_clean,
@@ -120,4 +122,7 @@ __all__ = [
     "ProgressTracker",
     # Rate limiting
     "RateLimiter",
+    # Failure handling
+    "FailureHandler",
+    "GitHubIssueCreator",
 ]
