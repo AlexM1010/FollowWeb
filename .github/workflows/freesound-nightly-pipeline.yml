@@ -576,10 +576,10 @@ jobs:
       if: steps.orchestration.outputs.can_proceed == 'true'
       id: stats
       run: |
-        # Extract statistics from checkpoint metadata
+        # Extract statistics from checkpoint metadata (support both field names)
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          total_nodes=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
-          total_edges=$(jq -r '.total_edges // 0' data/freesound_library/checkpoint_metadata.json)
+          total_nodes=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          total_edges=$(jq -r '.total_edges // .edges // 0' data/freesound_library/checkpoint_metadata.json)
           current_page=$(jq -r '.pagination.current_page // 1' data/freesound_library/checkpoint_metadata.json)
           search_query=$(jq -r '.pagination.search_query // "N/A"' data/freesound_library/checkpoint_metadata.json)
           
@@ -633,9 +633,9 @@ jobs:
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
       id: verify_checkpoint
       run: |
-        # Extract node count from checkpoint metadata
+        # Extract node count from checkpoint metadata (support both field names)
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          node_count=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
           
           if [ "$node_count" -eq 0 ]; then
             echo "::warning::Checkpoint has 0 nodes - skipping cache save to prevent corruption"
