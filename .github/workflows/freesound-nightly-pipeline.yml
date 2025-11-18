@@ -577,10 +577,10 @@ jobs:
       if: steps.orchestration.outputs.can_proceed == 'true'
       id: stats
       run: |
-        # Extract statistics from checkpoint metadata (support both field names)
+        # Extract statistics from checkpoint metadata
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          total_nodes=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
-          total_edges=$(jq -r '.total_edges // .edges // 0' data/freesound_library/checkpoint_metadata.json)
+          total_nodes=$(jq -r '.nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          total_edges=$(jq -r '.edges // 0' data/freesound_library/checkpoint_metadata.json)
           current_page=$(jq -r '.pagination.current_page // 1' data/freesound_library/checkpoint_metadata.json)
           search_query=$(jq -r '.pagination.search_query // "N/A"' data/freesound_library/checkpoint_metadata.json)
           

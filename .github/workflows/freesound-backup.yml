@@ -362,9 +362,9 @@ jobs:
           meta_size=$(stat -f%z "$CHECKPOINT_DIR/checkpoint_metadata.json" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/checkpoint_metadata.json")
           echo "- ✅ checkpoint_metadata.json ($(numfmt --to=iec-i --suffix=B "$meta_size"))" >> "$GITHUB_STEP_SUMMARY"
           
-          # Extract node count from metadata (support both field names)
-          node_count=$(jq -r '.total_nodes // .nodes // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
-          edge_count=$(jq -r '.total_edges // .edges // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
+          # Extract node count from metadata
+          node_count=$(jq -r '.nodes // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
+          edge_count=$(jq -r '.edges // 0' "$CHECKPOINT_DIR/checkpoint_metadata.json")
           {
             echo "node_count=$node_count"
             echo "edge_count=$edge_count"

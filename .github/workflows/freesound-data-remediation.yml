@@ -296,7 +296,7 @@ jobs:
           echo "- ❌ Checkpoint metadata still missing" >> "$GITHUB_STEP_SUMMARY"
           all_good=false
         else
-          nodes=$(jq -r '.total_nodes' data/freesound_library/checkpoint_metadata.json)
+          nodes=$(jq -r '.nodes' data/freesound_library/checkpoint_metadata.json)
           echo "- ✅ Checkpoint metadata: $nodes nodes" >> "$GITHUB_STEP_SUMMARY"
         fi
         

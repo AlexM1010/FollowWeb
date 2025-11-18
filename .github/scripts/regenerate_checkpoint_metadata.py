@@ -21,8 +21,8 @@ def main():
     
     # Generate metadata
     metadata = {
-        "total_nodes": graph.number_of_nodes(),
-        "total_edges": graph.number_of_edges(),
+        "nodes": graph.number_of_nodes(),
+        "edges": graph.number_of_edges(),
         "last_updated": datetime.now(timezone.utc).isoformat(),
         "processed_samples": graph.number_of_nodes(),
         "version": "1.0",
@@ -35,7 +35,7 @@ def main():
     with open(metadata_file, 'w') as f:
         json.dump(metadata, f, indent=2)
     
-    print(f"✅ Regenerated metadata: {metadata['total_nodes']} nodes, {metadata['total_edges']} edges")
+    print(f"✅ Regenerated metadata: {metadata['nodes']} nodes, {metadata['edges']} edges")
 
 if __name__ == "__main__":
     main()

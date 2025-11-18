@@ -147,10 +147,10 @@ class CacheIntegrityVerifier:
             with open(metadata_file, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
 
-            # Check required fields (flexible field names)
-            has_nodes = "nodes" in metadata or "total_nodes" in metadata
-            has_edges = "edges" in metadata or "total_edges" in metadata
-            has_timestamp = "timestamp" in metadata or "last_updated" in metadata
+            # Check required fields
+            has_nodes = "nodes" in metadata
+            has_edges = "edges" in metadata
+            has_timestamp = "timestamp" in metadata
 
             if not has_nodes:
                 self.results["warnings"].append(
@@ -171,7 +171,7 @@ class CacheIntegrityVerifier:
                 return False
 
             # Validate node count
-            node_count = metadata.get("nodes", metadata.get("total_nodes", 0))
+            node_count = metadata.get("nodes", 0)
             if node_count == 0:
                 self.results["warnings"].append("Checkpoint has zero nodes")
 

@@ -191,9 +191,9 @@ class CacheSharingTester:
                 metadata = json.load(f)
 
             # Check required fields
-            has_nodes = "nodes" in metadata or "total_nodes" in metadata
-            has_edges = "edges" in metadata or "total_edges" in metadata
-            has_timestamp = "timestamp" in metadata or "last_updated" in metadata
+            has_nodes = "nodes" in metadata
+            has_edges = "edges" in metadata
+            has_timestamp = "timestamp" in metadata
 
             if not has_nodes:
                 self._record_failure(test_name, "Missing node count field")
