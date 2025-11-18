@@ -290,62 +290,38 @@ jobs:
       id: cache-check
       run: |
         if [ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]; then
-          echo "⚠️  Cache restore failed - will attempt repository download"
-          echo "cache_restored=false" >> "$GITHUB_OUTPUT"
-        else
-          echo "✅ Cache restored successfully"
-          echo "cache_restored=true" >> "$GITHUB_OUTPUT"
+          echo "::error::Cache restore failed - upstream workflow should have saved valid checkpoint"
+          {
+            echo "## ❌ Cache Restore Failed"
+            echo ""
+            echo "**Expected cache key:** \`${{ steps.backup_reason.outputs.cache_key }}\`"
+            echo ""
+            echo "**Possible causes:**"
+            echo "- Upstream workflow failed before saving to cache"
+            echo "- Cache expired (7-day retention)"
+            echo "- Cache key mismatch"
+            echo ""
+            echo "**Action:** Check upstream workflow logs"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
         fi
-    
-    - name: Verify cache contents
-      if: steps.backup_reason.outputs.use_cache == 'true' && steps.cache-check.outputs.cache_restored == 'true'
-      id: cache-verify
-      run: |
-        echo "Verifying cache contents..."
         
-        # Check if checkpoint directory exists
+        # Verify checkpoint directory exists (basic sanity check)
         if [ ! -d "data/freesound_library" ]; then
           echo "::error::Cache restored but checkpoint directory not found"
-          echo "cache_valid=false" >> "$GITHUB_OUTPUT"
-          exit 0
+          {
+            echo "## ❌ Invalid Cache Contents"
+            echo ""
+            echo "Cache was restored but checkpoint directory is missing."
+            echo "This indicates a critical issue with cache saving in upstream workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
         fi
         
-        # Check required files exist
-        missing_files=0
-        for file in "graph_topology.gpickle" "metadata_cache.db" "checkpoint_metadata.json"; do
-          if [ ! -f "data/freesound_library/$file" ]; then
-            echo "::warning::Missing file in cache: $file"
-            missing_files=$((missing_files + 1))
-          fi
-        done
-        
-        if [ "$missing_files" -gt 0 ]; then
-          echo "::error::Cache contains incomplete checkpoint ($missing_files missing files)"
-          echo "cache_valid=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        # Verify node count is not zero
-        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          node_count=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
-          
-          if [ "$node_count" -eq 0 ]; then
-            echo "::error::Cache contains empty checkpoint (0 nodes)"
-            echo "cache_valid=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          
-          echo "✅ Cache verified: $node_count nodes"
-          echo "cache_valid=true" >> "$GITHUB_OUTPUT"
-          echo "cached_node_count=$node_count" >> "$GITHUB_OUTPUT"
-        else
-          echo "::error::Cache missing checkpoint metadata"
-          echo "cache_valid=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
+        echo "✅ Cache restored successfully"
     
-    - name: Download checkpoint from repository (scheduled/manual runs or cache fallback)
-      if: steps.backup_reason.outputs.use_cache == 'false' || (steps.backup_reason.outputs.use_cache == 'true' && (steps.cache-check.outputs.cache_restored != 'true' || steps.cache-verify.outputs.cache_valid == 'false'))
+    - name: Download checkpoint from repository (scheduled/manual runs only)
+      if: steps.backup_reason.outputs.use_cache == 'false'
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
