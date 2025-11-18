@@ -19,16 +19,25 @@ class TestCheckpointVerifier:
 
     def test_verify_all_files_exist(self, tmp_path):
         """Test verification passes when all files exist."""
+        import pickle
         import sqlite3
 
-        # Create checkpoint files
-        (tmp_path / "graph_topology.gpickle").write_bytes(b"test data")
+        import networkx as nx
 
-        # Create valid SQLite database
+        # Create valid pickle file with a NetworkX graph
+        graph = nx.DiGraph()
+        graph.add_node(1, name="test")
+        with open(tmp_path / "graph_topology.gpickle", "wb") as f:
+            pickle.dump(graph, f)
+
+        # Create valid SQLite database with metadata table
         db_path = tmp_path / "metadata_cache.db"
         conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
-        cursor.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
+        cursor.execute(
+            "CREATE TABLE metadata (sample_id INTEGER PRIMARY KEY, data TEXT)"
+        )
+        cursor.execute("INSERT INTO metadata VALUES (1, '{}')")
         conn.commit()
         conn.close()
 

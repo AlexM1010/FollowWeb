@@ -27,6 +27,7 @@ def create_mock_sound(
     duration=1.0,
     username="test_user",
     previews=None,
+    filesize=1024,  # Default to non-zero filesize
 ):
     """Helper to create a properly mocked Freesound sound object."""
     if tags is None:
@@ -41,6 +42,7 @@ def create_mock_sound(
     sound.duration = duration
     sound.username = username
     sound.previews = previews
+    sound.filesize = filesize
 
     # Mock as_dict() to return a proper dictionary (not a Mock)
     sound.as_dict = Mock(
@@ -51,6 +53,7 @@ def create_mock_sound(
             "duration": duration,
             "username": username,
             "previews": previews,
+            "filesize": filesize,
         }
     )
     return sound
