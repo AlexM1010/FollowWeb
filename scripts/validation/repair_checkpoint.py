@@ -146,6 +146,10 @@ class ComprehensiveRepairer:
         self.logger.info("Checking for missing edges...")
         self._repair_edges(graph, metadata_cache)
 
+        # Update checkpoint metadata with actual counts
+        checkpoint_meta["nodes"] = graph.number_of_nodes()
+        checkpoint_meta["edges"] = graph.number_of_edges()
+        
         # Save repaired checkpoint
         if self.stats["nodes_repaired"] > 0 or self.stats["fields_added"] > 0:
             self.logger.info("Saving repaired checkpoint...")
@@ -153,7 +157,8 @@ class ComprehensiveRepairer:
             self._save_checkpoint_metadata(checkpoint_meta)
             self.logger.info("✓ Checkpoint saved")
         else:
-            self.logger.info("No repairs needed")
+            self.logger.info("No repairs needed - updating counts only")
+            self._save_checkpoint_metadata(checkpoint_meta)
 
         return self.stats
 
