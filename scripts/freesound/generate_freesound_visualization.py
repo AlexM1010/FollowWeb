@@ -21,8 +21,9 @@ except ImportError:
     # dotenv not available (e.g., in CI/CD), skip loading .env file
     pass
 
-# Add FollowWeb to path
-sys.path.insert(0, str(Path(__file__).parent / "FollowWeb"))
+# Add FollowWeb to path (go up two levels from scripts/freesound/ to repo root, then into FollowWeb/)
+repo_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(repo_root / "FollowWeb"))
 
 from FollowWeb_Visualizor.data.loaders.incremental_freesound import IncrementalFreesoundLoader  # noqa: E402
 from FollowWeb_Visualizor.output.formatters import EmojiFormatter  # noqa: E402
