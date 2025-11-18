@@ -87,6 +87,7 @@ class ComprehensiveRepairer:
         self,
         checkpoint_dir: str,
         api_key: Optional[str] = None,
+        max_requests: int = 100,
         logger: Optional[logging.Logger] = None,
     ):
         """
@@ -95,10 +96,12 @@ class ComprehensiveRepairer:
         Args:
             checkpoint_dir: Path to checkpoint directory
             api_key: Freesound API key (optional, for fetching missing data)
+            max_requests: Maximum number of API requests to make (default: 100)
             logger: Logger instance
         """
         self.checkpoint_dir = Path(checkpoint_dir)
         self.api_key = api_key
+        self.max_requests = max_requests
         self.logger = logger or logging.getLogger(__name__)
 
         # Checkpoint file paths
@@ -112,6 +115,7 @@ class ComprehensiveRepairer:
             "nodes_repaired": 0,
             "fields_added": 0,
             "api_requests_made": 0,
+            "api_requests_skipped": 0,
             "errors": 0,
         }
 
@@ -185,12 +189,22 @@ class ComprehensiveRepairer:
 
             # If critical fields are missing, fetch from API
             if missing_fields and self.api_key:
-                self.logger.info(
-                    f"Node {node_id}: Missing {len(missing_fields)} fields, "
-                    f"fetching from API..."
-                )
-                self._fetch_and_update_node(node_id, missing_fields, graph, metadata_cache)
-                self.stats["nodes_repaired"] += 1
+                # Check if we've reached the request limit
+                if self.stats["api_requests_made"] >= self.max_requests:
+                    self.logger.warning(
+                        f"Reached max API requests limit ({self.max_requests}), "
+                        f"skipping node {node_id}"
+                    )
+                    self.stats["api_requests_skipped"] += 1
+                else:
+                    self.logger.info(
+                        f"Node {node_id}: Missing {len(missing_fields)} fields, "
+                        f"fetching from API... ({self.stats['api_requests_made'] + 1}/{self.max_requests})"
+                    )
+                    self._fetch_and_update_node(
+                        node_id, missing_fields, graph, metadata_cache
+                    )
+                    self.stats["nodes_repaired"] += 1
 
     def _repair_edges(self, graph: nx.Graph, metadata_cache: MetadataCache) -> None:
         """
@@ -246,7 +260,9 @@ class ComprehensiveRepairer:
                     metadata_cache.store(node_id, {field: data[field]})
                     self.stats["fields_added"] += 1
 
-            self.logger.info(f"✓ Updated node {node_id} with {len(missing_fields)} fields")
+            self.logger.info(
+                f"✓ Updated node {node_id} with {len(missing_fields)} fields"
+            )
 
         except Exception as e:
             self.logger.error(f"Failed to fetch data for node {node_id}: {e}")
@@ -292,6 +308,12 @@ def main():
         "--api-key",
         help="Freesound API key (for fetching missing data)",
     )
+    parser.add_argument(
+        "--max-requests",
+        type=int,
+        default=100,
+        help="Maximum number of API requests to make (default: 100)",
+    )
 
     args = parser.parse_args()
 
@@ -299,7 +321,9 @@ def main():
     logger = setup_logging()
 
     # Run repair
-    repairer = ComprehensiveRepairer(args.checkpoint_dir, args.api_key, logger)
+    repairer = ComprehensiveRepairer(
+        args.checkpoint_dir, args.api_key, args.max_requests, logger
+    )
     stats = repairer.repair_all()
 
     # Print summary
@@ -310,6 +334,7 @@ def main():
     print(f"Nodes repaired: {stats['nodes_repaired']}")
     print(f"Fields added: {stats['fields_added']}")
     print(f"API requests made: {stats['api_requests_made']}")
+    print(f"API requests skipped: {stats['api_requests_skipped']}")
     print(f"Errors: {stats['errors']}")
     print("=" * 60)
 

@@ -3,29 +3,36 @@
 # Automated pipeline that detects and repairs checkpoint inconsistencies.
 # This workflow is part of the three-pipeline architecture:
 # 1. Collection Pipeline: Collects data only
-# 2. Validation Pipeline: Validates data and generates visualizations
-# 3. Repair Pipeline (this workflow): Repairs data integrity issues
+# 2. Repair Pipeline (this workflow): Validates and repairs data integrity issues
+# 3. Validation & Visualization Pipeline: Generates visualizations from validated data
 # 4. Backup Pipeline: Creates and manages backups
 #
 # Architecture:
-# - Triggered automatically after nightly collection completes
+# - Triggered automatically after nightly collection completes (continuation)
+# - Inherits checkpoint from collection pipeline via cache
 # - Can be triggered manually when data issues are detected
 # - Restores checkpoint from cache or repository
 # - Runs validation checks
-# - Applies repairs if validation fails
+# - Applies repairs if validation fails (fetches missing data from API)
 # - Re-validates after repairs
 # - Saves repaired checkpoint back to cache and repository
 #
 # Repair Operations:
+# - Missing node metadata: Fetches from Freesound API (up to 50 requests)
 # - Orphaned metadata: Rebuilds graph nodes from metadata cache
 # - Missing pagination state: Adds default pagination state
 # - Edge count mismatches: Updates checkpoint metadata
 # - Corrupted checkpoint files: Attempts recovery
 #
+# Required Secrets:
+# - FREESOUND_API_KEY: For fetching missing metadata from Freesound API
+# - BACKUP_PAT: For uploading repaired checkpoints to backup repository
+#
 # Features:
-# - Automatic trigger after nightly collection
+# - Automatic trigger after nightly collection (inherits data)
 # - Manual trigger with workflow_dispatch
-# - Comprehensive validation and repair
+# - Comprehensive validation and repair with API fetching
+# - Request limit (50) to prevent excessive API usage
 # - Detailed reporting of repairs performed
 # - Saves repaired checkpoint for downstream workflows
 
@@ -198,14 +205,21 @@ jobs:
     - name: Run repair operations
       if: steps.validation.outputs.validation_passed == 'false'
       id: repair
+      env:
+        FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
         {
           echo "### 🔧 Repair Operations"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run repair script and capture output
-        if python scripts/validation/repair_checkpoint.py data/freesound_library 2>&1 | tee repair_output.log; then
+        # Run repair script with API key and request limit
+        # Limit to 50 requests to avoid excessive API usage during repairs
+        if python scripts/validation/repair_checkpoint.py \
+          data/freesound_library \
+          --api-key "$FREESOUND_API_KEY" \
+          --max-requests 50 \
+          2>&1 | tee repair_output.log; then
           echo "repair_success=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ Repairs completed" >> "$GITHUB_STEP_SUMMARY"
         else
