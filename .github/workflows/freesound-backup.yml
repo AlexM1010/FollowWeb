@@ -5,15 +5,15 @@
 # retention policies and failure recovery support.
 #
 # Architecture:
-# - Triggered by: Collection Pipeline (on completion - success OR failure)
-# - Triggered by: Validation Pipeline (on success only)
-# - Scheduled: Every 6 hours for periodic backups
-# - Restores checkpoint from GitHub Actions cache (triggered runs only)
-# - Determines backup tier based on node count and reason
+# - Triggered ONLY by: Collection/Repair/Validation pipelines (on completion)
+# - Restores checkpoint from GitHub Actions cache (NEW data only)
 # - Creates compressed backup with tier tagging
 # - Uploads to PRIMARY backup repository ONLY
 # - Applies tier-specific retention policies
 # - Supports failure recovery to preserve partial progress
+#
+# IMPORTANT: Manual and scheduled triggers are DISABLED to prevent circular backups
+# (downloading from backup just to create another backup of the same data)
 #
 # Backup Strategy (simplified):
 # - Every 100 nodes → v-checkpoint release (14-day retention, max 10)
@@ -50,12 +50,8 @@ on:
     types: [completed]
     branches: [main]
   
-  schedule:
-    # Run every 6 hours for periodic backups
-    - cron: '0 */6 * * *'
-  
   workflow_dispatch:
-    # Allow manual triggering for testing backup operations
+    # Allow manual triggering for testing (will skip to avoid duplicate backups)
 
 # Allow concurrent backups but cancel older ones if new one starts
 # This prevents backup queue buildup and allows fast failure
@@ -84,15 +80,17 @@ jobs:
         SKIP_REASON=""
         TRIGGER_WORKFLOW="${{ github.event.workflow_run.name }}"
         
-        # Manual trigger - always backup
+        # Manual trigger - SKIP (would just backup existing backup)
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          SHOULD_BACKUP="true"
-          echo "✅ Manual trigger - backup will proceed"
+          SHOULD_BACKUP="false"
+          SKIP_REASON="Manual triggers are disabled - backup should only run after collection/repair/validation"
+          echo "⏭️  Manual trigger - skipping (would create duplicate backup)"
         
-        # Scheduled run - always backup
+        # Scheduled run - SKIP (would just backup existing backup)
         elif [ "${{ github.event_name }}" = "schedule" ]; then
-          SHOULD_BACKUP="true"
-          echo "✅ Scheduled run - backup will proceed"
+          SHOULD_BACKUP="false"
+          SKIP_REASON="Scheduled backups are disabled - backup runs automatically after collection"
+          echo "⏭️  Scheduled run - skipping (redundant with collection-triggered backups)"
         
         # Collection pipeline - always backup (success or failure for recovery)
         elif [ "${{ github.event.workflow_run.name }}" = "Freesound Nightly Collection" ]; then
@@ -191,31 +189,9 @@ jobs:
           echo "- Trigger: \`${{ github.event_name }}\`"
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Determine backup reason based on trigger
-        if [ "${{ github.event_name }}" = "schedule" ]; then
-          {
-            echo "reason=scheduled"
-            echo "use_cache=false"
-            echo "tier=scheduled"
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo "- Backup Reason: \`Scheduled (periodic backup)\`"
-            echo "- Source: Repository checkpoint"
-          } >> "$GITHUB_STEP_SUMMARY"
-        elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          {
-            echo "reason=manual"
-            echo "use_cache=false"
-            echo "tier=manual"
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo "- Backup Reason: \`Manual trigger\`"
-            echo "- Source: Repository checkpoint"
-          } >> "$GITHUB_STEP_SUMMARY"
-        else
-          # Triggered by upstream workflow
-          upstream_workflow="${{ github.event.workflow_run.name }}"
-          upstream_conclusion="${{ github.event.workflow_run.conclusion }}"
+        # Backup is ONLY triggered by upstream workflows (manual/scheduled are skipped)
+        upstream_workflow="${{ github.event.workflow_run.name }}"
+        upstream_conclusion="${{ github.event.workflow_run.conclusion }}"
           
           {
             echo "- Upstream Workflow: \`$upstream_workflow\`"
@@ -260,16 +236,17 @@ jobs:
               echo "- Backup Reason: \`Validation pipeline succeeded\`"
               echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`"
             } >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "reason=unknown"
-              echo "tier=unknown"
-              echo "use_cache=false"
-            } >> "$GITHUB_OUTPUT"
-            {
-              echo "- Backup Reason: \`Unknown trigger\`"
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+        else
+          {
+            echo "reason=unknown"
+            echo "tier=unknown"
+            echo "use_cache=true"
+            echo "cache_key=checkpoint-${{ github.event.workflow_run.id }}"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "- Backup Reason: \`Unknown workflow trigger\`"
+            echo "- Cache Key: \`checkpoint-${{ github.event.workflow_run.id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
         echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -320,79 +297,7 @@ jobs:
         
         echo "✅ Cache restored successfully"
     
-    - name: Download checkpoint from repository (scheduled/manual runs only)
-      if: steps.backup_reason.outputs.use_cache == 'false'
-      env:
-        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
-      run: |
-        echo "Downloading checkpoint from private repository..."
-        
-        # Check if BACKUP_PAT is configured
-        if [ -z "$BACKUP_PAT" ]; then
-          echo "::error::BACKUP_PAT not configured - cannot download checkpoint"
-          echo "❌ BACKUP_PAT required" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-        fi
-        
-        REPO_OWNER="${{ github.repository_owner }}"
-        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
-        
-        # Get latest checkpoint from v-checkpoint release
-        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
-          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
-        
-        if echo "$ASSETS_JSON" | grep -q "Not Found"; then
-          echo "::warning::No checkpoint available in backup repository"
-          echo "⚠️  No checkpoint available" >> "$GITHUB_STEP_SUMMARY"
-          exit 0
-        fi
-        
-        # Find most recent checkpoint
-        LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
-        
-        if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
-          echo "::warning::No checkpoint backups found"
-          echo "⚠️  No backups found" >> "$GITHUB_STEP_SUMMARY"
-          exit 0
-        fi
-        
-        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
-        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
-        
-        echo "Downloading: $ASSET_NAME"
-        curl -L -H "Authorization: token $BACKUP_PAT" \
-          -H "Accept: application/octet-stream" \
-          "$ASSET_URL" -o checkpoint_backup.tar.gz
-        
-        # Validate tar archive before extraction
-        echo "Validating checkpoint archive..."
-        if ! tar -tzf checkpoint_backup.tar.gz > /dev/null 2>&1; then
-          echo "::error::Checkpoint archive is corrupted"
-          exit 1
-        fi
-        
-        # Check if archive is empty
-        file_count=$(tar -tzf checkpoint_backup.tar.gz | wc -l)
-        if [ "$file_count" -eq 0 ]; then
-          echo "::error::Checkpoint archive is empty"
-          exit 1
-        fi
-        
-        echo "Archive validated: $file_count files"
-        
-        # Extract checkpoint
-        mkdir -p data/freesound_library
-        tar -xzf checkpoint_backup.tar.gz -C data/
-        
-        # Verify extraction succeeded
-        if [ ! -d "data/freesound_library" ]; then
-          echo "::error::Checkpoint extraction failed - directory not created"
-          exit 1
-        fi
-        
-        rm -f checkpoint_backup.tar.gz
-        
-        echo "✅ Checkpoint downloaded from repository"
+
 
     # Subtask 11.2: Implement checkpoint integrity verification
     - name: Verify checkpoint integrity
