@@ -439,6 +439,21 @@ jobs:
         edge_count="${{ steps.verification.outputs.edge_count }}"
         reason="${{ steps.backup_reason.outputs.reason }}"
         
+        # CRITICAL: Prevent 0-node backups from being created
+        if [ "$node_count" -eq 0 ]; then
+          echo "::error::Cannot create backup with 0 nodes - checkpoint is empty or corrupted"
+          {
+            echo "**❌ Backup Creation Failed**"
+            echo ""
+            echo "**Reason:** Checkpoint has 0 nodes"
+            echo ""
+            echo "This indicates an empty or corrupted checkpoint. Refusing to create backup to prevent pipeline corruption."
+            echo ""
+            echo "**Action Required:** Investigate why checkpoint has no data"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
         # Show backup decision for collection backups
         if [ "$reason" = "collection_success" ]; then
           {

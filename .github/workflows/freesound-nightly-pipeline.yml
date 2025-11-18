@@ -419,8 +419,16 @@ jobs:
           exit 0
         fi
         
-        # Find most recent checkpoint backup
-        LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
+        # Find best checkpoint backup (prefer non-zero nodes, then most recent)
+        # Extract node count from filename pattern: checkpoint_backup_XXXnodes_*.tar.gz
+        LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '
+          .assets 
+          | map(select(.name | test("checkpoint_backup_[0-9]+nodes")))
+          | map(. + {node_count: (.name | capture("(?<nodes>[0-9]+)nodes") | .nodes | tonumber)})
+          | map(select(.node_count > 0))
+          | sort_by([-.node_count, -.created_at])
+          | .[0]
+        ')
         
         if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
           echo " No checkpoint backups found in ${BACKUP_REPO}"
@@ -620,8 +628,42 @@ jobs:
         echo "Total directory size:"
         du -sh data/freesound_library/ || echo "Directory not found"
     
+    # CRITICAL: Verify checkpoint has data before caching
+    - name: Verify checkpoint has data
+      if: always() && steps.orchestration.outputs.can_proceed == 'true'
+      id: verify_checkpoint
+      run: |
+        # Extract node count from checkpoint metadata
+        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+          node_count=$(jq -r '.total_nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          
+          if [ "$node_count" -eq 0 ]; then
+            echo "::warning::Checkpoint has 0 nodes - skipping cache save to prevent corruption"
+            {
+              echo ""
+              echo "⚠️ **Warning: Empty Checkpoint Detected**"
+              echo ""
+              echo "The checkpoint has 0 nodes. This checkpoint will NOT be cached to prevent"
+              echo "corrupting downstream workflows with empty data."
+              echo ""
+              echo "**Possible Causes:**"
+              echo "- Circuit breaker triggered before any data collected"
+              echo "- API returned no results"
+              echo "- Checkpoint initialization failed"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "has_data=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "✅ Checkpoint has $node_count nodes - safe to cache"
+            echo "has_data=true" >> "$GITHUB_OUTPUT"
+          fi
+        else
+          echo "::warning::Checkpoint metadata not found - skipping cache save"
+          echo "has_data=false" >> "$GITHUB_OUTPUT"
+        fi
+    
     # Save checkpoint to cache - backup workflow handles permanent storage
     - name: Save checkpoint to cache
+      if: always() && steps.orchestration.outputs.can_proceed == 'true' && steps.verify_checkpoint.outputs.has_data == 'true'
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
       id: cache_save
       uses: actions/cache/save@v3
@@ -643,7 +685,15 @@ jobs:
           echo ""
           echo "- Cache Key: \`checkpoint-${{ github.run_id }}\`"
           echo "- Retention: 7 days"
-          echo "- Status: ✅ Saved"
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        if [ "${{ steps.verify_checkpoint.outputs.has_data }}" = "true" ]; then
+          echo "- Status: ✅ Saved" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "- Status: ⏭️ Skipped (empty checkpoint)" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        
+        {
           echo ""
           echo "**Note:** Backup workflow will handle permanent storage upload"
           echo ""
