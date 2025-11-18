@@ -169,8 +169,31 @@ jobs:
           -H "Accept: application/octet-stream" \
           "$ASSET_URL" -o checkpoint_backup.tar.gz
         
+        # Validate tar archive before extraction
+        echo "Validating checkpoint archive..."
+        if ! tar -tzf checkpoint_backup.tar.gz > /dev/null 2>&1; then
+          echo "::error::Checkpoint archive is corrupted"
+          exit 1
+        fi
+        
+        # Check if archive is empty
+        file_count=$(tar -tzf checkpoint_backup.tar.gz | wc -l)
+        if [ "$file_count" -eq 0 ]; then
+          echo "::error::Checkpoint archive is empty"
+          exit 1
+        fi
+        
+        echo "Archive validated: $file_count files"
+        
         mkdir -p data/freesound_library
         tar -xzf checkpoint_backup.tar.gz -C data/
+        
+        # Verify extraction succeeded
+        if [ ! -d "data/freesound_library" ]; then
+          echo "::error::Checkpoint extraction failed - directory not created"
+          exit 1
+        fi
+        
         rm -f checkpoint_backup.tar.gz
         
         {

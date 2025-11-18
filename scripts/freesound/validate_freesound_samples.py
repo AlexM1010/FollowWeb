@@ -157,6 +157,7 @@ class SampleValidator:
             'api_errors': 0,
             'edges_removed': 0,
             'metadata_refreshed': 0,
+            'invalid_filesize_removed': 0,
         }
         
         # Get sample IDs based on validation mode
@@ -176,6 +177,58 @@ class SampleValidator:
                 EmojiFormatter.format(
                     'info',
                     f"Full validation mode: validating all {len(sample_ids)} samples"
+                )
+            )
+        
+        # First pass: Remove samples with invalid filesize (0 bytes)
+        self.logger.info(
+            EmojiFormatter.format(
+                'progress',
+                "Checking for samples with invalid filesize..."
+            )
+        )
+        
+        invalid_filesize_samples = []
+        for sample_id in sample_ids:
+            node_id = int(sample_id)
+            filesize = graph.nodes[node_id].get('filesize', 0)
+            if filesize == 0:
+                sample_name = graph.nodes[node_id].get('name', 'unknown')
+                invalid_filesize_samples.append(sample_id)
+                stats['deleted_samples'].append({
+                    'id': sample_id,
+                    'name': sample_name,
+                    'reason': 'invalid_filesize_zero_bytes'
+                })
+                self.logger.warning(
+                    f"Sample {sample_id} ({sample_name}) has invalid filesize: 0 bytes"
+                )
+        
+        # Remove invalid samples
+        if invalid_filesize_samples:
+            self.logger.info(
+                EmojiFormatter.format(
+                    'warning',
+                    f"Removing {len(invalid_filesize_samples)} samples with invalid filesize..."
+                )
+            )
+            
+            for sample_id in invalid_filesize_samples:
+                edges_before = graph.number_of_edges()
+                node_id = int(sample_id)
+                graph.remove_node(node_id)
+                processed_ids.discard(str(sample_id))
+                edges_after = graph.number_of_edges()
+                stats['edges_removed'] += (edges_before - edges_after)
+                stats['invalid_filesize_removed'] += 1
+            
+            # Remove from sample_ids list for API validation
+            sample_ids = [sid for sid in sample_ids if sid not in invalid_filesize_samples]
+            
+            self.logger.info(
+                EmojiFormatter.format(
+                    'success',
+                    f"Removed {stats['invalid_filesize_removed']} samples with invalid filesize"
                 )
             )
         
@@ -691,6 +744,7 @@ def main() -> int:
         logger.info(EmojiFormatter.format("chart", f"Validated samples: {stats['validated_samples']}"))
         logger.info(EmojiFormatter.format("chart", f"Metadata refreshed: {stats['metadata_refreshed']}"))
         logger.info(EmojiFormatter.format("chart", f"Deleted samples: {len(stats['deleted_samples'])}"))
+        logger.info(EmojiFormatter.format("chart", f"Invalid filesize removed: {stats['invalid_filesize_removed']}"))
         logger.info(EmojiFormatter.format("chart", f"API errors: {stats['api_errors']}"))
         logger.info(EmojiFormatter.format("chart", f"Edges removed: {stats['edges_removed']}"))
         logger.info("=" * 70)

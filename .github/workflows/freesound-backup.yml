@@ -341,9 +341,32 @@ jobs:
           -H "Accept: application/octet-stream" \
           "$ASSET_URL" -o checkpoint_backup.tar.gz
         
+        # Validate tar archive before extraction
+        echo "Validating checkpoint archive..."
+        if ! tar -tzf checkpoint_backup.tar.gz > /dev/null 2>&1; then
+          echo "::error::Checkpoint archive is corrupted"
+          exit 1
+        fi
+        
+        # Check if archive is empty
+        file_count=$(tar -tzf checkpoint_backup.tar.gz | wc -l)
+        if [ "$file_count" -eq 0 ]; then
+          echo "::error::Checkpoint archive is empty"
+          exit 1
+        fi
+        
+        echo "Archive validated: $file_count files"
+        
         # Extract checkpoint
         mkdir -p data/freesound_library
         tar -xzf checkpoint_backup.tar.gz -C data/
+        
+        # Verify extraction succeeded
+        if [ ! -d "data/freesound_library" ]; then
+          echo "::error::Checkpoint extraction failed - directory not created"
+          exit 1
+        fi
+        
         rm -f checkpoint_backup.tar.gz
         
         echo "✅ Checkpoint downloaded from repository"
@@ -597,15 +620,33 @@ jobs:
         
         echo "- ✅ File size valid: $(numfmt --to=iec-i --suffix=B "$backup_size")" >> "$GITHUB_STEP_SUMMARY"
         
-        # Verify archive integrity (can be extracted)
+        # Verify archive integrity (can be extracted and list contents)
         echo "Verifying archive can be extracted..."
-        if tar -tzf "$backup_filename" > /dev/null 2>&1; then
-          echo "- ✅ Archive integrity verified" >> "$GITHUB_STEP_SUMMARY"
-        else
+        archive_contents=$(tar -tzf "$backup_filename" 2>&1)
+        tar_exit_code=$?
+        
+        if [ $tar_exit_code -ne 0 ]; then
           echo "::error::Archive is corrupted or cannot be extracted"
-          echo "- ❌ Archive corrupted" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ❌ Archive corrupted (tar exit code: $tar_exit_code)" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
+        
+        # Check if archive has any contents
+        if [ -z "$archive_contents" ]; then
+          echo "::error::Archive is empty (no files)"
+          echo "- ❌ Archive is empty" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        # Count files in archive
+        file_count=$(echo "$archive_contents" | wc -l)
+        if [ "$file_count" -lt 3 ]; then
+          echo "::error::Archive has too few files ($file_count, expected at least 3)"
+          echo "- ❌ Archive incomplete ($file_count files)" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        echo "- ✅ Archive integrity verified ($file_count files)" >> "$GITHUB_STEP_SUMMARY"
         
         # Verify required files are in archive
         echo "Verifying required files in archive..."

@@ -167,12 +167,24 @@ class ComprehensiveRepairer:
             graph: NetworkX graph
             metadata_cache: Metadata cache
         """
+        nodes_to_remove = []
+        
         for node_id in graph.nodes():
             self.stats["nodes_checked"] += 1
 
             # Get current metadata
             node_data = graph.nodes[node_id]
             metadata = metadata_cache.get(node_id)
+            
+            # Check for invalid filesize (0 bytes) - mark for removal
+            filesize = node_data.get('filesize', 0)
+            if filesize == 0:
+                sample_name = node_data.get('name', 'unknown')
+                self.logger.warning(
+                    f"Node {node_id} ({sample_name}) has invalid filesize: 0 bytes - marking for removal"
+                )
+                nodes_to_remove.append(node_id)
+                continue
 
             # Check for missing fields
             missing_fields = []
@@ -205,6 +217,15 @@ class ComprehensiveRepairer:
                         node_id, missing_fields, graph, metadata_cache
                     )
                     self.stats["nodes_repaired"] += 1
+        
+        # Remove nodes with invalid filesize
+        if nodes_to_remove:
+            self.logger.info(
+                f"Removing {len(nodes_to_remove)} nodes with invalid filesize..."
+            )
+            for node_id in nodes_to_remove:
+                graph.remove_node(node_id)
+            self.logger.info(f"✓ Removed {len(nodes_to_remove)} invalid nodes")
 
     def _repair_edges(self, graph: nx.Graph, metadata_cache: MetadataCache) -> None:
         """
@@ -251,6 +272,15 @@ class ComprehensiveRepairer:
             data = response.json()
 
             self.stats["api_requests_made"] += 1
+            
+            # Validate filesize before updating
+            filesize = data.get("filesize", 0)
+            if filesize == 0:
+                self.logger.warning(
+                    f"API returned invalid filesize (0 bytes) for node {node_id} - skipping update"
+                )
+                self.stats["errors"] += 1
+                return
 
             # Update node with fetched data
             updated_metadata = {}

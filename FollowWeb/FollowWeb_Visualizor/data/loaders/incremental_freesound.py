@@ -2111,8 +2111,20 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         Args:
             sample: Sample dictionary with metadata
+        
+        Raises:
+            ValueError: If sample has invalid filesize (0 or missing)
         """
         sample_id = str(sample["id"])
+        
+        # Validate filesize - reject empty files
+        filesize = sample.get("filesize", 0)
+        if filesize == 0:
+            self.logger.warning(
+                f"Skipping sample {sample_id} ({sample.get('name', 'unknown')}): "
+                f"invalid filesize (0 bytes)"
+            )
+            raise ValueError(f"Sample {sample_id} has invalid filesize: 0 bytes")
 
         # Add node if not already in graph
         if sample_id not in self.graph:
@@ -2184,8 +2196,20 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         Args:
             sample: Sample dictionary with metadata
             include_similar: Whether to fetch and add similar sounds
+        
+        Raises:
+            ValueError: If sample has invalid filesize (0 or missing)
         """
         sample_id = str(sample["id"])
+        
+        # Validate filesize - reject empty files
+        filesize = sample.get("filesize", 0)
+        if filesize == 0:
+            self.logger.warning(
+                f"Skipping sample {sample_id} ({sample.get('name', 'unknown')}): "
+                f"invalid filesize (0 bytes)"
+            )
+            raise ValueError(f"Sample {sample_id} has invalid filesize: 0 bytes")
 
         # Add node if not already in graph
         if sample_id not in self.graph:
