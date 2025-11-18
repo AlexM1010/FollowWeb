@@ -417,14 +417,13 @@ jobs:
           echo "**Visualization:**"
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Generate visualization with audio playback (don't capture output, print directly)
-        echo "Running: python generate_freesound_visualization.py --checkpoint-dir data/freesound_library --renderer-type sigma --output-dir Output --max-requests 0"
+        # Generate visualization from checkpoint
+        echo "Generating visualization from checkpoint..."
         
-        if python generate_freesound_visualization.py \
+        if python scripts/visualization/visualize_checkpoint.py \
           --checkpoint-dir data/freesound_library \
           --renderer-type sigma \
-          --output-dir Output \
-          --max-requests 0; then
+          --output-dir Output; then
           echo "visualization_generated=true" >> "$GITHUB_OUTPUT"
           echo "✅ Visualization generated successfully" >> "$GITHUB_STEP_SUMMARY"
         else
