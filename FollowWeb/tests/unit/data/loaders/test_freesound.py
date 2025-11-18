@@ -284,14 +284,15 @@ class TestFreesoundLoaderSimilarSounds:
         mock_results.next = None
         mock_freesound_client.text_search.return_value = mock_results
 
-        # Mock get_sound for metadata fetching
+        # Mock get_sound for metadata fetching (no longer needed with optimized search)
         mock_freesound_client.get_sound.return_value = mock_sound
 
         data = loader.fetch_data(query="drum", max_samples=10, include_similar=False)
 
         assert data["relationships"]["similar"] == {}
-        # get_sound is called once for metadata, but get_similar should not be called
-        assert mock_freesound_client.get_sound.call_count == 1
+        # With optimized search, get_sound is not called (all fields in search)
+        # get_similar should also not be called when include_similar=False
+        assert mock_freesound_client.get_sound.call_count == 0
 
     def test_similar_sounds_handles_errors_gracefully(
         self, mock_freesound_client, mock_sound
@@ -491,7 +492,8 @@ class TestFreesoundLoaderMetadataExtraction:
 
         metadata = loader._extract_sample_metadata(sound)
 
-        assert metadata["audio_url"] == ""
+        # With optimized storage, no preview means no preview_base field
+        assert "preview_base" not in metadata
 
 
 class TestFreesoundLoaderIntegration:
