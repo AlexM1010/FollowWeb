@@ -470,6 +470,14 @@ def main():
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+    
+    # Force UTF-8 encoding for stdout to handle emojis
+    # This fixes Unicode encoding issues in CI/CD environments
+    import io
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
     # Get checkpoint directory from command line or use default
     if len(sys.argv) > 1:
@@ -482,18 +490,18 @@ def main():
         validator = CheckpointValidator(checkpoint_dir)
         result = validator.validate()
     except (ValueError, FileNotFoundError) as e:
-        print(f"\n❌ Error: {e}\n")
+        print(f"\n[ERROR] {e}\n")
         sys.exit(2)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}\n")
+        print(f"\n[ERROR] Unexpected error: {e}\n")
         logging.exception("Unexpected error during validation")
         sys.exit(2)
 
-    # Print results
+    # Print results (using ASCII-safe symbols for compatibility)
     print("\n" + "=" * 60)
     print("CHECKPOINT VALIDATION RESULTS")
     print("=" * 60)
-    print(f"Status: {'✅ PASSED' if result.passed else '❌ FAILED'}")
+    print(f"Status: {'[PASSED]' if result.passed else '[FAILED]'}")
     print(f"Checks: {result.checks_passed}/{result.checks_run} passed")
     print()
 
@@ -506,13 +514,13 @@ def main():
     if result.errors:
         print("Errors:")
         for error in result.errors:
-            print(f"  ❌ {error}")
+            print(f"  [ERROR] {error}")
         print()
 
     if result.warnings:
         print("Warnings:")
         for warning in result.warnings:
-            print(f"  ⚠️  {warning}")
+            print(f"  [WARNING] {warning}")
         print()
 
     print("=" * 60)
