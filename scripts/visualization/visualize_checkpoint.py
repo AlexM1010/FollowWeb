@@ -120,11 +120,37 @@ def main():
             output_filename = f"freesound_{timestamp}.html"
             output_path = output_dir / output_filename
             
-            # Create visualization config
+            # Create visualization config with all required options
             vis_config = {
+                # Display settings
                 'show_labels': True,
                 'show_tooltips': True,
+                'show_legend': True,
                 'enable_audio_player': True,
+                
+                # Node sizing
+                'node_size_metric': 'degree',
+                'base_node_size': 10.0,
+                'node_size_multiplier': 2.0,
+                'scaling_algorithm': 'logarithmic',
+                
+                # Edge styling
+                'edge_thickness_metric': 'weight',
+                'base_edge_thickness': 1.0,
+                'base_edge_width': 0.5,
+                'edge_width_multiplier': 1.5,
+                'edge_width_scaling': 'logarithmic',
+                
+                # Colors
+                'bridge_color': '#6e6e6e',
+                'intra_community_color': '#c0c0c0',
+                
+                # Alpha values
+                'node_alpha': 0.8,
+                'edge_alpha': 0.3,
+                
+                # Font
+                'font_size': 8,
             }
             
             # Create renderer and generate visualization
