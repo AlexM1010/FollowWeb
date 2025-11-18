@@ -297,8 +297,55 @@ jobs:
           echo "cache_restored=true" >> "$GITHUB_OUTPUT"
         fi
     
+    - name: Verify cache contents
+      if: steps.backup_reason.outputs.use_cache == 'true' && steps.cache-check.outputs.cache_restored == 'true'
+      id: cache-verify
+      run: |
+        echo "Verifying cache contents..."
+        
+        # Check if checkpoint directory exists
+        if [ ! -d "data/freesound_library" ]; then
+          echo "::error::Cache restored but checkpoint directory not found"
+          echo "cache_valid=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        
+        # Check required files exist
+        missing_files=0
+        for file in "graph_topology.gpickle" "metadata_cache.db" "checkpoint_metadata.json"; do
+          if [ ! -f "data/freesound_library/$file" ]; then
+            echo "::warning::Missing file in cache: $file"
+            missing_files=$((missing_files + 1))
+          fi
+        done
+        
+        if [ "$missing_files" -gt 0 ]; then
+          echo "::error::Cache contains incomplete checkpoint ($missing_files missing files)"
+          echo "cache_valid=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        
+        # Verify node count is not zero
+        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+          node_count=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
+          
+          if [ "$node_count" -eq 0 ]; then
+            echo "::error::Cache contains empty checkpoint (0 nodes)"
+            echo "cache_valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          echo "✅ Cache verified: $node_count nodes"
+          echo "cache_valid=true" >> "$GITHUB_OUTPUT"
+          echo "cached_node_count=$node_count" >> "$GITHUB_OUTPUT"
+        else
+          echo "::error::Cache missing checkpoint metadata"
+          echo "cache_valid=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+    
     - name: Download checkpoint from repository (scheduled/manual runs or cache fallback)
-      if: steps.backup_reason.outputs.use_cache == 'false' || (steps.backup_reason.outputs.use_cache == 'true' && steps.cache-check.outputs.cache_restored != 'true')
+      if: steps.backup_reason.outputs.use_cache == 'false' || (steps.backup_reason.outputs.use_cache == 'true' && (steps.cache-check.outputs.cache_restored != 'true' || steps.cache-verify.outputs.cache_valid == 'false'))
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
@@ -581,6 +628,48 @@ jobs:
           echo "backup_created=true"
           echo "release_tag=$release_tag"
         } >> "$GITHUB_OUTPUT"
+
+    # Detect silent failures - check if we're backing up stale data
+    - name: Detect silent failures
+      if: steps.create_backup.outputs.backup_created == 'true'
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        node_count="${{ steps.verification.outputs.node_count }}"
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # Get previous backups to check for stale data
+        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        if ! echo "$ASSETS_JSON" | grep -q "Not Found"; then
+          # Count how many recent backups have the same node count
+          same_count=$(echo "$ASSETS_JSON" | jq -r ".assets | map(select(.name | contains(\"${node_count}nodes\"))) | length")
+          
+          if [ "$same_count" -ge 3 ]; then
+            echo "::warning::Node count has been stuck at $node_count for $same_count backups"
+            {
+              echo ""
+              echo "⚠️ **Potential Silent Failure Detected**"
+              echo ""
+              echo "The node count has been $node_count for the last $same_count backups."
+              echo "This may indicate:"
+              echo "- Collection pipeline is not adding new data"
+              echo "- Cache sharing is broken"
+              echo "- Workflows are using stale checkpoints"
+              echo ""
+              echo "**Action Required:** Investigate why node count is not increasing"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+            
+            # Create GitHub issue if this persists for 5+ backups
+            if [ "$same_count" -ge 5 ]; then
+              echo "::error::CRITICAL: Node count stuck at $node_count for $same_count backups"
+              echo "This is a critical silent failure - collection pipeline may be broken"
+            fi
+          fi
+        fi
 
     # Subtask 19.1: Implement backup verification
     - name: Verify backup file integrity
