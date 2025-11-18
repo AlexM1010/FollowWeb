@@ -439,6 +439,9 @@ jobs:
             echo "⚠️  **Backup workflow will NOT be triggered**"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
+          # Print error to console for debugging
+          echo "❌ Visualization generation failed"
+          echo "$VIZ_OUTPUT"
           exit 1
         fi
         
