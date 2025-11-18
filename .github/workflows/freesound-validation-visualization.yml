@@ -417,31 +417,27 @@ jobs:
           echo "**Visualization:**"
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Generate visualization with audio playback and capture output
-        VIZ_OUTPUT=$(python generate_freesound_visualization.py \
+        # Generate visualization with audio playback (don't capture output, print directly)
+        echo "Running: python generate_freesound_visualization.py --checkpoint-dir data/freesound_library --renderer-type sigma --output-dir Output --max-requests 0"
+        
+        if python generate_freesound_visualization.py \
           --checkpoint-dir data/freesound_library \
           --renderer-type sigma \
           --output-dir Output \
-          --max-requests 0 2>&1)
-        VIZ_EXIT_CODE=$?
-        
-        if [ "$VIZ_EXIT_CODE" -ne 0 ]; then
+          --max-requests 0; then
+          echo "visualization_generated=true" >> "$GITHUB_OUTPUT"
+          echo "✅ Visualization generated successfully" >> "$GITHUB_STEP_SUMMARY"
+        else
+          VIZ_EXIT_CODE=$?
           {
             echo "visualization_generated=false"
-            echo "❌ Visualization generation failed"
-            echo ""
-            echo "**Error Details:**"
-            echo "\`\`\`"
-            echo "$VIZ_OUTPUT"
-            echo "\`\`\`"
+            echo "❌ Visualization generation failed (exit code: $VIZ_EXIT_CODE)"
             echo ""
             echo "⚠️  **Previous visualization remains live on GitHub Pages**"
             echo "⚠️  **Backup workflow will NOT be triggered**"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
-          # Print error to console for debugging
-          echo "❌ Visualization generation failed"
-          echo "$VIZ_OUTPUT"
+          echo "❌ Visualization generation failed with exit code: $VIZ_EXIT_CODE"
           exit 1
         fi
         
