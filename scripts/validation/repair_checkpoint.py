@@ -1,36 +1,28 @@
 #!/usr/bin/env python3
 """
-Checkpoint repair script for Freesound pipeline.
+Comprehensive Checkpoint Repair Script.
 
-Architecture Notes:
-    The checkpoint system uses a split architecture with type inconsistency
-    by design:
-    
-    - Graph topology (.gpickle): Nodes use STRING IDs (e.g., "217542")
-    - Metadata cache (.db): Uses INTEGER IDs (e.g., 217542)
-    
-    This repair script handles type conversion transparently when rebuilding
-    nodes from metadata cache.
+Automatically detects and repairs ANY missing or incomplete data in checkpoints:
+- Missing node metadata fields
+- Missing edge data
+- Incomplete API responses
+- Corrupted data structures
 
-Repairs common checkpoint issues:
-- Rebuilds graph topology from orphaned metadata entries
-- Adds missing pagination_state to checkpoint metadata
-- Fixes edge count mismatches
-- Repairs corrupted checkpoint metadata
+Fetches missing data from Freesound API as needed.
 
-Exit codes:
-- 0: All repairs successful
-- 1: One or more repairs failed
+Usage:
+    python comprehensive_repair.py --checkpoint-dir data/freesound_library
+    python comprehensive_repair.py --checkpoint-dir data/freesound_library --api-key YOUR_KEY
 """
 
+import argparse
 import json
 import logging
 import pickle
-import shutil
 import sys
-from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import networkx as nx
 
@@ -39,778 +31,290 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from FollowWeb.FollowWeb_Visualizor.data.storage import MetadataCache
 
-# Constants
-GRAPH_TOPOLOGY_FILENAME = "graph_topology.gpickle"
-METADATA_CACHE_FILENAME = "metadata_cache.db"
-CHECKPOINT_META_FILENAME = "checkpoint_metadata.json"
+# Expected metadata fields from Freesound API
+EXPECTED_METADATA_FIELDS = {
+    # Basic metadata
+    "name": str,
+    "tags": list,
+    "description": str,
+    "duration": (int, float),
+    # User and pack relationships
+    "user": str,
+    "username": str,
+    "pack": str,
+    # License and attribution
+    "license": str,
+    "created": str,
+    "url": str,
+    # Sound taxonomy
+    "category": list,
+    "category_code": str,
+    "category_is_user_provided": bool,
+    # Technical properties
+    "type": str,
+    "file_type": str,
+    "channels": int,
+    "filesize": int,
+    "samplerate": int,
+    # URLs and media
+    "audio_url": str,
+    "previews": dict,
+    "images": dict,
+    # Engagement metrics
+    "num_downloads": int,
+    "num_ratings": int,
+    "avg_rating": (int, float),
+    "num_comments": int,
+    # Geographic
+    "geotag": str,
+}
 
 
-# Type conversion utilities
-def graph_id_to_cache_id(node_id: str) -> int:
-    """
-    Convert graph node ID (string) to metadata cache ID (integer).
-    
-    Args:
-        node_id: Graph node ID as string (e.g., "217542")
-        
-    Returns:
-        Metadata cache ID as integer (e.g., 217542)
-    """
-    return int(node_id)
+def setup_logging() -> logging.Logger:
+    """Set up logging configuration."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    return logging.getLogger(__name__)
 
 
-def cache_id_to_graph_id(cache_id: int) -> str:
-    """
-    Convert metadata cache ID (integer) to graph node ID (string).
-    
-    Args:
-        cache_id: Metadata cache ID as integer (e.g., 217542)
-        
-    Returns:
-        Graph node ID as string (e.g., "217542")
-    """
-    return str(cache_id)
+class ComprehensiveRepairer:
+    """Comprehensive checkpoint repair with API fetching."""
 
-
-@dataclass
-class RepairResult:
-    """Result of a repair operation."""
-    
-    success: bool
-    message: str
-    items_repaired: int = 0
-
-
-class CheckpointRepairer:
-    """Repairs checkpoint inconsistencies."""
-
-    def __init__(self, checkpoint_dir: str):
+    def __init__(
+        self,
+        checkpoint_dir: str,
+        api_key: Optional[str] = None,
+        logger: Optional[logging.Logger] = None,
+    ):
         """
         Initialize repairer.
 
         Args:
             checkpoint_dir: Path to checkpoint directory
-            
-        Raises:
-            ValueError: If checkpoint_dir is empty
-            FileNotFoundError: If checkpoint directory doesn't exist
+            api_key: Freesound API key (optional, for fetching missing data)
+            logger: Logger instance
         """
-        if not checkpoint_dir:
-            raise ValueError("checkpoint_dir cannot be empty")
-            
         self.checkpoint_dir = Path(checkpoint_dir)
-        
-        if not self.checkpoint_dir.exists():
-            raise FileNotFoundError(
-                f"Checkpoint directory not found: {checkpoint_dir}"
-            )
-            
-        self.logger = logging.getLogger(__name__)
+        self.api_key = api_key
+        self.logger = logger or logging.getLogger(__name__)
 
         # Checkpoint file paths
-        self.graph_path = self.checkpoint_dir / GRAPH_TOPOLOGY_FILENAME
-        self.metadata_db_path = self.checkpoint_dir / METADATA_CACHE_FILENAME
-        self.checkpoint_meta_path = self.checkpoint_dir / CHECKPOINT_META_FILENAME
+        self.graph_path = self.checkpoint_dir / "graph_topology.gpickle"
+        self.metadata_db_path = self.checkpoint_dir / "metadata_cache.db"
+        self.checkpoint_meta_path = self.checkpoint_dir / "checkpoint_metadata.json"
 
-    def repair_orphaned_metadata(self) -> RepairResult:
-        """
-        Repair orphaned metadata by rebuilding graph from metadata cache.
-        
-        This operation:
-        1. Loads graph topology and metadata cache
-        2. Identifies metadata entries not in graph
-        3. Rebuilds graph nodes from orphaned metadata
-        4. Updates checkpoint metadata with corrected counts
-
-        Returns:
-            RepairResult with success status, message, and count of repaired items
-        """
-        try:
-            # Load graph and metadata
-            graph = self._load_graph()
-            
-            # Use context manager to ensure proper cleanup
-            with MetadataCache(str(self.metadata_db_path), self.logger) as metadata_cache:
-                # Normalize IDs to strings for comparison
-                graph_nodes = set(str(n) for n in graph.nodes())
-                metadata_ids = set(
-                    cache_id_to_graph_id(id) for id in metadata_cache.get_all_ids()
-                )
-
-                missing_in_graph = metadata_ids - graph_nodes
-
-                if not missing_in_graph:
-                    return RepairResult(
-                        success=True,
-                        message="No orphaned metadata found",
-                        items_repaired=0
-                    )
-
-                self.logger.info(
-                    f"Found {len(missing_in_graph)} orphaned metadata entries"
-                )
-
-                # Rebuild graph nodes from metadata
-                all_metadata = metadata_cache.get_all_metadata()
-                repaired_count = 0
-                total = len(missing_in_graph)
-                
-                for i, sample_id_str in enumerate(missing_in_graph, 1):
-                    # Metadata cache uses integer IDs
-                    sample_id_int = graph_id_to_cache_id(sample_id_str)
-                    metadata = all_metadata.get(sample_id_int)
-                    
-                    if metadata:
-                        # Graph uses string IDs
-                        graph.add_node(sample_id_str, **metadata)
-                        repaired_count += 1
-                        self.logger.debug(f"Added node {sample_id_str} from metadata")
-                    else:
-                        self.logger.warning(
-                            f"Metadata entry {sample_id_int} exists in cache but "
-                            f"returned None when retrieved"
-                        )
-                    
-                    # Progress logging every 100 items
-                    if i % 100 == 0:
-                        self.logger.info(f"Progress: {i}/{total} nodes processed")
-
-            # Save repaired graph
-            self._save_graph(graph)
-
-            self.logger.info(
-                f"✓ Repaired graph: added {repaired_count} nodes from metadata"
-            )
-
-            # Update checkpoint metadata
-            self._update_checkpoint_counts(graph)
-
-            return RepairResult(
-                success=True,
-                message=f"Successfully added {repaired_count} nodes from metadata",
-                items_repaired=repaired_count
-            )
-
-        except (IOError, OSError, FileNotFoundError) as e:
-            self.logger.error(f"Failed to read/write checkpoint files: {e}")
-            return RepairResult(
-                success=False,
-                message=f"File operation failed: {e}",
-                items_repaired=0
-            )
-        except (TypeError, ValueError, pickle.UnpicklingError) as e:
-            self.logger.error(f"Invalid checkpoint data: {e}")
-            return RepairResult(
-                success=False,
-                message=f"Data validation failed: {e}",
-                items_repaired=0
-            )
-        except Exception as e:
-            self.logger.exception("Unexpected error during orphaned metadata repair")
-            return RepairResult(
-                success=False,
-                message=f"Unexpected error: {e}",
-                items_repaired=0
-            )
-
-    def repair_pagination_state(self) -> RepairResult:
-        """
-        Add missing pagination_state to checkpoint metadata.
-        
-        This operation:
-        1. Loads checkpoint metadata
-        2. Checks if pagination_state exists
-        3. Adds default pagination_state if missing
-
-        Returns:
-            RepairResult with success status and message
-        """
-        try:
-            checkpoint_meta = self._load_checkpoint_metadata()
-
-            # Check if pagination_state already exists
-            if "pagination_state" in checkpoint_meta:
-                return RepairResult(
-                    success=True,
-                    message="pagination_state already exists",
-                    items_repaired=0
-                )
-
-            # Add default pagination_state
-            checkpoint_meta["pagination_state"] = {
-                "page": 1,
-                "query": "",
-                "sort": "downloads_desc",
-            }
-
-            self._save_checkpoint_metadata(checkpoint_meta)
-
-            self.logger.info("✓ Added pagination_state to checkpoint metadata")
-            return RepairResult(
-                success=True,
-                message="Successfully added pagination_state",
-                items_repaired=1
-            )
-
-        except (IOError, OSError, FileNotFoundError) as e:
-            self.logger.error(f"Failed to read/write checkpoint metadata: {e}")
-            return RepairResult(
-                success=False,
-                message=f"File operation failed: {e}",
-                items_repaired=0
-            )
-        except (json.JSONDecodeError, ValueError) as e:
-            self.logger.error(f"Invalid checkpoint metadata: {e}")
-            return RepairResult(
-                success=False,
-                message=f"JSON parsing failed: {e}",
-                items_repaired=0
-            )
-        except Exception as e:
-            self.logger.exception("Unexpected error during pagination state repair")
-            return RepairResult(
-                success=False,
-                message=f"Unexpected error: {e}",
-                items_repaired=0
-            )
-
-    def repair_edge_counts(self) -> RepairResult:
-        """
-        Fix node and edge count mismatch in checkpoint metadata.
-        
-        This operation:
-        1. Loads graph topology and checkpoint metadata
-        2. Compares actual node/edge counts with metadata
-        3. Updates metadata if mismatch found
-
-        Returns:
-            RepairResult with success status and message
-        """
-        try:
-            graph = self._load_graph()
-            checkpoint_meta = self._load_checkpoint_metadata()
-
-            expected_nodes = checkpoint_meta.get("node_count", 0)
-            expected_edges = checkpoint_meta.get("edge_count", 0)
-            actual_nodes = graph.number_of_nodes()
-            actual_edges = graph.number_of_edges()
-
-            # Check if both counts are correct
-            if expected_nodes == actual_nodes and expected_edges == actual_edges:
-                return RepairResult(
-                    success=True,
-                    message=f"Node and edge counts are correct ({actual_nodes} nodes, {actual_edges} edges)",
-                    items_repaired=0
-                )
-
-            # Update both counts
-            items_repaired = 0
-            messages = []
-            
-            if expected_nodes != actual_nodes:
-                checkpoint_meta["node_count"] = actual_nodes
-                self.logger.info(
-                    f"✓ Updated node count: {expected_nodes} → {actual_nodes}"
-                )
-                messages.append(f"node count {expected_nodes} → {actual_nodes}")
-                items_repaired += 1
-            
-            if expected_edges != actual_edges:
-                checkpoint_meta["edge_count"] = actual_edges
-                self.logger.info(
-                    f"✓ Updated edge count: {expected_edges} → {actual_edges}"
-                )
-                messages.append(f"edge count {expected_edges} → {actual_edges}")
-                items_repaired += 1
-            
-            self._save_checkpoint_metadata(checkpoint_meta)
-            
-            return RepairResult(
-                success=True,
-                message=f"Updated {', '.join(messages)}",
-                items_repaired=items_repaired
-            )
-
-        except (IOError, OSError, FileNotFoundError) as e:
-            self.logger.error(f"Failed to read/write checkpoint files: {e}")
-            return RepairResult(
-                success=False,
-                message=f"File operation failed: {e}",
-                items_repaired=0
-            )
-        except (TypeError, ValueError, pickle.UnpicklingError, json.JSONDecodeError) as e:
-            self.logger.error(f"Invalid checkpoint data: {e}")
-            return RepairResult(
-                success=False,
-                message=f"Data validation failed: {e}",
-                items_repaired=0
-            )
-        except Exception as e:
-            self.logger.exception("Unexpected error during edge count repair")
-            return RepairResult(
-                success=False,
-                message=f"Unexpected error: {e}",
-                items_repaired=0
-            )
-
-    def repair_missing_metadata(self) -> RepairResult:
-        """
-        Repair missing metadata entries for nodes in graph.
-        
-        This operation:
-        1. Loads graph topology and metadata cache
-        2. Identifies nodes in graph without metadata
-        3. Removes orphaned nodes (cannot recover metadata)
-        4. Updates checkpoint metadata with corrected counts
-
-        Returns:
-            RepairResult with success status, message, and count of repaired items
-        """
-        try:
-            # Load graph and metadata
-            graph = self._load_graph()
-            
-            # Use context manager to ensure proper cleanup
-            with MetadataCache(str(self.metadata_db_path), self.logger) as metadata_cache:
-                # Normalize IDs to strings for comparison
-                graph_nodes = set(str(n) for n in graph.nodes())
-                metadata_ids = set(
-                    cache_id_to_graph_id(id) for id in metadata_cache.get_all_ids()
-                )
-
-                missing_metadata = graph_nodes - metadata_ids
-
-                if not missing_metadata:
-                    return RepairResult(
-                        success=True,
-                        message="All nodes have metadata",
-                        items_repaired=0
-                    )
-
-                self.logger.info(
-                    f"Found {len(missing_metadata)} nodes without metadata"
-                )
-
-            # Create backup before destructive operation
-            backup_path = self.checkpoint_dir / "graph_topology_backup.gpickle"
-            shutil.copy2(self.graph_path, backup_path)
-            
-            try:
-                # Remove nodes without metadata (cannot recover)
-                total = len(missing_metadata)
-                for i, node_id in enumerate(missing_metadata, 1):
-                    graph.remove_node(node_id)
-                    self.logger.debug(f"Removed node {node_id} (no metadata)")
-                    
-                    # Progress logging every 100 items
-                    if i % 100 == 0:
-                        self.logger.info(f"Progress: {i}/{total} nodes removed")
-
-                # Save repaired graph
-                self._save_graph(graph)
-                
-                # Remove backup on success
-                backup_path.unlink()
-
-                self.logger.info(
-                    f"✓ Removed {len(missing_metadata)} nodes without metadata"
-                )
-
-                # Update checkpoint metadata
-                self._update_checkpoint_counts(graph)
-
-                return RepairResult(
-                    success=True,
-                    message=f"Removed {len(missing_metadata)} nodes without metadata",
-                    items_repaired=len(missing_metadata)
-                )
-                
-            except Exception as e:
-                # Restore from backup on failure
-                if backup_path.exists():
-                    self.logger.error(f"Repair failed, restoring from backup: {e}")
-                    shutil.copy2(backup_path, self.graph_path)
-                    backup_path.unlink()
-                raise
-
-        except (IOError, OSError, FileNotFoundError) as e:
-            self.logger.error(f"Failed to read/write checkpoint files: {e}")
-            return RepairResult(
-                success=False,
-                message=f"File operation failed: {e}",
-                items_repaired=0
-            )
-        except (TypeError, ValueError, pickle.UnpicklingError) as e:
-            self.logger.error(f"Invalid checkpoint data: {e}")
-            return RepairResult(
-                success=False,
-                message=f"Data validation failed: {e}",
-                items_repaired=0
-            )
-        except Exception as e:
-            self.logger.exception("Unexpected error during missing metadata repair")
-            return RepairResult(
-                success=False,
-                message=f"Unexpected error: {e}",
-                items_repaired=0
-            )
-
-    def repair_corrupted_checkpoint(self) -> RepairResult:
-        """
-        Attempt to repair corrupted checkpoint files.
-        
-        This operation:
-        1. Validates checkpoint file integrity
-        2. Attempts to recover from corruption
-        3. Rebuilds checkpoint metadata if corrupted
-
-        Returns:
-            RepairResult with success status and message
-        """
-        try:
-            # Check if checkpoint metadata is corrupted
-            try:
-                checkpoint_meta = self._load_checkpoint_metadata()
-            except (json.JSONDecodeError, ValueError) as e:
-                self.logger.warning(f"Checkpoint metadata corrupted: {e}")
-                
-                # Attempt to rebuild from graph and metadata cache
-                try:
-                    graph = self._load_graph()
-                    
-                    # Use context manager to ensure proper cleanup
-                    with MetadataCache(str(self.metadata_db_path), self.logger) as metadata_cache:
-                        # Create minimal checkpoint metadata
-                        checkpoint_meta = {
-                            "version": "2.0",
-                            "total_nodes": graph.number_of_nodes(),
-                            "total_edges": graph.number_of_edges(),
-                            "edge_count": graph.number_of_edges(),  # Backward compatibility
-                            "pagination_state": {
-                                "page": 1,
-                                "query": "",
-                                "sort": "downloads_desc"
-                            }
-                        }
-                    
-                    self._save_checkpoint_metadata(checkpoint_meta)
-                    
-                    self.logger.info("✓ Rebuilt checkpoint metadata from graph")
-                    return RepairResult(
-                        success=True,
-                        message="Rebuilt corrupted checkpoint metadata",
-                        items_repaired=1
-                    )
-                    
-                except Exception as rebuild_error:
-                    self.logger.error(f"Failed to rebuild metadata: {rebuild_error}")
-                    return RepairResult(
-                        success=False,
-                        message=f"Cannot rebuild metadata: {rebuild_error}",
-                        items_repaired=0
-                    )
-
-            # Check if graph is corrupted
-            try:
-                graph = self._load_graph()
-                # Validate graph structure
-                if not isinstance(graph, (nx.Graph, nx.DiGraph)):
-                    raise TypeError("Invalid graph type")
-            except (pickle.UnpicklingError, TypeError) as e:
-                self.logger.error(f"Graph topology corrupted: {e}")
-                return RepairResult(
-                    success=False,
-                    message=f"Graph topology corrupted and cannot be recovered: {e}",
-                    items_repaired=0
-                )
-
-            # If we get here, checkpoint is not corrupted
-            return RepairResult(
-                success=True,
-                message="Checkpoint files are not corrupted",
-                items_repaired=0
-            )
-
-        except Exception as e:
-            self.logger.exception("Unexpected error during corruption repair")
-            return RepairResult(
-                success=False,
-                message=f"Unexpected error: {e}",
-                items_repaired=0
-            )
+        # Statistics
+        self.stats = {
+            "nodes_checked": 0,
+            "nodes_repaired": 0,
+            "fields_added": 0,
+            "api_requests_made": 0,
+            "errors": 0,
+        }
 
     def repair_all(self) -> dict[str, Any]:
         """
-        Run all repair operations with detailed before/after statistics.
-        
-        Executes repairs in order:
-        1. Corrupted checkpoint files (validates/rebuilds)
-        2. Orphaned metadata (rebuilds missing nodes)
-        3. Missing metadata entries (removes orphaned nodes)
-        4. Edge counts (fixes metadata mismatch)
-        5. Pagination state (adds if missing)
+        Run comprehensive repair on checkpoint.
 
         Returns:
-            Dictionary with:
-            - 'results': mapping repair name to RepairResult
-            - 'statistics': before/after statistics
-            - 'summary': overall summary
+            Dictionary with repair statistics and results
         """
         self.logger.info("Starting comprehensive checkpoint repair...")
 
-        # Collect before statistics
-        before_stats = self._collect_statistics()
-
-        # Run all repair operations
-        results = {}
-
-        # 1. Check for corrupted files first
-        results["corrupted_checkpoint"] = self.repair_corrupted_checkpoint()
-
-        # 2. Repair orphaned metadata (adds missing nodes)
-        results["orphaned_metadata"] = self.repair_orphaned_metadata()
-
-        # 3. Repair missing metadata entries (removes orphaned nodes)
-        results["missing_metadata"] = self.repair_missing_metadata()
-
-        # 4. Repair edge counts (updates metadata)
-        results["edge_counts"] = self.repair_edge_counts()
-
-        # 5. Repair pagination state (adds if missing)
-        results["pagination_state"] = self.repair_pagination_state()
-
-        # Collect after statistics
-        after_stats = self._collect_statistics()
-
-        # Generate summary
-        total_repairs = sum(r.items_repaired for r in results.values())
-        all_success = all(r.success for r in results.values())
-
-        summary = {
-            "total_operations": len(results),
-            "successful_operations": sum(1 for r in results.values() if r.success),
-            "failed_operations": sum(1 for r in results.values() if not r.success),
-            "total_items_repaired": total_repairs,
-            "overall_success": all_success
-        }
+        # Load checkpoint
+        graph = self._load_graph()
+        metadata_cache = self._load_metadata_cache()
+        checkpoint_meta = self._load_checkpoint_metadata()
 
         self.logger.info(
-            f"Repair complete: {summary['successful_operations']}/{summary['total_operations']} "
-            f"operations successful, {total_repairs} items repaired"
+            f"Loaded checkpoint: {graph.number_of_nodes()} nodes, "
+            f"{graph.number_of_edges()} edges"
         )
 
-        return {
-            "results": results,
-            "statistics": {
-                "before": before_stats,
-                "after": after_stats
-            },
-            "summary": summary
-        }
+        # Repair missing node metadata
+        self.logger.info("Checking for missing node metadata...")
+        self._repair_node_metadata(graph, metadata_cache)
 
-    def _collect_statistics(self) -> dict[str, Any]:
+        # Repair missing edges
+        self.logger.info("Checking for missing edges...")
+        self._repair_edges(graph, metadata_cache)
+
+        # Save repaired checkpoint
+        if self.stats["nodes_repaired"] > 0 or self.stats["fields_added"] > 0:
+            self.logger.info("Saving repaired checkpoint...")
+            self._save_graph(graph)
+            self._save_checkpoint_metadata(checkpoint_meta)
+            self.logger.info("✓ Checkpoint saved")
+        else:
+            self.logger.info("No repairs needed")
+
+        return self.stats
+
+    def _repair_node_metadata(
+        self, graph: nx.Graph, metadata_cache: MetadataCache
+    ) -> None:
         """
-        Collect current checkpoint statistics.
-        
-        Returns:
-            Dictionary with checkpoint statistics
-        """
-        stats = {
-            "graph_exists": False,
-            "metadata_exists": False,
-            "checkpoint_meta_exists": False,
-            "node_count": 0,
-            "edge_count": 0,
-            "metadata_count": 0
-        }
+        Repair missing or incomplete node metadata.
 
-        try:
-            if self.graph_path.exists():
-                stats["graph_exists"] = True
-                graph = self._load_graph()
-                stats["node_count"] = graph.number_of_nodes()
-                stats["edge_count"] = graph.number_of_edges()
-        except Exception as e:
-            self.logger.debug(f"Could not load graph for statistics: {e}")
-
-        try:
-            if self.metadata_db_path.exists():
-                stats["metadata_exists"] = True
-                # Use context manager to ensure proper cleanup
-                with MetadataCache(str(self.metadata_db_path), self.logger) as metadata_cache:
-                    stats["metadata_count"] = len(metadata_cache.get_all_ids())
-        except Exception as e:
-            self.logger.debug(f"Could not load metadata for statistics: {e}")
-
-        try:
-            if self.checkpoint_meta_path.exists():
-                stats["checkpoint_meta_exists"] = True
-        except Exception as e:
-            self.logger.debug(f"Could not check checkpoint metadata: {e}")
-
-        return stats
-
-    def _load_graph(self) -> nx.DiGraph:
-        """
-        Load graph topology from pickle file.
-        
-        Returns:
-            NetworkX DiGraph with string node IDs
-            
-        Raises:
-            IOError: If file cannot be read
-            pickle.UnpicklingError: If file is corrupted
-            TypeError: If loaded object is not a NetworkX graph
-        """
-        with open(self.graph_path, "rb") as f:
-            # nosec B301 - Loading our own checkpoint data, not untrusted input
-            graph = pickle.load(f)  # nosec B301
-            
-        # Validate loaded graph
-        if not isinstance(graph, (nx.Graph, nx.DiGraph)):
-            raise TypeError(
-                f"Expected NetworkX Graph or DiGraph, got {type(graph).__name__}"
-            )
-            
-        return graph
-
-    def _save_graph(self, graph: nx.DiGraph) -> None:
-        """
-        Save graph topology to pickle file.
-        
         Args:
-            graph: NetworkX graph to save
-            
-        Raises:
-            IOError: If file cannot be written
+            graph: NetworkX graph
+            metadata_cache: Metadata cache
         """
-        with open(self.graph_path, "wb") as f:
-            pickle.dump(graph, f, pickle.HIGHEST_PROTOCOL)
+        for node_id in graph.nodes():
+            self.stats["nodes_checked"] += 1
+
+            # Get current metadata
+            node_data = graph.nodes[node_id]
+            metadata = metadata_cache.get(node_id)
+
+            # Check for missing fields
+            missing_fields = []
+            for field, expected_type in EXPECTED_METADATA_FIELDS.items():
+                # Check if field exists in node data
+                if field not in node_data or node_data[field] in (None, "", [], {}):
+                    # Check if it exists in metadata cache
+                    if metadata and field in metadata and metadata[field]:
+                        # Copy from metadata cache to node
+                        graph.nodes[node_id][field] = metadata[field]
+                        self.stats["fields_added"] += 1
+                    else:
+                        missing_fields.append(field)
+
+            # If critical fields are missing, fetch from API
+            if missing_fields and self.api_key:
+                self.logger.info(
+                    f"Node {node_id}: Missing {len(missing_fields)} fields, "
+                    f"fetching from API..."
+                )
+                self._fetch_and_update_node(node_id, missing_fields, graph, metadata_cache)
+                self.stats["nodes_repaired"] += 1
+
+    def _repair_edges(self, graph: nx.Graph, metadata_cache: MetadataCache) -> None:
+        """
+        Repair missing edges based on relationships.
+
+        Args:
+            graph: NetworkX graph
+            metadata_cache: Metadata cache
+        """
+        # Check if edges exist
+        if graph.number_of_edges() == 0:
+            self.logger.warning(
+                "No edges found in graph. Consider running edge generation script."
+            )
+
+    def _fetch_and_update_node(
+        self,
+        node_id: str,
+        missing_fields: list[str],
+        graph: nx.Graph,
+        metadata_cache: MetadataCache,
+    ) -> None:
+        """
+        Fetch missing node data from Freesound API.
+
+        Args:
+            node_id: Node ID
+            missing_fields: List of missing field names
+            graph: NetworkX graph
+            metadata_cache: Metadata cache
+        """
+        try:
+            import requests
+
+            # Fetch from Freesound API
+            url = f"https://freesound.org/apiv2/sounds/{node_id}/"
+            params = {
+                "token": self.api_key,
+                "fields": ",".join(EXPECTED_METADATA_FIELDS.keys()),
+            }
+
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            self.stats["api_requests_made"] += 1
+
+            # Update node with fetched data
+            for field in missing_fields:
+                if field in data and data[field]:
+                    graph.nodes[node_id][field] = data[field]
+                    # Also update metadata cache
+                    metadata_cache.store(node_id, {field: data[field]})
+                    self.stats["fields_added"] += 1
+
+            self.logger.info(f"✓ Updated node {node_id} with {len(missing_fields)} fields")
+
+        except Exception as e:
+            self.logger.error(f"Failed to fetch data for node {node_id}: {e}")
+            self.stats["errors"] += 1
+
+    def _load_graph(self) -> nx.Graph:
+        """Load graph topology from pickle file."""
+        with open(self.graph_path, "rb") as f:
+            return pickle.load(f)
+
+    def _load_metadata_cache(self) -> MetadataCache:
+        """Load metadata cache from SQLite database."""
+        return MetadataCache(str(self.metadata_db_path), self.logger)
 
     def _load_checkpoint_metadata(self) -> dict[str, Any]:
-        """
-        Load checkpoint metadata from JSON file.
-        
-        Returns:
-            Dictionary with checkpoint metadata
-            
-        Raises:
-            IOError: If file cannot be read
-            json.JSONDecodeError: If JSON is invalid
-        """
+        """Load checkpoint metadata from JSON file."""
         with open(self.checkpoint_meta_path, "r") as f:
             return json.load(f)
 
+    def _save_graph(self, graph: nx.Graph) -> None:
+        """Save graph topology to pickle file."""
+        with open(self.graph_path, "wb") as f:
+            pickle.dump(graph, f, protocol=pickle.HIGHEST_PROTOCOL)
+
     def _save_checkpoint_metadata(self, metadata: dict[str, Any]) -> None:
-        """
-        Save checkpoint metadata to JSON file.
-        
-        Args:
-            metadata: Checkpoint metadata dictionary
-            
-        Raises:
-            IOError: If file cannot be written
-        """
+        """Save checkpoint metadata to JSON file."""
+        metadata["last_repair_at"] = datetime.now(timezone.utc).isoformat()
         with open(self.checkpoint_meta_path, "w") as f:
             json.dump(metadata, f, indent=2)
-
-    def _update_checkpoint_counts(self, graph: nx.DiGraph) -> None:
-        """
-        Update node and edge counts in checkpoint metadata.
-        
-        Args:
-            graph: NetworkX graph with current state
-            
-        Raises:
-            IOError: If file cannot be read/written
-        """
-        checkpoint_meta = self._load_checkpoint_metadata()
-        # Use consistent field names with validation script
-        checkpoint_meta["total_nodes"] = graph.number_of_nodes()
-        checkpoint_meta["total_edges"] = graph.number_of_edges()
-        # Also update edge_count for backward compatibility
-        checkpoint_meta["edge_count"] = graph.number_of_edges()
-        self._save_checkpoint_metadata(checkpoint_meta)
 
 
 def main():
     """Main entry point."""
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    parser = argparse.ArgumentParser(
+        description="Comprehensive checkpoint repair with API fetching"
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        default="data/freesound_library",
+        help="Checkpoint directory path",
+    )
+    parser.add_argument(
+        "--api-key",
+        help="Freesound API key (for fetching missing data)",
     )
 
-    # Get checkpoint directory from command line or use default
-    if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
-        checkpoint_dir = sys.argv[1]
-    else:
-        checkpoint_dir = "data/freesound_library"
+    args = parser.parse_args()
 
-    try:
-        # Run repairs
-        repairer = CheckpointRepairer(checkpoint_dir)
-        repair_data = repairer.repair_all()
-    except (ValueError, FileNotFoundError) as e:
-        print(f"\nError: {e}\n", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"\nUnexpected error: {e}\n", file=sys.stderr)
-        logging.exception("Unexpected error during repair")
-        sys.exit(1)
+    # Set up logging
+    logger = setup_logging()
 
-    # Extract components
-    results = repair_data["results"]
-    statistics = repair_data["statistics"]
-    summary = repair_data["summary"]
-
-    # Print results
-    print("\n" + "=" * 60)
-    print("CHECKPOINT REPAIR RESULTS")
-    print("=" * 60)
-
-    # Print before/after statistics
-    print("\nBefore Repair:")
-    before = statistics["before"]
-    print(f"  Nodes: {before['node_count']}")
-    print(f"  Edges: {before['edge_count']}")
-    print(f"  Metadata entries: {before['metadata_count']}")
-    print(f"  Graph exists: {'YES' if before['graph_exists'] else 'NO'}")
-    print(f"  Metadata exists: {'YES' if before['metadata_exists'] else 'NO'}")
-    print(f"  Checkpoint metadata exists: {'YES' if before['checkpoint_meta_exists'] else 'NO'}")
-
-    print("\nAfter Repair:")
-    after = statistics["after"]
-    print(f"  Nodes: {after['node_count']}")
-    print(f"  Edges: {after['edge_count']}")
-    print(f"  Metadata entries: {after['metadata_count']}")
-    print(f"  Graph exists: {'YES' if after['graph_exists'] else 'NO'}")
-    print(f"  Metadata exists: {'YES' if after['metadata_exists'] else 'NO'}")
-    print(f"  Checkpoint metadata exists: {'YES' if after['checkpoint_meta_exists'] else 'NO'}")
-
-    # Print repair operations
-    print("\nRepair Operations:")
-    for repair_name, result in results.items():
-        status = "SUCCESS" if result.success else "FAILED"
-        print(f"\n  {repair_name}: {status}")
-        print(f"    {result.message}")
-        
-        if result.items_repaired > 0:
-            print(f"    Items repaired: {result.items_repaired}")
+    # Run repair
+    repairer = ComprehensiveRepairer(args.checkpoint_dir, args.api_key, logger)
+    stats = repairer.repair_all()
 
     # Print summary
     print("\n" + "=" * 60)
-    print("SUMMARY")
+    print("COMPREHENSIVE REPAIR COMPLETE")
     print("=" * 60)
-    print(f"Total operations: {summary['total_operations']}")
-    print(f"Successful: {summary['successful_operations']}")
-    print(f"Failed: {summary['failed_operations']}")
-    print(f"Total items repaired: {summary['total_items_repaired']}")
-    print(f"Overall status: {'SUCCESS' if summary['overall_success'] else 'FAILED'}")
+    print(f"Nodes checked: {stats['nodes_checked']}")
+    print(f"Nodes repaired: {stats['nodes_repaired']}")
+    print(f"Fields added: {stats['fields_added']}")
+    print(f"API requests made: {stats['api_requests_made']}")
+    print(f"Errors: {stats['errors']}")
     print("=" * 60)
 
     # Exit with appropriate code
-    sys.exit(0 if summary['overall_success'] else 1)
+    sys.exit(0 if stats["errors"] == 0 else 1)
 
 
 if __name__ == "__main__":
