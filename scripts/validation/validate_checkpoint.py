@@ -465,8 +465,13 @@ class CheckpointValidator:
 
 def main():
     """Main entry point."""
-    # Import emoji formatter for cross-platform emoji support
-    from FollowWeb.FollowWeb_Visualizor.output.formatters import EmojiFormatter
+    try:
+        # Import emoji formatter for cross-platform emoji support
+        from FollowWeb.FollowWeb_Visualizor.output.formatters import EmojiFormatter
+    except ImportError as e:
+        print(f"ERROR: Failed to import EmojiFormatter: {e}")
+        print("Make sure FollowWeb package is installed: pip install -e FollowWeb/")
+        sys.exit(2)
     
     # Configure logging
     logging.basicConfig(
@@ -498,11 +503,12 @@ def main():
         validator = CheckpointValidator(checkpoint_dir)
         result = validator.validate()
     except (ValueError, FileNotFoundError) as e:
-        print(f"\n{EmojiFormatter.format('error', f'Error: {e}')}\n")
+        print(f"\nERROR: {e}\n", file=sys.stderr)
         sys.exit(2)
     except Exception as e:
-        print(f"\n{EmojiFormatter.format('error', f'Unexpected error: {e}')}\n")
-        logging.exception("Unexpected error during validation")
+        print(f"\nUNEXPECTED ERROR: {e}\n", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         sys.exit(2)
 
     # Print results using EmojiFormatter for cross-platform compatibility
