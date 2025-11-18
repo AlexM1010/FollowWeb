@@ -1,13 +1,10 @@
 # Deploy Freesound Website to GitHub Pages
 #
-# Automatically deploys the Freesound network visualization website to GitHub Pages
-# when new visualizations or metrics are committed to the repository.
+# Deploys the Freesound network visualization website to GitHub Pages.
+# Deployment is handled by the Validation workflow after successful visualization generation.
 #
 # Triggers:
-# - Push to Output/*.html (new visualizations)
-# - Push to data/metrics_history.jsonl (updated metrics)
-# - Push to data/milestone_history.jsonl (milestone updates)
-# - Manual workflow dispatch
+# - Manual workflow dispatch only
 #
 # Architecture:
 # - Generates landing page with network statistics and growth charts
@@ -18,11 +15,6 @@
 name: Deploy Freesound Website
 
 on:
-  push:
-    paths:
-      - 'Output/*.html'
-      - 'data/metrics_history.jsonl'
-      - 'data/milestone_history.jsonl'
   workflow_dispatch:
 
 # Permissions for GitHub Pages deployment

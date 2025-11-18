@@ -404,7 +404,7 @@ class FreesoundLoader(DataLoader):
         Raises:
             DataProcessingError: If API request fails
         """
-        samples = []
+        samples: list[dict[str, Any]] = []
 
         try:
             # Build search filter
