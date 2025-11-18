@@ -139,7 +139,17 @@ jobs:
       if: steps.params.outputs.use_cache == 'true'
       id: cache-check
       run: |
-        if [ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]; then
+        # Check if cache was actually restored by verifying directory exists
+        # Note: cache-hit is false when restore-keys are used, even if cache was restored
+        if [ -d "data/freesound_library" ] && [ "$(ls -A data/freesound_library 2>/dev/null)" ]; then
+          echo "✅ Cache restored successfully"
+          if [ "${{ steps.cache-restore.outputs.cache-hit }}" = "true" ]; then
+            echo "  - Exact match: ${{ steps.params.outputs.cache_key }}"
+          else
+            echo "  - Fallback match: ${{ steps.cache-restore.outputs.cache-matched-key }}"
+          fi
+          echo "cache_restored=true" >> "$GITHUB_OUTPUT"
+        else
           {
             echo "## ⚠️  Cache Restore Failed"
             echo ""
@@ -148,9 +158,6 @@ jobs:
             echo "**Attempting fallback to repository download...**"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "cache_restored=false" >> "$GITHUB_OUTPUT"
-        else
-          echo "✅ Cache restored successfully from key: ${{ steps.params.outputs.cache_key }}"
-          echo "cache_restored=true" >> "$GITHUB_OUTPUT"
         fi
     
     # Fallback: Download from repository if cache restore failed
