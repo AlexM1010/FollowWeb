@@ -36,6 +36,10 @@ concurrency:
   group: freesound-validation
   cancel-in-progress: false
 
+# Grant write permissions for pushing changes
+permissions:
+  contents: write
+
 jobs:
   validate-and-visualize:
     name: Validate Data & Generate Visualization
