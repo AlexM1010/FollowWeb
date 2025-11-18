@@ -214,11 +214,11 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
         
         # Run repair script with API key and request limit
-        # Limit to 50 requests to avoid excessive API usage during repairs
+        # Limit to 10 requests to avoid excessive API usage during repairs
         if python scripts/validation/repair_checkpoint.py \
           data/freesound_library \
           --api-key "$FREESOUND_API_KEY" \
-          --max-requests 50 \
+          --max-requests 10 \
           2>&1 | tee repair_output.log; then
           echo "repair_success=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ Repairs completed" >> "$GITHUB_STEP_SUMMARY"
