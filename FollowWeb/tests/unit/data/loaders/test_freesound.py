@@ -70,8 +70,8 @@ def mock_sound():
         duration=2.5,
         username="test_user",
         previews={
-            "preview-hq-mp3": "https://freesound.org/preview.mp3",
-            "preview_hq_mp3": "https://freesound.org/preview.mp3",
+            "preview-hq-mp3": "https://freesound.org/data/previews/0/12_345-hq.mp3",
+            "preview_hq_mp3": "https://freesound.org/data/previews/0/12_345-hq.mp3",
         },
     )
 
@@ -466,7 +466,8 @@ class TestFreesoundLoaderMetadataExtraction:
         assert metadata["tags"] == ["drum", "percussion"]
         assert metadata["duration"] == 2.5
         assert metadata["username"] == "test_user"
-        assert metadata["audio_url"] == "https://freesound.org/preview.mp3"
+        # Check for optimized preview_base field (URL storage optimization)
+        assert metadata["preview_base"] == "previews/0/12_345"
 
     def test_extract_sample_metadata_missing_fields(self, mock_freesound_client):
         """Test extracting metadata with missing fields."""
@@ -482,7 +483,8 @@ class TestFreesoundLoaderMetadataExtraction:
         assert metadata["tags"] == []
         assert metadata["duration"] == 0
         assert metadata["username"] == ""
-        assert metadata["audio_url"] == ""
+        # No preview means no preview_base field
+        assert "preview_base" not in metadata
 
     def test_extract_sample_metadata_no_preview(self, mock_freesound_client):
         """Test extracting metadata when preview is missing."""
