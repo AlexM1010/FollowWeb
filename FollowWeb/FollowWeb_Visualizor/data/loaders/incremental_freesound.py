@@ -712,7 +712,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         page=page,
                         page_size=page_size,
                         sort=sort_order,
-                        fields="id,name,tags,duration,username,previews,num_downloads,avg_rating",
+                        fields="id,name,tags,duration,username,pack,previews,num_downloads,avg_rating",
                     )
 
                 results = self._retry_with_backoff(_do_search)
@@ -2118,6 +2118,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 tags=sample.get("tags", []),
                 duration=sample.get("duration", 0),
                 user=sample.get("username", ""),
+                username=sample.get("username", ""),  # Store both for compatibility
+                pack=sample.get("pack", ""),  # Pack URI or empty string
                 audio_url=sample.get("audio_url", ""),
                 type="sample",
                 collected_at=now,
@@ -2156,6 +2158,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 tags=sample.get("tags", []),
                 duration=sample.get("duration", 0),
                 user=sample.get("username", ""),
+                username=sample.get("username", ""),  # Store both for compatibility
+                pack=sample.get("pack", ""),  # Pack URI or empty string
                 audio_url=sample.get("audio_url", ""),
                 type="sample",
                 collected_at=now,
