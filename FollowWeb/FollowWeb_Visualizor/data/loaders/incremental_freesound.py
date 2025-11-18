@@ -2103,6 +2103,26 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return edge_stats
 
+    def _validate_sample_filesize(self, sample: dict[str, Any]) -> None:
+        """
+        Validate sample has non-zero filesize.
+        
+        Args:
+            sample: Sample dictionary with metadata
+        
+        Raises:
+            ValueError: If sample has invalid filesize (0 or missing)
+        """
+        sample_id = str(sample["id"])
+        filesize = sample.get("filesize", 0)
+        
+        if filesize == 0:
+            self.logger.warning(
+                f"Skipping sample {sample_id} ({sample.get('name', 'unknown')}): "
+                f"invalid filesize (0 bytes)"
+            )
+            raise ValueError(f"Sample {sample_id} has invalid filesize: 0 bytes")
+
     def _add_node_to_graph(self, sample: dict[str, Any]) -> None:
         """
         Add a single sample node to the graph without edges.
@@ -2118,13 +2138,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         sample_id = str(sample["id"])
         
         # Validate filesize - reject empty files
-        filesize = sample.get("filesize", 0)
-        if filesize == 0:
-            self.logger.warning(
-                f"Skipping sample {sample_id} ({sample.get('name', 'unknown')}): "
-                f"invalid filesize (0 bytes)"
-            )
-            raise ValueError(f"Sample {sample_id} has invalid filesize: 0 bytes")
+        self._validate_sample_filesize(sample)
 
         # Add node if not already in graph
         if sample_id not in self.graph:
@@ -2203,13 +2217,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         sample_id = str(sample["id"])
         
         # Validate filesize - reject empty files
-        filesize = sample.get("filesize", 0)
-        if filesize == 0:
-            self.logger.warning(
-                f"Skipping sample {sample_id} ({sample.get('name', 'unknown')}): "
-                f"invalid filesize (0 bytes)"
-            )
-            raise ValueError(f"Sample {sample_id} has invalid filesize: 0 bytes")
+        self._validate_sample_filesize(sample)
 
         # Add node if not already in graph
         if sample_id not in self.graph:
