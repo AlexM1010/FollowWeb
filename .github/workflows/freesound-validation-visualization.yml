@@ -481,7 +481,10 @@ jobs:
         echo "Updating landing page..."
         
         # Generate landing page with latest visualization and capture output
-        LANDING_OUTPUT=$(python generate_landing_page.py 2>&1)
+        LANDING_OUTPUT=$(python generate_landing_page.py \
+          --output-dir . \
+          --visualizations "Output/*.html" \
+          --plausible-domain "alexm1010.github.io" 2>&1)
         LANDING_EXIT_CODE=$?
         
         if [ "$LANDING_EXIT_CODE" -ne 0 ]; then
