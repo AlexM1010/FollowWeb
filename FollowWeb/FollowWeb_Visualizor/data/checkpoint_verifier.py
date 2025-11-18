@@ -88,7 +88,8 @@ class CheckpointVerifier:
             import pickle
 
             with open(topology_path, "rb") as f:
-                graph = pickle.load(f)
+                # Loading our own checkpoint data, not untrusted input
+                graph = pickle.load(f)  # nosec B301
 
             # Verify it's a NetworkX graph
             import networkx as nx
