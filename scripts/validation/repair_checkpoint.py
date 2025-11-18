@@ -253,12 +253,16 @@ class ComprehensiveRepairer:
             self.stats["api_requests_made"] += 1
 
             # Update node with fetched data
+            updated_metadata = {}
             for field in missing_fields:
                 if field in data and data[field]:
                     graph.nodes[node_id][field] = data[field]
-                    # Also update metadata cache
-                    metadata_cache.store(node_id, {field: data[field]})
+                    updated_metadata[field] = data[field]
                     self.stats["fields_added"] += 1
+            
+            # Update metadata cache with all fields at once
+            if updated_metadata:
+                metadata_cache.set(int(node_id), updated_metadata)
 
             self.logger.info(
                 f"✓ Updated node {node_id} with {len(missing_fields)} fields"
