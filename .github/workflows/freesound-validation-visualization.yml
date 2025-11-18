@@ -346,6 +346,8 @@ jobs:
             echo "$VALIDATION_OUTPUT"
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Validation passed"
+          echo "$VALIDATION_OUTPUT"
         else
           echo "validation_passed=false" >> "$GITHUB_OUTPUT"
           {
@@ -364,6 +366,9 @@ jobs:
             echo "2. Check data repair workflow logs"
             echo "3. Manually trigger repair workflow if needed"
           } >> "$GITHUB_STEP_SUMMARY"
+          # Print error to console for debugging
+          echo "❌ Validation failed"
+          echo "$VALIDATION_OUTPUT"
           exit 1
         fi
     
