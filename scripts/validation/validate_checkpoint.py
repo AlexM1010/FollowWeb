@@ -212,7 +212,17 @@ class CheckpointValidator:
         checks_passed += 1
         self.logger.info("✓ Graph and metadata cache are consistent")
 
-        # Check 3: Verify edge counts
+        # Check 3: Verify node counts
+        checks_run += 1
+        node_check_result = self._check_node_counts(graph, checkpoint_meta)
+        
+        if node_check_result["error"]:
+            errors.append(node_check_result["error"])
+        else:
+            checks_passed += 1
+            self.logger.info(f"✓ Node count matches ({node_check_result['count']} nodes)")
+
+        # Check 4: Verify edge counts
         checks_run += 1
         edge_check_result = self._check_edge_counts(graph, checkpoint_meta)
         
@@ -222,7 +232,7 @@ class CheckpointValidator:
             checks_passed += 1
             self.logger.info(f"✓ Edge count matches ({edge_check_result['count']} edges)")
 
-        # Check 4: Verify all nodes have metadata
+        # Check 5: Verify all nodes have metadata
         checks_run += 1
         metadata_check_result = self._check_nodes_have_metadata(graph, metadata_cache)
         
@@ -232,7 +242,7 @@ class CheckpointValidator:
             checks_passed += 1
             self.logger.info("✓ All sampled nodes have metadata")
 
-        # Check 5: Validate pagination state
+        # Check 6: Validate pagination state
         checks_run += 1
         pagination_result = self._check_pagination_state(checkpoint_meta)
         
@@ -361,6 +371,30 @@ class CheckpointValidator:
                 )
                 
         return result
+
+    def _check_node_counts(
+        self, graph: nx.DiGraph, checkpoint_meta: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Check if node count matches checkpoint metadata.
+        
+        Args:
+            graph: NetworkX graph
+            checkpoint_meta: Checkpoint metadata dictionary
+            
+        Returns:
+            Dictionary with 'error' (str or None) and 'count' (int)
+        """
+        expected_nodes = checkpoint_meta.get("node_count", 0)
+        actual_nodes = graph.number_of_nodes()
+        
+        if expected_nodes != actual_nodes:
+            return {
+                "error": f"Node count mismatch: expected {expected_nodes}, got {actual_nodes}",
+                "count": actual_nodes
+            }
+        
+        return {"error": None, "count": actual_nodes}
 
     def _check_edge_counts(
         self, graph: nx.DiGraph, checkpoint_meta: dict[str, Any]

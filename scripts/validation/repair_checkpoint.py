@@ -276,11 +276,11 @@ class CheckpointRepairer:
 
     def repair_edge_counts(self) -> RepairResult:
         """
-        Fix edge count mismatch in checkpoint metadata.
+        Fix node and edge count mismatch in checkpoint metadata.
         
         This operation:
         1. Loads graph topology and checkpoint metadata
-        2. Compares actual edge count with metadata
+        2. Compares actual node/edge counts with metadata
         3. Updates metadata if mismatch found
 
         Returns:
@@ -290,28 +290,45 @@ class CheckpointRepairer:
             graph = self._load_graph()
             checkpoint_meta = self._load_checkpoint_metadata()
 
+            expected_nodes = checkpoint_meta.get("node_count", 0)
             expected_edges = checkpoint_meta.get("edge_count", 0)
+            actual_nodes = graph.number_of_nodes()
             actual_edges = graph.number_of_edges()
 
-            if expected_edges == actual_edges:
+            # Check if both counts are correct
+            if expected_nodes == actual_nodes and expected_edges == actual_edges:
                 return RepairResult(
                     success=True,
-                    message=f"Edge count is correct ({actual_edges} edges)",
+                    message=f"Node and edge counts are correct ({actual_nodes} nodes, {actual_edges} edges)",
                     items_repaired=0
                 )
 
-            # Update edge count
-            checkpoint_meta["edge_count"] = actual_edges
+            # Update both counts
+            items_repaired = 0
+            messages = []
+            
+            if expected_nodes != actual_nodes:
+                checkpoint_meta["node_count"] = actual_nodes
+                self.logger.info(
+                    f"✓ Updated node count: {expected_nodes} → {actual_nodes}"
+                )
+                messages.append(f"node count {expected_nodes} → {actual_nodes}")
+                items_repaired += 1
+            
+            if expected_edges != actual_edges:
+                checkpoint_meta["edge_count"] = actual_edges
+                self.logger.info(
+                    f"✓ Updated edge count: {expected_edges} → {actual_edges}"
+                )
+                messages.append(f"edge count {expected_edges} → {actual_edges}")
+                items_repaired += 1
+            
             self._save_checkpoint_metadata(checkpoint_meta)
-
-            self.logger.info(
-                f"✓ Updated edge count: {expected_edges} → {actual_edges}"
-            )
             
             return RepairResult(
                 success=True,
-                message=f"Updated edge count from {expected_edges} to {actual_edges}",
-                items_repaired=1
+                message=f"Updated {', '.join(messages)}",
+                items_repaired=items_repaired
             )
 
         except (IOError, OSError, FileNotFoundError) as e:
