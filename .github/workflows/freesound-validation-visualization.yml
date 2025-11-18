@@ -327,36 +327,26 @@ jobs:
       continue-on-error: true
       run: |
         echo "Running checkpoint validation..."
+        echo ""
         
-        # Run validation script and capture output
-        VALIDATION_OUTPUT=$(python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1)
-        VALIDATION_EXIT_CODE=$?
-        
-        {
+        # Run validation script directly (don't capture output)
+        if python scripts/validation/validate_checkpoint.py data/freesound_library; then
           echo ""
-          echo "**Validation Results:**"
-        } >> "$GITHUB_STEP_SUMMARY"
-        
-        if [ "$VALIDATION_EXIT_CODE" -eq 0 ]; then
+          echo "✅ Validation passed"
           echo "validation_passed=true" >> "$GITHUB_OUTPUT"
           {
-            echo "✅ Validation passed"
             echo ""
-            echo "\`\`\`"
-            echo "$VALIDATION_OUTPUT"
-            echo "\`\`\`"
+            echo "**Validation Results:**"
+            echo "✅ Validation passed"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "✅ Validation passed"
-          echo "$VALIDATION_OUTPUT"
         else
+          echo ""
+          echo "❌ Validation failed (see output above)"
           echo "validation_passed=false" >> "$GITHUB_OUTPUT"
           {
-            echo "❌ Validation failed"
             echo ""
-            echo "**Error Details:**"
-            echo "\`\`\`"
-            echo "$VALIDATION_OUTPUT"
-            echo "\`\`\`"
+            echo "**Validation Results:**"
+            echo "❌ Validation failed (see output above)"
             echo ""
             echo "⚠️  **Skipping visualization and deployment due to validation failure**"
             echo "⚠️  **Backup workflow will NOT be triggered**"
@@ -366,9 +356,6 @@ jobs:
             echo "2. Check data repair workflow logs"
             echo "3. Manually trigger repair workflow if needed"
           } >> "$GITHUB_STEP_SUMMARY"
-          # Print error to console for debugging
-          echo "❌ Validation failed"
-          echo "$VALIDATION_OUTPUT"
           exit 1
         fi
     
