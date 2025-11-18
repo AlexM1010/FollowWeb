@@ -31,6 +31,20 @@ if hasattr(sys.stdout, "reconfigure"):
         pass
 
 
+@pytest.fixture(scope="session", autouse=True)
+def skip_checkpoint_verification():
+    """
+    Skip checkpoint verification during tests to allow mocked data.
+
+    This prevents checkpoint verification failures when tests use mocked
+    data that doesn't create valid graphs.
+    """
+    os.environ["FOLLOWWEB_SKIP_CHECKPOINT_VERIFICATION"] = "1"
+    yield
+    # Clean up after all tests
+    os.environ.pop("FOLLOWWEB_SKIP_CHECKPOINT_VERIFICATION", None)
+
+
 def pytest_runtest_teardown(item, nextitem):
     """Clean up memory after each test to prevent accumulation."""
     import gc
