@@ -664,7 +664,6 @@ jobs:
     # Save checkpoint to cache - backup workflow handles permanent storage
     - name: Save checkpoint to cache
       if: always() && steps.orchestration.outputs.can_proceed == 'true' && steps.verify_checkpoint.outputs.has_data == 'true'
-      if: always() && steps.orchestration.outputs.can_proceed == 'true'
       id: cache_save
       uses: actions/cache/save@v3
       with:
