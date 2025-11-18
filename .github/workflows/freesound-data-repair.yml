@@ -311,6 +311,19 @@ jobs:
         
         rm -f "$backup_filename"
     
+    # Debug: List checkpoint files before caching
+    - name: Debug - List checkpoint files
+      if: always() && (steps.validation.outputs.validation_passed == 'true' || (steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'))
+      run: |
+        echo "Listing checkpoint directory contents:"
+        ls -laR data/freesound_library/ || echo "Directory not found"
+        echo ""
+        echo "File sizes:"
+        du -h data/freesound_library/* || echo "No files found"
+        echo ""
+        echo "Total directory size:"
+        du -sh data/freesound_library/ || echo "Directory not found"
+    
     # Save to cache as SECONDARY backup (after permanent storage)
     # Cache has 7-day retention and should only be used as fallback
     - name: Save checkpoint to cache (SECONDARY backup - for downstream workflows)
