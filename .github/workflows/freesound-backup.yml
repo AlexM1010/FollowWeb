@@ -454,7 +454,9 @@ jobs:
           exit 1
         fi
         
-        if [ "$edge_count" -eq 0 ]; then
+        # Only reject 0 edges if we have many nodes (edges should have been generated)
+        # Allow 0 edges for small checkpoints (< 10 nodes) as edges may not be generated yet
+        if [ "$edge_count" -eq 0 ] && [ "$node_count" -ge 10 ]; then
           echo "::error::Cannot create backup with 0 edges - checkpoint graph is incomplete"
           {
             echo "**❌ Backup Creation Failed**"
@@ -462,6 +464,8 @@ jobs:
             echo "**Reason:** Checkpoint has $node_count nodes but 0 edges"
             echo ""
             echo "This indicates an incomplete graph (nodes without relationships). Refusing to create backup to prevent pipeline corruption."
+            echo ""
+            echo "**Note:** Small checkpoints (< 10 nodes) are allowed to have 0 edges during collection."
             echo ""
             echo "**Action Required:** Investigate why edge generation failed"
           } >> "$GITHUB_STEP_SUMMARY"

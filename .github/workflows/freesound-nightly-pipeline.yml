@@ -638,6 +638,7 @@ jobs:
           node_count=$(jq -r '.total_nodes // .nodes // 0' data/freesound_library/checkpoint_metadata.json)
           edge_count=$(jq -r '.edges // 0' data/freesound_library/checkpoint_metadata.json)
           
+          # Always reject 0 nodes
           if [ "$node_count" -eq 0 ]; then
             echo "::warning::Checkpoint has 0 nodes - skipping cache save to prevent corruption"
             {
@@ -653,14 +654,18 @@ jobs:
               echo "- Checkpoint initialization failed"
             } >> "$GITHUB_STEP_SUMMARY"
             echo "has_data=false" >> "$GITHUB_OUTPUT"
-          elif [ "$edge_count" -eq 0 ]; then
-            echo "::warning::Checkpoint has 0 edges - skipping cache save to prevent corruption"
+          # Only reject 0 edges if we have many nodes (edges should have been generated)
+          # Allow 0 edges for small checkpoints (< 10 nodes) as edges may not be generated yet
+          elif [ "$edge_count" -eq 0 ] && [ "$node_count" -ge 10 ]; then
+            echo "::warning::Checkpoint has $node_count nodes but 0 edges - likely edge generation failed"
             {
               echo ""
               echo "⚠️ **Warning: Checkpoint Missing Edges**"
               echo ""
               echo "The checkpoint has $node_count nodes but 0 edges. This checkpoint will NOT be cached"
               echo "to prevent corrupting downstream workflows with incomplete graph data."
+              echo ""
+              echo "**Note:** Small checkpoints (< 10 nodes) are allowed to have 0 edges during collection."
               echo ""
               echo "**Possible Causes:**"
               echo "- Edge generation failed"
@@ -669,7 +674,11 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             echo "has_data=false" >> "$GITHUB_OUTPUT"
           else
-            echo "✅ Checkpoint has $node_count nodes and $edge_count edges - safe to cache"
+            if [ "$edge_count" -eq 0 ]; then
+              echo "✅ Checkpoint has $node_count nodes and $edge_count edges - allowing (small checkpoint)"
+            else
+              echo "✅ Checkpoint has $node_count nodes and $edge_count edges - safe to cache"
+            fi
             echo "has_data=true" >> "$GITHUB_OUTPUT"
           fi
         else
