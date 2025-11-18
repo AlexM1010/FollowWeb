@@ -230,20 +230,16 @@ jobs:
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
-    - name: Save repaired checkpoint to cache
-      if: steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'
-      uses: actions/cache/save@v3
-      with:
-        path: data/freesound_library
-        key: checkpoint-repaired-${{ github.run_id }}
-    
-    - name: Upload repaired checkpoint to repository
-      if: steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'
+    # CRITICAL: Upload to permanent storage FIRST (before cache)
+    # Cache is ephemeral (7-day retention) and should only be a fallback
+    - name: Upload checkpoint to repository (PRIORITY - repaired or validated)
+      id: upload_checkpoint
+      if: always() && (steps.validation.outputs.validation_passed == 'true' || (steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'))
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
         {
-          echo "### 📤 Upload Repaired Checkpoint"
+          echo "### 📤 Upload Checkpoint"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
@@ -253,8 +249,15 @@ jobs:
           exit 0
         fi
         
+        # Determine backup type
+        if [ "${{ steps.repair.outputs.repair_success }}" = "true" ]; then
+          backup_type="repaired"
+        else
+          backup_type="validated"
+        fi
+        
         # Create backup archive
-        backup_filename="checkpoint_repaired_${{ github.run_id }}.tar.gz"
+        backup_filename="checkpoint_${backup_type}_${{ github.run_id }}.tar.gz"
         tar -czf "$backup_filename" -C data freesound_library/
         
         backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
@@ -300,7 +303,117 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
+        echo "upload_success=true" >> "$GITHUB_OUTPUT"
+        
         rm -f "$backup_filename"
+    
+    # Save to cache as SECONDARY backup (after permanent storage)
+    # Cache has 7-day retention and should only be used as fallback
+    - name: Save checkpoint to cache (SECONDARY backup - for downstream workflows)
+      if: always() && (steps.validation.outputs.validation_passed == 'true' || (steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'))
+      id: cache_save
+      uses: actions/cache/save@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-repaired-${{ github.run_id }}
+    
+    - name: Verify cache integrity and warn if permanent storage failed
+      if: always() && (steps.validation.outputs.validation_passed == 'true' || (steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'))
+      run: |
+        {
+          echo "### 🔍 Cache Verification"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        # Verify checkpoint files exist
+        CHECKPOINT_DIR="data/freesound_library"
+        
+        if [ ! -d "$CHECKPOINT_DIR" ]; then
+          echo "::error::Checkpoint directory not found"
+          echo "- ❌ Directory not found" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        # Check all three required files
+        missing_files=0
+        
+        if [ ! -f "$CHECKPOINT_DIR/graph_topology.gpickle" ]; then
+          echo "::error::Missing graph_topology.gpickle"
+          echo "- ❌ Missing: graph_topology.gpickle" >> "$GITHUB_STEP_SUMMARY"
+          missing_files=$((missing_files + 1))
+        else
+          graph_size=$(stat -f%z "$CHECKPOINT_DIR/graph_topology.gpickle" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/graph_topology.gpickle")
+          echo "- ✅ graph_topology.gpickle ($(numfmt --to=iec-i --suffix=B "$graph_size"))" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        
+        if [ ! -f "$CHECKPOINT_DIR/metadata_cache.db" ]; then
+          echo "::error::Missing metadata_cache.db"
+          echo "- ❌ Missing: metadata_cache.db" >> "$GITHUB_STEP_SUMMARY"
+          missing_files=$((missing_files + 1))
+        else
+          db_size=$(stat -f%z "$CHECKPOINT_DIR/metadata_cache.db" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/metadata_cache.db")
+          echo "- ✅ metadata_cache.db ($(numfmt --to=iec-i --suffix=B "$db_size"))" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        
+        if [ ! -f "$CHECKPOINT_DIR/checkpoint_metadata.json" ]; then
+          echo "::error::Missing checkpoint_metadata.json"
+          echo "- ❌ Missing: checkpoint_metadata.json" >> "$GITHUB_STEP_SUMMARY"
+          missing_files=$((missing_files + 1))
+        else
+          meta_size=$(stat -f%z "$CHECKPOINT_DIR/checkpoint_metadata.json" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/checkpoint_metadata.json")
+          echo "- ✅ checkpoint_metadata.json ($(numfmt --to=iec-i --suffix=B "$meta_size"))" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        
+        if [ "$missing_files" -gt 0 ]; then
+          echo "::error::Cache save verification failed - $missing_files files missing"
+          {
+            echo ""
+            echo "⚠️ **WARNING**: Cache was saved but is incomplete!"
+            echo "⚠️ **Downstream workflows may fail!**"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        # Check if permanent storage upload succeeded
+        permanent_uploaded="${{ steps.upload_checkpoint.outputs.upload_success }}"
+        
+        if [ "$permanent_uploaded" != "true" ]; then
+          {
+            echo ""
+            echo "## ⚠️ CRITICAL WARNING: Data Persistence Risk"
+            echo ""
+            echo "**Permanent storage upload FAILED!**"
+            echo ""
+            echo "Checkpoint was saved to cache only, which has **7-day retention**."
+            echo "Data may be lost after 7 days if not backed up to permanent storage."
+            echo ""
+            echo "### Immediate Actions Required:"
+            echo "1. Investigate permanent storage upload failure"
+            echo "2. Manually download checkpoint from cache"
+            echo "3. Upload to permanent storage manually"
+            echo "4. Fix BACKUP_PAT or repository permissions"
+            echo ""
+            echo "### Cache Details:"
+            echo "- Cache Key: \`checkpoint-repaired-${{ github.run_id }}\`"
+            echo "- Retention: 7 days"
+            echo "- Expires: $(date -u -d '7 days' +%Y-%m-%d 2>/dev/null || date -u -v+7d +%Y-%m-%d 2>/dev/null)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          
+          echo "::warning::Checkpoint saved to cache only - 7-day retention risk!"
+        else
+          {
+            echo ""
+            echo "✅ All checkpoint files verified"
+            echo "✅ Cache key: \`checkpoint-repaired-${{ github.run_id }}\`"
+            echo ""
+            echo "### ✅ Data Persistence Status"
+            echo "- Primary: ✅ Permanent storage (safe)"
+            echo "- Secondary: ✅ Cache (7-day fallback)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
     
     - name: Generate repair summary
       if: always()

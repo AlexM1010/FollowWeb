@@ -1,6 +1,6 @@
 # Freesound Backup Workflow
 #
-# Triggered automatically after collection or validation pipelines complete.
+# Single source of truth for ALL backup operations in the Freesound pipeline.
 # This workflow creates and manages backups of checkpoint data with tier-specific
 # retention policies and failure recovery support.
 #
@@ -9,18 +9,28 @@
 # - Triggered by: Validation Pipeline (on success only)
 # - Scheduled: Every 6 hours for periodic backups
 # - Restores checkpoint from GitHub Actions cache (triggered runs only)
+# - Determines backup tier based on node count and reason
 # - Creates compressed backup with tier tagging
 # - Uploads to PRIMARY backup repository ONLY
 # - Applies tier-specific retention policies
 # - Supports failure recovery to preserve partial progress
 #
-# Backup Tiers:
-# - recovery: Failure recovery backups (7-day retention)
-# - validated: Validated checkpoints (30-day retention)
-# - checkpoint: Frequent backups from collection pipeline (14-day retention)
-# - permanent: Milestone backups from collection pipeline (unlimited retention)
+# Backup Strategy (simplified):
+# - Every 100 nodes → v-checkpoint release (14-day retention, max 10)
+#   - Single tier, single release, simple retention policy
+# - Safety mechanism: Never delete the last remaining backup
+#   - If retention policy would delete all backups, keep the most recent one
+#   - This prevents data loss if pipelines fail for 14+ days
+#
+# Backup Reasons (non-collection):
+# - recovery: Failure recovery backups → v-checkpoint (14-day retention)
+# - validated: Validated checkpoints → v-checkpoint (14-day retention)
+# - scheduled: Periodic backups → v-checkpoint (14-day retention)
+# - manual: Manual trigger → v-checkpoint (14-day retention)
 #
 # Features:
+# - Centralized backup logic: ALL backup operations in one place
+# - Consistent tier determination: Single algorithm for all backups
 # - Failure recovery: Preserves partial progress when collection fails
 # - Atomic operations: Only updates backup list after successful upload
 # - Tier-specific retention: Different policies for different backup types
@@ -84,7 +94,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install jq
     
     - name: Set execution parameters
       id: params
@@ -335,26 +344,44 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
 
-    # Subtask 11.3: Implement backup creation with tier tagging
-    - name: Create backup archive with tier tagging
-      if: steps.verification.outputs.verification_passed == 'true'
+    - name: Create backup archive
+      if: |
+        steps.verification.outputs.verification_passed == 'true' && (
+          steps.backup_reason.outputs.reason != 'collection_success' ||
+          (steps.backup_reason.outputs.reason == 'collection_success' && 
+           steps.verification.outputs.node_count % 100 == 0)
+        )
       id: create_backup
       run: |
+        node_count="${{ steps.verification.outputs.node_count }}"
+        edge_count="${{ steps.verification.outputs.edge_count }}"
+        reason="${{ steps.backup_reason.outputs.reason }}"
+        
+        # Show backup decision for collection backups
+        if [ "$reason" = "collection_success" ]; then
+          {
+            echo "**Backup Decision:**"
+            echo ""
+            echo "- Node Count: \`$node_count\`"
+            echo "- Backup Interval: \`100\`"
+            echo "- Decision: ✅ Create backup (at interval)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+        
         {
           echo "**Backup Creation:**"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Get backup tier
-        tier="${{ steps.backup_reason.outputs.tier }}"
-        node_count="${{ steps.verification.outputs.node_count }}"
-        edge_count="${{ steps.verification.outputs.edge_count }}"
+        # All backups go to v-checkpoint release (single tier)
+        release_tag="v-checkpoint"
         
-        # Create backup filename with tier information
-        backup_filename="checkpoint_backup_${node_count}nodes_${tier}_${{ github.run_id }}.tar.gz"
+        # Create backup filename
+        backup_filename="checkpoint_backup_${node_count}nodes_${{ github.run_id }}.tar.gz"
         
         echo "Creating backup archive: $backup_filename"
-        echo "- Tier: $tier"
+        echo "- Release: $release_tag"
         echo "- Reason: $reason"
         
         # Create compressed archive
@@ -364,27 +391,38 @@ jobs:
         backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
         echo "Backup size: $(numfmt --to=iec-i --suffix=B "$backup_size")"
         
-        # Create backup metadata JSON
-        cat > backup_metadata.json << EOF
-        {
-          "timestamp": "${{ steps.params.outputs.timestamp }}",
-          "run_id": "${{ github.run_id }}",
-          "samples": ${node_count},
-          "edges": ${edge_count},
-          "validation_status": "$([ "$reason" = "validation_success" ] && echo "passed" || echo "unknown")",
-          "backup_reason": "$reason",
-          "tier": "$tier",
-          "file_size_bytes": ${backup_size},
-          "workflow_trigger": "${{ github.event_name }}"
-        EOF
+        # Create backup metadata JSON using jq
+        jq -n \
+          --arg timestamp "${{ steps.params.outputs.timestamp }}" \
+          --arg run_id "${{ github.run_id }}" \
+          --argjson samples "${node_count}" \
+          --argjson edges "${edge_count}" \
+          --arg validation_status "$([ "$reason" = "validation_success" ] && echo "passed" || echo "unknown")" \
+          --arg backup_reason "$reason" \
+          --arg release_tag "$release_tag" \
+          --argjson file_size_bytes "${backup_size}" \
+          --arg workflow_trigger "${{ github.event_name }}" \
+          '{
+            timestamp: $timestamp,
+            run_id: $run_id,
+            samples: $samples,
+            edges: $edges,
+            validation_status: $validation_status,
+            backup_reason: $backup_reason,
+            release_tag: $release_tag,
+            file_size_bytes: $file_size_bytes,
+            workflow_trigger: $workflow_trigger
+          }' > backup_metadata.json
         
         # Add failure metadata for recovery backups
         if [ "$reason" = "failure_recovery" ]; then
-          jq '. + {
-            "failed_workflow_run": "${{ github.event.workflow_run.id }}",
-            "samples_preserved": ${node_count},
-            "recovery_backup": true
-          }' backup_metadata.json > backup_metadata_tmp.json
+          jq --arg failed_run "${{ github.event.workflow_run.id }}" \
+             --argjson samples_preserved "${node_count}" \
+             '. + {
+               failed_workflow_run: $failed_run,
+               samples_preserved: $samples_preserved,
+               recovery_backup: true
+             }' backup_metadata.json > backup_metadata_tmp.json
           mv backup_metadata_tmp.json backup_metadata.json
         fi
         
@@ -402,6 +440,7 @@ jobs:
           echo "backup_filename=$backup_filename"
           echo "backup_size=$backup_size"
           echo "backup_created=true"
+          echo "release_tag=$release_tag"
         } >> "$GITHUB_OUTPUT"
 
     # Subtask 19.1: Implement backup verification
@@ -521,28 +560,7 @@ jobs:
         fi
         
         backup_filename="${{ steps.create_backup.outputs.backup_filename }}"
-        tier="${{ steps.backup_reason.outputs.tier }}"
-        # reason variable available for future use: ${{ steps.backup_reason.outputs.reason }}
-        
-        # Map tier to release tag
-        case "$tier" in
-          recovery)
-            release_tag="v-recovery"
-            ;;
-          validated)
-            release_tag="v-validated"
-            ;;
-          checkpoint|collection_success)
-            release_tag="v-checkpoint"
-            ;;
-          scheduled|manual)
-            release_tag="v-checkpoint"
-            ;;
-          *)
-            echo "::error::Unknown tier: $tier"
-            exit 1
-            ;;
-        esac
+        release_tag="${{ steps.create_backup.outputs.release_tag }}"
         
         echo "Uploading to release: $release_tag"
         {
@@ -635,8 +653,8 @@ jobs:
         # Cleanup local backup file only after successful upload verification
         rm -f "$backup_filename"
 
-    # Subtask 11.5: Implement atomic backup list update with tier-specific retention
-    - name: Apply tier-specific retention policies
+    # Apply retention policy (14-day retention, max 10 backups, never delete last backup)
+    - name: Apply retention policy
       if: steps.upload_backup.outputs.upload_success == 'true'
       id: retention
       env:
@@ -649,36 +667,15 @@ jobs:
         
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
-        release_tag="${{ steps.upload_backup.outputs.release_tag }}"
+        release_tag="v-checkpoint"
+        retention_days=14
+        max_count=10
         
-        # Define retention policies by tier
-        case "$release_tag" in
-          v-recovery)
-            retention_days=7
-            retention_label="7 days"
-            ;;
-          v-validated)
-            retention_days=30
-            retention_label="30 days"
-            ;;
-          v-checkpoint)
-            retention_days=14
-            retention_label="14 days"
-            ;;
-          v-permanent)
-            retention_days=0  # Unlimited
-            retention_label="Unlimited (permanent)"
-            ;;
-          *)
-            retention_days=14
-            retention_label="14 days (default)"
-            ;;
-        esac
-        
-        echo "Applying retention policy for $release_tag: $retention_label"
+        echo "Applying retention policy for $release_tag"
         {
           echo "- Release: \`$release_tag\`"
-          echo "- Retention: \`$retention_label\`"
+          echo "- Retention: \`14 days\`"
+          echo "- Max Count: \`$max_count\`"
         } >> "$GITHUB_STEP_SUMMARY"
         
         # Get all assets from the release
@@ -687,15 +684,6 @@ jobs:
         
         TOTAL_ASSETS=$(echo "$ASSETS_JSON" | jq '.assets | length')
         echo "- Total backups: \`$TOTAL_ASSETS\`" >> "$GITHUB_STEP_SUMMARY"
-        
-        # Skip retention for permanent tier
-        if [ "$release_tag" = "v-permanent" ]; then
-          {
-            echo "- Action: No cleanup (permanent tier)"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 0
-        fi
         
         # Calculate cutoff date for time-based retention
         CUTOFF_DATE=$(date -u -d "${retention_days} days ago" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-${retention_days}d +%Y-%m-%dT%H:%M:%S 2>/dev/null || echo "")
@@ -734,6 +722,34 @@ jobs:
           ASSETS_TO_DELETE=$(echo "$ASSETS_JSON" | jq -r ".assets | sort_by(.created_at) | .[:-1] | map(select(.created_at < \"$CUTOFF_DATE\")) | .[].id")
           DELETE_COUNT=$(echo "$ASSETS_TO_DELETE" | grep -c . || echo "0")
           RETAINED_COUNT=$((TOTAL_ASSETS - DELETE_COUNT))
+        fi
+        
+        # Also enforce max count limit
+        if [ "$TOTAL_ASSETS" -gt "$max_count" ]; then
+          TO_DELETE=$((TOTAL_ASSETS - max_count))
+          echo "Enforcing max count limit: deleting $TO_DELETE oldest backups..."
+          
+          OLDEST_ASSETS=$(echo "$ASSETS_JSON" | jq -r ".assets | sort_by(.created_at) | .[:$TO_DELETE] | .[].id")
+          
+          for ASSET_ID in $OLDEST_ASSETS; do
+            # Skip if already in time-based deletion list
+            if echo "$ASSETS_TO_DELETE" | grep -q "$ASSET_ID"; then
+              continue
+            fi
+            
+            echo "Deleting old asset ID: $ASSET_ID (count limit)"
+            DELETE_RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE \
+              -H "Authorization: token $BACKUP_PAT" \
+              "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}")
+            
+            if [ "$DELETE_RESPONSE" = "204" ]; then
+              DELETED_COUNT=$((DELETED_COUNT + 1))
+              echo "  ✓ Deleted asset $ASSET_ID"
+            else
+              echo "::warning::Failed to delete asset $ASSET_ID (HTTP $DELETE_RESPONSE)"
+              FAILED_DELETIONS=$((FAILED_DELETIONS + 1))
+            fi
+          done
         fi
         
         # ATOMIC OPERATION: Delete old assets one by one
@@ -866,7 +882,6 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           
           reason="${{ steps.backup_reason.outputs.reason }}"
-          tier="${{ steps.backup_reason.outputs.tier }}"
           
           # Highlight failure recovery
           if [ "$reason" = "failure_recovery" ]; then
@@ -885,8 +900,7 @@ jobs:
             echo "- Size: \`$(numfmt --to=iec-i --suffix=B ${{ steps.create_backup.outputs.backup_size }})\`"
             echo "- Samples: \`${{ steps.verification.outputs.node_count }}\`"
             echo "- Edges: \`${{ steps.verification.outputs.edge_count }}\`"
-            echo "- Tier: \`$tier\`"
-            echo "- Release: \`${{ steps.upload_backup.outputs.release_tag }}\`"
+            echo "- Release: \`v-checkpoint\`"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
         else
@@ -915,15 +929,11 @@ jobs:
           REPO_OWNER="${{ github.repository_owner }}"
           BACKUP_REPO="${REPO_OWNER}/freesound-backup"
           
-          # Check each tier
-          for release_tag in v-recovery v-validated v-checkpoint v-permanent; do
-            ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
-              "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/${release_tag}")
-            
-            if echo "$ASSETS_JSON" | grep -q "Not Found"; then
-              continue
-            fi
-            
+          # Check v-checkpoint release
+          ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+            "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+          
+          if ! echo "$ASSETS_JSON" | grep -q "Not Found"; then
             ASSET_COUNT=$(echo "$ASSETS_JSON" | jq '.assets | length')
             
             if [ "$ASSET_COUNT" -gt 0 ]; then
@@ -931,25 +941,14 @@ jobs:
               OLDEST_DATE=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | .[0].created_at')
               OLDEST_AGE=$(( ($(date +%s) - $(date -d "$OLDEST_DATE" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$OLDEST_DATE" +%s 2>/dev/null || echo "0")) / 86400 ))
               
-              # Get retention policy
-              case "$release_tag" in
-                v-recovery) retention="7 days" ;;
-                v-validated) retention="30 days" ;;
-                v-checkpoint) retention="14 days" ;;
-                v-permanent) retention="Unlimited" ;;
-              esac
-              
-              echo "- **$release_tag**: $ASSET_COUNT backups (oldest: ${OLDEST_AGE}d, retention: $retention)" >> "$GITHUB_STEP_SUMMARY"
+              echo "- **v-checkpoint**: $ASSET_COUNT backups (oldest: ${OLDEST_AGE}d, retention: 14 days)" >> "$GITHUB_STEP_SUMMARY"
             fi
-          done
+          fi
           
           echo "" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         {
-          echo "**Retention Policies:**"
-          echo "- \`v-recovery\`: 7 days (failure recovery backups)"
-          echo "- \`v-validated\`: 30 days (validated checkpoints)"
-          echo "- \`v-checkpoint\`: 14 days (frequent backups from collection)"
-          echo "- \`v-permanent\`: Unlimited (milestone backups from collection)"
+          echo "**Retention Policy:**"
+          echo "- \`v-checkpoint\`: 14 days (max 10 backups, never delete last backup)"
         } >> "$GITHUB_STEP_SUMMARY"

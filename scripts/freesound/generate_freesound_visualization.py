@@ -128,6 +128,13 @@ def parse_arguments():
         help='Sort order for pagination search (default: downloads_desc)'
     )
     
+    parser.add_argument(
+        '--skip-visualization',
+        action='store_true',
+        default=False,
+        help='Skip visualization generation (useful for CI/CD data collection only)'
+    )
+    
     return parser.parse_args()
 
 
@@ -271,6 +278,7 @@ def main():
     tag_similarity_threshold = args.tag_similarity_threshold
     use_pagination = args.use_pagination
     sort_order = args.sort_order
+    skip_visualization = args.skip_visualization
     
     # Track seed sample info for logging
     seed_name = None
@@ -364,6 +372,26 @@ def main():
         
         logger.info(EmojiFormatter.format("success", f"Graph built: {final_nodes} nodes, {final_edges} edges"))
         
+        # Get API request count from loader
+        api_requests_used = getattr(loader, 'session_request_count', 0)
+        
+        # Skip visualization if requested (useful for CI/CD data collection only)
+        if skip_visualization:
+            logger.info("=" * 70)
+            logger.info(EmojiFormatter.format("completion", "Data Collection Complete!"))
+            logger.info("=" * 70)
+            logger.info(EmojiFormatter.format("chart", f"Seed sample ID: {seed_sample_id}"))
+            if seed_name:
+                logger.info(EmojiFormatter.format("chart", f"Seed sample name: {seed_name}"))
+            logger.info(EmojiFormatter.format("chart", f"Nodes added: {nodes_added}"))
+            logger.info(EmojiFormatter.format("chart", f"Edges added: {edges_added}"))
+            logger.info(EmojiFormatter.format("chart", f"Total nodes: {final_nodes}"))
+            logger.info(EmojiFormatter.format("chart", f"Total edges: {final_edges}"))
+            logger.info(EmojiFormatter.format("chart", f"API requests used: {api_requests_used} / {max_requests} limit"))
+            logger.info(EmojiFormatter.format("info", "Visualization generation skipped (--skip-visualization)"))
+            logger.info("=" * 70)
+            return 0
+        
         # Create output directory
         output_dir = Path("Output")
         output_dir.mkdir(exist_ok=True)
@@ -398,9 +426,6 @@ def main():
         )
         
         if success:
-            # Get API request count from loader
-            api_requests_used = getattr(loader, 'session_request_count', 0)
-            
             logger.info("=" * 70)
             logger.info(EmojiFormatter.format("completion", "Visualization Complete!"))
             logger.info("=" * 70)

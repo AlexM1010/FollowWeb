@@ -129,8 +129,36 @@ jobs:
         path: data/freesound_library
         key: ${{ steps.params.outputs.cache_key }}
         restore-keys: |
+          checkpoint-repaired-
           checkpoint-
-        fail-on-cache-miss: true
+        fail-on-cache-miss: false
+    
+    - name: Check cache restore status
+      if: steps.params.outputs.use_cache == 'true'
+      run: |
+        if [ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]; then
+          {
+            echo "## ❌ Cache Restore Failed"
+            echo ""
+            echo "**Cache Key:** \`${{ steps.params.outputs.cache_key }}\`"
+            echo ""
+            echo "**Possible Causes:**"
+            echo "- Repair workflow did not complete successfully"
+            echo "- Cache was not saved by repair workflow"
+            echo "- Cache expired (7-day retention)"
+            echo "- Cache key mismatch"
+            echo ""
+            echo "**Next Steps:**"
+            echo "1. Check repair workflow logs: [Run #${{ github.event.workflow_run.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})"
+            echo "2. Verify repair workflow completed successfully"
+            echo "3. Check if cache was saved in repair workflow"
+            echo "4. Manually trigger repair workflow if needed"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Cache restore failed - checkpoint not found"
+          exit 1
+        fi
+        
+        echo "✅ Cache restored successfully from key: ${{ steps.params.outputs.cache_key }}"
     
     - name: Verify checkpoint files
       run: |
@@ -147,31 +175,76 @@ jobs:
         # Check required files exist
         CHECKPOINT_DIR="data/freesound_library"
         
-        if [ ! -f "$CHECKPOINT_DIR/graph_topology.gpickle" ]; then
-          echo "❌ Missing graph_topology.gpickle"
-          exit 1
-        fi
-        
-        if [ ! -f "$CHECKPOINT_DIR/metadata_cache.db" ]; then
-          echo "❌ Missing metadata_cache.db"
-          exit 1
-        fi
-        
-        if [ ! -f "$CHECKPOINT_DIR/checkpoint_metadata.json" ]; then
-          echo "❌ Missing checkpoint_metadata.json"
-          exit 1
-        fi
-        
-        echo "✅ All checkpoint files present"
-        
-        # Display checkpoint info
         {
           echo ""
           echo "**Checkpoint Files:**"
-          echo "\`\`\`"
-          find "$CHECKPOINT_DIR/" -maxdepth 1 -type f -exec ls -lh {} \;
-          echo "\`\`\`"
+          echo ""
         } >> "$GITHUB_STEP_SUMMARY"
+        
+        missing_files=0
+        
+        # Verify graph_topology.gpickle
+        if [ ! -f "$CHECKPOINT_DIR/graph_topology.gpickle" ]; then
+          echo "❌ Missing graph_topology.gpickle"
+          echo "- ❌ Missing: graph_topology.gpickle" >> "$GITHUB_STEP_SUMMARY"
+          missing_files=$((missing_files + 1))
+        else
+          graph_size=$(stat -f%z "$CHECKPOINT_DIR/graph_topology.gpickle" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/graph_topology.gpickle")
+          if [ "$graph_size" -lt 1024 ]; then
+            echo "❌ graph_topology.gpickle too small: $graph_size bytes"
+            echo "- ❌ graph_topology.gpickle: Too small ($graph_size bytes)" >> "$GITHUB_STEP_SUMMARY"
+            missing_files=$((missing_files + 1))
+          else
+            echo "✅ graph_topology.gpickle: $(numfmt --to=iec-i --suffix=B "$graph_size")"
+            echo "- ✅ graph_topology.gpickle: \`$(numfmt --to=iec-i --suffix=B "$graph_size")\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+        
+        # Verify metadata_cache.db
+        if [ ! -f "$CHECKPOINT_DIR/metadata_cache.db" ]; then
+          echo "❌ Missing metadata_cache.db"
+          echo "- ❌ Missing: metadata_cache.db" >> "$GITHUB_STEP_SUMMARY"
+          missing_files=$((missing_files + 1))
+        else
+          db_size=$(stat -f%z "$CHECKPOINT_DIR/metadata_cache.db" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/metadata_cache.db")
+          if [ "$db_size" -lt 10240 ]; then
+            echo "❌ metadata_cache.db too small: $db_size bytes"
+            echo "- ❌ metadata_cache.db: Too small ($db_size bytes)" >> "$GITHUB_STEP_SUMMARY"
+            missing_files=$((missing_files + 1))
+          else
+            echo "✅ metadata_cache.db: $(numfmt --to=iec-i --suffix=B "$db_size")"
+            echo "- ✅ metadata_cache.db: \`$(numfmt --to=iec-i --suffix=B "$db_size")\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+        
+        # Verify checkpoint_metadata.json
+        if [ ! -f "$CHECKPOINT_DIR/checkpoint_metadata.json" ]; then
+          echo "❌ Missing checkpoint_metadata.json"
+          echo "- ❌ Missing: checkpoint_metadata.json" >> "$GITHUB_STEP_SUMMARY"
+          missing_files=$((missing_files + 1))
+        else
+          meta_size=$(stat -f%z "$CHECKPOINT_DIR/checkpoint_metadata.json" 2>/dev/null || stat -c%s "$CHECKPOINT_DIR/checkpoint_metadata.json")
+          if [ "$meta_size" -lt 100 ]; then
+            echo "❌ checkpoint_metadata.json too small: $meta_size bytes"
+            echo "- ❌ checkpoint_metadata.json: Too small ($meta_size bytes)" >> "$GITHUB_STEP_SUMMARY"
+            missing_files=$((missing_files + 1))
+          else
+            echo "✅ checkpoint_metadata.json: $(numfmt --to=iec-i --suffix=B "$meta_size")"
+            echo "- ✅ checkpoint_metadata.json: \`$(numfmt --to=iec-i --suffix=B "$meta_size")\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+        
+        if [ "$missing_files" -gt 0 ]; then
+          {
+            echo ""
+            echo "❌ **Checkpoint verification failed: $missing_files files missing or invalid**"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        echo ""
+        echo "✅ All checkpoint files present and valid"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     # Subtask 10.2: Validate checkpoint integrity
     - name: Validate checkpoint integrity
