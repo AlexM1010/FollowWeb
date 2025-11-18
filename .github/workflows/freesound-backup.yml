@@ -57,10 +57,11 @@ on:
   workflow_dispatch:
     # Allow manual triggering for testing backup operations
 
-# Prevent workflow collisions
+# Allow concurrent backups but cancel older ones if new one starts
+# This prevents backup queue buildup and allows fast failure
 concurrency:
   group: freesound-backup
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   check-trigger:
