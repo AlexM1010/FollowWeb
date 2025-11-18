@@ -426,7 +426,8 @@ jobs:
           | map(select(.name | test("checkpoint_backup_[0-9]+nodes")))
           | map(. + {node_count: (.name | capture("(?<nodes>[0-9]+)nodes") | .nodes | tonumber)})
           | map(select(.node_count > 0))
-          | sort_by([-.node_count, -.created_at])
+          | sort_by([.node_count, .created_at])
+          | reverse
           | .[0]
         ')
         
