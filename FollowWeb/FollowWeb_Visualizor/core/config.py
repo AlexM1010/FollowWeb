@@ -833,9 +833,7 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
         )
         renderer_config = RendererConfig(
             renderer_type=renderer_dict.get("renderer_type", "pyvis"),
-            template_name=renderer_dict.get(
-                "template_name", "sigma_samples.html"
-            ),
+            template_name=renderer_dict.get("template_name", "sigma_samples.html"),
             sigma_interactive=sigma_interactive_config,
         )
 

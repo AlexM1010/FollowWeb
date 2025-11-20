@@ -76,9 +76,7 @@ class OutputManager:
 
         if self.renderer_type in ["sigma", "all"]:
             self.logger.info(f"renderer_config: {renderer_config}")
-            template_name = renderer_config.get(
-                "template_name", "sigma_samples.html"
-            )
+            template_name = renderer_config.get("template_name", "sigma_samples.html")
             self.logger.info(
                 f"Initializing SigmaRenderer with template: {template_name}"
             )
