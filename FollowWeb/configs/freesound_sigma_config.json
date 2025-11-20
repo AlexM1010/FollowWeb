@@ -8,7 +8,11 @@
       "query": "jungle",
       "tags": ["drum", "loop"],
       "max_samples": 500,
-      "include_similar": true
+      "include_similar": true,
+      "include_user_edges": true,
+      "include_pack_edges": true,
+      "include_tag_edges": true,
+      "tag_similarity_threshold": 0.15
     }
   },
   "renderer": {

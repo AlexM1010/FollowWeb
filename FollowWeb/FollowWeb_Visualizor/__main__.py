@@ -346,6 +346,24 @@ class PipelineOrchestrator:
                         "include_similar": self.config.data_source.freesound.include_similar,
                     }
 
+                    # Add edge generation parameters if present
+                    if hasattr(self.config.data_source.freesound, "include_user_edges"):
+                        freesound_params["include_user_edges"] = (
+                            self.config.data_source.freesound.include_user_edges
+                        )
+                    if hasattr(self.config.data_source.freesound, "include_pack_edges"):
+                        freesound_params["include_pack_edges"] = (
+                            self.config.data_source.freesound.include_pack_edges
+                        )
+                    if hasattr(self.config.data_source.freesound, "include_tag_edges"):
+                        freesound_params["include_tag_edges"] = (
+                            self.config.data_source.freesound.include_tag_edges
+                        )
+                    if hasattr(self.config.data_source.freesound, "tag_similarity_threshold"):
+                        freesound_params["tag_similarity_threshold"] = (
+                            self.config.data_source.freesound.tag_similarity_threshold
+                        )
+
                     # Add recursive parameters if present
                     if hasattr(self.config.data_source.freesound, "recursive_depth"):
                         freesound_params["recursive_depth"] = (

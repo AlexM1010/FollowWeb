@@ -119,8 +119,8 @@ def parse_arguments():
     parser.add_argument(
         "--tag-similarity-threshold",
         type=float,
-        default=0.3,
-        help="Minimum Jaccard similarity for tag edges (0.0-1.0, default: 0.3)",
+        default=0.15,
+        help="Minimum Jaccard similarity for tag edges (0.0-1.0, default: 0.15, lower = more edges)",
     )
 
     parser.add_argument(
