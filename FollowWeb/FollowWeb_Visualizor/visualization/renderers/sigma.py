@@ -585,6 +585,9 @@ class SigmaRenderer(Renderer):
                 if "audio_url" in node_attrs:
                     sigma_node["attributes"]["audio_url"] = str(node_attrs["audio_url"])
 
+                if "license" in node_attrs:
+                    sigma_node["attributes"]["license"] = str(node_attrs["license"])
+
             nodes.append(sigma_node)
 
         # Convert edges

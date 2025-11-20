@@ -645,6 +645,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self,
         query: Optional[str] = None,
         tags: Optional[list[str]] = None,
+        licenses: Optional[list[str]] = None,
         sort_order: str = "downloads_desc",
     ) -> list[dict[str, Any]]:
         """
@@ -695,9 +696,26 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         try:
             # Build search filter
             search_filter = ""
+            filters = []
+
             if tags:
-                tag_filter = " ".join(f"tag:{tag}" for tag in tags)
-                search_filter = tag_filter
+                filters.append(" ".join(f"tag:{tag}" for tag in tags))
+
+            if licenses:
+                # Construct OR filter for licenses: (license:"A" OR license:"B")
+                license_filter = " OR ".join(f'license:"{lic}"' for lic in licenses)
+                filters.append(f"({license_filter})")
+
+            if filters:
+                search_filter = " ".join(filters)
+
+            if licenses:
+                # Construct OR filter for licenses: (license:"A" OR license:"B")
+                license_filter = " OR ".join(f'license:"{lic}"' for lic in licenses)
+                filters.append(f"({license_filter})")
+
+            if filters:
+                search_filter = " ".join(filters)
 
             page_size = min(150, self.config.get("page_size", 150))  # API max is 150
 
@@ -768,8 +786,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         page_samples.append(sample_data)
                         samples.append(sample_data)
                     except Exception as e:
-                        self.logger.warning(
-                            f"Failed to fetch metadata for sample {sample_id}: {e}"
+                        self.logger.warning(f"Skipping invalid sample {sample_id}: {e}")
+                        # Mark as processed so we don't try to fetch it again
+                        self.processed_ids.add(str(sample_id))
+                        self.stats["samples_skipped"] = (
+                            cast(int, self.stats["samples_skipped"]) + 1
                         )
 
                 self.logger.info(
@@ -822,6 +843,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self,
         query: Optional[str] = None,
         tags: Optional[list[str]] = None,
+        licenses: Optional[list[str]] = None,
         max_samples: int = 1000,
         discovery_mode: str = "search",
         relationship_priority: float = 0.7,
@@ -870,11 +892,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Choose collection mode: pagination or standard search
         if use_pagination:
             self.logger.info(
-                f"Using pagination mode: query='{query}', tags={tags}, "
+                f"Using pagination mode: query='{query}', tags={tags}, licenses={licenses}, "
                 f"sort={sort_order}, current_page={self.pagination_state.get('page', 1)}, "
                 f"already_processed={len(self.processed_ids)}"
             )
-            all_samples = self._search_with_pagination(query, tags, sort_order)
+            all_samples = self._search_with_pagination(
+                query, tags, licenses, sort_order
+            )
         else:
             # Standard search mode (legacy behavior)
             self.logger.info(

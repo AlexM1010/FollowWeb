@@ -490,6 +490,10 @@ class FreesoundLoader(DataLoader):
         # Get full metadata dict - this contains EVERYTHING from the API
         sound_dict = sound.as_dict()
 
+        # Validate filesize
+        if sound_dict.get("filesize", 0) == 0:
+            raise ValueError(f"Sample {sound.id} has invalid filesize (0 bytes)")
+
         # Start with the complete API response (saves everything!)
         metadata = sound_dict.copy()
 

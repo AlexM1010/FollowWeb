@@ -142,6 +142,10 @@ class ComprehensiveRepairer:
         self.logger.info("Checking for missing node metadata...")
         self._repair_node_metadata(graph, metadata_cache)
 
+        # Repair orphaned metadata (entries in cache but not in graph)
+        self.logger.info("Checking for orphaned metadata...")
+        self._repair_orphaned_metadata(graph, metadata_cache)
+
         # Repair missing edges
         self.logger.info("Checking for missing edges...")
         self._repair_edges(graph, metadata_cache)
@@ -245,6 +249,40 @@ class ComprehensiveRepairer:
             self.logger.warning(
                 "No edges found in graph. Consider running edge generation script."
             )
+
+    def _repair_orphaned_metadata(
+        self, graph: nx.Graph, metadata_cache: MetadataCache
+    ) -> None:
+        """
+        Remove metadata entries that don't have corresponding nodes in the graph.
+
+        Args:
+            graph: NetworkX graph
+            metadata_cache: Metadata cache
+        """
+        # Get all IDs from cache and graph
+        cache_ids = set(metadata_cache.get_all_ids())
+        # Convert graph node IDs (str) to int for comparison with cache IDs
+        graph_ids = set()
+        for node_id in graph.nodes():
+            try:
+                graph_ids.add(int(node_id))
+            except ValueError:
+                continue
+
+        # Find orphaned IDs (in cache but not in graph)
+        orphaned_ids = cache_ids - graph_ids
+
+        if orphaned_ids:
+            self.logger.info(
+                f"Found {len(orphaned_ids)} orphaned metadata entries. Cleaning up..."
+            )
+            
+            # Remove orphaned entries
+            for sample_id in orphaned_ids:
+                metadata_cache.delete(sample_id)
+                
+            self.logger.info(f"✓ Removed {len(orphaned_ids)} orphaned metadata entries")
 
     def _fetch_and_update_node(
         self,

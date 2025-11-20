@@ -51,7 +51,7 @@ class MetadataCache:
         999  # SQLite SQLITE_MAX_VARIABLE_NUMBER default (conservative estimate)
     )
     SAFE_MAX_BATCH_SIZE = (
-        1000  # Safe limit based on testing (your SQLite supports 10,000+)
+        2500  # Safe limit based on testing (your SQLite supports 10,000+)
     )
     # Note: Actual limit on this system is 10,000+ rows (60,000+ parameters)
     # Using 1000 as safe max to balance performance vs memory usage

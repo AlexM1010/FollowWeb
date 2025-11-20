@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """
 Generate Freesound network visualization using the incremental loader.
 
@@ -371,6 +372,7 @@ def main():
         # Note: Freesound API doesn't support wildcard queries, use empty string for all samples
         data = loader.fetch_data(
             query="",  # Empty query matches all samples (per Freesound API docs)
+            licenses=["Creative Commons 0", "Attribution"],  # Filter for CC0 and Attribution
             max_samples=999999,  # Large number - circuit breaker will stop us
             discovery_mode=discovery_mode,
             include_user_edges=include_user_edges,

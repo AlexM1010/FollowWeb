@@ -668,6 +668,10 @@
             if (attributes.user) {
                 tooltipContent += `User: ${attributes.user}<br>`;
             }
+
+            if (attributes.license) {
+                tooltipContent += `License: <a href="${attributes.license}" target="_blank" style="color: #4ecdc4; text-decoration: none;">View License</a><br>`;
+            }
             
             if (attributes.degree !== undefined) {
                 tooltipContent += `Connections: ${attributes.degree}<br>`;
