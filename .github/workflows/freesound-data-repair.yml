@@ -348,10 +348,32 @@ jobs:
         RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo "::error::Release v-checkpoint not found"
-          echo "- Status: ❌ Upload failed" >> "$GITHUB_STEP_SUMMARY"
-          rm -f "$backup_filename"
-          exit 1
+          echo "::warning::Release v-checkpoint not found - creating it now"
+          echo "- Status: ⚠️  Creating v-checkpoint release" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Create the v-checkpoint release
+          CREATE_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token $BACKUP_PAT" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${BACKUP_REPO}/releases" \
+            -d '{
+              "tag_name": "v-checkpoint",
+              "name": "Latest Checkpoint",
+              "body": "Rolling checkpoint storage for Freesound pipeline. This release is automatically updated with the latest checkpoint.",
+              "draft": false,
+              "prerelease": false
+            }')
+          
+          RELEASE_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id')
+          
+          if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
+            echo "::error::Failed to create v-checkpoint release"
+            echo "- Status: ❌ Upload failed (could not create release)" >> "$GITHUB_STEP_SUMMARY"
+            rm -f "$backup_filename"
+            exit 1
+          fi
+          
+          echo "✅ Created v-checkpoint release (ID: $RELEASE_ID)"
         fi
         
         # Upload asset

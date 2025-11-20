@@ -199,16 +199,21 @@ jobs:
         
         if echo "$ASSETS_JSON" | grep -q "Not Found"; then
           {
-            echo "## ❌ Fallback Failed"
+            echo "## ⚠️  Fallback Failed"
             echo ""
-            echo "**Reason:** No checkpoint available in backup repository"
+            echo "**Reason:** No checkpoint available in backup repository yet"
+            echo ""
+            echo "**This is expected for:**"
+            echo "- First pipeline run (no backup created yet)"
+            echo "- Manual runs before any successful collection"
             echo ""
             echo "**Next Steps:**"
-            echo "1. Check repair workflow logs"
-            echo "2. Verify repair workflow uploaded checkpoint to repository"
-            echo "3. Manually trigger repair workflow if needed"
+            echo "1. If this is the first run, wait for collection → repair → validation → backup to complete"
+            echo "2. Check repair workflow logs if this is not the first run"
+            echo "3. Verify repair workflow uploaded checkpoint to repository"
+            echo "4. Manually trigger repair workflow if needed"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::error::No checkpoint available in backup repository"
+          echo "::warning::No checkpoint available in backup repository (expected for first run)"
           exit 1
         fi
         

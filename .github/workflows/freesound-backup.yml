@@ -703,12 +703,38 @@ jobs:
         RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
         
         if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo "::error::Release ${release_tag} not found in ${BACKUP_REPO}"
+          echo "::warning::Release ${release_tag} not found - creating it now"
           {
-            echo "- ❌ Release not found: \`${release_tag}\`"
-            echo "- **Action Required**: Create release '${release_tag}' in ${BACKUP_REPO}"
+            echo "- ⚠️  Release not found: \`${release_tag}\`"
+            echo "- 🔧 Creating release automatically..."
           } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          
+          # Create the release
+          CREATE_RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token $BACKUP_PAT" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${BACKUP_REPO}/releases" \
+            -d "{
+              \"tag_name\": \"${release_tag}\",
+              \"name\": \"Latest Checkpoint\",
+              \"body\": \"Rolling checkpoint storage for Freesound pipeline. This release is automatically updated with the latest checkpoint.\",
+              \"draft\": false,
+              \"prerelease\": false
+            }")
+          
+          RELEASE_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id')
+          
+          if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
+            echo "::error::Failed to create release ${release_tag}"
+            {
+              echo "- ❌ Failed to create release"
+              echo "- **Error**: $(echo "$CREATE_RESPONSE" | jq -r '.message // "Unknown error"')"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          
+          echo "✅ Created release ${release_tag} (ID: $RELEASE_ID)"
+          echo "- ✅ Release created successfully" >> "$GITHUB_STEP_SUMMARY"
         fi
         
         # Upload asset
