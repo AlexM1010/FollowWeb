@@ -438,6 +438,63 @@ class SigmaRenderer(Renderer):
             self.logger.error(f"Could not save Sigma.js HTML: {e}", exc_info=True)
             return False
 
+    def _get_tag_color(self, tag: str) -> str:
+        """
+        Generate a consistent color for a given tag using hash-based color generation.
+
+        Args:
+            tag: Tag string to generate color for
+
+        Returns:
+            Hex color string (e.g., '#ff6b9d')
+        """
+        # Use hash to generate consistent color for each tag
+        tag_hash = hash(tag)
+        
+        # Generate HSL color with good saturation and lightness for visibility
+        # Hue: 0-360 degrees
+        hue = abs(tag_hash) % 360
+        
+        # Saturation: 60-80% for vibrant but not oversaturated colors
+        saturation = 60 + (abs(tag_hash >> 8) % 21)
+        
+        # Lightness: 50-65% for good contrast on dark background
+        lightness = 50 + (abs(tag_hash >> 16) % 16)
+        
+        # Convert HSL to RGB
+        h = hue / 360.0
+        s = saturation / 100.0
+        l = lightness / 100.0
+        
+        def hsl_to_rgb(h: float, s: float, l: float) -> tuple[int, int, int]:
+            """Convert HSL to RGB."""
+            if s == 0:
+                r = g = b = l
+            else:
+                def hue_to_rgb(p: float, q: float, t: float) -> float:
+                    if t < 0:
+                        t += 1
+                    if t > 1:
+                        t -= 1
+                    if t < 1/6:
+                        return p + (q - p) * 6 * t
+                    if t < 1/2:
+                        return q
+                    if t < 2/3:
+                        return p + (q - p) * (2/3 - t) * 6
+                    return p
+                
+                q = l * (1 + s) if l < 0.5 else l + s - l * s
+                p = 2 * l - q
+                r = hue_to_rgb(p, q, h + 1/3)
+                g = hue_to_rgb(p, q, h)
+                b = hue_to_rgb(p, q, h - 1/3)
+            
+            return (int(r * 255), int(g * 255), int(b * 255))
+        
+        r, g, b = hsl_to_rgb(h, s, l)
+        return f"#{r:02x}{g:02x}{b:02x}"
+
     def _convert_to_sigma_format(
         self,
         graph: nx.DiGraph,
@@ -548,6 +605,21 @@ class SigmaRenderer(Renderer):
                     )
             else:
                 # Default Freesound/audio node attributes
+                # Determine color based on first tag if available
+                node_color = node_metric.get("color_hex", "#999999")
+                tags = node_attrs.get("tags", [])
+                
+                # Ensure tags is a list
+                if isinstance(tags, str):
+                    tags = [tags]
+                elif not isinstance(tags, list):
+                    tags = []
+                
+                # Color by first tag if available
+                if tags and len(tags) > 0:
+                    first_tag = str(tags[0]).lower().strip()
+                    node_color = self._get_tag_color(first_tag)
+                
                 sigma_node = {
                     "key": str(node_id),
                     "attributes": {
@@ -555,7 +627,7 @@ class SigmaRenderer(Renderer):
                         "x": x,
                         "y": y,
                         "size": float(node_metric.get("size", 10)),
-                        "color": node_metric.get("color_hex", "#999999"),
+                        "color": node_color,
                         "community": node_metric.get("community", 0),
                         "degree": node_metric.get("degree", 0),
                         "betweenness": node_metric.get("betweenness", 0.0),
@@ -567,13 +639,7 @@ class SigmaRenderer(Renderer):
                 if "name" in node_attrs:
                     sigma_node["attributes"]["name"] = str(node_attrs["name"])
 
-                if "tags" in node_attrs:
-                    # Ensure tags is a list
-                    tags = node_attrs["tags"]
-                    if isinstance(tags, str):
-                        tags = [tags]
-                    elif not isinstance(tags, list):
-                        tags = []
+                if tags:
                     sigma_node["attributes"]["tags"] = tags
 
                 if "duration" in node_attrs:

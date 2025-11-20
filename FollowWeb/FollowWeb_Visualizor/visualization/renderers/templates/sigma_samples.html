@@ -788,17 +788,8 @@
 
         <div id="legend">
             <h4>Node Colors</h4>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ff6b9d;"></div>
-                <span>High similarity</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #4ecdc4;"></div>
-                <span>Medium similarity</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #6c8eff;"></div>
-                <span>Low similarity</span>
+            <div id="legend-content">
+                <!-- Legend items will be dynamically generated based on actual node data -->
             </div>
         </div>
 
@@ -1494,6 +1485,82 @@
             alert('View state exported to console. Check browser developer tools.');
         }
 
+        // Generate dynamic legend based on node colors and tags
+        function generateLegend() {
+            const colorCounts = new Map();
+            const colorToTags = new Map();
+            
+            // Analyze node colors and associated tags
+            graph.forEachNode((node, attributes) => {
+                const color = attributes.color || '#6c8eff';
+                const tags = attributes.tags || [];
+                
+                // Count color occurrences
+                colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
+                
+                // Associate tags with colors
+                if (!colorToTags.has(color)) {
+                    colorToTags.set(color, new Map());
+                }
+                const tagMap = colorToTags.get(color);
+                
+                tags.forEach(tag => {
+                    if (tag && typeof tag === 'string') {
+                        tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+                    }
+                });
+            });
+            
+            // Sort colors by frequency
+            const sortedColors = Array.from(colorCounts.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10); // Top 10 colors
+            
+            // Generate legend HTML
+            const legendContent = document.getElementById('legend-content');
+            legendContent.innerHTML = '';
+            
+            if (sortedColors.length === 0) {
+                legendContent.innerHTML = '<div class="legend-item"><span>No data available</span></div>';
+                return;
+            }
+            
+            sortedColors.forEach(([color, count]) => {
+                const tagMap = colorToTags.get(color);
+                
+                // Get top 3 most common tags for this color
+                let topTags = [];
+                if (tagMap && tagMap.size > 0) {
+                    topTags = Array.from(tagMap.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3)
+                        .map(([tag]) => tag);
+                }
+                
+                // Create legend item
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                
+                const colorBox = document.createElement('div');
+                colorBox.className = 'legend-color';
+                colorBox.style.background = color;
+                
+                const label = document.createElement('span');
+                if (topTags.length > 0) {
+                    label.textContent = `${topTags.join(', ')} (${count})`;
+                } else {
+                    label.textContent = `${count} nodes`;
+                }
+                label.title = `Color: ${color}, Nodes: ${count}`;
+                
+                item.appendChild(colorBox);
+                item.appendChild(label);
+                legendContent.appendChild(item);
+            });
+            
+            console.log(`Generated legend with ${sortedColors.length} color categories`);
+        }
+
         // Initialize on load
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -1505,6 +1572,9 @@
                 });
                 
                 initRenderer();
+                
+                // Generate dynamic legend based on actual node data
+                generateLegend();
                 
                 // Set checkbox states based on config
                 document.getElementById('showLabels').checked = config.show_labels !== false;
