@@ -121,7 +121,7 @@ class SigmaRenderer(Renderer):
     -----
     The renderer supports two template types:
 
-    - 'sigma_visualization.html': Default template for Freesound/audio data
+    - 'sigma_samples.html': Default template for Freesound/audio data
         with audio player, sample metadata, and acoustic similarity visualization
 
     - 'sigma_instagram.html': Template for Instagram social network data
@@ -218,11 +218,11 @@ class SigmaRenderer(Renderer):
 
         template_name : str, optional
             Name of the Jinja2 template to use. If None, reads from
-            vis_config['template_name'] or defaults to 'sigma_visualization.html'.
+            vis_config['template_name'] or defaults to 'sigma_samples.html'.
 
             Available templates:
 
-            - 'sigma_visualization.html': Default for Freesound/audio data
+            - 'sigma_samples.html': Default for Freesound/audio data
             - 'sigma_instagram.html': For Instagram social network data
 
         Raises
@@ -278,7 +278,7 @@ class SigmaRenderer(Renderer):
         self.metrics_calculator = metrics_calculator
         # Read template_name from config if not provided
         if template_name is None:
-            template_name = vis_config.get("template_name", "sigma_visualization.html")
+            template_name = vis_config.get("template_name", "sigma_samples.html")
         self.template_name = template_name
 
         # Setup Jinja2 template environment
