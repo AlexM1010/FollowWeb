@@ -27,17 +27,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Restore visualization from cache
-        uses: actions/cache/restore@v3
         with:
-          path: |
-            Output
-            index.html
-          key: checkpoint-${{ github.event.workflow_run.id || github.run_id }}
-          restore-keys: |
-            checkpoint-
-          fail-on-cache-miss: false
+          ref: main  # Ensure we get the latest commit with visualization
       
       - name: Setup Pages
         uses: actions/configure-pages@v4

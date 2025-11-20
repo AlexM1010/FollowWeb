@@ -427,19 +427,36 @@ jobs:
         echo "landing_page_updated=true" >> "$GITHUB_OUTPUT"
         echo "✅ Landing page updated"
     
-    # Mark as ready for deployment (no commits - everything stays in cache)
-    - name: Mark visualization ready
+    # Commit visualization and landing page to repository
+    - name: Commit visualization to repository
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
       id: deployment
       run: |
-        echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
-        {
-          echo ""
-          echo "**Deployment Status:**"
-          echo "- ✅ Visualization ready in cache"
-          echo "- ⏭️  Pages workflow will deploy from cache"
-          echo "- 💾 Backup workflow will persist to storage"
-        } >> "$GITHUB_STEP_SUMMARY"
+        # Check if there are changes to commit
+        if git diff --quiet Output/ index.html; then
+          echo "No changes to commit"
+          echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
+          {
+            echo ""
+            echo "**Deployment Status:**"
+            echo "- ℹ️  No changes detected"
+            echo "- ⏭️  Pages workflow will deploy existing files"
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          # Commit and push changes
+          git add Output/ index.html
+          git commit -m "🎨 Update visualization from validation pipeline"
+          git push
+          
+          echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
+          {
+            echo ""
+            echo "**Deployment Status:**"
+            echo "- ✅ Visualization committed to repository"
+            echo "- ⏭️  Pages workflow will deploy updated files"
+            echo "- 💾 Backup workflow will persist to storage"
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
     
     # Save checkpoint and visualization to cache for downstream workflows
     - name: Save to cache for Pages and Backup workflows
