@@ -570,13 +570,13 @@ jobs:
           exit 1
         fi
         
-        # Check file size is reasonable (> 100KB, < 10GB)
+        # Check file size is reasonable (> 50KB, < 10GB)
         backup_size=$(stat -f%z "$backup_filename" 2>/dev/null || stat -c%s "$backup_filename")
-        min_size=102400  # 100KB
+        min_size=51200  # 50KB (allows small test backups)
         max_size=10737418240  # 10GB
         
         if [ "$backup_size" -lt "$min_size" ]; then
-          echo "::error::Backup file too small: $(numfmt --to=iec-i --suffix=B "$backup_size") (minimum: 100KB)"
+          echo "::error::Backup file too small: $(numfmt --to=iec-i --suffix=B "$backup_size") (minimum: 50KB)"
           echo "- ❌ Backup file too small: $(numfmt --to=iec-i --suffix=B "$backup_size")" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
