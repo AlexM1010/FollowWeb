@@ -894,8 +894,8 @@ jobs:
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
         
-        # Add visualization files
-        git add Output/*.html index.html 2>/dev/null || true
+        # Add visualization files and CNAME for custom domain
+        git add Output/*.html index.html CNAME 2>/dev/null || true
         
         # Check if there are changes
         if git diff --staged --quiet; then
