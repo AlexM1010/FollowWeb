@@ -464,12 +464,14 @@ class SigmaRenderer(Renderer):
         # Convert HSL to RGB
         h = hue / 360.0
         s = saturation / 100.0
-        l = lightness / 100.0
+        lightness_val = lightness / 100.0
 
-        def hsl_to_rgb(h: float, s: float, l: float) -> tuple[int, int, int]:
+        def hsl_to_rgb(
+            h: float, s: float, lightness_val: float
+        ) -> tuple[int, int, int]:
             """Convert HSL to RGB."""
             if s == 0:
-                r = g = b = l
+                r = g = b = lightness_val
             else:
 
                 def hue_to_rgb(p: float, q: float, t: float) -> float:
@@ -485,15 +487,19 @@ class SigmaRenderer(Renderer):
                         return p + (q - p) * (2 / 3 - t) * 6
                     return p
 
-                q = l * (1 + s) if l < 0.5 else l + s - l * s
-                p = 2 * l - q
+                q = (
+                    lightness_val * (1 + s)
+                    if lightness_val < 0.5
+                    else lightness_val + s - lightness_val * s
+                )
+                p = 2 * lightness_val - q
                 r = hue_to_rgb(p, q, h + 1 / 3)
                 g = hue_to_rgb(p, q, h)
                 b = hue_to_rgb(p, q, h - 1 / 3)
 
             return (int(r * 255), int(g * 255), int(b * 255))
 
-        r, g, b = hsl_to_rgb(h, s, l)
+        r, g, b = hsl_to_rgb(h, s, lightness_val)
         return f"#{r:02x}{g:02x}{b:02x}"
 
     def _convert_to_sigma_format(
