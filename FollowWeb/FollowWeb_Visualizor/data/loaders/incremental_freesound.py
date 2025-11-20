@@ -446,6 +446,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         import networkx as nx
 
         graph_clean: nx.DiGraph = nx.DiGraph()
+        # Add nodes first (without attributes) to preserve isolated nodes
+        graph_clean.add_nodes_from(self.graph.nodes())
+        # Then add edges
         graph_clean.add_edges_from(self.graph.edges())
 
         import pickle
