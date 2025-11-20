@@ -82,7 +82,6 @@ jobs:
       if: steps.orchestration.outputs.can_proceed == 'true'
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
-        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
         {
           echo "**🔐 Secret Validation**"
@@ -98,13 +97,7 @@ jobs:
           echo "- ✅ FREESOUND_API_KEY: Configured" >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        # Check BACKUP_PAT (optional but recommended)
-        if [ -z "$BACKUP_PAT" ]; then
-          echo "::warning::BACKUP_PAT not configured - checkpoint operations may be limited"
-          echo "- ⚠️ BACKUP_PAT: Not configured" >> "$GITHUB_STEP_SUMMARY"
-        else
-          echo "- ✅ BACKUP_PAT: Configured" >> "$GITHUB_STEP_SUMMARY"
-        fi
+
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Configure Git

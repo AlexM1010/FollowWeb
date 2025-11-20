@@ -883,37 +883,6 @@ jobs:
         echo "caches_deleted=$DELETED_COUNT" >> "$GITHUB_OUTPUT"
         echo "space_freed_mb=$TOTAL_SIZE_MB" >> "$GITHUB_OUTPUT"
 
-    # Commit visualization files to main branch for Pages deployment
-    - name: Commit visualization files
-      if: steps.upload_backup.outputs.upload_success == 'true'
-      id: commit_viz
-      run: |
-        echo "Committing visualization files to main..."
-        
-        # Configure git
-        git config user.name "GitHub Actions Bot"
-        git config user.email "actions@github.com"
-        
-        # Add visualization files and CNAME for custom domain
-        git add Output/*.html index.html CNAME 2>/dev/null || true
-        
-        # Check if there are changes
-        if git diff --staged --quiet; then
-          echo "No visualization changes to commit"
-          echo "viz_committed=false" >> "$GITHUB_OUTPUT"
-        else
-          git commit -m "🎨 Deploy visualization after successful backup
-
-          - Backup: ✅ Successful
-          - Samples: ${{ steps.verification.outputs.node_count }}
-          - Edges: ${{ steps.verification.outputs.edge_count }}
-          - Workflow: ${{ github.workflow }} #${{ github.run_number }}"
-          
-          git push origin main
-          echo "viz_committed=true" >> "$GITHUB_OUTPUT"
-          echo "✅ Visualization files committed to main"
-        fi
-    
     # Apply retention policy (14-day retention, max 10 backups, never delete last backup)
     - name: Apply retention policy
       if: steps.upload_backup.outputs.upload_success == 'true'

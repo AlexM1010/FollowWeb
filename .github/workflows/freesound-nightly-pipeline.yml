@@ -390,14 +390,14 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Check if BACKUP_PAT is configured (required)
+        # Check if BACKUP_PAT is configured (optional - for restoring from backup)
         if [ -z "$BACKUP_PAT" ]; then
-          echo "::error::BACKUP_PAT not configured - cannot download checkpoint"
+          echo "::warning::BACKUP_PAT not configured - starting fresh collection"
           {
-            echo "- Status: ❌ BACKUP_PAT required"
+            echo "- Status: ⚠️  Starting fresh (no backup to restore)"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
-          exit 1
+          exit 0
         fi
         
         # Get repository owner and name from GITHUB_REPOSITORY
