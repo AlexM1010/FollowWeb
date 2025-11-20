@@ -303,45 +303,17 @@ jobs:
           exit 1
         fi
         
-        # Check if permanent storage upload succeeded
-        permanent_uploaded="${{ steps.upload_checkpoint.outputs.upload_success }}"
-        
-        if [ "$permanent_uploaded" != "true" ]; then
-          {
-            echo ""
-            echo "## ⚠️ CRITICAL WARNING: Data Persistence Risk"
-            echo ""
-            echo "**Permanent storage upload FAILED!**"
-            echo ""
-            echo "Checkpoint was saved to cache only, which has **7-day retention**."
-            echo "Data may be lost after 7 days if not backed up to permanent storage."
-            echo ""
-            echo "### Immediate Actions Required:"
-            echo "1. Investigate permanent storage upload failure"
-            echo "2. Manually download checkpoint from cache"
-            echo "3. Upload to permanent storage manually"
-            echo "4. Fix BACKUP_PAT or repository permissions"
-            echo ""
-            echo "### Cache Details:"
-            echo "- Cache Key: \`checkpoint-repaired-${{ github.run_id }}\`"
-            echo "- Retention: 7 days"
-            echo "- Expires: $(date -u -d '7 days' +%Y-%m-%d 2>/dev/null || date -u -v+7d +%Y-%m-%d 2>/dev/null)"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-          
-          echo "::warning::Checkpoint saved to cache only - 7-day retention risk!"
-        else
-          {
-            echo ""
-            echo "✅ All checkpoint files verified"
-            echo "✅ Cache key: \`checkpoint-repaired-${{ github.run_id }}\`"
-            echo ""
-            echo "### ✅ Data Persistence Status"
-            echo "- Primary: ✅ Permanent storage (safe)"
-            echo "- Secondary: ✅ Cache (7-day fallback)"
-            echo ""
-          } >> "$GITHUB_STEP_SUMMARY"
-        fi
+        # Cache saved successfully
+        {
+          echo ""
+          echo "✅ All checkpoint files verified"
+          echo "✅ Cache key: \`checkpoint-repaired-${{ github.run_id }}\`"
+          echo ""
+          echo "### ✅ Data Persistence Status"
+          echo "- Cache: ✅ Saved (7-day retention)"
+          echo "- Permanent storage: ⏳ Will be handled by backup workflow"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Generate repair summary
       if: always()
