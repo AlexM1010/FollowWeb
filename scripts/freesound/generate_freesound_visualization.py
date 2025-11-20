@@ -453,6 +453,9 @@ def main():
                 "edge_width_metric": "weight",
                 "node_size_range": [5, 30],
                 "edge_width_range": [0.5, 3.0],
+                "sigma_interactive": {
+                    "enable_audio_player": True,
+                },
             }
         )
 
