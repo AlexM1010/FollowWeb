@@ -48,9 +48,9 @@ on:
         default: ''
         type: string
       max_requests:
-        description: 'Maximum API requests (circuit breaker, default: 10 for testing, 1950 for production)'
+        description: 'Maximum API requests (circuit breaker, default: 10 for testing, 100 for production)'
         required: false
-        default: '10'
+        default: '100'
         type: string
       discovery_mode:
         description: 'Discovery strategy: search, relationships, or mixed'
@@ -372,7 +372,7 @@ jobs:
         else
           {
             echo "seed_sample_id="
-            echo "max_requests=1950"
+            echo "max_requests=100"
             echo "discovery_mode=search"
           } >> "$GITHUB_OUTPUT"
         fi

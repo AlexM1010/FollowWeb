@@ -239,7 +239,7 @@ jobs:
         # Run repair script with API key and request limit
         # Limit to 10 requests to avoid excessive API usage during repairs
         if python scripts/validation/repair_checkpoint.py \
-          data/freesound_library \
+          --checkpoint-dir data/freesound_library \
           --api-key "$FREESOUND_API_KEY" \
           --max-requests 10 \
           2>&1 | tee repair_output.log; then
