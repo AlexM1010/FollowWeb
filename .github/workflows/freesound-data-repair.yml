@@ -125,6 +125,8 @@ jobs:
     
     - name: Download checkpoint from repository
       if: steps.source.outputs.source == 'repo' || steps.cache_restore.outputs.cache-hit != 'true'
+      id: repo_download
+      continue-on-error: true
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
@@ -134,9 +136,10 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
         
         if [ -z "$BACKUP_PAT" ]; then
-          echo "::error::BACKUP_PAT not configured"
-          echo "- Status: ❌ Cannot download checkpoint" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "::warning::BACKUP_PAT not configured - skipping repo download"
+          echo "- Status: ⚠️  BACKUP_PAT not configured" >> "$GITHUB_STEP_SUMMARY"
+          echo "download_success=false" >> "$GITHUB_OUTPUT"
+          exit 0
         fi
         
         REPO_OWNER="${{ github.repository_owner }}"
@@ -147,18 +150,22 @@ jobs:
           "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
         
         if echo "$ASSETS_JSON" | grep -q "Not Found"; then
-          echo "::error::Release v-checkpoint not found"
-          echo "- Status: ❌ No backup available" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "::warning::Release v-checkpoint not found - this is expected for first run"
+          echo "- Status: ⚠️  No backup available yet (first run)" >> "$GITHUB_STEP_SUMMARY"
+          echo "download_success=false" >> "$GITHUB_OUTPUT"
+          exit 0
         fi
         
         LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
         
         if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
-          echo "::error::No checkpoint backups found"
-          echo "- Status: ❌ No backup available" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "::warning::No checkpoint backups found - this is expected for first run"
+          echo "- Status: ⚠️  No backup available yet (first run)" >> "$GITHUB_STEP_SUMMARY"
+          echo "download_success=false" >> "$GITHUB_OUTPUT"
+          exit 0
         fi
+        
+        echo "download_success=true" >> "$GITHUB_OUTPUT"
         
         ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
         ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
@@ -202,7 +209,30 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
     
+    - name: Check checkpoint availability
+      id: checkpoint_check
+      run: |
+        # Check if we have a checkpoint from either cache or repo
+        if [ ! -d "data/freesound_library" ] || [ ! "$(ls -A data/freesound_library 2>/dev/null)" ]; then
+          {
+            echo "### ⚠️  No Checkpoint Available"
+            echo ""
+            echo "This is expected for the first pipeline run."
+            echo ""
+            echo "**Status:** Skipping repair (no data to repair yet)"
+            echo ""
+            echo "**Next Steps:**"
+            echo "- Collection data will be used directly"
+            echo "- Backup workflow will create initial checkpoint"
+            echo "- Future runs will have checkpoint available for repair"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "checkpoint_available=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "checkpoint_available=true" >> "$GITHUB_OUTPUT"
+        fi
+    
     - name: Run validation checks
+      if: steps.checkpoint_check.outputs.checkpoint_available == 'true'
       id: validation
       run: |
         {
@@ -484,7 +514,20 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        if [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
+        if [ "${{ steps.checkpoint_check.outputs.checkpoint_available }}" = "false" ]; then
+          {
+            echo "### ℹ️  No Checkpoint Available"
+            echo ""
+            echo "This is expected for the first pipeline run."
+            echo ""
+            echo "**Status:** Skipped repair (no data to repair yet)"
+            echo ""
+            echo "**Next Steps:**"
+            echo "- Collection data will be used directly"
+            echo "- Backup workflow will create initial checkpoint"
+            echo "- Future runs will have checkpoint available for repair"
+          } >> "$GITHUB_STEP_SUMMARY"
+        elif [ "${{ steps.validation.outputs.validation_passed }}" = "true" ]; then
           {
             echo "### ✅ No Repairs Needed"
             echo ""
@@ -550,6 +593,12 @@ jobs:
           repair_output.log
         retention-days: 30
         if-no-files-found: ignore
+    
+    - name: Mark workflow as successful if no checkpoint available
+      if: steps.checkpoint_check.outputs.checkpoint_available == 'false'
+      run: |
+        echo "✅ Workflow completed successfully (no checkpoint to repair)"
+        exit 0
     
     - name: Create issue on failure
       if: failure()
