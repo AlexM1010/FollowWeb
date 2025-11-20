@@ -36,7 +36,7 @@ concurrency:
   group: freesound-validation
   cancel-in-progress: false
 
-# Grant write permissions for pushing changes
+# Grant write permissions for committing changes
 permissions:
   contents: write
 
@@ -542,11 +542,11 @@ jobs:
           # Push changes and capture result
           if git push origin main; then
             echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Changes pushed to GitHub Pages" >> "$GITHUB_STEP_SUMMARY"
+            echo "✅ Changes committed to main (pages.yml will deploy)" >> "$GITHUB_STEP_SUMMARY"
           else
             {
               echo "deployment_successful=false"
-              echo "❌ Failed to push changes to GitHub Pages"
+              echo "❌ Failed to push changes"
               echo ""
               echo "⚠️  **Previous visualization remains live**"
               echo "⚠️  **Backup workflow will NOT be triggered**"
@@ -558,7 +558,7 @@ jobs:
     
     # Save checkpoint to cache for backup workflow
     - name: Save checkpoint to cache for backup workflow
-      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.deployment.outputs.deployment_successful == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.deployment.conclusion == 'success'
       uses: actions/cache/save@v3
       with:
         path: data/freesound_library

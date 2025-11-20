@@ -153,7 +153,8 @@ class EdgeGenerator:
         samples_by_user = defaultdict(list)
 
         for node_id in graph.nodes():
-            metadata = metadata_cache.get(node_id)
+            # Convert node_id to int for metadata cache lookup
+            metadata = metadata_cache.get(int(node_id))
             if metadata:
                 username = metadata.get("username") or metadata.get("user")
                 if username:
@@ -186,7 +187,8 @@ class EdgeGenerator:
         samples_by_pack = defaultdict(list)
 
         for node_id in graph.nodes():
-            metadata = metadata_cache.get(node_id)
+            # Convert node_id to int for metadata cache lookup
+            metadata = metadata_cache.get(int(node_id))
             if metadata:
                 pack = metadata.get("pack")
                 if pack:
@@ -247,9 +249,9 @@ class EdgeGenerator:
             if graph.has_edge(node1, node2):
                 continue
 
-            # Get tags for both samples
-            metadata1 = metadata_cache.get(node1)
-            metadata2 = metadata_cache.get(node2)
+            # Get tags for both samples (convert node IDs to int)
+            metadata1 = metadata_cache.get(int(node1))
+            metadata2 = metadata_cache.get(int(node2))
 
             if not metadata1 or not metadata2:
                 continue
