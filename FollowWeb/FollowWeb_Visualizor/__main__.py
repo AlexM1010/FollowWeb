@@ -359,7 +359,9 @@ class PipelineOrchestrator:
                         freesound_params["include_tag_edges"] = (
                             self.config.data_source.freesound.include_tag_edges
                         )
-                    if hasattr(self.config.data_source.freesound, "tag_similarity_threshold"):
+                    if hasattr(
+                        self.config.data_source.freesound, "tag_similarity_threshold"
+                    ):
                         freesound_params["tag_similarity_threshold"] = (
                             self.config.data_source.freesound.tag_similarity_threshold
                         )

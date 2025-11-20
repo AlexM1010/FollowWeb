@@ -450,48 +450,49 @@ class SigmaRenderer(Renderer):
         """
         # Use hash to generate consistent color for each tag
         tag_hash = hash(tag)
-        
+
         # Generate HSL color with good saturation and lightness for visibility
         # Hue: 0-360 degrees
         hue = abs(tag_hash) % 360
-        
+
         # Saturation: 60-80% for vibrant but not oversaturated colors
         saturation = 60 + (abs(tag_hash >> 8) % 21)
-        
+
         # Lightness: 50-65% for good contrast on dark background
         lightness = 50 + (abs(tag_hash >> 16) % 16)
-        
+
         # Convert HSL to RGB
         h = hue / 360.0
         s = saturation / 100.0
         l = lightness / 100.0
-        
+
         def hsl_to_rgb(h: float, s: float, l: float) -> tuple[int, int, int]:
             """Convert HSL to RGB."""
             if s == 0:
                 r = g = b = l
             else:
+
                 def hue_to_rgb(p: float, q: float, t: float) -> float:
                     if t < 0:
                         t += 1
                     if t > 1:
                         t -= 1
-                    if t < 1/6:
+                    if t < 1 / 6:
                         return p + (q - p) * 6 * t
-                    if t < 1/2:
+                    if t < 1 / 2:
                         return q
-                    if t < 2/3:
-                        return p + (q - p) * (2/3 - t) * 6
+                    if t < 2 / 3:
+                        return p + (q - p) * (2 / 3 - t) * 6
                     return p
-                
+
                 q = l * (1 + s) if l < 0.5 else l + s - l * s
                 p = 2 * l - q
-                r = hue_to_rgb(p, q, h + 1/3)
+                r = hue_to_rgb(p, q, h + 1 / 3)
                 g = hue_to_rgb(p, q, h)
-                b = hue_to_rgb(p, q, h - 1/3)
-            
+                b = hue_to_rgb(p, q, h - 1 / 3)
+
             return (int(r * 255), int(g * 255), int(b * 255))
-        
+
         r, g, b = hsl_to_rgb(h, s, l)
         return f"#{r:02x}{g:02x}{b:02x}"
 
@@ -608,18 +609,18 @@ class SigmaRenderer(Renderer):
                 # Determine color based on first tag if available
                 node_color = node_metric.get("color_hex", "#999999")
                 tags = node_attrs.get("tags", [])
-                
+
                 # Ensure tags is a list
                 if isinstance(tags, str):
                     tags = [tags]
                 elif not isinstance(tags, list):
                     tags = []
-                
+
                 # Color by first tag if available
                 if tags and len(tags) > 0:
                     first_tag = str(tags[0]).lower().strip()
                     node_color = self._get_tag_color(first_tag)
-                
+
                 sigma_node = {
                     "key": str(node_id),
                     "attributes": {
