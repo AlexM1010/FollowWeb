@@ -347,33 +347,47 @@ jobs:
           echo "**Visualization:**"
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Generate visualization from checkpoint
+        # Generate visualization from checkpoint with verbose output
         echo "Generating visualization from checkpoint..."
         
-        if python scripts/visualization/visualize_checkpoint.py \
+        # Run with explicit error capture
+        set +e  # Don't exit on error
+        python scripts/visualization/visualize_checkpoint.py \
           --checkpoint-dir data/freesound_library \
           --renderer-type sigma \
-          --output-dir Output; then
+          --output-dir Output 2>&1 | tee visualization.log
+        VIZ_EXIT_CODE=${PIPESTATUS[0]}
+        set -e  # Re-enable exit on error
+        
+        if [ "$VIZ_EXIT_CODE" -eq 0 ]; then
           echo "visualization_generated=true" >> "$GITHUB_OUTPUT"
           echo "✅ Visualization generated successfully" >> "$GITHUB_STEP_SUMMARY"
         else
-          VIZ_EXIT_CODE=$?
           {
             echo "visualization_generated=false"
             echo "❌ Visualization generation failed (exit code: $VIZ_EXIT_CODE)"
+            echo ""
+            echo "**Error Log:**"
+            echo "\`\`\`"
+            tail -n 50 visualization.log || echo "No log available"
+            echo "\`\`\`"
             echo ""
             echo "⚠️  **Previous visualization remains live on GitHub Pages**"
             echo "⚠️  **Backup workflow will NOT be triggered**"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
           echo "❌ Visualization generation failed with exit code: $VIZ_EXIT_CODE"
+          cat visualization.log
           exit 1
         fi
         
         # Find generated visualization
+        echo "Checking for generated visualization files..."
+        ls -lah Output/ || echo "Output directory is empty or doesn't exist"
+        
         VIZ_FILE=$(find Output -maxdepth 1 -name "freesound_*.html" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -n1 | cut -d' ' -f2-)
         
-        if [ -n "$VIZ_FILE" ]; then
+        if [ -n "$VIZ_FILE" ] && [ -f "$VIZ_FILE" ]; then
           {
             echo "visualization_generated=true"
             echo "visualization_file=$VIZ_FILE"
@@ -383,10 +397,29 @@ jobs:
           # Get file size
           VIZ_SIZE=$(du -h "$VIZ_FILE" | cut -f1)
           echo "- File size: $VIZ_SIZE" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Verify file is not empty
+          FILE_SIZE_BYTES=$(stat -c%s "$VIZ_FILE")
+          if [ "$FILE_SIZE_BYTES" -lt 1024 ]; then
+            {
+              echo "visualization_generated=false"
+              echo "❌ Visualization file is too small ($FILE_SIZE_BYTES bytes)"
+              echo ""
+              echo "⚠️  **Previous visualization remains live on GitHub Pages**"
+              echo "⚠️  **Backup workflow will NOT be triggered**"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
         else
           {
             echo "visualization_generated=false"
-            echo "❌ Visualization file not found"
+            echo "❌ Visualization file not found in Output directory"
+            echo ""
+            echo "**Output directory contents:**"
+            echo "\`\`\`"
+            ls -lah Output/ 2>&1 || echo "Directory doesn't exist"
+            echo "\`\`\`"
             echo ""
             echo "⚠️  **Previous visualization remains live on GitHub Pages**"
             echo "⚠️  **Backup workflow will NOT be triggered**"
@@ -443,10 +476,44 @@ jobs:
             echo "- ⏭️  Pages workflow will deploy existing files"
           } >> "$GITHUB_STEP_SUMMARY"
         else
+          # Pull latest changes first to avoid conflicts
+          echo "Pulling latest changes from remote..."
+          git pull --rebase origin main || {
+            echo "⚠️  Pull failed, attempting to resolve..."
+            git rebase --abort 2>/dev/null || true
+            git pull --no-rebase origin main
+          }
+          
           # Commit and push changes
           git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline"
-          git push
+          
+          # Push with retry logic
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if git push; then
+              echo "✅ Push successful"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "⚠️  Push failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
+                sleep 2
+                git pull --rebase origin main || git pull --no-rebase origin main
+              else
+                echo "❌ Push failed after $MAX_RETRIES attempts"
+                echo "deployment_successful=false" >> "$GITHUB_OUTPUT"
+                {
+                  echo ""
+                  echo "**Deployment Status:**"
+                  echo "- ❌ Failed to push changes after $MAX_RETRIES attempts"
+                  echo "- ⚠️  Git conflict or concurrent workflow detected"
+                } >> "$GITHUB_STEP_SUMMARY"
+                exit 1
+              fi
+            fi
+          done
           
           echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
           {
