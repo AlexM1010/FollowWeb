@@ -20,6 +20,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    # Skip if commit is from validation pipeline (it already deploys)
+    if: ${{ !contains(github.event.head_commit.message, 'Update visualization from validation pipeline') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -529,7 +529,7 @@ jobs:
           echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
           echo "No changes to commit" >> "$GITHUB_STEP_SUMMARY"
         else
-          git commit -m "🎨 Update visualization from validation pipeline
+          git commit -m "Update visualization from validation pipeline
 
           - Validation: ✅ Passed
           - User edges: ${{ steps.edge-generation.outputs.user_edges }}
@@ -555,6 +555,14 @@ jobs:
             exit 1
           fi
         fi
+    
+    # Save checkpoint to cache for backup workflow
+    - name: Save checkpoint to cache for backup workflow
+      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.deployment.outputs.deployment_successful == 'true'
+      uses: actions/cache/save@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-${{ github.run_id }}
     
     # Check workflow success and fail if any critical step failed
     - name: Check workflow success

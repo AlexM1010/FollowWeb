@@ -358,7 +358,7 @@ class WorkflowVerifier:
         Returns:
             Tuple of (success: bool, details: dict)
         """
-        logger.info("🎨 Verifying visualization deployment...")
+        logger.info("Verifying visualization deployment...")
 
         try:
             # Check for recent commits to Output directory
