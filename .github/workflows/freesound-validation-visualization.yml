@@ -460,8 +460,8 @@ jobs:
         echo "landing_page_updated=true" >> "$GITHUB_OUTPUT"
         echo "✅ Landing page updated"
     
-    # Commit visualization and landing page to repository
-    - name: Commit visualization to repository
+    # Commit visualization and landing page to gh-pages branch
+    - name: Commit visualization to gh-pages branch
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
       id: deployment
       run: |
@@ -476,23 +476,28 @@ jobs:
             echo "- ⏭️  Pages workflow will deploy existing files"
           } >> "$GITHUB_STEP_SUMMARY"
         else
-          # Pull latest changes first to avoid conflicts
-          echo "Pulling latest changes from remote..."
-          git pull --rebase origin main || {
-            echo "⚠️  Pull failed, attempting to resolve..."
-            git rebase --abort 2>/dev/null || true
-            git pull --no-rebase origin main
-          }
+          # Create or switch to gh-pages branch
+          echo "Switching to gh-pages branch..."
+          git fetch origin gh-pages:gh-pages 2>/dev/null || git checkout --orphan gh-pages
+          git checkout gh-pages || git checkout --orphan gh-pages
+          
+          # Remove all files except Output/ and index.html
+          git rm -rf . 2>/dev/null || true
+          git checkout main -- Output/ index.html
           
           # Commit and push changes
           git add Output/ index.html
-          git commit -m "🎨 Update visualization from validation pipeline"
+          git commit -m "🎨 Update visualization from validation pipeline
+
+Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+Workflow: ${{ github.workflow }}
+Run: ${{ github.run_number }}"
           
           # Push with retry logic
           MAX_RETRIES=3
           RETRY_COUNT=0
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if git push; then
+            if git push origin gh-pages; then
               echo "✅ Push successful"
               break
             else
@@ -500,7 +505,7 @@ jobs:
               if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
                 echo "⚠️  Push failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
                 sleep 2
-                git pull --rebase origin main || git pull --no-rebase origin main
+                git pull --rebase origin gh-pages || git pull --no-rebase origin gh-pages
               else
                 echo "❌ Push failed after $MAX_RETRIES attempts"
                 echo "deployment_successful=false" >> "$GITHUB_OUTPUT"
@@ -519,8 +524,8 @@ jobs:
           {
             echo ""
             echo "**Deployment Status:**"
-            echo "- ✅ Visualization committed to repository"
-            echo "- ⏭️  Pages workflow will deploy updated files"
+            echo "- ✅ Visualization committed to gh-pages branch"
+            echo "- ⏭️  Pages workflow will deploy from gh-pages"
             echo "- 💾 Backup workflow will persist to storage"
           } >> "$GITHUB_STEP_SUMMARY"
         fi

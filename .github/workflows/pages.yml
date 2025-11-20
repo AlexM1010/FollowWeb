@@ -28,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: main  # Ensure we get the latest commit with visualization
+          ref: gh-pages  # Deploy from gh-pages branch (generated content only)
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
