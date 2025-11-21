@@ -272,6 +272,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     )
                     last_update = checkpoint_metadata.get("timestamp", "unknown")
 
+                    # Restore edge generation metadata
+                    edge_gen_metadata = checkpoint_metadata.get("edge_generation", {})
+                    self._last_tag_threshold = edge_gen_metadata.get(
+                        "tag_similarity_threshold"
+                    )
+
                     self.logger.info(
                         f"Resumed from split checkpoint: {self.graph.number_of_nodes()} nodes, "
                         f"{len(self.processed_ids)} processed samples, "
@@ -404,6 +410,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 "pagination_state",
                 {"page": 1, "query": "", "sort": "downloads_desc"},
             ),
+            "edge_generation": {
+                "last_tag_edge_check": time.time(),
+                "processed_node_count": self.graph.number_of_nodes(),
+                "tag_similarity_threshold": getattr(
+                    self, "_last_tag_threshold", None
+                ),
+            },
         }
 
         # Add validation history to metadata if not already present
@@ -922,6 +935,9 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             self.logger.info("No new samples to process")
             return {"samples": [], "relationships": {"similar": {}}}
 
+        # Track which nodes are new in this session
+        initial_node_ids = set(self.graph.nodes())
+
         # Process samples incrementally with progress tracking
         processed_samples = []
 
@@ -972,6 +988,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                 tracker.update(i + 1)
 
+        # Determine new nodes added in this session
+        final_node_ids = set(self.graph.nodes())
+        new_node_ids = final_node_ids - initial_node_ids
+
         # Generate edges if requested (NO API REQUESTS - uses existing graph data)
         edge_stats = {}
 
@@ -1020,9 +1040,31 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                             edge_stats["pack_edges_added"] = pack_edges
 
                     if include_tag_edges:
-                        tag_edges = self._add_tag_edges_batch(tag_similarity_threshold)
+                        # Check if threshold changed - if so, regenerate all edges
+                        threshold_changed = (
+                            hasattr(self, "_last_tag_threshold")
+                            and self._last_tag_threshold is not None
+                            and self._last_tag_threshold != tag_similarity_threshold
+                        )
+
+                        if threshold_changed:
+                            self.logger.info(
+                                f"Tag similarity threshold changed "
+                                f"({self._last_tag_threshold} → {tag_similarity_threshold}), "
+                                f"regenerating all tag edges"
+                            )
+                            tag_edges = self._add_tag_edges_batch(
+                                tag_similarity_threshold
+                            )
+                        else:
+                            # Use incremental generation for new nodes
+                            tag_edges = self._add_tag_edges_incremental(
+                                tag_similarity_threshold, new_node_ids
+                            )
+
                         edge_stats["tag_edges_added"] = tag_edges
                         self.stats["tag_edges_created"] = tag_edges
+                        self._last_tag_threshold = tag_similarity_threshold
             except Exception as e:
                 self.logger.warning(f"Edge generation failed: {e}")
 
@@ -2022,6 +2064,119 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         if edge_count > 0:
             self.logger.info(
                 f"✅ Added {edge_count} tag similarity edges "
+                f"(threshold: {similarity_threshold}, 0 API requests)"
+            )
+
+        return edge_count
+
+    def _add_tag_edges_incremental(
+        self,
+        similarity_threshold: float,
+        new_node_ids: Optional[set[str]] = None,
+    ) -> int:
+        """
+        Add tag similarity edges incrementally.
+
+        Only checks:
+        - New node ↔ New node pairs
+        - New node ↔ Existing node pairs
+
+        Skips existing node ↔ existing node pairs (already processed).
+
+        Args:
+            similarity_threshold: Minimum Jaccard similarity
+            new_node_ids: Set of newly added node IDs (if None, regenerate all)
+
+        Returns:
+            Number of edges added
+        """
+        edge_count = 0
+
+        # Get all nodes with tags
+        all_nodes_with_tags = []
+        new_nodes_with_tags = []
+        existing_nodes_with_tags = []
+
+        for node_id in self.graph.nodes():
+            node_data = self.graph.nodes[node_id]
+            tags = node_data.get("tags", [])
+
+            if tags and len(tags) > 0:
+                tag_set = set(tags) if isinstance(tags, list) else {tags}
+                node_tuple = (node_id, tag_set)
+                all_nodes_with_tags.append(node_tuple)
+
+                if new_node_ids and node_id in new_node_ids:
+                    new_nodes_with_tags.append(node_tuple)
+                else:
+                    existing_nodes_with_tags.append(node_tuple)
+
+        # If no new nodes specified, fallback to full regeneration
+        if not new_node_ids or len(new_nodes_with_tags) == 0:
+            self.logger.info("No new nodes specified, falling back to full regeneration")
+            return self._add_tag_edges_batch(similarity_threshold)
+
+        self.logger.info(
+            f"Incremental tag edge generation: "
+            f"{len(new_nodes_with_tags)} new nodes, "
+            f"{len(existing_nodes_with_tags)} existing nodes"
+        )
+
+        # 1. Check new node ↔ new node pairs
+        for i in range(len(new_nodes_with_tags)):
+            node1_id, tags1 = new_nodes_with_tags[i]
+
+            for j in range(i + 1, len(new_nodes_with_tags)):
+                node2_id, tags2 = new_nodes_with_tags[j]
+
+                # Calculate Jaccard similarity
+                intersection = len(tags1 & tags2)
+                union = len(tags1 | tags2)
+                similarity = intersection / union if union > 0 else 0
+
+                if similarity >= similarity_threshold:
+                    # Add bidirectional edges
+                    if not self.graph.has_edge(node1_id, node2_id):
+                        self.graph.add_edge(
+                            node1_id, node2_id, type="similar_tags", weight=similarity
+                        )
+                        edge_count += 1
+                    if not self.graph.has_edge(node2_id, node1_id):
+                        self.graph.add_edge(
+                            node2_id, node1_id, type="similar_tags", weight=similarity
+                        )
+                        edge_count += 1
+
+        # 2. Check new node ↔ existing node pairs
+        for new_node_id, new_tags in new_nodes_with_tags:
+            for existing_node_id, existing_tags in existing_nodes_with_tags:
+                # Calculate Jaccard similarity
+                intersection = len(new_tags & existing_tags)
+                union = len(new_tags | existing_tags)
+                similarity = intersection / union if union > 0 else 0
+
+                if similarity >= similarity_threshold:
+                    # Add bidirectional edges
+                    if not self.graph.has_edge(new_node_id, existing_node_id):
+                        self.graph.add_edge(
+                            new_node_id,
+                            existing_node_id,
+                            type="similar_tags",
+                            weight=similarity,
+                        )
+                        edge_count += 1
+                    if not self.graph.has_edge(existing_node_id, new_node_id):
+                        self.graph.add_edge(
+                            existing_node_id,
+                            new_node_id,
+                            type="similar_tags",
+                            weight=similarity,
+                        )
+                        edge_count += 1
+
+        if edge_count > 0:
+            self.logger.info(
+                f"✅ Added {edge_count} tag similarity edges incrementally "
                 f"(threshold: {similarity_threshold}, 0 API requests)"
             )
 
