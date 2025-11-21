@@ -347,11 +347,31 @@ class TestInstagramDataWithBothRenderers:
             if renderer_type == "sigma":
                 assert "sigma" in html_content.lower()
                 assert "graphology" in html_content.lower()
+
+                # For Sigma renderer, check the JSON data file for node data
+                json_files = list(Path(tmpdir).glob("*_data.json"))
+                assert len(json_files) > 0, (
+                    "Sigma renderer should generate a JSON data file"
+                )
+
+                import json
+
+                with open(json_files[0], encoding="utf-8") as f:
+                    graph_data = json.load(f)
+
+                # Verify Instagram data in JSON
+                assert "nodes" in graph_data
+                assert len(graph_data["nodes"]) > 0
+                # Check that at least one node has a user_ ID
+                node_ids = [node["key"] for node in graph_data["nodes"]]
+                assert any("user_" in node_id for node_id in node_ids), (
+                    "Should have user_ nodes in graph data"
+                )
+
             elif renderer_type == "pyvis":
                 assert "vis-network" in html_content or "pyvis" in html_content.lower()
-
-            # Verify Instagram data
-            assert "user_" in html_content
+                # For Pyvis, data is embedded in HTML
+                assert "user_" in html_content
 
 
 @pytest.mark.integration
