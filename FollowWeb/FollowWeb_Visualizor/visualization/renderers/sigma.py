@@ -431,6 +431,8 @@ class SigmaRenderer(Renderer):
                         ),
                         legend_html=legend_html,
                         legend_html_style="",  # Legend styles are inline in the legend HTML
+                        background_color="#0a0e27",
+                        graph_background="linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)",
                     )
                 tracker.update(2)
 
@@ -441,9 +443,7 @@ class SigmaRenderer(Renderer):
                 # Copy template-specific assets to output directory
                 if self.template_name == "sigma_instagram.html":
                     self._copy_forceatlas2_script(output_filename)
-                else:
-                    # For Freesound/audio templates, copy audio panel assets
-                    self._copy_audio_panel_assets(output_filename)
+                # Audio panel assets are now inlined in the template
 
                 tracker.update(3)
 
@@ -739,39 +739,7 @@ class SigmaRenderer(Renderer):
 
         return {"nodes": nodes, "edges": edges}
 
-    def _copy_audio_panel_assets(self, output_filename: str) -> None:
-        """
-        Copy audio panel CSS and JS files to the same directory as the output HTML file.
 
-        Args:
-            output_filename: Path to the output HTML file
-        """
-        import shutil
-
-        try:
-            # Get the template directory where audio panel assets are located
-            template_dir = Path(__file__).parent / "templates"
-            output_dir = Path(output_filename).parent
-
-            # Copy CSS file
-            source_css = template_dir / "audio-panel.css"
-            dest_css = output_dir / "audio-panel.css"
-            if source_css.exists():
-                shutil.copy2(source_css, dest_css)
-                self.logger.debug(f"Copied audio-panel.css to {dest_css}")
-            else:
-                self.logger.warning(f"audio-panel.css not found at {source_css}")
-
-            # Copy JS file
-            source_js = template_dir / "audio-panel.js"
-            dest_js = output_dir / "audio-panel.js"
-            if source_js.exists():
-                shutil.copy2(source_js, dest_js)
-                self.logger.debug(f"Copied audio-panel.js to {dest_js}")
-            else:
-                self.logger.warning(f"audio-panel.js not found at {source_js}")
-        except Exception as e:
-            self.logger.warning(f"Could not copy audio panel assets: {e}")
 
     def _copy_forceatlas2_script(self, output_filename: str) -> None:
         """

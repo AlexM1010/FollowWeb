@@ -16,8 +16,10 @@
     <script src="https://cdn.jsdelivr.net/npm/graphology-library/dist/graphology-library.min.js"></script>
     <!-- Tone.js for synchronized audio playback -->
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
-    <!-- Audio Panel CSS -->
-    <link rel="stylesheet" href="audio-panel.css">
+    <!-- Audio Panel CSS (inlined) -->
+    <style>
+        {% include 'audio-panel.css' %}
+    </style>
     <style>
         * {
             margin: 0;
@@ -31,13 +33,7 @@
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
-            background: {
-                    {
-                    background_color|default('#0a0e27')
-                }
-            }
-
-            ;
+            background: {{ background_color|default('#0a0e27') }};
             color: #e0e0e0;
             overflow: hidden;
         }
@@ -49,13 +45,7 @@
             top: 0;
             left: 0;
 
-            background: {
-                    {
-                    graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)')
-                }
-            }
-
-            ;
+            background: {{ graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)') }};
         }
 
         #controls {
@@ -2185,8 +2175,10 @@
             e.preventDefault();
         });
     </script>
-    <!-- Audio Panel Logic -->
-    <script src="audio-panel.js"></script>
+    <!-- Audio Panel Logic (inlined) -->
+    <script>
+        {% include 'audio-panel.js' %}
+    </script>
 </body>
 
 </html>
