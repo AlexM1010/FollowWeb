@@ -1,33 +1,0 @@
-2025-11-21 20:45:56,783 - INFO - Loading graph from: data/freesound_library/graph_topology.gpickle
-2025-11-21 20:45:56,788 - INFO - Loaded graph: 1671 nodes, 11773 edges
-2025-11-21 20:45:56,788 - INFO - Loading metadata from: data/freesound_library/metadata_cache.db
-2025-11-21 20:45:56,789 - INFO - Initialized metadata cache at data/freesound_library/metadata_cache.db
-2025-11-21 20:45:56,827 - INFO - Attached metadata to 1671 nodes
-2025-11-21 20:45:56,828 - INFO - Generating sigma visualization...
-2025-11-21 20:45:56,828 - INFO - No metrics provided - creating new MetricsCalculator
-2025-11-21 20:45:56,843 - INFO - 
-🔄 Calculating shared visualization metrics...
-2025-11-21 20:45:56,912 - INFO - Calculating shared edge metrics...
-    Progress: [0%] [░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░] - Est. 3.6s remaining                                                                             Progress: [100%] [██████████████████████████████] - Completed in 0.1s
-2025-11-21 20:45:56,988 - INFO - ⏱️ Calculating shared edge metrics completed in 0.1s
-2025-11-21 20:45:56,988 - INFO - 
-2025-11-21 20:45:56,989 - INFO - Calculating spring layout for shared metrics (200 iterations)...
-    Progress: [10%] [░░░░░██░░░░░█░░░█░░░░░░░░░░░░░] - Est. 37.6s remaining                                                                               Progress: [20%] [█░░░░██░░░░░█░░░░█░░░░░░█░░░░░] - Est. 31.5s remaining                                                                               Progress: [30%] [██░░░███░░░░█░░░░█░░░░░░█░█░░░] - Est. 26.9s remaining                                                                               Progress: [40%] [██░░████░░░░█░░█░█░░░░█░█░█░░░] - Est. 22.4s remaining                                                                               Progress: [50%] [██░░████░░░░░░░█░█░░░██░█░█░░░] - Est. 18.5s remaining                                                                               Progress: [60%] [███░████░░░░░░░█░█░░░██░█░█░██] - Est. 14.9s remaining                                                                               Progress: [70%] [███░█░░█░░░░░█░█░█░░░██░█░█░██] - Est. 11.1s remaining                                                                               Progress: [80%] [███░█░██░░░░░█░█░█░░░██░█░█░██] - Est. 7.4s remaining                                                                              Progress: [90%] [███░█░██░░░░░█░█░█░░░██░███░██] - Est. 3.7s remaining                                                                              Progress: [??%] [███░█░██░░░█░█░█░█░░░██████░██] - Running for 36.7s                                                                            Progress: [100%] [██████████████████████████████] - Completed in 36.7s
-2025-11-21 20:46:33,714 - INFO - ⏱️ Calculating spring layout for shared metrics (200 iterations) completed in 36.7s
-2025-11-21 20:46:33,714 - INFO - 
-2025-11-21 20:46:33,714 - INFO - ⏱️ Spring layout calculation completed in 36.72s
-2025-11-21 20:46:33,714 - INFO - 
-2025-11-21 20:46:33,714 - INFO - ⏱️ Shared metrics calculation completed in 36.87s
-2025-11-21 20:46:33,714 - INFO - 
-2025-11-21 20:46:33,718 - INFO - Converting graph to Sigma.js format...
-    Progress: [33%] [░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░] - Est. 0.2s remaining                                                                              Progress: [100%] [██████████████████████████████] - Completed in 0.1s
-2025-11-21 20:46:33,814 - INFO - ⏱️ Converting graph to Sigma.js format completed in 0.1s
-2025-11-21 20:46:33,814 - INFO - 
-2025-11-21 20:46:33,814 - INFO - Generating HTML visualization...
-2025-11-21 20:46:33,844 - INFO - Loading template: sigma_samples.html from /home/runner/work/FollowWeb/FollowWeb/FollowWeb/FollowWeb_Visualizor/visualization/renderers/templates
-2025-11-21 20:46:33,959 - INFO - Graph data written to: Output/freesound_20251121_204556_data.json
-    Progress: [33%] [░░░░░░░░░░░░░░░░░░░░█░░░█░░░░░] - Est. 0.3s remaining                                                                              Progress: [100%] [██████████████████████████████] - Completed in 0.1s
-2025-11-21 20:46:33,961 - INFO - ⏱️ Generating HTML visualization completed in 0.1s
-2025-11-21 20:46:33,961 - INFO - 
-2025-11-21 20:46:33,961 - INFO - ✅ Sigma.js HTML saved: Output/freesound_20251121_204556.html
-2025-11-21 20:46:33,965 - INFO - ✅ Visualization generated: Output/freesound_20251121_204556.html

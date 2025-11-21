@@ -16,8 +16,249 @@
     <script src="https://cdn.jsdelivr.net/npm/graphology-library/dist/graphology-library.min.js"></script>
     <!-- Tone.js for synchronized audio playback -->
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
-    <!-- Audio Panel CSS -->
-    <link rel="stylesheet" href="audio-panel.css">
+    <!-- Audio Panel CSS (inlined) -->
+    <style>
+        /* Audio Panel Styles */
+
+#audio-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 400px;
+    max-width: calc(100vw - 40px);
+    background: rgba(30, 30, 40, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Single Player Styles */
+.single-player {
+    padding: 20px;
+}
+
+.sp-header {
+    margin-bottom: 16px;
+}
+
+.sp-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sp-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: #999;
+}
+
+.sp-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sp-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-control {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-control:hover {
+    background: rgba(76, 175, 80, 0.3);
+    transform: scale(1.05);
+}
+
+.btn-control.active {
+    background: #4CAF50;
+    color: white;
+}
+
+.sp-timeline-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sp-timeline {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.sp-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.1s linear;
+}
+
+.sp-time {
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+}
+
+/* Mix Mode Styles */
+.mix-mode {
+    padding: 16px;
+}
+
+.mix-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mix-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.mix-master-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-mini {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn-mini:hover {
+    background: rgba(76, 175, 80, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-mini.active {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-mini.btn-danger {
+    background: rgba(244, 67, 54, 0.2);
+    color: #F44336;
+}
+
+.btn-mini.btn-danger:hover {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+.mix-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mix-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.mix-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.mix-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.mix-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.mix-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.mix-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.mix-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.mix-name {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mix-controls {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    #audio-panel {
+        width: calc(100vw - 40px);
+        left: 20px;
+        right: 20px;
+    }
+    
+    .sp-controls {
+        flex-wrap: wrap;
+    }
+    
+    .sp-timeline-wrapper {
+        width: 100%;
+        order: 3;
+    }
+}
+    </style>
     <style>
         * {
             margin: 0;
@@ -31,13 +272,7 @@
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
-            background: {
-                    {
-                    background_color|default('#0a0e27')
-                }
-            }
-
-            ;
+            background: #0a0e27;
             color: #e0e0e0;
             overflow: hidden;
         }
@@ -49,13 +284,7 @@
             top: 0;
             left: 0;
 
-            background: {
-                    {
-                    graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)')
-                }
-            }
-
-            ;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%);
         }
 
         #controls {
@@ -1014,11 +1243,11 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">11773</span>
+                <span class="stat-value" id="edge-count">11791</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">14.09</span>
+                <span class="stat-value" id="avg-degree">14.11</span>
             </div>
             
             <div class="stat-item">
@@ -1080,7 +1309,7 @@
     <script>
         // Configuration from Jinja2 template
         const config = {"enable_audio": false, "show_labels": true, "show_tooltips": true, "ui_background_color": "#2d333c", "ui_highlight_color": "#415a76", "ui_text_color": "#b6e0fe"};
-        const dataFile = 'freesound_20251121_204556_data.json';  // External JSON file to load
+        const dataFile = 'freesound_20251121_211659_data.json';  // External JSON file to load
         
         let graphData = null;  // Will be loaded asynchronously
 
@@ -2185,8 +2414,360 @@
             e.preventDefault();
         });
     </script>
-    <!-- Audio Panel Logic -->
-    <script src="audio-panel.js"></script>
+    <!-- Audio Panel Logic (inlined) -->
+    <script>
+        // Audio Panel State & Logic (using Tone.js)
+(function () {
+    'use strict';
+
+    let audioContextStarted = false;
+
+    // Wait for DOM and global variables to be ready
+    window.addEventListener('DOMContentLoaded', function () {
+        // Check if required globals exist
+        if (typeof graph === 'undefined' || typeof renderer === 'undefined') {
+            console.error('Audio panel: Required globals (graph, renderer) not found');
+            return;
+        }
+
+        if (typeof Tone === 'undefined') {
+            console.error('Audio panel: Tone.js not found. Please include Tone.js before audio-panel.js');
+            return;
+        }
+
+        // State management
+        const audioState = {
+            activePlayers: {}, // Map<nodeId, {player: Tone.Player, duration: number}>
+            singlePlayerNode: null, // nodeId
+            mixMode: false,
+            isLooping: false
+        };
+
+        // DOM Elements
+        const panelContent = document.getElementById('panel-content');
+        if (!panelContent) {
+            console.error('Audio panel: #panel-content element not found');
+            return;
+        }
+
+        // --- Helper Functions ---
+
+        async function ensureAudioContext() {
+            if (!audioContextStarted) {
+                await Tone.start();
+                audioContextStarted = true;
+                console.log('Tone.js audio context started');
+            }
+        }
+
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return minutes + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+
+        function getNodeData(nodeId) {
+            if (!graph.hasNode(nodeId)) return null;
+            return {
+                id: nodeId,
+                ...graph.getNodeAttributes(nodeId)
+            };
+        }
+
+        // --- Core Functions ---
+
+        async function showSinglePlayer(nodeId) {
+            await ensureAudioContext();
+            audioState.singlePlayerNode = nodeId;
+            audioState.mixMode = false;
+            renderAudioPanel();
+
+            if (!audioState.activePlayers[nodeId]) {
+                await togglePlay(nodeId);
+            }
+        }
+
+        async function addToMix(nodeId) {
+            await ensureAudioContext();
+            if (!audioState.activePlayers[nodeId]) {
+                await createPlayer(nodeId);
+            }
+            audioState.mixMode = true;
+            renderAudioPanel();
+        }
+
+        function removeFromMix(nodeId) {
+            if (audioState.activePlayers[nodeId]) {
+                const playerData = audioState.activePlayers[nodeId];
+                playerData.player.stop();
+                playerData.player.dispose();
+                delete audioState.activePlayers[nodeId];
+            }
+
+            // If no players left, exit mix mode
+            if (Object.keys(audioState.activePlayers).length === 0) {
+                audioState.mixMode = false;
+                audioState.singlePlayerNode = null;
+            }
+
+            highlightPlayingNode(nodeId, false);
+            renderAudioPanel();
+        }
+
+        async function createPlayer(nodeId) {
+            const node = getNodeData(nodeId);
+            if (!node || !node.audio_url) {
+                console.warn('No audio URL for node:', nodeId);
+                return null;
+            }
+
+            try {
+                const player = new Tone.Player({
+                    url: node.audio_url,
+                    loop: audioState.isLooping,
+                    onload: () => {
+                        // Store duration once loaded
+                        if (audioState.activePlayers[nodeId]) {
+                            audioState.activePlayers[nodeId].duration = player.buffer.duration;
+                        }
+                        renderAudioPanel();
+                    }
+                }).toDestination();
+
+                // Set up event handlers
+                player.onstop = () => {
+                    highlightPlayingNode(nodeId, false);
+                    renderAudioPanel();
+                };
+
+                audioState.activePlayers[nodeId] = {
+                    player: player,
+                    duration: 0 // Will be set on load
+                };
+
+                return player;
+            } catch (error) {
+                console.error('Error creating player for node:', nodeId, error);
+                return null;
+            }
+        }
+
+        async function togglePlay(nodeId) {
+            await ensureAudioContext();
+
+            let playerData = audioState.activePlayers[nodeId];
+            if (!playerData) {
+                await createPlayer(nodeId);
+                playerData = audioState.activePlayers[nodeId];
+            }
+
+            if (playerData && playerData.player) {
+                const player = playerData.player;
+
+                if (player.state === 'started') {
+                    player.stop();
+                    highlightPlayingNode(nodeId, false);
+                } else {
+                    player.start();
+                    highlightPlayingNode(nodeId, true);
+                }
+
+                renderAudioPanel();
+            }
+        }
+
+        function stopAll() {
+            Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
+                playerData.player.stop();
+                highlightPlayingNode(nodeId, false);
+            });
+            renderAudioPanel();
+        }
+
+        async function playAll() {
+            await ensureAudioContext();
+            Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
+                if (playerData.player.state !== 'started') {
+                    playerData.player.start();
+                    highlightPlayingNode(nodeId, true);
+                }
+            });
+            renderAudioPanel();
+        }
+
+        function pauseAll() {
+            Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
+                if (playerData.player.state === 'started') {
+                    playerData.player.stop();
+                    highlightPlayingNode(nodeId, false);
+                }
+            });
+            renderAudioPanel();
+        }
+
+        function clearAll() {
+            Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
+                playerData.player.stop();
+                playerData.player.dispose();
+                highlightPlayingNode(nodeId, false);
+            });
+            audioState.activePlayers = {};
+            audioState.singlePlayerNode = null;
+            audioState.mixMode = false;
+            renderAudioPanel();
+        }
+
+        // --- Rendering ---
+
+        function renderAudioPanel() {
+            if (audioState.mixMode) {
+                renderMixMode();
+            } else if (audioState.singlePlayerNode) {
+                renderSinglePlayer();
+            } else {
+                panelContent.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Click a node to play</div>';
+            }
+        }
+
+        function renderSinglePlayer() {
+            const node = getNodeData(audioState.singlePlayerNode);
+            if (!node) return;
+
+            const playerData = audioState.activePlayers[node.id];
+            const player = playerData?.player;
+            const isPlaying = player && player.state === 'started';
+            const duration = playerData?.duration || 0;
+
+            // Get current playback position (Tone.js doesn't have a simple seek property)
+            // We'll calculate it based on when it started
+            const seek = player ? player.toSeconds(player.now() - player._startTime) : 0;
+            const progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
+
+            panelContent.innerHTML = `
+                <div class="single-player">
+                    <div class="sp-header">
+                        <div class="sp-title">${escapeHtml(node.name || 'Unknown Sample')}</div>
+                        <div class="sp-meta">
+                            ${node.user ? `<span>👤 ${escapeHtml(node.user)}</span>` : ''}
+                            ${node.duration ? `<span>⏱ ${node.duration.toFixed(1)}s</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="sp-controls">
+                        <button class="btn-control ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${node.id}')">
+                            ${isPlaying ? '⏸' : '▶'}
+                        </button>
+                        <div class="sp-timeline-wrapper">
+                            <div class="sp-timeline">
+                                <div class="sp-progress" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="sp-time">${formatTime(seek)} / ${formatTime(duration)}</div>
+                        </div>
+                        <button class="btn-control" onclick="window.audioPanel.addToMix('${node.id}')" title="Add to Mix">
+                            ➕
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMixMode() {
+            const playerIds = Object.keys(audioState.activePlayers);
+
+            let listHtml = playerIds.map(id => {
+                const node = getNodeData(id);
+                const playerData = audioState.activePlayers[id];
+                const isPlaying = playerData?.player && playerData.player.state === 'started';
+
+                return `
+                    <div class="mix-item">
+                        <div class="mix-info">
+                            <div class="mix-name">${escapeHtml(node ? node.name : 'Unknown')}</div>
+                        </div>
+                        <div class="mix-controls">
+                            <button class="btn-mini ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${id}')">
+                                ${isPlaying ? '⏸' : '▶'}
+                            </button>
+                            <button class="btn-mini btn-danger" onclick="window.audioPanel.removeFromMix('${id}')">✖</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            panelContent.innerHTML = `
+                <div class="mix-mode">
+                    <div class="mix-header">
+                        <div class="mix-title">Mix Mode (${playerIds.length})</div>
+                        <div class="mix-master-controls">
+                            <button class="btn-mini" onclick="window.audioPanel.playAll()">▶ All</button>
+                            <button class="btn-mini" onclick="window.audioPanel.pauseAll()">⏸ All</button>
+                            <button class="btn-mini btn-danger" onclick="window.audioPanel.clearAll()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="mix-list">
+                        ${listHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // --- Highlight Update ---
+        function highlightPlayingNode(nodeId, isPlaying) {
+            if (nodeId && graph.hasNode(nodeId)) {
+                if (isPlaying) {
+                    const node = graph.getNodeAttributes(nodeId);
+                    if (!node.originalColor) {
+                        graph.setNodeAttribute(nodeId, 'originalColor', node.color);
+                    }
+                    graph.setNodeAttribute(nodeId, 'color', '#FFD93D');
+                } else {
+                    const node = graph.getNodeAttributes(nodeId);
+                    if (node.originalColor) {
+                        graph.setNodeAttribute(nodeId, 'color', node.originalColor);
+                    }
+                }
+                renderer.refresh();
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Update Node Click Handler
+        renderer.on('clickNode', async ({ node }) => {
+            await showSinglePlayer(node);
+        });
+
+        // Periodic update for timelines
+        setInterval(() => {
+            if (audioState.singlePlayerNode || audioState.mixMode) {
+                renderAudioPanel();
+            }
+        }, 200);
+
+        // --- Expose API to window ---
+        window.audioPanel = {
+            togglePlay,
+            addToMix,
+            removeFromMix,
+            playAll,
+            pauseAll,
+            clearAll,
+            showSinglePlayer
+        };
+
+        // Initial render
+        renderAudioPanel();
+
+        console.log('Audio panel initialized with Tone.js');
+    });
+})();
+    </script>
 </body>
 
 </html>
