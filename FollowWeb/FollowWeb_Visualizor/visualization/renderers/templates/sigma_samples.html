@@ -1063,11 +1063,36 @@
             const audioPlayerDiv = document.getElementById('node-audio-player');
             audioPlayerDiv.innerHTML = ''; // Clear previous player
             
-            if (attributes.audio_url && attributes.audio_url.trim() !== '') {
+            // Parse audio URLs array
+            let audioUrls = [];
+            if (attributes.audio_urls) {
+                try {
+                    audioUrls = JSON.parse(attributes.audio_urls);
+                } catch (e) {
+                    console.error('Failed to parse audio_urls:', e);
+                }
+            }
+            
+            if (audioUrls.length > 0) {
+                // Create audio element with multiple source elements
+                // Browser will automatically pick the first compatible format
                 const audioElement = document.createElement('audio');
                 audioElement.controls = true;
                 audioElement.preload = 'auto';
-                audioElement.src = attributes.audio_url;
+                
+                // Add all available formats as source elements
+                audioUrls.forEach(url => {
+                    const source = document.createElement('source');
+                    source.src = url;
+                    // Determine type from URL extension
+                    if (url.includes('.mp3')) {
+                        source.type = 'audio/mpeg';
+                    } else if (url.includes('.ogg')) {
+                        source.type = 'audio/ogg';
+                    }
+                    audioElement.appendChild(source);
+                });
+                
                 audioPlayerDiv.appendChild(audioElement);
                 
                 // Auto-play the audio when node is clicked
