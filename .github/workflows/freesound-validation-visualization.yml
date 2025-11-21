@@ -444,15 +444,20 @@ jobs:
       id: deployment
       run: |
         # Save the generated files to a temporary location
+        # Deploy files from Output/ to gh-pages root for cleaner URLs
         mkdir -p /tmp/gh-pages-content
-        cp -r Output /tmp/gh-pages-content/
-        cp index.html /tmp/gh-pages-content/
         
-        # Note: JSON data files stay in Output/ directory alongside HTML files
-        # Audio panel assets also stay in Output/ directory
-        # All files are kept together for proper relative path references
+        # Copy all files from Output/ to root (HTML, JSON, CSS, JS, PNG)
+        if [ -d "Output" ]; then
+          cp Output/* /tmp/gh-pages-content/ 2>/dev/null || true
+          echo "✅ Copied all files from Output/ to gh-pages root"
+        fi
         
-        echo "✅ Copied Output/ directory with all assets (HTML, JSON, CSS, JS)"
+        # Copy landing page to root
+        if [ -f "index.html" ]; then
+          cp index.html /tmp/gh-pages-content/
+          echo "✅ Copied index.html to gh-pages root"
+        fi
         
         # Remove generated files from working directory before branch switch
         rm -f index.html
@@ -478,7 +483,7 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add Output/ index.html
+          git add .
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
