@@ -122,7 +122,7 @@ class FreesoundLoader(DataLoader):
         - user: Username of uploader
         - num_downloads: Download count (popularity metric)
         - avg_rating: Average rating (quality metric)
-        
+
         Note: Audio preview URLs are reconstructed from sample ID at visualization time
 
     - Edges represent similarity relationships:
@@ -500,10 +500,10 @@ class FreesoundLoader(DataLoader):
         # These can be reconstructed from sample ID or are not used
         fields_to_remove = [
             "description",  # Often lengthy license text (2-3KB per sample)
-            "previews",     # Reconstructed from sample ID at visualization time
-            "images",       # Not used in current visualizations
+            "previews",  # Reconstructed from sample ID at visualization time
+            "images",  # Not used in current visualizations
         ]
-        
+
         for field in fields_to_remove:
             if field in metadata:
                 del metadata[field]

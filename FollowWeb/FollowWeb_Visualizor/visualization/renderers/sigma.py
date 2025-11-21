@@ -664,8 +664,10 @@ class SigmaRenderer(Renderer):
                 try:
                     sample_id = int(node_id)
                     folder = sample_id // 1000
-                    base_url = f"https://freesound.org/data/previews/{folder}/{sample_id}"
-                    
+                    base_url = (
+                        f"https://freesound.org/data/previews/{folder}/{sample_id}"
+                    )
+
                     # Generate all preview format URLs in order of preference (HQ first)
                     # Format: {base}_preview-hq-{format} and {base}_preview-lq-{format}
                     audio_urls = [
