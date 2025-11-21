@@ -378,11 +378,12 @@ class SigmaRenderer(Renderer):
                 output_path = Path(output_filename)
                 json_filename = output_path.stem + "_data.json"
                 json_filepath = output_path.parent / json_filename
-                
+
                 import json
+
                 with open(json_filepath, "w", encoding="utf-8") as f:
-                    json.dump(graph_data, f, separators=(',', ':'))
-                
+                    json.dump(graph_data, f, separators=(",", ":"))
+
                 self.logger.info(f"Graph data written to: {json_filepath} (for backup)")
                 tracker.update(1)
 
