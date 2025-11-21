@@ -149,6 +149,7 @@ class TestSigmaVisualizationEndToEnd:
 
             # Verify JSON contains node and edge data
             import json
+
             with open(json_file, encoding="utf-8") as f:
                 data = json.load(f)
 
