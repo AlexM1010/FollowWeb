@@ -739,8 +739,6 @@ class SigmaRenderer(Renderer):
 
         return {"nodes": nodes, "edges": edges}
 
-
-
     def _copy_forceatlas2_script(self, output_filename: str) -> None:
         """
         Copy the forceatlas2.js script to the same directory as the output HTML file.
