@@ -445,11 +445,11 @@ class TestSigmaVisualizationJavaScriptValidation:
             assert 'id="search"' in html_content
             assert "resetView()" in html_content
             assert "highlightNode()" in html_content
-            
+
             # Check for physics controls
             assert "startLayout()" in html_content
             assert "stopLayout()" in html_content
-            
+
             # Check for toggle controls
             assert 'id="showLabels"' in html_content
             assert 'id="showTooltips"' in html_content
