@@ -479,7 +479,7 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add Output/ index.html *_data.json 2>/dev/null || git add Output/ index.html
+          git add Output/ index.html ./*_data.json 2>/dev/null || git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
