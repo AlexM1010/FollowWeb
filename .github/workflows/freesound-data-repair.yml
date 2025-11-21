@@ -66,10 +66,90 @@ permissions:
   issues: write
 
 jobs:
+  check-collection-status:
+    name: Check Collection Status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      skip_reason: ${{ steps.check.outputs.skip_reason }}
+    
+    steps:
+    - name: Check if collection ran successfully
+      id: check
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # For manual triggers, always run
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=" >> "$GITHUB_OUTPUT"
+          echo "✅ Manual trigger - proceeding with repair"
+          exit 0
+        fi
+        
+        # For workflow_run triggers, check if collection actually ran
+        COLLECTION_RUN_ID="${{ github.event.workflow_run.id }}"
+        
+        # Get the collection workflow run details
+        RUN_DETAILS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/$COLLECTION_RUN_ID")
+        
+        # Check if the freesound-collection job actually ran
+        JOBS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/$COLLECTION_RUN_ID/jobs")
+        
+        # Check if freesound-collection job exists and completed successfully
+        COLLECTION_JOB=$(echo "$JOBS" | jq -r '.jobs[] | select(.name == "Freesound Data Collection")')
+        
+        if [ -z "$COLLECTION_JOB" ] || [ "$COLLECTION_JOB" = "null" ]; then
+          echo "⚠️ Collection job was skipped (likely due to CI check failure)"
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=Collection job was skipped - no data to repair" >> "$GITHUB_OUTPUT"
+          
+          {
+            echo "## ⚠️ Repair Skipped"
+            echo ""
+            echo "The collection job was skipped (likely due to CI check failure)."
+            echo "No data collection occurred, so repair is not needed."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        
+        JOB_CONCLUSION=$(echo "$COLLECTION_JOB" | jq -r '.conclusion')
+        
+        if [ "$JOB_CONCLUSION" = "skipped" ]; then
+          echo "⚠️ Collection job was skipped"
+          echo "should_run=false" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=Collection job was skipped" >> "$GITHUB_OUTPUT"
+          
+          {
+            echo "## ⚠️ Repair Skipped"
+            echo ""
+            echo "The collection job was skipped."
+            echo "No data collection occurred, so repair is not needed."
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "✅ Collection job ran - proceeding with repair"
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=" >> "$GITHUB_OUTPUT"
+          
+          {
+            echo "## ✅ Collection Completed"
+            echo ""
+            echo "Collection job completed with status: $JOB_CONCLUSION"
+            echo "Proceeding with repair and validation..."
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+
   repair-checkpoint:
     name: Validate and Repair Checkpoint
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    needs: check-collection-status
+    if: needs.check-collection-status.outputs.should_run == 'true'
     
     steps:
     - name: Checkout code
