@@ -382,11 +382,12 @@ class TestFreesoundSigmaPipelineIntegration:
             # Verify JSON data file exists and contains Freesound data
             json_files = list(Path(tmpdir).glob("*_data.json"))
             assert len(json_files) > 0
-            
+
             import json
+
             with open(json_files[0], encoding="utf-8") as f:
                 graph_data = json.load(f)
-            
+
             # Check for Freesound data in JSON
             assert "nodes" in graph_data
             assert len(graph_data["nodes"]) > 0
