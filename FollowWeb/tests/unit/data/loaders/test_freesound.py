@@ -469,8 +469,10 @@ class TestFreesoundLoaderMetadataExtraction:
         assert metadata["tags"] == ["drum", "percussion"]
         assert metadata["duration"] == 2.5
         assert metadata["username"] == "test_user"
-        # Check for optimized preview_base field (URL storage optimization)
-        assert metadata["preview_base"] == "previews/0/12_345"
+        # Verify old fields are removed (audio URLs reconstructed at visualization time)
+        assert "preview_base" not in metadata
+        assert "previews" not in metadata
+        assert "images" not in metadata
 
     def test_extract_sample_metadata_missing_fields(self, mock_freesound_client):
         """Test extracting metadata with missing fields."""
