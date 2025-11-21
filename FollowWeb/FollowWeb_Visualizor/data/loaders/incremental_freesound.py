@@ -2994,9 +2994,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             }
 
             # Extract metadata directly from search results (no follow-up calls needed!)
+            samples_on_first_page = 0
             for sound in results:
                 if len(samples) >= max_samples:
                     break
+
+                samples_on_first_page += 1
 
                 # Skip if already processed (check SQL cache for O(1) lookup)
                 if hasattr(self, "metadata_cache") and self.metadata_cache.exists(
@@ -3015,6 +3018,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                 samples.append(sample_data)
 
+            # If first page had samples but we got 0 new ones, advance to next page
+            # This prevents getting stuck on a page where all samples are already processed
+            if samples_on_first_page > 0 and len(samples) == 0:
+                self.pagination_state["page"] = start_page + 1
+                self.logger.info(
+                    f"Page {start_page} had {samples_on_first_page} samples but 0 new ones, "
+                    f"advancing to page {self.pagination_state['page']}"
+                )
+
             # Fetch additional pages if needed
             current_page = start_page
             while len(samples) < max_samples and results.next:
@@ -3031,9 +3043,14 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 results = self._retry_with_backoff(results.next_page)
                 current_page += 1
 
+                samples_before_page = len(samples)
+                samples_on_page = 0
+
                 for sound in results:
                     if len(samples) >= max_samples:
                         break
+
+                    samples_on_page += 1
 
                     # Skip if already processed (check SQL cache for O(1) lookup)
                     if hasattr(self, "metadata_cache") and self.metadata_cache.exists(
@@ -3052,6 +3069,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                 # Update pagination state after each page
                 self.pagination_state["page"] = current_page
+
+                # If this page had samples but we got 0 new ones, log it
+                # The pagination state is already updated above, so next run will try the next page
+                samples_added_from_page = len(samples) - samples_before_page
+                if samples_on_page > 0 and samples_added_from_page == 0:
+                    self.logger.info(
+                        f"Page {current_page} had {samples_on_page} samples but 0 new ones, "
+                        f"continuing to next page"
+                    )
 
             self.logger.info(
                 f"Search returned {len(samples)} samples with complete metadata "
