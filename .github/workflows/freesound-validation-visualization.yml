@@ -448,25 +448,26 @@ jobs:
         cp -r Output /tmp/gh-pages-content/
         cp index.html /tmp/gh-pages-content/
         
-        # Copy JSON data files to gh-pages for efficient loading
+        # Copy JSON data files to gh-pages root for efficient loading
+        # (HTML files reference them as "./filename_data.json")
         if find Output -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | grep -q .; then
           find Output -maxdepth 1 -name "*_data.json" -type f -exec cp {} /tmp/gh-pages-content/ \;
-          echo "✅ Copied JSON data files from Output/"
+          echo "✅ Copied JSON data files from Output/ to root"
         fi
         
-        # Copy audio panel assets (CSS and JS) from Output directory
+        # Copy audio panel assets to root for proper loading
+        # (HTML files reference them as "./audio-panel.css" and "./audio-panel.js")
         if [ -f "Output/audio-panel.css" ]; then
           cp Output/audio-panel.css /tmp/gh-pages-content/
-          echo "✅ Copied audio-panel.css"
+          echo "✅ Copied audio-panel.css to root"
         fi
         if [ -f "Output/audio-panel.js" ]; then
           cp Output/audio-panel.js /tmp/gh-pages-content/
-          echo "✅ Copied audio-panel.js"
+          echo "✅ Copied audio-panel.js to root"
         fi
         
         # Remove generated files from working directory before branch switch
         rm -f index.html
-        find . -maxdepth 1 -name "*_data.json" -type f -delete 2>/dev/null || true
         
         # Switch to gh-pages branch (now we can do it cleanly)
         git fetch origin gh-pages:gh-pages 2>/dev/null || true
