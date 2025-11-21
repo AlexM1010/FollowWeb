@@ -443,21 +443,47 @@ jobs:
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
       id: deployment
       run: |
-        # Save the generated files to a temporary location
-        # Deploy files from Output/ to gh-pages root for cleaner URLs
+        # Deploy only essential files to gh-pages for efficiency
+        # Keep all visualizations in Output/ on main branch for posterity
         mkdir -p /tmp/gh-pages-content
         
-        # Copy all files from Output/ to root (HTML, JSON, CSS, JS, PNG)
-        if [ -d "Output" ]; then
-          cp Output/* /tmp/gh-pages-content/ 2>/dev/null || true
-          echo "✅ Copied all files from Output/ to gh-pages root"
-        fi
-        
-        # Copy landing page to root
+        # Copy landing page (index.html)
         if [ -f "index.html" ]; then
           cp index.html /tmp/gh-pages-content/
-          echo "✅ Copied index.html to gh-pages root"
+          echo "✅ Copied index.html"
+        else
+          echo "❌ index.html not found"
+          exit 1
         fi
+        
+        # Find and copy latest data file with consistent naming
+        LATEST_DATA=$(ls -t Output/*_data.json 2>/dev/null | head -n1)
+        if [ -n "$LATEST_DATA" ]; then
+          cp "$LATEST_DATA" /tmp/gh-pages-content/graph_data.json
+          echo "✅ Copied latest data file: $(basename "$LATEST_DATA") → graph_data.json"
+        else
+          echo "⚠️  No data file found in Output/"
+        fi
+        
+        # Copy static assets (CSS, JS, PNG) if they exist
+        if ls Output/*.css 1> /dev/null 2>&1; then
+          cp Output/*.css /tmp/gh-pages-content/
+          echo "✅ Copied CSS files"
+        fi
+        
+        if ls Output/*.js 1> /dev/null 2>&1; then
+          cp Output/*.js /tmp/gh-pages-content/
+          echo "✅ Copied JS files"
+        fi
+        
+        if ls Output/*.png 1> /dev/null 2>&1; then
+          cp Output/*.png /tmp/gh-pages-content/
+          echo "✅ Copied PNG files"
+        fi
+        
+        echo ""
+        echo "📦 Deployment package contents:"
+        ls -lh /tmp/gh-pages-content/
         
         # Remove generated files from working directory before branch switch
         rm -f index.html

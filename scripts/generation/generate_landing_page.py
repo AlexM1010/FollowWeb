@@ -113,6 +113,13 @@ def generate_landing_page(
         print(f"📈 Injecting Plausible Analytics for domain: {plausible_domain}")
         html_content = inject_plausible_analytics(html_content, plausible_domain)
 
+    # Update data file reference to use consistent naming
+    # Replace timestamped data file reference with 'graph_data.json'
+    json_filename = latest_viz.stem + "_data.json"
+    if json_filename in html_content:
+        html_content = html_content.replace(json_filename, "graph_data.json")
+        print(f"✅ Updated data file reference: {json_filename} → graph_data.json")
+
     # Write to index.html
     index_path = output_dir / "index.html"
     with open(index_path, "w", encoding="utf-8") as f:
@@ -120,16 +127,8 @@ def generate_landing_page(
 
     print(f"✅ Landing page created: {index_path}")
 
-    # Copy corresponding JSON data file if it exists
-    json_filename = latest_viz.stem + "_data.json"
-    json_source = latest_viz.parent / json_filename
-    
-    if json_source.exists():
-        json_dest = output_dir / json_filename
-        shutil.copy2(json_source, json_dest)
-        print(f"✅ Data file copied: {json_dest}")
-    else:
-        print(f"⚠️  No data file found: {json_source}")
+    # Note: Data file will be copied by deployment workflow with consistent naming
+    # This keeps the landing page generator focused on HTML generation
 
     # Future enhancement: Load metrics and milestone data
     # if metrics_history and metrics_history.exists():
