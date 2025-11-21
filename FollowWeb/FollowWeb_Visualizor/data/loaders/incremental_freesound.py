@@ -263,11 +263,17 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         # Try to load existing checkpoint
         self._load_checkpoint()
 
+        # Track initial state for calculating additions during this session
+        self._initial_node_count = self.graph.number_of_nodes()
+        self._initial_edge_count = self.graph.number_of_edges()
+
         self.logger.info(
             f"IncrementalFreesoundLoader initialized: "
             f"checkpoint_interval={self.checkpoint_interval}, "
             f"max_runtime_hours={self.max_runtime_hours}, "
-            f"max_requests={self.max_requests}"
+            f"max_requests={self.max_requests}, "
+            f"initial_nodes={self._initial_node_count}, "
+            f"initial_edges={self._initial_edge_count}"
         )
 
     def close(self) -> None:
@@ -470,11 +476,17 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         topology_path = checkpoint_dir / "graph_topology.gpickle"
         metadata_db_path = checkpoint_dir / "metadata_cache.db"
 
+        # Calculate nodes and edges added during this session
+        current_nodes = self.graph.number_of_nodes()
+        current_edges = self.graph.number_of_edges()
+        nodes_added = current_nodes - getattr(self, "_initial_node_count", 0)
+        edges_added = current_edges - getattr(self, "_initial_edge_count", 0)
+
         # Prepare checkpoint metadata
         checkpoint_metadata = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "nodes": self.graph.number_of_nodes(),
-            "edges": self.graph.number_of_edges(),
+            "nodes": current_nodes,
+            "edges": current_edges,
             "processed_ids": list(self.processed_ids),
             "pagination_state": getattr(
                 self,
@@ -483,8 +495,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             ),
             "edge_generation": {
                 "last_tag_edge_check": time.time(),
-                "processed_node_count": self.graph.number_of_nodes(),
+                "processed_node_count": current_nodes,
                 "tag_similarity_threshold": getattr(self, "_last_tag_threshold", None),
+            },
+            "collection_stats": {
+                "nodes_added": nodes_added,
+                "edges_added": edges_added,
+                "total_api_requests": self.session_request_count,
+                "new_samples_added": nodes_added,  # Same as nodes_added for consistency
+                "duplicates_skipped": self.stats.get("samples_skipped", 0),
             },
         }
 
