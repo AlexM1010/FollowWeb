@@ -448,7 +448,7 @@ jobs:
         echo "Uploading visualization JSON data to private backup repository..."
         
         # Find the generated JSON data file
-        JSON_FILE=$(ls *_data.json 2>/dev/null | head -n1)
+        JSON_FILE=$(find . -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | head -n1)
         
         if [ -z "$JSON_FILE" ]; then
           echo "::warning::No JSON data file found - visualization may have embedded data"
@@ -544,7 +544,8 @@ jobs:
         # The HTML will load data from the backup repo URL
         
         # Remove generated files from working directory before branch switch
-        rm -f index.html *_data.json
+        rm -f index.html
+        find . -maxdepth 1 -name "*_data.json" -type f -delete 2>/dev/null || true
         
         # Switch to gh-pages branch (now we can do it cleanly)
         git fetch origin gh-pages:gh-pages 2>/dev/null || true
