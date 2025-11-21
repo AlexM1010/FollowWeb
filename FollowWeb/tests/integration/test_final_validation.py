@@ -135,10 +135,54 @@ class TestCompleteWorkflowFreesoundToSigma:
             assert "tone" in html_content.lower()  # Tone.js for audio
             assert "active-players" in html_content  # Multi-player panel
 
-            # Verify Freesound data
-            assert "drum_sample_" in html_content
-            assert "freesound.org" in html_content
-            assert "preview.mp3" in html_content
+            # Verify Freesound data in JSON data file
+            json_files = list(Path(tmpdir).glob("*_data.json"))
+            assert len(json_files) > 0, "Sigma renderer should generate a JSON data file"
+
+            import json
+
+            with open(json_files[0], encoding="utf-8") as f:
+                graph_data = json.load(f)
+
+            assert "nodes" in graph_data
+            assert len(graph_data["nodes"]) > 0
+
+            # Check for Freesound-specific data
+            # Node IDs are numeric Freesound sample IDs (10000+)
+            node_keys = [node.get("key", "") for node in graph_data["nodes"]]
+            assert any(key.startswith("10") for key in node_keys), (
+                "Should have Freesound sample ID nodes (10000+)"
+            )
+
+            # Check node attributes contain expected Freesound data
+            node_attrs = [node.get("attributes", {}) for node in graph_data["nodes"]]
+            
+            # Check for names containing drum_sample_
+            node_names = [attrs.get("name", "") for attrs in node_attrs if attrs]
+            assert any("drum_sample_" in name for name in node_names), (
+                "Should have drum_sample_ in node names"
+            )
+
+            # Check for audio URLs (stored as JSON array string in audio_urls attribute)
+            audio_urls_json = [
+                attrs.get("audio_urls", "") for attrs in node_attrs if attrs
+            ]
+            # Parse JSON strings and check content
+            all_urls = []
+            for url_json in audio_urls_json:
+                if url_json:
+                    try:
+                        urls = json.loads(url_json)
+                        all_urls.extend(urls)
+                    except json.JSONDecodeError:
+                        pass
+            
+            assert any("freesound.org" in url for url in all_urls), (
+                "Should have freesound.org URLs"
+            )
+            assert any("preview" in url and ".mp3" in url for url in all_urls), (
+                "Should have preview.mp3 URLs"
+            )
 
 
 @pytest.mark.integration
@@ -209,8 +253,36 @@ class TestAudioPlaybackIntegration:
             assert "active-players" in html_content  # Multi-player panel
             assert "Tone" in html_content or "tone" in html_content
 
-            # Verify audio URLs are embedded
-            assert "preview.mp3" in html_content or "audio_url" in html_content
+            # Verify audio URLs are in JSON data file
+            json_files = list(Path(tmpdir).glob("*_data.json"))
+            assert len(json_files) > 0, "Sigma renderer should generate a JSON data file"
+
+            import json
+
+            with open(json_files[0], encoding="utf-8") as f:
+                graph_data = json.load(f)
+
+            # Check for audio URLs in node attributes (stored as JSON array string)
+            node_attrs = [
+                node.get("attributes", {})
+                for node in graph_data.get("nodes", [])
+                if node.get("attributes")
+            ]
+            
+            # Parse audio_urls JSON strings
+            all_urls = []
+            for attrs in node_attrs:
+                audio_urls_json = attrs.get("audio_urls", "")
+                if audio_urls_json:
+                    try:
+                        urls = json.loads(audio_urls_json)
+                        all_urls.extend(urls)
+                    except json.JSONDecodeError:
+                        pass
+            
+            assert any("preview" in url and ".mp3" in url for url in all_urls), (
+                "Should have preview.mp3 URLs in node data"
+            )
 
 
 @pytest.mark.integration
@@ -446,11 +518,31 @@ class TestFreesoundDataWithBothRenderers:
             # Verify renderer-specific content
             if renderer_type == "sigma":
                 assert "sigma" in html_content.lower()
+
+                # For Sigma renderer, check the JSON data file for node data
+                json_files = list(Path(tmpdir).glob("*_data.json"))
+                assert len(json_files) > 0, (
+                    "Sigma renderer should generate a JSON data file"
+                )
+
+                import json
+
+                with open(json_files[0], encoding="utf-8") as f:
+                    graph_data = json.load(f)
+
+                # Verify Freesound data in JSON
+                assert "nodes" in graph_data
+                assert len(graph_data["nodes"]) > 0
+                # Check that at least one node has a sample_ ID
+                node_ids = [node["key"] for node in graph_data["nodes"]]
+                assert any("sample_" in node_id for node_id in node_ids), (
+                    "Should have sample_ nodes in graph data"
+                )
+
             elif renderer_type == "pyvis":
                 assert "vis-network" in html_content or "pyvis" in html_content.lower()
-
-            # Verify Freesound data
-            assert "sample_" in html_content
+                # For Pyvis, data is embedded in HTML
+                assert "sample_" in html_content
 
 
 @pytest.mark.integration
