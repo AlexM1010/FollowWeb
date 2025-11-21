@@ -455,11 +455,18 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
         else
           echo "Switching to gh-pages branch..."
-          git fetch origin gh-pages:gh-pages 2>/dev/null || git checkout --orphan gh-pages
+          
+          # Stash any changes in main branch before switching
+          git add Output/ index.html
+          git stash push -m "Stash visualization files before gh-pages switch"
+          
+          # Fetch and checkout gh-pages
+          git fetch origin gh-pages:gh-pages 2>/dev/null || true
           git checkout gh-pages || git checkout --orphan gh-pages
           
+          # Clear gh-pages and restore files from stash
           git rm -rf . 2>/dev/null || true
-          git checkout main -- Output/ index.html
+          git stash pop || git checkout stash@{0} -- Output/ index.html
           
           git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
