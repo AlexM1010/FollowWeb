@@ -448,6 +448,9 @@ jobs:
         cp -r Output /tmp/gh-pages-content/
         cp index.html /tmp/gh-pages-content/
         
+        # Remove generated files from working directory before branch switch
+        rm -f index.html
+        
         # Switch to gh-pages branch (now we can do it cleanly)
         git fetch origin gh-pages:gh-pages 2>/dev/null || true
         git checkout gh-pages || git checkout --orphan gh-pages
