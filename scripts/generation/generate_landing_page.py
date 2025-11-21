@@ -15,8 +15,6 @@ Usage:
 """
 
 import argparse
-import json
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -116,14 +114,22 @@ def generate_landing_page(
         html_content = inject_plausible_analytics(html_content, plausible_domain)
 
     # Write to index.html
-    # Data is embedded in HTML for public deployment
-    # JSON files are backed up separately to private repository
     index_path = output_dir / "index.html"
     with open(index_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     print(f"✅ Landing page created: {index_path}")
-    print(f"📊 Data embedded in HTML for public access")
+
+    # Copy corresponding JSON data file if it exists
+    json_filename = latest_viz.stem + "_data.json"
+    json_source = latest_viz.parent / json_filename
+    
+    if json_source.exists():
+        json_dest = output_dir / json_filename
+        shutil.copy2(json_source, json_dest)
+        print(f"✅ Data file copied: {json_dest}")
+    else:
+        print(f"⚠️  No data file found: {json_source}")
 
     # Future enhancement: Load metrics and milestone data
     # if metrics_history and metrics_history.exists():

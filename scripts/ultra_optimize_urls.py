@@ -18,7 +18,7 @@ import re
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 
 def extract_fs_id(metadata: dict) -> Optional[str]:
@@ -46,7 +46,6 @@ def extract_fs_id(metadata: dict) -> Optional[str]:
         # https://freesound.org/people/TicTacShutUp/sounds/406/ → extract 406
         match = re.search(r'/sounds/(\d+)/', metadata['url'])
         if match:
-            sound_id = match.group(1)
             # Need to get the folder from preview_base or image_base if available
             # Otherwise we can't reconstruct, so skip
             return None

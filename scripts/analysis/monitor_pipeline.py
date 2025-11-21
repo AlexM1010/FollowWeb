@@ -86,7 +86,7 @@ def monitor_pipeline(check_interval=30, timeout_minutes=30):
                         if j.get("conclusion") == "failure"
                     ]
                     if failed_jobs:
-                        print(f"\n📋 Failed jobs:")
+                        print("\n📋 Failed jobs:")
                         for job in failed_jobs:
                             print(f"   - {job}")
                 return False

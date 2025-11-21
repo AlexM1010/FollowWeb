@@ -14,7 +14,7 @@ import sys
 import subprocess
 import platform
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import List, Tuple, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import yaml
@@ -191,7 +191,7 @@ def run_actionlint(
         return errors, warnings, notes
 
     except subprocess.TimeoutExpired:
-        return [f"actionlint timeout after 30 seconds"], [], []
+        return ["actionlint timeout after 30 seconds"], [], []
     except Exception as e:
         return [f"actionlint error: {e}"], [], []
 

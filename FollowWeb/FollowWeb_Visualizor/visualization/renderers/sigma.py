@@ -374,7 +374,7 @@ class SigmaRenderer(Renderer):
                 # Ensure output directory exists
                 self._ensure_output_directory(output_filename)
 
-                # Write graph data to external JSON file for backup
+                # Write graph data to external JSON file
                 output_path = Path(output_filename)
                 json_filename = output_path.stem + "_data.json"
                 json_filepath = output_path.parent / json_filename
@@ -384,18 +384,17 @@ class SigmaRenderer(Renderer):
                 with open(json_filepath, "w", encoding="utf-8") as f:
                     json.dump(graph_data, f, separators=(",", ":"))
 
-                self.logger.info(f"Graph data written to: {json_filepath} (for backup)")
+                self.logger.info(f"Graph data written to: {json_filepath}")
                 tracker.update(1)
 
                 # Prepare template context based on template type
-                # Use embedded data (graph_data) for public deployment
-                # The JSON file is only for backup purposes
+                # Use data_file for external loading (more efficient)
                 if self.template_name == "sigma_instagram.html":
                     # Instagram-specific template context
                     stats = self._calculate_network_stats(graph)
                     html_content = template.render(
                         title=f"Instagram Network - {graph.number_of_nodes()} users",
-                        graph_data=graph_data,
+                        data_file=json_filename,
                         config=config,
                         node_count=stats["node_count"],
                         edge_count=stats["edge_count"],
@@ -418,7 +417,7 @@ class SigmaRenderer(Renderer):
                     stats = self._calculate_network_stats(graph)
                     html_content = template.render(
                         title=f"Network Visualization - {graph.number_of_nodes()} nodes",
-                        graph_data=graph_data,
+                        data_file=json_filename,
                         config=config,
                         node_count=stats["node_count"],
                         edge_count=stats["edge_count"],

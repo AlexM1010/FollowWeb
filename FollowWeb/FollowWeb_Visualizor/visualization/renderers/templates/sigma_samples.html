@@ -1080,14 +1080,9 @@
     <script>
         // Configuration from Jinja2 template
         const config = {{ config| tojson }};
-        {% if graph_data %}
-        // Graph data embedded in HTML
-        const graphData = {{ graph_data| tojson }};
-        {% else %}
-        // Graph data loaded from external file
-        const dataFile = '{{ data_file }}';
+        const dataFile = '{{ data_file }}';  // External JSON file to load
+        
         let graphData = null;  // Will be loaded asynchronously
-        {% endif %}
 
         let graph, renderer, layoutRunning = false, layoutWorker = null;
 
@@ -2102,15 +2097,9 @@
         // Initialize on load
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                {% if not graph_data %}
                 // Load external data first
                 const loaded = await loadGraphData();
                 if (!loaded) return;
-                {% else %}
-                // Data is already embedded, hide loading indicator
-                document.getElementById('loading').style.display = 'none';
-                console.log('Graph data embedded:', graphData.nodes.length, 'nodes');
-                {% endif %}
                 
                 initGraph();
 

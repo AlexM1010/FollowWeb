@@ -28,7 +28,7 @@ import re
 import sqlite3
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 
 def extract_preview_base(previews: dict) -> Optional[str]:

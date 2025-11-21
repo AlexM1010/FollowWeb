@@ -122,7 +122,7 @@ class TestSigmaVisualizationEndToEnd:
             assert "cdn.jsdelivr.net" in html_content or "unpkg.com" in html_content
 
     def test_graph_data_embedded(self):
-        """Test that graph data is properly embedded in HTML."""
+        """Test that graph data is written to external JSON file."""
         graph = nx.DiGraph()
         graph.add_node("node1", name="First Node", community=0, degree=2)
         graph.add_node("node2", name="Second Node", community=1, degree=2)
@@ -135,17 +135,36 @@ class TestSigmaVisualizationEndToEnd:
             output_file = os.path.join(tmpdir, "test_data.html")
             renderer.generate_visualization(graph, output_file)
 
+            # Check HTML file exists
             with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
-            # Check that node data is present
-            assert "node1" in html_content
-            assert "node2" in html_content
-            assert "First Node" in html_content
-            assert "Second Node" in html_content
+            # Check that HTML references external data file
+            assert "test_data_data.json" in html_content
+            assert "dataFile" in html_content
 
-            # Check that edge data is present
-            assert "similar" in html_content or "0.9" in html_content
+            # Check that JSON data file was created
+            json_file = os.path.join(tmpdir, "test_data_data.json")
+            assert os.path.exists(json_file), "JSON data file should be created"
+
+            # Verify JSON contains node and edge data
+            import json
+            with open(json_file, encoding="utf-8") as f:
+                data = json.load(f)
+
+            assert "nodes" in data
+            assert "edges" in data
+            assert len(data["nodes"]) == 2
+            assert len(data["edges"]) == 1
+
+            # Check node data in JSON
+            node_ids = [n["key"] for n in data["nodes"]]
+            assert "node1" in node_ids
+            assert "node2" in node_ids
+
+            # Check node attributes
+            node1_data = next(n for n in data["nodes"] if n["key"] == "node1")
+            assert node1_data["attributes"]["name"] == "First Node"
 
     def test_configuration_embedded(self):
         """Test that configuration is properly embedded in HTML."""

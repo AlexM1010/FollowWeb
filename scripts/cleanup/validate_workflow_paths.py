@@ -4,7 +4,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict
 
 import yaml
 
@@ -55,7 +55,7 @@ class WorkflowPathValidator:
 
             # Parse YAML
             try:
-                workflow_data = yaml.safe_load(content)
+                yaml.safe_load(content)
             except yaml.YAMLError as e:
                 self.issues.append(
                     {

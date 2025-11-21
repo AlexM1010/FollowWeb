@@ -1,6 +1,5 @@
 """Execute branch cleanup phase."""
 
-import json
 import sys
 from pathlib import Path
 
@@ -74,7 +73,7 @@ def main():
     print("\n" + "=" * 80)
     print("BRANCH CLEANUP COMPLETE")
     print("=" * 80)
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  - Total branches: {report['summary']['total_branches']}")
     print(f"  - Deleted: {report['summary']['deleted']}")
     print(f"  - Stale (review needed): {report['summary']['stale']}")

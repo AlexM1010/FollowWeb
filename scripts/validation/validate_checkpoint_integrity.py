@@ -16,7 +16,6 @@ Usage:
 """
 
 import argparse
-import json
 import logging
 import pickle
 import sqlite3

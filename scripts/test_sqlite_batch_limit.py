@@ -147,7 +147,7 @@ def test_batch_size(batch_size: int, verbose: bool = False) -> tuple[bool, str]:
         try:
             conn.close()
             Path(db_path).unlink(missing_ok=True)
-        except:
+        except Exception:
             pass
 
 

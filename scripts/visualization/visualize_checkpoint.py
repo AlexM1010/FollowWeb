@@ -7,7 +7,6 @@ and generates a Sigma.js visualization.
 """
 
 import argparse
-import json
 import logging
 import pickle
 import sys
@@ -18,9 +17,9 @@ from pathlib import Path
 repo_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(repo_root / "FollowWeb"))
 
-import networkx as nx
-from FollowWeb_Visualizor.data.storage import MetadataCache
-from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer
+import networkx as nx  # noqa: E402
+from FollowWeb_Visualizor.data.storage import MetadataCache  # noqa: E402
+from FollowWeb_Visualizor.visualization.renderers.sigma import SigmaRenderer  # noqa: E402
 
 
 # Checkpoint filenames
@@ -74,7 +73,6 @@ def main():
     # Load checkpoint components
     graph_path = checkpoint_dir / GRAPH_TOPOLOGY_FILENAME
     metadata_db_path = checkpoint_dir / METADATA_CACHE_FILENAME
-    checkpoint_meta_path = checkpoint_dir / CHECKPOINT_META_FILENAME
 
     if not graph_path.exists():
         logger.error(f"Graph topology file not found: {graph_path}")

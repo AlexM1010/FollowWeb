@@ -16,7 +16,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from FollowWeb_Visualizor.data.backup_manager import BackupManager
+from FollowWeb_Visualizor.data.backup_manager import BackupManager  # noqa: E402
 
 
 def test_backup_manager_simplified():

@@ -60,7 +60,7 @@ def migrate_checkpoint(checkpoint_dir: Path) -> bool:
     sound_cache = checkpoint_data.get("sound_cache", {})
     metadata = checkpoint_data.get("metadata", {})
 
-    logger.info(f"Loaded legacy checkpoint:")
+    logger.info("Loaded legacy checkpoint:")
     logger.info(f"  - Nodes: {graph.number_of_nodes()}")
     logger.info(f"  - Edges: {graph.number_of_edges()}")
     logger.info(f"  - Processed IDs: {len(processed_ids)}")
@@ -70,7 +70,6 @@ def migrate_checkpoint(checkpoint_dir: Path) -> bool:
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Save graph topology (edges only, no attributes)
-    import networkx as nx
     import pickle
 
     topology_path = checkpoint_dir / "graph_topology.gpickle"

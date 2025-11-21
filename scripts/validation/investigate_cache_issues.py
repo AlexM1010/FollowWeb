@@ -8,11 +8,10 @@ Checks cache key matching, file presence, permissions, and sizes.
 Requirements: 2.5, 3.2, 3.3
 """
 
-import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 
 def check_checkpoint_files(checkpoint_dir: Path) -> Dict[str, any]:
@@ -217,7 +216,7 @@ def print_report(checkpoint_dir: Path):
                 if "error" in info:
                     print(f"     ❌ ERROR: {info['error']}")
             else:
-                print(f"     ❌ File not found")
+                print("     ❌ File not found")
             print()
 
         print(
@@ -255,7 +254,7 @@ def print_report(checkpoint_dir: Path):
         print(f"{emoji} Issue #{i}: {issue['issue']}")
         print(f"   Severity: {issue['severity']}")
         print(f"   Workflow: {issue['workflow']}")
-        print(f"   Details:")
+        print("   Details:")
         for line in issue["details"].split("\n"):
             print(f"     {line}")
         print(f"   Fix: {issue['fix']}")

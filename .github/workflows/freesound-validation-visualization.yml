@@ -438,98 +438,6 @@ jobs:
         echo "landing_page_updated=true" >> "$GITHUB_OUTPUT"
         echo "✅ Landing page updated"
     
-    # Upload visualization JSON data to private backup repository
-    - name: Upload visualization data to backup repository
-      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true'
-      id: upload_viz_data
-      env:
-        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
-      run: |
-        echo "Uploading visualization JSON data to private backup repository..."
-        
-        # Find the generated JSON data file
-        JSON_FILE=$(find . -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | head -n1)
-        
-        if [ -z "$JSON_FILE" ]; then
-          echo "::warning::No JSON data file found - visualization may have embedded data"
-          echo "upload_success=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        echo "Found JSON data file: $JSON_FILE"
-        
-        REPO_OWNER="${{ github.repository_owner }}"
-        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
-        RELEASE_TAG="v-visualization-data"
-        
-        # Get or create release for visualization data
-        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
-          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/${RELEASE_TAG}")
-        
-        RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id')
-        
-        if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-          echo "Creating PUBLIC release for visualization data..."
-          echo "⚠️  Note: This release will be public to allow website data loading"
-          CREATE_RESPONSE=$(curl -s -X POST \
-            -H "Authorization: token $BACKUP_PAT" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${BACKUP_REPO}/releases" \
-            -d "{
-              \"tag_name\": \"${RELEASE_TAG}\",
-              \"name\": \"Visualization Data (Public)\",
-              \"body\": \"⚠️ PUBLIC RELEASE: Latest visualization graph data (JSON format). This file is loaded by the public website at visualise.music. While the repository is private, this release and its assets are publicly accessible to enable the website to function. Contains only graph structure and metadata needed for visualization.\",
-              \"draft\": false,
-              \"prerelease\": false
-            }")
-          
-          RELEASE_ID=$(echo "$CREATE_RESPONSE" | jq -r '.id')
-          
-          if [ "$RELEASE_ID" = "null" ] || [ -z "$RELEASE_ID" ]; then
-            echo "::error::Failed to create visualization data release"
-            echo "upload_success=false" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-        fi
-        
-        # Delete old visualization data assets (keep only latest)
-        OLD_ASSETS=$(echo "$RELEASE_JSON" | jq -r '.assets[].id')
-        for ASSET_ID in $OLD_ASSETS; do
-          echo "Deleting old asset: $ASSET_ID"
-          curl -s -X DELETE \
-            -H "Authorization: token $BACKUP_PAT" \
-            "https://api.github.com/repos/${BACKUP_REPO}/releases/assets/${ASSET_ID}"
-        done
-        
-        # Upload new visualization data
-        UPLOAD_URL="https://uploads.github.com/repos/${BACKUP_REPO}/releases/${RELEASE_ID}/assets?name=latest_data.json"
-        
-        UPLOAD_RESPONSE=$(curl -s -X POST \
-          -H "Authorization: token $BACKUP_PAT" \
-          -H "Content-Type: application/json" \
-          --data-binary "@${JSON_FILE}" \
-          "$UPLOAD_URL")
-        
-        ASSET_ID=$(echo "$UPLOAD_RESPONSE" | jq -r '.id')
-        
-        if [ "$ASSET_ID" = "null" ] || [ -z "$ASSET_ID" ]; then
-          echo "::error::Failed to upload visualization data"
-          echo "upload_success=false" >> "$GITHUB_OUTPUT"
-          exit 1
-        fi
-        
-        # Get the download URL
-        DOWNLOAD_URL=$(echo "$UPLOAD_RESPONSE" | jq -r '.browser_download_url')
-        
-        echo "✅ Visualization data uploaded successfully"
-        echo "- Asset ID: $ASSET_ID"
-        echo "- Download URL: $DOWNLOAD_URL"
-        
-        {
-          echo "upload_success=true"
-          echo "data_url=$DOWNLOAD_URL"
-        } >> "$GITHUB_OUTPUT"
-    
     # Commit visualization and landing page to gh-pages branch
     - name: Commit visualization to gh-pages branch
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
@@ -540,8 +448,11 @@ jobs:
         cp -r Output /tmp/gh-pages-content/
         cp index.html /tmp/gh-pages-content/
         
-        # Do NOT copy JSON data files - they're in private backup repo
-        # The HTML will load data from the backup repo URL
+        # Copy JSON data files to gh-pages for efficient loading
+        if find . -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | grep -q .; then
+          find . -maxdepth 1 -name "*_data.json" -type f -exec cp {} /tmp/gh-pages-content/ \;
+          echo "✅ Copied JSON data files"
+        fi
         
         # Remove generated files from working directory before branch switch
         rm -f index.html
@@ -568,7 +479,7 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add Output/ index.html
+          git add Output/ index.html *_data.json 2>/dev/null || git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')

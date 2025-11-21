@@ -27,9 +27,9 @@ load_dotenv()
 # Add FollowWeb to path
 sys.path.insert(0, str(Path(__file__).parent / "FollowWeb"))
 
-from FollowWeb_Visualizor.data.loaders.incremental_freesound import (
+from FollowWeb_Visualizor.data.loaders.incremental_freesound import (  # noqa: E402
     IncrementalFreesoundLoader,
-)  # noqa: E402
+)
 from FollowWeb_Visualizor.output.formatters import EmojiFormatter  # noqa: E402
 from FollowWeb_Visualizor.utils.files import ErrorRecoveryManager  # noqa: E402
 from FollowWeb_Visualizor.utils.progress import ProgressTracker  # noqa: E402

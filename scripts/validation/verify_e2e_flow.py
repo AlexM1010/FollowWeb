@@ -181,7 +181,7 @@ class WorkflowVerifier:
                 logger.error(f"Failed to get run status: {e.stderr}")
                 return False, "error", {}
 
-        logger.error(f"❌ Timeout waiting for workflow to complete")
+        logger.error("❌ Timeout waiting for workflow to complete")
         return False, "timeout", {}
 
     def verify_checkpoint_upload(self, run_id: str) -> tuple[bool, dict[str, Any]]:
@@ -639,7 +639,7 @@ def main():
                 logger.info(f"Details: {json.dumps(details, indent=2)}")
                 sys.exit(0 if conclusion == "success" else 1)
             else:
-                logger.error(f"❌ Workflow monitoring failed")
+                logger.error("❌ Workflow monitoring failed")
                 sys.exit(1)
 
         elif args.verify_all:

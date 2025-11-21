@@ -107,7 +107,7 @@ def show_stats(manager: BackupManager) -> None:
     print(f"Total backups: {stats['total_backups']}")
     print(f"Total size: {stats['total_size_mb']:.2f} MB")
     print(f"Compressed: {stats['compressed_count']}")
-    print(f"\nBackups by tier:")
+    print("\nBackups by tier:")
     for tier, count in stats["by_tier"].items():
         print(f"  {tier}: {count}")
 
