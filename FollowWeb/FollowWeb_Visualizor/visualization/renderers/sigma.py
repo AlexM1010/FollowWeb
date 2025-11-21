@@ -657,26 +657,29 @@ class SigmaRenderer(Renderer):
                 if "user" in node_attrs:
                     sigma_node["attributes"]["user"] = str(node_attrs["user"])
 
-                # Extract audio URLs from previews dict or use direct audio_url
-                # Pass all available formats to Howler.js for intelligent selection
-                audio_urls = []
-                if "audio_url" in node_attrs and node_attrs["audio_url"]:
-                    audio_urls.append(str(node_attrs["audio_url"]))
-                elif "previews" in node_attrs and isinstance(
-                    node_attrs["previews"], dict
-                ):
-                    # Collect all available preview URLs in order of preference
-                    # Howler.js will automatically select the best format for the browser
-                    previews = node_attrs["previews"]
-                    for key in [
-                        "preview-hq-mp3",
-                        "preview-lq-mp3",
-                        "preview-hq-ogg",
-                        "preview-lq-ogg",
-                    ]:
-                        if key in previews and previews[key]:
-                            audio_urls.append(previews[key])
-
+                # Reconstruct audio preview URLs from sample ID
+                # Freesound URL pattern: https://freesound.org/data/previews/{folder}/{id}_preview-hq-{format}
+                # Folder is calculated as: id // 1000
+                # API documentation: previews object contains preview-hq-mp3, preview-lq-mp3, preview-hq-ogg, preview-lq-ogg
+                try:
+                    sample_id = int(node_id)
+                    folder = sample_id // 1000
+                    base_url = f"https://freesound.org/data/previews/{folder}/{sample_id}"
+                    
+                    # Generate all preview format URLs in order of preference (HQ first)
+                    # Format: {base}_preview-hq-{format} and {base}_preview-lq-{format}
+                    audio_urls = [
+                        f"{base_url}_preview-hq-mp3",
+                        f"{base_url}_preview-lq-mp3",
+                        f"{base_url}_preview-hq-ogg",
+                        f"{base_url}_preview-lq-ogg",
+                    ]
+                except (ValueError, TypeError):
+                    # If node_id is not a valid integer, skip audio URLs
+                    audio_urls = []
+                    self.logger.debug(
+                        f"Skipping audio URLs for non-numeric node ID: {node_id}"
+                    )
                 # Store as JSON array string for JavaScript consumption
                 if audio_urls:
                     import json

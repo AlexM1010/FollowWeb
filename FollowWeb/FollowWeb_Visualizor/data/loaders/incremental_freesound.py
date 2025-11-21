@@ -141,7 +141,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             - Filters out self-loops and duplicate edges
 
         This approach solves the edge preservation problem where edges were lost
-        because target nodes hadn't been discovered yet when the source node was
+        because target nodes had not been discovered yet when the source node was
         processed.
 
     Attributes:
@@ -1187,7 +1187,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             - Logs the number of edges added
 
         This approach solves the problem where edges were lost because target nodes
-        didn't exist yet when the source node was processed.
+        did not exist yet when the source node was processed.
 
         Args:
             seed_samples: Initial samples to start recursive discovery from
