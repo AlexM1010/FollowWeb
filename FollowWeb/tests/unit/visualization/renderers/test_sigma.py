@@ -107,7 +107,7 @@ class TestSigmaRendererDataConversion:
         graph.add_node(
             1,
             name="Sample 1",
-            tags=["tag1", "tag2"],
+            tags=[],  # Empty tags so color_hex from metrics is used
             duration=5.5,
             user="testuser",
             audio_url="http://example.com/audio.mp3",
@@ -142,7 +142,8 @@ class TestSigmaRendererDataConversion:
         node = sigma_data["nodes"][0]
         assert node["key"] == "1"
         assert node["attributes"]["name"] == "Sample 1"
-        assert node["attributes"]["tags"] == ["tag1", "tag2"]
+        # Tags are not included when empty
+        assert "tags" not in node["attributes"]
         assert node["attributes"]["duration"] == 5.5
         assert node["attributes"]["user"] == "testuser"
         assert node["attributes"]["audio_url"] == "http://example.com/audio.mp3"
