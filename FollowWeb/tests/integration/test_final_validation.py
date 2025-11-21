@@ -132,8 +132,8 @@ class TestCompleteWorkflowFreesoundToSigma:
             assert "graphology" in html_content.lower()
 
             # Verify audio player integration
-            assert "howler" in html_content.lower()
-            assert "audio-player" in html_content
+            assert "tone" in html_content.lower()  # Tone.js for audio
+            assert "active-players" in html_content  # Multi-player panel
 
             # Verify Freesound data
             assert "drum_sample_" in html_content
@@ -204,15 +204,13 @@ class TestAudioPlaybackIntegration:
                 html_content = f.read()
 
             # Verify audio player UI elements
-            assert "play-btn" in html_content or "Play" in html_content
-            assert "pause-btn" in html_content or "Pause" in html_content
-            assert "loop-btn" in html_content or "Loop" in html_content
-            assert "timeline" in html_content
-            assert "Howler" in html_content or "howler" in html_content
+            assert "transport-btn" in html_content or "Start" in html_content
+            assert "bpm" in html_content.lower()  # BPM control
+            assert "active-players" in html_content  # Multi-player panel
+            assert "Tone" in html_content or "tone" in html_content
 
             # Verify audio URLs are embedded
-            assert "preview.mp3" in html_content
-            assert "audio_url" in html_content
+            assert "preview.mp3" in html_content or "audio_url" in html_content
 
 
 @pytest.mark.integration

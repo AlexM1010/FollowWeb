@@ -247,7 +247,7 @@ class TestSigmaRendererHTMLGeneration:
 
             assert "sigma" in html_content.lower()
             assert "graphology" in html_content.lower()
-            assert "howler" in html_content.lower()
+            assert "tone" in html_content.lower()  # Tone.js for audio
 
     def test_html_contains_graph_data(self):
         """Test that generated HTML contains graph data."""

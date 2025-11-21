@@ -373,7 +373,7 @@ class TestFreesoundSigmaPipelineIntegration:
             assert "graphology" in html_content.lower()
 
             # Check for audio player (since enable_audio is True)
-            assert "howler" in html_content.lower()
+            assert "tone" in html_content.lower()  # Tone.js for audio
             assert "audio" in html_content.lower()
 
             # Check for Freesound data

@@ -30,25 +30,26 @@ This document lists the JavaScript libraries loaded via CDN in FollowWeb visuali
 - Safari: Full WebGL support
 - Older browsers: Automatic canvas fallback
 
-## Howler.js - Audio Playback
+## Tone.js - Audio Framework
 
-**Purpose**: Cross-browser audio playback for Freesound sample previews
+**Purpose**: Web Audio framework for synchronized multi-sample playback of Freesound samples
 
-**Version**: 2.2.4 (latest stable)
+**Version**: 14.8.49 (latest stable)
 
-**CDN URL**: `https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js`
+**CDN URL**: `https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js`
 
 **License**: MIT License
 
-**Documentation**: https://howlerjs.com/
+**Documentation**: https://tonejs.github.io/
 
 **Features Used**:
-- MP3 audio playback
-- Play/pause controls
-- Loop functionality
-- Seek/scrubbing support
+- Multi-sample synchronized playback
+- Shared Transport clock for beat synchronization
+- BPM control (40-240 BPM)
+- Loop functionality with perfect sync
+- Individual volume control per sample
+- Web Audio API with HTML5 Audio fallback
 - Error handling for failed audio loads
-- Cross-browser audio format support
 
 **Audio Format Support**:
 - Primary: MP3 (high-quality previews from Freesound)
@@ -56,10 +57,11 @@ This document lists the JavaScript libraries loaded via CDN in FollowWeb visuali
 - Browser compatibility: All modern browsers support MP3
 
 **Browser Compatibility**:
-- Chrome/Edge: Full support
-- Firefox: Full support
-- Safari: Full support (including iOS)
+- Chrome/Edge: Full support with Web Audio API
+- Firefox: Full support with Web Audio API
+- Safari: Full support (including iOS) with Web Audio API
 - Mobile browsers: Full support with user interaction requirement
+- Automatic audio context unlocking on first user interaction
 
 ## Tom-Select - Enhanced Dropdowns (Optional)
 
@@ -156,7 +158,7 @@ When updating CDN library versions:
 
 **CDN Dependencies** (loaded in browser):
 - Sigma.js - Interactive graph rendering
-- Howler.js - Audio playback
+- Tone.js - Synchronized audio playback
 - Tom-Select - Enhanced dropdowns
 - Graphology - Graph data structure for Sigma.js
 

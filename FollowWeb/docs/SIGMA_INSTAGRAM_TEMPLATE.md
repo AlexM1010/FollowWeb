@@ -100,7 +100,7 @@ renderer.generate_visualization(graph, "output.html")
 
 The `SigmaRenderer` supports multiple templates:
 
-- **`sigma_visualization.html`** (default): Freesound audio network template with Howler.js integration
+- **`sigma_visualization.html`** (default): Freesound audio network template with Tone.js multi-sample playback
 - **`sigma_instagram.html`**: Instagram social network template with follower/following visualization
 
 Select the template by passing the `template_name` parameter:

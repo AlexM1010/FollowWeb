@@ -56,7 +56,7 @@ See Also:
     :class:`~FollowWeb_Visualizor.visualization.metrics.MetricsCalculator`: Metrics calculation
 
 Notes:
-    Requires Sigma.js and Howler.js libraries, which are loaded from CDN in the
+    Requires Sigma.js and Tone.js libraries, which are loaded from CDN in the
     generated HTML files. No Python dependencies beyond the base requirements.
 
     The renderer uses Jinja2 templates located in the templates/ subdirectory.
@@ -84,7 +84,8 @@ class SigmaRenderer(Renderer):
 
     This renderer generates standalone HTML files with embedded Sigma.js library
     for interactive graph visualization with WebGL rendering, supporting 10,000+ nodes.
-    Includes audio playback functionality using Howler.js for Freesound sample networks.
+    Includes multi-sample audio playback with beat synchronization using Tone.js for
+    Freesound sample networks.
 
     The renderer uses Jinja2 templates for HTML generation and supports multiple
     template types for different data sources (Freesound audio, Instagram social).
@@ -95,7 +96,8 @@ class SigmaRenderer(Renderer):
     - Canvas fallback for browsers without WebGL
     - Interactive controls (zoom, pan, reset, search)
     - Hover tooltips with node metadata
-    - Audio playback for Freesound samples (Howler.js)
+    - Multi-sample audio playback with beat sync (Tone.js)
+    - BPM control and synchronized looping
     - Community detection visualization
     - Centrality metrics display
     - Customizable color schemes and layouts

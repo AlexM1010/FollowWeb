@@ -116,7 +116,7 @@ class TestSigmaVisualizationEndToEnd:
             # Check for required libraries
             assert "graphology" in html_content.lower()
             assert "sigma" in html_content.lower()
-            assert "howler" in html_content.lower()
+            assert "tone" in html_content.lower()  # Tone.js for audio
 
             # Check for CDN links
             assert "cdn.jsdelivr.net" in html_content or "unpkg.com" in html_content
