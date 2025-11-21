@@ -5,6 +5,7 @@
 -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/graphology-library/dist/graphology-library.min.js"></script>
     <!-- Tone.js for synchronized audio playback -->
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+    <!-- Audio Panel CSS -->
+    <link rel="stylesheet" href="audio-panel.css">
     <style>
         * {
             margin: 0;
@@ -22,11 +25,19 @@
             box-sizing: border-box;
         }
 
-        html, body {
+        html,
+        body {
             width: 100%;
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: {{ background_color|default('#0a0e27') }};
+
+            background: {
+                    {
+                    background_color|default('#0a0e27')
+                }
+            }
+
+            ;
             color: #e0e0e0;
             overflow: hidden;
         }
@@ -37,7 +48,14 @@
             position: absolute;
             top: 0;
             left: 0;
-            background: {{ graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)') }};
+
+            background: {
+                    {
+                    graph_background|default('linear-gradient(135deg, #0a0e27 0%, #1a1e3f 100%)')
+                }
+            }
+
+            ;
         }
 
         #controls {
@@ -56,14 +74,14 @@
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         #controls.hidden {
             max-height: 60px;
             width: fit-content;
             min-width: auto;
             overflow: hidden;
         }
-        
+
         #controls-header {
             display: flex;
             align-items: center;
@@ -77,11 +95,11 @@
             min-height: 60px;
             box-sizing: border-box;
         }
-        
+
         #controls-header:hover {
             background: rgba(108, 142, 255, 0.15);
         }
-        
+
         #controls-toggle {
             background: transparent;
             color: #6c8eff;
@@ -98,12 +116,12 @@
             height: 28px;
             flex-shrink: 0;
         }
-        
+
         #controls-toggle-icon {
             display: inline-block;
             transition: transform 0.3s ease;
         }
-        
+
         #controls.hidden #controls-toggle-icon {
             transform: rotate(-90deg);
         }
@@ -116,7 +134,7 @@
             font-weight: 600;
             flex: 1;
         }
-        
+
         #controls-content {
             padding: 0 20px 20px 20px;
             max-height: calc(90vh - 60px);
@@ -125,30 +143,30 @@
             opacity: 1;
             transition: opacity 0.2s ease;
         }
-        
+
         #controls.hidden #controls-content {
             display: none;
         }
-        
+
         /* Custom scrollbar for controls content */
         #controls-content::-webkit-scrollbar {
             width: 8px;
         }
-        
+
         #controls-content::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
         }
-        
+
         #controls-content::-webkit-scrollbar-thumb {
             background: rgba(108, 142, 255, 0.5);
             border-radius: 4px;
         }
-        
+
         #controls-content::-webkit-scrollbar-thumb:hover {
             background: rgba(108, 142, 255, 0.7);
         }
-        
+
         /* Firefox scrollbar */
         #controls-content {
             scrollbar-width: thin;
@@ -343,12 +361,12 @@
             display: none;
             z-index: 1001;
         }
-        
+
         #node-audio-player {
             margin-top: 12px;
             width: 100%;
         }
-        
+
         .audio-controls {
             display: flex;
             align-items: center;
@@ -358,7 +376,7 @@
             border-radius: 6px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .audio-controls button {
             background: linear-gradient(135deg, #6c8eff 0%, #5a7de8 100%);
             border: none;
@@ -374,16 +392,16 @@
             transition: all 0.3s ease;
             flex-shrink: 0;
         }
-        
+
         .audio-controls button:hover {
             transform: scale(1.1);
             box-shadow: 0 4px 12px rgba(108, 142, 255, 0.4);
         }
-        
+
         .audio-controls button:active {
             transform: scale(0.95);
         }
-        
+
         .audio-progress {
             flex: 1;
             height: 6px;
@@ -392,7 +410,7 @@
             position: relative;
             cursor: pointer;
         }
-        
+
         .audio-progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #6c8eff 0%, #5a7de8 100%);
@@ -400,41 +418,41 @@
             width: 0%;
             transition: width 0.1s linear;
         }
-        
+
         .audio-time {
             font-size: 11px;
             color: #a0a0a0;
             min-width: 80px;
             text-align: right;
         }
-        
+
         .audio-volume {
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        
+
         .audio-volume button {
             width: 28px;
             height: 28px;
             font-size: 14px;
         }
-        
+
         .audio-volume input[type="range"] {
             width: 60px;
             margin: 0;
         }
-        
+
         .audio-loop-btn {
             opacity: 0.5;
             transition: opacity 0.3s ease;
         }
-        
+
         .audio-loop-btn.active {
             opacity: 1;
             background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
         }
-        
+
         /* Multi-player panel */
         #active-players {
             position: absolute;
@@ -452,11 +470,11 @@
             z-index: 1000;
             display: none;
         }
-        
+
         #active-players.visible {
             display: block;
         }
-        
+
         #active-players h4 {
             margin: 0 0 12px 0;
             font-size: 14px;
@@ -466,7 +484,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .bpm-control {
             display: flex;
             align-items: center;
@@ -475,13 +493,13 @@
             padding-bottom: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .bpm-control label {
             font-size: 12px;
             color: #a0a0a0;
             min-width: 40px;
         }
-        
+
         .bpm-control input[type="number"] {
             width: 60px;
             padding: 4px 8px;
@@ -491,7 +509,7 @@
             color: #ffffff;
             font-size: 13px;
         }
-        
+
         .bpm-control button {
             padding: 4px 12px;
             background: linear-gradient(135deg, #6c8eff 0%, #5a7de8 100%);
@@ -502,12 +520,12 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .bpm-control button:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(108, 142, 255, 0.4);
         }
-        
+
         .player-item {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -515,14 +533,14 @@
             padding: 10px;
             margin-bottom: 10px;
         }
-        
+
         .player-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
-        
+
         .player-item-name {
             font-size: 12px;
             color: #ffffff;
@@ -532,7 +550,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        
+
         .player-item-remove {
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
             border: none;
@@ -543,24 +561,24 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .player-item-remove:hover {
             transform: scale(1.05);
             box-shadow: 0 2px 8px rgba(231, 76, 60, 0.4);
         }
-        
+
         .player-item-controls {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .player-item-controls input[type="range"] {
             flex: 1;
             height: 4px;
             margin: 0;
         }
-        
+
         #node-info-close {
             position: absolute;
             top: 10px;
@@ -580,7 +598,7 @@
             border-radius: 4px;
             transition: all 0.2s ease;
         }
-        
+
         #node-info-close:hover {
             background: rgba(255, 255, 255, 0.1);
             color: #ffffff;
@@ -679,40 +697,46 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         /* Responsive: Hide title text on narrow screens to prevent overlap with stats */
         @media (max-width: 768px) {
+
             /* Hide title when collapsed */
             #controls.hidden .controls-title-text {
                 display: none;
             }
-            
+
             /* Hide the entire h2 when collapsed to remove its space */
             #controls.hidden h2 {
                 display: none;
             }
-            
+
             /* Show title when expanded */
             #controls:not(.hidden) .controls-title-text {
                 display: inline;
             }
-            
+
             #controls {
                 width: calc(100vw - 40px) !important;
                 max-width: 100% !important;
                 left: 20px;
                 right: auto;
             }
-            
+
             #controls.hidden {
                 width: fit-content !important;
                 min-width: auto !important;
                 padding: 0 !important;
             }
-            
+
             #controls-header {
                 padding: 12px 16px;
                 min-width: auto;
@@ -720,29 +744,29 @@
                 justify-content: center;
                 gap: 0;
             }
-            
+
             /* When expanded, show title with proper gap */
             #controls:not(.hidden) #controls-header {
                 gap: 12px;
                 justify-content: flex-start;
                 padding: 12px 16px;
             }
-            
+
             #controls.hidden #controls-header {
                 width: fit-content;
                 padding: 16px;
                 border-radius: 12px;
             }
-            
+
             #controls-content {
                 padding: 0 15px 15px 15px;
             }
-            
+
             input[type="text"],
             #controls-content button {
                 font-size: 13px;
             }
-            
+
             /* Mobile-friendly node info panel */
             #node-info {
                 left: 50%;
@@ -751,15 +775,15 @@
                 max-width: calc(100vw - 40px);
                 width: 90%;
             }
-            
+
             /* Hide other panels when settings are expanded on mobile */
-            #controls:not(.hidden) ~ #stats,
-            #controls:not(.hidden) ~ #node-info,
-            #controls:not(.hidden) ~ #legend,
-            #controls:not(.hidden) ~ #active-players {
+            #controls:not(.hidden)~#stats,
+            #controls:not(.hidden)~#node-info,
+            #controls:not(.hidden)~#legend,
+            #controls:not(.hidden)~#active-players {
                 display: none !important;
             }
-            
+
             /* Mobile-friendly active players panel */
             #active-players {
                 top: auto;
@@ -770,7 +794,7 @@
                 max-height: 50vh;
             }
         }
-        
+
         @media (max-width: 400px) {
             #controls {
                 top: 10px;
@@ -779,7 +803,7 @@
                 width: calc(100vw - 20px) !important;
                 max-width: 100% !important;
             }
-            
+
             #stats {
                 top: 10px;
                 right: 10px;
@@ -788,7 +812,7 @@
                 font-size: 12px;
             }
         }
-        
+
         /* Mobile hint for tapping nodes */
         @media (hover: none) and (pointer: coarse) {
             #container::after {
@@ -806,14 +830,22 @@
                 animation: fadeOut 4s forwards;
                 z-index: 999;
             }
-            
+
             @keyframes fadeOut {
-                0%, 70% { opacity: 1; }
-                100% { opacity: 0; }
+
+                0%,
+                70% {
+                    opacity: 1;
+                }
+
+                100% {
+                    opacity: 0;
+                }
             }
         }
     </style>
 </head>
+
 <body>
     <div id="container">
         <div class="loading" id="loading" style="display: none;">
@@ -829,134 +861,148 @@
                 <h2><span class="controls-title-text">⚙️ Network Controls</span></h2>
             </div>
             <div id="controls-content">
-            <div class="control-group">
-                <label for="search">Search Sample:</label>
-                <input type="text" id="search" placeholder="Enter sample name...">
-            </div>
-            <button onclick="highlightNode()">Highlight Sample</button>
-            <button onclick="resetView()" class="secondary">Reset View</button>
-            <button onclick="startLayout()" class="success" id="startLayoutBtn">▶ Start Physics</button>
-            <button onclick="stopLayout()" class="danger" id="stopLayoutBtn" style="display:none;">⏸ Stop Physics</button>
-            
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="showLabels" checked onchange="toggleLabels()" style="width: auto; margin-right: 8px;">
-                    Show Node Labels
-                </label>
-            </div>
-            
-            <div class="control-group">
-                <label>
-                    <input type="checkbox" id="showTooltips" checked onchange="toggleTooltips()" style="width: auto; margin-right: 8px;">
-                    Show Tooltips on Hover
-                </label>
-            </div>
-            
-            <div class="physics-controls">
-                <h3>⚙️ Physics Settings</h3>
-                
                 <div class="control-group">
-                    <label for="linLogMode">
-                        <input type="checkbox" id="linLogMode" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
-                        LinLog Mode
-                    </label>
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Enables logarithmic attraction for better clustering
-                    </small>
+                    <label for="search">Search Sample:</label>
+                    <input type="text" id="search" placeholder="Enter sample name...">
                 </div>
-                
-                <div class="control-group" id="gravityControl">
-                    <label for="gravity">
-                        <span id="gravityLabel">Gravity</span>: <span class="slider-value" id="gravityValue">1.0</span>
-                    </label>
-                    <input type="range" id="gravity" min="0" max="100" step="1" value="50" oninput="handleGravityInput()">
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;" id="gravityHint">
-                        Pulls nodes toward center
-                    </small>
-                </div>
-                
+                <button onclick="highlightNode()">Highlight Sample</button>
+                <button onclick="resetView()" class="secondary">Reset View</button>
+                <button onclick="startLayout()" class="success" id="startLayoutBtn">▶ Start Physics</button>
+                <button onclick="stopLayout()" class="danger" id="stopLayoutBtn" style="display:none;">⏸ Stop
+                    Physics</button>
+
                 <div class="control-group">
-                    <label for="scalingRatio">
-                        Physics Scale: <span class="slider-value" id="scalingValue">10</span>
+                    <label>
+                        <input type="checkbox" id="showLabels" checked onchange="toggleLabels()"
+                            style="width: auto; margin-right: 8px;">
+                        Show Node Labels
                     </label>
-                    <input type="range" id="scalingRatio" min="1" max="200" step="1" value="10" oninput="updatePhysics()">
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Controls force calculation spacing
-                    </small>
                 </div>
-                
+
                 <div class="control-group">
-                    <label for="visualScale">
-                        Visual Scale: <span class="slider-value" id="visualScaleValue">0.5</span>
+                    <label>
+                        <input type="checkbox" id="showTooltips" checked onchange="toggleTooltips()"
+                            style="width: auto; margin-right: 8px;">
+                        Show Tooltips on Hover
                     </label>
-                    <input type="range" id="visualScale" min="0.1" max="5" step="0.1" value="0.5" oninput="updateVisualScale()">
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Adjusts node sizes in viewport
-                    </small>
                 </div>
-                
-                <div class="control-group">
-                    <label for="edgeWeightInfluence">
-                        Edge Weight: <span class="slider-value" id="edgeWeightValue">1.0</span>
-                    </label>
-                    <input type="range" id="edgeWeightInfluence" min="0" max="2" step="0.1" value="1.0" oninput="updatePhysics()">
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        How much edge weights affect layout
-                    </small>
+
+                <div class="physics-controls">
+                    <h3>⚙️ Physics Settings</h3>
+
+                    <div class="control-group">
+                        <label for="linLogMode">
+                            <input type="checkbox" id="linLogMode" onchange="updatePhysics()"
+                                style="width: auto; margin-right: 8px;">
+                            LinLog Mode
+                        </label>
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Enables logarithmic attraction for better clustering
+                        </small>
+                    </div>
+
+                    <div class="control-group" id="gravityControl">
+                        <label for="gravity">
+                            <span id="gravityLabel">Gravity</span>: <span class="slider-value"
+                                id="gravityValue">1.0</span>
+                        </label>
+                        <input type="range" id="gravity" min="0" max="100" step="1" value="50"
+                            oninput="handleGravityInput()">
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;" id="gravityHint">
+                            Pulls nodes toward center
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="scalingRatio">
+                            Physics Scale: <span class="slider-value" id="scalingValue">10</span>
+                        </label>
+                        <input type="range" id="scalingRatio" min="1" max="200" step="1" value="10"
+                            oninput="updatePhysics()">
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Controls force calculation spacing
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="visualScale">
+                            Visual Scale: <span class="slider-value" id="visualScaleValue">0.5</span>
+                        </label>
+                        <input type="range" id="visualScale" min="0.1" max="5" step="0.1" value="0.5"
+                            oninput="updateVisualScale()">
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Adjusts node sizes in viewport
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="edgeWeightInfluence">
+                            Edge Weight: <span class="slider-value" id="edgeWeightValue">1.0</span>
+                        </label>
+                        <input type="range" id="edgeWeightInfluence" min="0" max="2" step="0.1" value="1.0"
+                            oninput="updatePhysics()">
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            How much edge weights affect layout
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="slowDown">
+                            Slow Down: <span class="slider-value" id="slowDownValue">5.0</span>
+                        </label>
+                        <input type="range" id="slowDown" min="0" max="100" step="1" value="50"
+                            oninput="handleSlowDownInput()">
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Higher = slower, more stable convergence
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="outboundAttractionDistribution">
+                            <input type="checkbox" id="outboundAttractionDistribution" onchange="updatePhysics()"
+                                style="width: auto; margin-right: 8px;">
+                            Outbound Attraction
+                        </label>
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Hubs attract more strongly
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="adjustSizes">
+                            <input type="checkbox" id="adjustSizes" onchange="updatePhysics()"
+                                style="width: auto; margin-right: 8px;">
+                            Adjust Sizes (Prevent Overlap)
+                        </label>
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Prevents large nodes from overlapping
+                        </small>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="barnesHutOptimize">
+                            <input type="checkbox" id="barnesHutOptimize" checked onchange="updatePhysics()"
+                                style="width: auto; margin-right: 8px;">
+                            Barnes-Hut Optimize
+                        </label>
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Faster computation for large graphs
+                        </small>
+                    </div>
+
+                    <div class="control-group" id="barnesHutThetaControl">
+                        <label for="barnesHutTheta">
+                            Barnes-Hut θ: <span class="slider-value" id="barnesHutThetaValue">0.5</span>
+                        </label>
+                        <input type="range" id="barnesHutTheta" min="0.1" max="1.5" step="0.1" value="0.5"
+                            oninput="updatePhysics()">
+                        <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
+                            Lower = more accurate, higher = faster
+                        </small>
+                    </div>
                 </div>
-                
-                <div class="control-group">
-                    <label for="slowDown">
-                        Slow Down: <span class="slider-value" id="slowDownValue">5.0</span>
-                    </label>
-                    <input type="range" id="slowDown" min="0" max="100" step="1" value="50" oninput="handleSlowDownInput()">
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Higher = slower, more stable convergence
-                    </small>
-                </div>
-                
-                <div class="control-group">
-                    <label for="outboundAttractionDistribution">
-                        <input type="checkbox" id="outboundAttractionDistribution" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
-                        Outbound Attraction
-                    </label>
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Hubs attract more strongly
-                    </small>
-                </div>
-                
-                <div class="control-group">
-                    <label for="adjustSizes">
-                        <input type="checkbox" id="adjustSizes" onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
-                        Adjust Sizes (Prevent Overlap)
-                    </label>
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Prevents large nodes from overlapping
-                    </small>
-                </div>
-                
-                <div class="control-group">
-                    <label for="barnesHutOptimize">
-                        <input type="checkbox" id="barnesHutOptimize" checked onchange="updatePhysics()" style="width: auto; margin-right: 8px;">
-                        Barnes-Hut Optimize
-                    </label>
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Faster computation for large graphs
-                    </small>
-                </div>
-                
-                <div class="control-group" id="barnesHutThetaControl">
-                    <label for="barnesHutTheta">
-                        Barnes-Hut θ: <span class="slider-value" id="barnesHutThetaValue">0.5</span>
-                    </label>
-                    <input type="range" id="barnesHutTheta" min="0.1" max="1.5" step="0.1" value="0.5" oninput="updatePhysics()">
-                    <small style="display: block; color: #888; font-size: 11px; margin-top: 4px;">
-                        Lower = more accurate, higher = faster
-                    </small>
-                </div>
-            </div>
-            
-            <button onclick="exportView()" class="secondary">Export View</button>
+
+                <button onclick="exportView()" class="secondary">Export View</button>
             </div>
         </div>
 
@@ -985,7 +1031,9 @@
         <div id="active-players">
             <h4>
                 🎵 Active Players
-                <button onclick="stopAllPlayers()" style="padding: 3px 8px; font-size: 11px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Stop All</button>
+                <button onclick="stopAllPlayers()"
+                    style="padding: 3px 8px; font-size: 11px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Stop
+                    All</button>
             </h4>
             <div class="bpm-control">
                 <label>BPM:</label>
@@ -1014,6 +1062,11 @@
             <div id="node-audio-player"></div>
         </div>
 
+        <!-- Audio Panel -->
+        <div id="audio-panel">
+            <div id="panel-content"></div>
+        </div>
+
         <div id="legend">
             <h4>Node Colors</h4>
             <div id="legend-content">
@@ -1026,26 +1079,26 @@
 
     <script>
         // Graph data from Jinja2 template
-        const graphData = {{ graph_data|tojson }};
-        const config = {{ config|tojson }};
-        
+        const graphData = {{ graph_data| tojson }};
+        const config = {{ config| tojson }};
+
         let graph, renderer, layoutRunning = false, layoutWorker = null;
-        
+
         // Tone.js multi-player system
         let activePlayers = new Map(); // nodeId -> { player, volume, name }
         let transportRunning = false;
-        
+
         // Persistent audio player settings
         let audioSettings = {
             volume: 0.8,
             muted: false,
             loop: false
         };
-        
+
         // Track previous state of labels/tooltips before physics
         let labelsBeforePhysics = true;
         let tooltipsBeforePhysics = true;
-        
+
         // Physics settings - ForceAtlas2 parameters
         let physicsSettings = {
             gravity: 1.0,
@@ -1059,10 +1112,10 @@
             barnesHutTheta: 0.5,
             strongGravityMode: true
         };
-        
+
         // Track which mode gravity is controlling and store separate values for each mode
         let gravityControlsStrongMode = true; // Start with strong gravity mode
-        
+
         // Separate settings for LinLog mode vs Normal mode
         // Store as slider positions (0-100) for logarithmic mapping
         let linLogSettings = {
@@ -1071,14 +1124,14 @@
             scalingRatio: 10,
             edgeWeightInfluence: 1.0
         };
-        
+
         let normalSettings = {
             gravitySlider: 20,  // Maps to ~0.0025
             slowDownSlider: 100, // Maps to 10
             scalingRatio: 10,
             edgeWeightInfluence: 1.0
         };
-        
+
         // Logarithmic mapping functions for progressive control
         // Maps slider position (0-100) to actual value (0.0001-10)
         function sliderToValue(sliderPos) {
@@ -1089,7 +1142,7 @@
             const scale = (maxLog - minLog) / 100;
             return Math.exp(minLog + scale * sliderPos);
         }
-        
+
         // Maps actual value (0.0001-10) to slider position (0-100)
         function valueToSlider(value) {
             const minLog = Math.log(0.0001);
@@ -1123,7 +1176,7 @@
 
         function initRenderer() {
             const container = document.getElementById('container');
-            
+
             renderer = new Sigma(graph, container, {
                 renderEdgeLabels: config.renderEdgeLabels || false,
                 renderLabels: config.show_labels !== false,
@@ -1146,7 +1199,7 @@
                 moved: false,
                 timeout: null
             };
-            
+
             // Add click event for desktop
             renderer.on('clickNode', ({ node }) => {
                 showNodeInfo(node);
@@ -1158,50 +1211,50 @@
                 if (touchState.timeout) {
                     clearTimeout(touchState.timeout);
                 }
-                
+
                 // Record touch start
                 touchState.node = node;
                 touchState.startX = event.x;
                 touchState.startY = event.y;
                 touchState.startTime = Date.now();
                 touchState.moved = false;
-                
+
                 console.log('Touch start on node:', node);
             });
-            
+
             // Track camera movement (indicates dragging)
             let lastCameraState = null;
             renderer.getCamera().on('updated', () => {
                 if (touchState.node) {
                     const currentState = renderer.getCamera().getState();
-                    
+
                     if (lastCameraState) {
                         // Check if camera moved significantly
                         const dx = Math.abs(currentState.x - lastCameraState.x);
                         const dy = Math.abs(currentState.y - lastCameraState.y);
                         const dr = Math.abs(currentState.ratio - lastCameraState.ratio);
-                        
+
                         if (dx > 0.001 || dy > 0.001 || dr > 0.001) {
                             touchState.moved = true;
                             console.log('Camera moved - drag detected');
                         }
                     }
-                    
+
                     lastCameraState = currentState;
                 }
             });
-            
+
             // Detect tap vs drag on touch end
             renderer.getMouseCaptor().on('mouseup', (event) => {
                 if (touchState.node) {
                     const duration = Date.now() - touchState.startTime;
-                    
+
                     console.log('Touch end:', {
                         node: touchState.node,
                         duration: duration + 'ms',
                         moved: touchState.moved
                     });
-                    
+
                     // If touch was quick (<400ms) and didn't move, treat as tap
                     if (!touchState.moved && duration < 400) {
                         console.log('Tap detected - showing node info');
@@ -1209,7 +1262,7 @@
                     } else {
                         console.log('Drag detected - not showing node info');
                     }
-                    
+
                     // Reset state
                     touchState.node = null;
                     touchState.moved = false;
@@ -1260,46 +1313,46 @@
             const attributes = graph.getNodeAttributes(nodeId);
             document.getElementById('node-name').textContent = attributes.name || attributes.label || nodeId;
             document.getElementById('node-user').textContent = attributes.user || '-';
-            
+
             // Format duration
             const duration = attributes.duration || 0;
             const durationText = duration > 0 ? duration.toFixed(1) + 's' : '-';
             document.getElementById('node-duration').textContent = durationText;
-            
+
             // Format tags
             const tags = attributes.tags || [];
             const tagsText = Array.isArray(tags) && tags.length > 0 ? tags.slice(0, 5).join(', ') : '-';
             document.getElementById('node-tags').textContent = tagsText;
-            
+
             // Popularity metrics
             const downloads = attributes.num_downloads || 0;
             document.getElementById('node-downloads').textContent = downloads.toLocaleString();
-            
+
             const avgRating = attributes.avg_rating || 0;
             const numRatings = attributes.num_ratings || 0;
             const ratingText = numRatings > 0 ? `${avgRating.toFixed(1)}/5 (${numRatings} ratings)` : 'No ratings';
             document.getElementById('node-rating').textContent = ratingText;
-            
+
             document.getElementById('node-degree').textContent = graph.degree(nodeId);
-            
+
             {% if show_centrality %}
             const centralityElem = document.getElementById('node-centrality');
             if (centralityElem && attributes.centrality !== undefined) {
                 centralityElem.textContent = attributes.centrality.toFixed(4);
             }
             {% endif %}
-            
+
             {% if show_community %}
             const communityElem = document.getElementById('node-community');
             if (communityElem && attributes.community !== undefined) {
                 communityElem.textContent = attributes.community;
             }
             {% endif %}
-            
+
             // Add audio player if audio_url is available
             const audioPlayerDiv = document.getElementById('node-audio-player');
             audioPlayerDiv.innerHTML = ''; // Clear previous player
-            
+
             // Parse audio URLs array
             let audioUrls = [];
             if (attributes.audio_urls) {
@@ -1309,7 +1362,7 @@
                     console.error('Failed to parse audio_urls:', e);
                 }
             }
-            
+
             if (audioUrls.length > 0) {
                 // Create add to mix button
                 const addBtn = document.createElement('button');
@@ -1318,40 +1371,40 @@
                 addBtn.style.padding = '10px';
                 addBtn.style.marginTop = '10px';
                 addBtn.disabled = activePlayers.has(nodeId);
-                
+
                 if (activePlayers.has(nodeId)) {
                     addBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
                 } else {
                     addBtn.style.background = 'linear-gradient(135deg, #6c8eff 0%, #5a7de8 100%)';
                 }
-                
-                addBtn.onclick = function() {
+
+                addBtn.onclick = function () {
                     addPlayerToMix(nodeId, audioUrls, attributes.name || attributes.label || nodeId);
                 };
-                
+
                 audioPlayerDiv.appendChild(addBtn);
             }
-            
+
             document.getElementById('node-info').style.display = 'block';
         }
-        
+
         // Tone.js Multi-Player Functions
-        
+
         async function addPlayerToMix(nodeId, audioUrls, name) {
             // Check if already in mix
             if (activePlayers.has(nodeId)) {
                 console.log('Player already in mix:', nodeId);
                 return;
             }
-            
+
             try {
                 // Ensure Tone.js is started (required for user interaction)
                 await Tone.start();
                 console.log('Tone.js audio context started');
-                
+
                 // Use first available URL (prefer mp3)
                 const audioUrl = audioUrls.find(url => url.includes('.mp3')) || audioUrls[0];
-                
+
                 // Create Tone.js Player with loop enabled
                 const player = new Tone.Player({
                     url: audioUrl,
@@ -1362,11 +1415,11 @@
                         updatePlayersList();
                     }
                 }).toDestination();
-                
+
                 // Create volume control
                 const volume = new Tone.Volume(Tone.gainToDb(audioSettings.volume)).toDestination();
                 player.connect(volume);
-                
+
                 // Store player info
                 activePlayers.set(nodeId, {
                     player: player,
@@ -1374,16 +1427,16 @@
                     name: name,
                     volumeValue: audioSettings.volume
                 });
-                
+
                 // Start player if transport is running
                 if (transportRunning) {
                     player.start();
                 }
-                
+
                 // Update UI
                 updatePlayersList();
                 document.getElementById('active-players').classList.add('visible');
-                
+
                 // Update button in node info if still open
                 const addBtn = document.querySelector('#node-audio-player button');
                 if (addBtn) {
@@ -1391,29 +1444,29 @@
                     addBtn.disabled = true;
                     addBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
                 }
-                
+
                 console.log('Added to mix:', name);
             } catch (error) {
                 console.error('Failed to add player:', error);
                 alert('Failed to load audio: ' + error.message);
             }
         }
-        
+
         function removePlayerFromMix(nodeId) {
             const playerInfo = activePlayers.get(nodeId);
             if (!playerInfo) return;
-            
+
             // Stop and dispose player
             playerInfo.player.stop();
             playerInfo.player.dispose();
             playerInfo.volume.dispose();
-            
+
             // Remove from map
             activePlayers.delete(nodeId);
-            
+
             // Update UI
             updatePlayersList();
-            
+
             if (activePlayers.size === 0) {
                 document.getElementById('active-players').classList.remove('visible');
                 if (transportRunning) {
@@ -1422,66 +1475,66 @@
                     document.getElementById('transport-btn').textContent = '▶ Start';
                 }
             }
-            
+
             console.log('Removed from mix:', playerInfo.name);
         }
-        
+
         function updatePlayersList() {
             const listDiv = document.getElementById('players-list');
             listDiv.innerHTML = '';
-            
+
             if (activePlayers.size === 0) {
                 listDiv.innerHTML = '<p style="color: #888; font-size: 12px; text-align: center; padding: 20px;">No active players. Click "Add to Mix" on any sample.</p>';
                 return;
             }
-            
+
             activePlayers.forEach((info, nodeId) => {
                 const item = document.createElement('div');
                 item.className = 'player-item';
-                
+
                 const header = document.createElement('div');
                 header.className = 'player-item-header';
-                
+
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'player-item-name';
                 nameSpan.textContent = info.name;
                 nameSpan.title = info.name;
-                
+
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'player-item-remove';
                 removeBtn.textContent = '✕';
                 removeBtn.onclick = () => removePlayerFromMix(nodeId);
-                
+
                 header.appendChild(nameSpan);
                 header.appendChild(removeBtn);
-                
+
                 const controls = document.createElement('div');
                 controls.className = 'player-item-controls';
-                
+
                 const volumeLabel = document.createElement('span');
                 volumeLabel.textContent = '🔊';
                 volumeLabel.style.fontSize = '14px';
-                
+
                 const volumeSlider = document.createElement('input');
                 volumeSlider.type = 'range';
                 volumeSlider.min = '0';
                 volumeSlider.max = '100';
                 volumeSlider.value = Math.round(info.volumeValue * 100);
-                volumeSlider.oninput = function() {
+                volumeSlider.oninput = function () {
                     const vol = parseInt(this.value) / 100;
                     info.volume.volume.value = Tone.gainToDb(vol);
                     info.volumeValue = vol;
                 };
-                
+
                 controls.appendChild(volumeLabel);
                 controls.appendChild(volumeSlider);
-                
+
                 item.appendChild(header);
                 item.appendChild(controls);
                 listDiv.appendChild(item);
             });
         }
-        
+
         function updateBPM() {
             const bpm = parseInt(document.getElementById('bpm-input').value);
             if (bpm >= 40 && bpm <= 240) {
@@ -1491,13 +1544,13 @@
                 alert('BPM must be between 40 and 240');
             }
         }
-        
+
         function toggleTransport() {
             if (activePlayers.size === 0) {
                 alert('Add some samples to the mix first!');
                 return;
             }
-            
+
             if (transportRunning) {
                 // Stop transport
                 Tone.Transport.stop();
@@ -1518,27 +1571,27 @@
                 console.log('Transport started');
             }
         }
-        
+
         function stopAllPlayers() {
             if (transportRunning) {
                 Tone.Transport.stop();
                 transportRunning = false;
                 document.getElementById('transport-btn').textContent = '▶ Start';
             }
-            
+
             activePlayers.forEach((info, nodeId) => {
                 info.player.stop();
                 info.player.dispose();
                 info.volume.dispose();
             });
-            
+
             activePlayers.clear();
             updatePlayersList();
             document.getElementById('active-players').classList.remove('visible');
-            
+
             console.log('All players stopped and cleared');
         }
-        
+
         function closeNodeInfo() {
             document.getElementById('node-info').style.display = 'none';
         }
@@ -1546,29 +1599,29 @@
         function showTooltip(nodeId) {
             const attributes = graph.getNodeAttributes(nodeId);
             const tooltip = document.getElementById('tooltip');
-            
+
             let content = `<strong>${attributes.name || attributes.label || nodeId}</strong><br>`;
             content += `User: ${attributes.user || '-'}<br>`;
-            
+
             const duration = attributes.duration || 0;
             if (duration > 0) {
                 content += `Duration: ${duration.toFixed(1)}s<br>`;
             }
-            
+
             content += `Connections: ${graph.degree(nodeId)}`;
-            
+
             {% if show_centrality %}
             if (attributes.centrality !== undefined) {
                 content += `<br>Centrality: ${attributes.centrality.toFixed(4)}`;
             }
             {% endif %}
-            
+
             {% if show_community %}
             if (attributes.community !== undefined) {
                 content += `<br>Community: ${attributes.community}`;
             }
             {% endif %}
-            
+
             tooltip.innerHTML = content;
             tooltip.classList.add('visible');
         }
@@ -1592,15 +1645,15 @@
                     if (!attributes.originalColor) {
                         graph.setNodeAttribute(node, 'originalColor', attributes.color);
                     }
-                    
+
                     // Highlight the node
                     graph.setNodeAttribute(node, 'color', '#ffff00');
                     graph.setNodeAttribute(node, 'highlighted', true);
-                    
+
                     // Make it 2x larger than current visual size
                     const baseSize = baseNodeSizes.get(node) || 5;
                     graph.setNodeAttribute(node, 'size', baseSize * currentVisualScale * 2);
-                    
+
                     // Center camera on node
                     const nodePosition = renderer.getNodeDisplayData(node);
                     if (nodePosition) {
@@ -1608,7 +1661,7 @@
                             duration: 500
                         });
                     }
-                    
+
                     showNodeInfo(node);
                     found = true;
                     return false; // Stop iteration
@@ -1669,7 +1722,7 @@
             const slider = document.getElementById('gravity');
             const sliderPos = parseInt(slider.value);
             const actualValue = sliderToValue(sliderPos);
-            
+
             // Save to current mode settings
             const linLogMode = document.getElementById('linLogMode').checked;
             if (linLogMode) {
@@ -1677,13 +1730,13 @@
             } else {
                 normalSettings.gravitySlider = sliderPos;
             }
-            
+
             // Update physics with actual value
             physicsSettings.gravity = actualValue;
-            
+
             // Update display
             document.getElementById('gravityValue').textContent = formatValue(actualValue);
-            
+
             console.log(`Gravity slider: ${sliderPos} → value: ${actualValue.toFixed(4)}`);
         }
 
@@ -1692,7 +1745,7 @@
             const slider = document.getElementById('slowDown');
             const sliderPos = parseInt(slider.value);
             const actualValue = sliderToValue(sliderPos);
-            
+
             // Save to current mode settings
             const linLogMode = document.getElementById('linLogMode').checked;
             if (linLogMode) {
@@ -1700,61 +1753,61 @@
             } else {
                 normalSettings.slowDownSlider = sliderPos;
             }
-            
+
             // Update physics with actual value
             physicsSettings.slowDown = actualValue;
-            
+
             // Update display
             document.getElementById('slowDownValue').textContent = formatValue(actualValue);
-            
+
             console.log(`SlowDown slider: ${sliderPos} → value: ${actualValue.toFixed(4)}`);
         }
-        
+
         // Visual scale handler (affects node sizes in viewport)
         let baseNodeSizes = new Map(); // Store original node sizes
         let currentVisualScale = 0.5;
-        
+
         function updateVisualScale() {
             const visualScale = parseFloat(document.getElementById('visualScale').value);
             document.getElementById('visualScaleValue').textContent = visualScale.toFixed(1);
-            
+
             if (!graph) return;
-            
+
             // Store base sizes on first call
             if (baseNodeSizes.size === 0) {
                 graph.forEachNode((node, attributes) => {
                     baseNodeSizes.set(node, attributes.size || 5);
                 });
             }
-            
+
             // Apply visual scale to all node sizes
             graph.forEachNode((node, attributes) => {
                 const baseSize = baseNodeSizes.get(node) || attributes.size || 5;
                 graph.setNodeAttribute(node, 'size', baseSize * visualScale);
             });
-            
+
             currentVisualScale = visualScale;
-            
+
             if (renderer) {
                 renderer.refresh();
             }
-            
+
             console.log(`Visual scale: ${visualScale} (node sizes multiplied)`);
         }
 
         function updatePhysics() {
             const linLogMode = document.getElementById('linLogMode').checked;
             const barnesHutOptimize = document.getElementById('barnesHutOptimize').checked;
-            
+
             // Get slider elements
             const gravitySlider = document.getElementById('gravity');
             const slowDownSlider = document.getElementById('slowDown');
             const scalingSlider = document.getElementById('scalingRatio');
             const edgeWeightSlider = document.getElementById('edgeWeightInfluence');
-            
+
             // Check if mode changed (checkbox was toggled)
             const modeChanged = (linLogMode && gravityControlsStrongMode) || (!linLogMode && !gravityControlsStrongMode);
-            
+
             if (modeChanged) {
                 // Mode switched - restore all settings for the new mode
                 if (linLogMode) {
@@ -1763,10 +1816,10 @@
                     slowDownSlider.value = linLogSettings.slowDownSlider;
                     scalingSlider.value = linLogSettings.scalingRatio;
                     edgeWeightSlider.value = linLogSettings.edgeWeightInfluence;
-                    
+
                     physicsSettings.strongGravityMode = false;
                     gravityControlsStrongMode = false;
-                    
+
                     document.getElementById('gravityLabel').textContent = 'Gravity';
                     document.getElementById('gravityHint').textContent = 'Pulls nodes toward center (LinLog Mode)';
                     document.getElementById('gravityHint').style.color = '#4ecdc4';
@@ -1776,15 +1829,15 @@
                     slowDownSlider.value = normalSettings.slowDownSlider;
                     scalingSlider.value = normalSettings.scalingRatio;
                     edgeWeightSlider.value = normalSettings.edgeWeightInfluence;
-                    
+
                     physicsSettings.strongGravityMode = true;
                     gravityControlsStrongMode = true;
-                    
+
                     document.getElementById('gravityLabel').textContent = 'Gravity (Strong)';
                     document.getElementById('gravityHint').textContent = 'Pulls nodes toward center (Strong Mode)';
                     document.getElementById('gravityHint').style.color = '#6c8eff';
                 }
-                
+
                 // Trigger input handlers to update actual values
                 handleGravityInput();
                 handleSlowDownInput();
@@ -1798,7 +1851,7 @@
                     normalSettings.edgeWeightInfluence = parseFloat(edgeWeightSlider.value);
                 }
             }
-            
+
             // Apply current slider values to physics settings
             // Gravity and slowDown are handled by their input handlers
             physicsSettings.scalingRatio = parseFloat(scalingSlider.value);
@@ -1808,16 +1861,16 @@
             physicsSettings.outboundAttractionDistribution = document.getElementById('outboundAttractionDistribution').checked;
             physicsSettings.adjustSizes = document.getElementById('adjustSizes').checked;
             physicsSettings.barnesHutOptimize = barnesHutOptimize;
-            
+
             // Show/hide Barnes-Hut theta control based on optimization setting
             const barnesHutThetaControl = document.getElementById('barnesHutThetaControl');
             barnesHutThetaControl.style.display = barnesHutOptimize ? 'block' : 'none';
-            
+
             // Update display values for non-logarithmic sliders
             document.getElementById('scalingValue').textContent = physicsSettings.scalingRatio.toFixed(0);
             document.getElementById('edgeWeightValue').textContent = physicsSettings.edgeWeightInfluence.toFixed(1);
             document.getElementById('barnesHutThetaValue').textContent = physicsSettings.barnesHutTheta.toFixed(1);
-            
+
             // Settings will be applied on next animation frame if layout is running
             console.log('Physics settings updated:', physicsSettings);
             console.log('Mode:', linLogMode ? 'LinLog' : 'Normal (Strong Gravity)');
@@ -1832,7 +1885,7 @@
             // Save current state of labels and tooltips
             labelsBeforePhysics = document.getElementById('showLabels').checked;
             tooltipsBeforePhysics = document.getElementById('showTooltips').checked;
-            
+
             // Disable labels and tooltips for better performance
             if (labelsBeforePhysics) {
                 document.getElementById('showLabels').checked = false;
@@ -1853,42 +1906,42 @@
                 if (!window.graphologyLibrary || !window.graphologyLibrary.layoutForceAtlas2) {
                     throw new Error('graphology-library not loaded');
                 }
-                
+
                 console.log('Using ForceAtlas2 from graphology-library');
-                
+
                 // Infer base settings from graph structure
                 const inferredSettings = window.graphologyLibrary.layoutForceAtlas2.inferSettings(graph);
-                
+
                 // Run layout with animation
                 let iteration = 0;
                 const maxIterations = 500;
-                
+
                 const animate = () => {
                     if (!layoutRunning || iteration >= maxIterations) {
                         stopLayout();
                         return;
                     }
-                    
+
                     // Merge inferred settings with current user settings (allows live updates)
                     const currentSettings = Object.assign({}, inferredSettings, physicsSettings);
-                    
+
                     // Run one iteration and assign positions to graph
                     window.graphologyLibrary.layoutForceAtlas2.assign(graph, {
                         iterations: 1,
                         settings: currentSettings
                     });
-                    
+
                     iteration++;
-                    
+
                     // Refresh renderer every 3 iterations for smooth performance
                     if (iteration % 3 === 0) {
                         renderer.refresh();
                     }
-                    
+
                     // Continue animation
                     requestAnimationFrame(animate);
                 };
-                
+
                 animate();
                 console.log('ForceAtlas2 layout started');
             } catch (e) {
@@ -1901,11 +1954,11 @@
         function stopLayout() {
             layoutRunning = false;
             layoutWorker = null;
-            
+
             document.getElementById('loading').style.display = 'none';
             document.getElementById('startLayoutBtn').style.display = 'block';
             document.getElementById('stopLayoutBtn').style.display = 'none';
-            
+
             // Restore previous state of labels and tooltips
             if (labelsBeforePhysics) {
                 document.getElementById('showLabels').checked = true;
@@ -1915,7 +1968,7 @@
                 document.getElementById('showTooltips').checked = true;
                 toggleTooltips();
             }
-            
+
             renderer.refresh();
             console.log('Layout stopped');
         }
@@ -1924,7 +1977,7 @@
             // Get current camera state
             const camera = renderer.getCamera();
             const state = camera.getState();
-            
+
             const exportData = {
                 camera: state,
                 timestamp: new Date().toISOString(),
@@ -1933,7 +1986,7 @@
                     edges: graph.size
                 }
             };
-            
+
             console.log('Current view state:', exportData);
             alert('View state exported to console. Check browser developer tools.');
         }
@@ -1942,45 +1995,45 @@
         function generateLegend() {
             const colorCounts = new Map();
             const colorToTags = new Map();
-            
+
             // Analyze node colors and associated tags
             graph.forEachNode((node, attributes) => {
                 const color = attributes.color || '#6c8eff';
                 const tags = attributes.tags || [];
-                
+
                 // Count color occurrences
                 colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
-                
+
                 // Associate tags with colors
                 if (!colorToTags.has(color)) {
                     colorToTags.set(color, new Map());
                 }
                 const tagMap = colorToTags.get(color);
-                
+
                 tags.forEach(tag => {
                     if (tag && typeof tag === 'string') {
                         tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
                     }
                 });
             });
-            
+
             // Sort colors by frequency
             const sortedColors = Array.from(colorCounts.entries())
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 10); // Top 10 colors
-            
+
             // Generate legend HTML
             const legendContent = document.getElementById('legend-content');
             legendContent.innerHTML = '';
-            
+
             if (sortedColors.length === 0) {
                 legendContent.innerHTML = '<div class="legend-item"><span>No data available</span></div>';
                 return;
             }
-            
+
             sortedColors.forEach(([color, count]) => {
                 const tagMap = colorToTags.get(color);
-                
+
                 // Get top 3 most common tags for this color
                 let topTags = [];
                 if (tagMap && tagMap.size > 0) {
@@ -1989,15 +2042,15 @@
                         .slice(0, 3)
                         .map(([tag]) => tag);
                 }
-                
+
                 // Create legend item
                 const item = document.createElement('div');
                 item.className = 'legend-item';
-                
+
                 const colorBox = document.createElement('div');
                 colorBox.className = 'legend-color';
                 colorBox.style.background = color;
-                
+
                 const label = document.createElement('span');
                 if (topTags.length > 0) {
                     label.textContent = `${topTags.join(', ')} (${count})`;
@@ -2005,12 +2058,12 @@
                     label.textContent = `${count} nodes`;
                 }
                 label.title = `Color: ${color}, Nodes: ${count}`;
-                
+
                 item.appendChild(colorBox);
                 item.appendChild(label);
                 legendContent.appendChild(item);
             });
-            
+
             console.log(`Generated legend with ${sortedColors.length} color categories`);
         }
 
@@ -2018,39 +2071,39 @@
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 initGraph();
-                
+
                 // Store base node sizes before any scaling
                 graph.forEachNode((node, attributes) => {
                     baseNodeSizes.set(node, attributes.size || 5);
                 });
-                
+
                 initRenderer();
-                
+
                 // Generate dynamic legend based on actual node data
                 generateLegend();
-                
+
                 // Set checkbox states based on config
                 document.getElementById('showLabels').checked = config.show_labels !== false;
                 document.getElementById('showTooltips').checked = config.show_tooltips !== false;
-                
+
                 // Initialize logarithmic sliders with default values
                 handleGravityInput();
                 handleSlowDownInput();
-                
+
                 // Initialize visual scale (apply 0.5 default)
                 updateVisualScale();
-                
+
                 // Initialize physics UI state
                 updatePhysics();
-                
+
                 // Initialize controls toggle - hidden by default
                 const controlsHeader = document.getElementById('controls-header');
                 const controls = document.getElementById('controls');
                 let controlsVisible = false;
-                
+
                 // Hide controls by default on all devices
                 controls.classList.add('hidden');
-                
+
                 controlsHeader.addEventListener('click', (e) => {
                     e.stopPropagation();
                     controlsVisible = !controlsVisible;
@@ -2060,18 +2113,18 @@
                         controls.classList.add('hidden');
                     }
                 });
-                
+
                 console.log('Sigma.js visualization initialized');
                 console.log('Nodes:', graph.order);
                 console.log('Edges:', graph.size);
-                
+
                 // Check if graphology-library is available
                 if (window.graphologyLibrary && window.graphologyLibrary.layoutForceAtlas2) {
                     console.log('✓ graphology-library loaded with ForceAtlas2');
                 } else {
                     console.error('✗ graphology-library failed to load');
                 }
-                
+
                 // Initialize Tone.js
                 if (window.Tone) {
                     console.log('✓ Tone.js loaded');
@@ -2098,6 +2151,8 @@
             e.preventDefault();
         });
     </script>
+    <!-- Audio Panel Logic -->
+    <script src="audio-panel.js"></script>
 </body>
-</html>
 
+</html>
