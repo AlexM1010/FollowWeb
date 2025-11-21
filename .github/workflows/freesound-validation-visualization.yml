@@ -443,8 +443,21 @@ jobs:
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
       id: deployment
       run: |
-        # Check if there are changes to commit
-        if git diff --quiet Output/ index.html; then
+        # Save the generated files to a temporary location
+        mkdir -p /tmp/gh-pages-content
+        cp -r Output /tmp/gh-pages-content/
+        cp index.html /tmp/gh-pages-content/
+        
+        # Switch to gh-pages branch (now we can do it cleanly)
+        git fetch origin gh-pages:gh-pages 2>/dev/null || true
+        git checkout gh-pages || git checkout --orphan gh-pages
+        
+        # Clear gh-pages and copy new content
+        git rm -rf . 2>/dev/null || true
+        cp -r /tmp/gh-pages-content/* .
+        
+        # Check if there are actual changes
+        if git diff --quiet && git diff --cached --quiet; then
           echo "No changes to commit"
           echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
           {
@@ -454,19 +467,7 @@ jobs:
             echo "- ⏭️  Pages workflow will deploy existing files"
           } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "Switching to gh-pages branch..."
-          
-          # Stash any changes in main branch before switching
-          git add Output/ index.html
-          git stash push -m "Stash visualization files before gh-pages switch"
-          
-          # Fetch and checkout gh-pages
-          git fetch origin gh-pages:gh-pages 2>/dev/null || true
-          git checkout gh-pages || git checkout --orphan gh-pages
-          
-          # Clear gh-pages and restore files from stash
-          git rm -rf . 2>/dev/null || true
-          git stash pop || git checkout stash@{0} -- Output/ index.html
+          echo "Committing changes to gh-pages..."
           
           git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
