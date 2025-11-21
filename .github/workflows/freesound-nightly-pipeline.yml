@@ -77,64 +77,90 @@ jobs:
       skip_reason: ${{ steps.check_ci.outputs.skip_reason }}
     
     steps:
-    - name: Check most recent CI run
+    - name: Check most recent CI smoke test
       id: check_ci
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        echo "Checking most recent CI workflow run status..."
+        echo "Checking most recent CI smoke test status..."
         
         # Get the most recent CI workflow run on main branch
         CI_RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github.v3+json" \
           "https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=main&per_page=1")
         
-        # Extract status and conclusion
-        RUN_STATUS=$(echo "$CI_RUNS" | jq -r '.workflow_runs[0].status // "unknown"')
-        RUN_CONCLUSION=$(echo "$CI_RUNS" | jq -r '.workflow_runs[0].conclusion // "unknown"')
-        RUN_URL=$(echo "$CI_RUNS" | jq -r '.workflow_runs[0].html_url // "unknown"')
         RUN_ID=$(echo "$CI_RUNS" | jq -r '.workflow_runs[0].id // "unknown"')
+        RUN_STATUS=$(echo "$CI_RUNS" | jq -r '.workflow_runs[0].status // "unknown"')
+        RUN_URL=$(echo "$CI_RUNS" | jq -r '.workflow_runs[0].html_url // "unknown"')
         
-        echo "Most recent CI run:"
-        echo "- Status: $RUN_STATUS"
-        echo "- Conclusion: $RUN_CONCLUSION"
-        echo "- URL: $RUN_URL"
+        echo "Most recent CI run: #$RUN_ID (status: $RUN_STATUS)"
         
-        # Check if CI passed
-        if [ "$RUN_STATUS" = "completed" ] && [ "$RUN_CONCLUSION" = "success" ]; then
-          echo "✅ Most recent CI run passed"
+        # Get jobs for this run to check smoke test status
+        JOBS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs")
+        
+        # Find the smoke test job
+        SMOKE_TEST_JOB=$(echo "$JOBS" | jq -r '.jobs[] | select(.name == "Smoke Test")')
+        
+        if [ -z "$SMOKE_TEST_JOB" ] || [ "$SMOKE_TEST_JOB" = "null" ]; then
+          echo "⚠️ Smoke test job not found in most recent CI run"
+          echo "ci_passed=false" >> "$GITHUB_OUTPUT"
+          echo "skip_reason=Smoke test job not found in CI run #$RUN_ID" >> "$GITHUB_OUTPUT"
+          
+          {
+            echo "## ⚠️ CI Smoke Test Not Found"
+            echo ""
+            echo "Could not find smoke test job in most recent CI run."
+            echo ""
+            echo "- **CI Run**: [#$RUN_ID]($RUN_URL)"
+            echo ""
+            echo "**Action**: Nightly pipeline will skip execution."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        
+        SMOKE_STATUS=$(echo "$SMOKE_TEST_JOB" | jq -r '.status')
+        SMOKE_CONCLUSION=$(echo "$SMOKE_TEST_JOB" | jq -r '.conclusion')
+        
+        echo "Smoke test status: $SMOKE_STATUS"
+        echo "Smoke test conclusion: $SMOKE_CONCLUSION"
+        
+        # Check if smoke test passed (completed successfully)
+        if [ "$SMOKE_STATUS" = "completed" ] && [ "$SMOKE_CONCLUSION" = "success" ]; then
+          echo "✅ CI smoke test passed"
           echo "ci_passed=true" >> "$GITHUB_OUTPUT"
           echo "skip_reason=" >> "$GITHUB_OUTPUT"
           
           {
-            echo "## ✅ CI Status Check Passed"
+            echo "## ✅ CI Smoke Test Passed"
             echo ""
-            echo "Most recent CI workflow run on main branch passed successfully."
+            echo "Most recent CI smoke test on main branch passed successfully."
             echo ""
-            echo "- **Status**: $RUN_STATUS"
-            echo "- **Conclusion**: $RUN_CONCLUSION"
-            echo "- **Run**: [#$RUN_ID]($RUN_URL)"
+            echo "- **CI Run**: [#$RUN_ID]($RUN_URL)"
+            echo "- **Smoke Test Status**: $SMOKE_STATUS"
+            echo "- **Smoke Test Conclusion**: $SMOKE_CONCLUSION"
             echo ""
             echo "Proceeding with nightly pipeline execution..."
+            echo ""
+            echo "_Note: Full CI may still be running, but smoke test passed._"
           } >> "$GITHUB_STEP_SUMMARY"
         else
-          echo "❌ Most recent CI run did not pass"
-          SKIP_REASON="Most recent CI run status: $RUN_STATUS, conclusion: $RUN_CONCLUSION. Pipeline will skip until CI passes."
+          echo "❌ CI smoke test did not pass"
+          SKIP_REASON="CI smoke test status: $SMOKE_STATUS, conclusion: $SMOKE_CONCLUSION"
           echo "ci_passed=false" >> "$GITHUB_OUTPUT"
           echo "skip_reason=$SKIP_REASON" >> "$GITHUB_OUTPUT"
           
           {
-            echo "## ⚠️ CI Status Check Failed"
+            echo "## ⚠️ CI Smoke Test Failed"
             echo ""
-            echo "Most recent CI workflow run on main branch did not pass."
+            echo "Most recent CI smoke test on main branch did not pass."
             echo ""
-            echo "- **Status**: $RUN_STATUS"
-            echo "- **Conclusion**: $RUN_CONCLUSION"
-            echo "- **Run**: [#$RUN_ID]($RUN_URL)"
+            echo "- **CI Run**: [#$RUN_ID]($RUN_URL)"
+            echo "- **Smoke Test Status**: $SMOKE_STATUS"
+            echo "- **Smoke Test Conclusion**: $SMOKE_CONCLUSION"
             echo ""
-            echo "**Action**: Nightly pipeline will skip execution until CI passes."
-            echo ""
-            echo "This replaces the pre-flight smoke test to ensure the codebase is stable before data collection."
+            echo "**Action**: Nightly pipeline will skip execution until smoke test passes."
           } >> "$GITHUB_STEP_SUMMARY"
         fi
 
@@ -223,7 +249,7 @@ jobs:
         else
           {
             echo "seed_sample_id="
-            echo "max_requests=100"
+            echo "max_requests=13"
             echo "discovery_mode=search"
           } >> "$GITHUB_OUTPUT"
         fi
