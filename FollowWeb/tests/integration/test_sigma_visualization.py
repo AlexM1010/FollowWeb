@@ -7,7 +7,6 @@ and HTML/JavaScript validation.
 
 import json
 import os
-import re
 import tempfile
 
 import networkx as nx
@@ -264,16 +263,38 @@ class TestSigmaVisualizationWithFreesoundData:
             assert result is True
             assert os.path.exists(output_file)
 
-            # Read and validate content
+            # Read and validate HTML content
             with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
-            # Check for Freesound-specific attributes
-            assert "kick_drum_01.wav" in html_content
-            assert "snare_hit_02.wav" in html_content
-            assert "bass_synth.wav" in html_content
-            assert "audio_url" in html_content
-            assert "freesound.org" in html_content
+            # Check that HTML references external data file
+            assert "freesound_test_data.json" in html_content
+
+            # Read and validate JSON data file
+            json_file = os.path.join(tmpdir, "freesound_test_data.json")
+            assert os.path.exists(json_file)
+
+            with open(json_file, encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Check for Freesound-specific attributes in JSON data
+            node_names = [n["attributes"]["name"] for n in data["nodes"]]
+            assert "kick_drum_01.wav" in node_names
+            assert "snare_hit_02.wav" in node_names
+            assert "bass_synth.wav" in node_names
+
+            # Check for audio URLs in JSON data
+            audio_urls_found = any(
+                "audio_urls" in n["attributes"] for n in data["nodes"]
+            )
+            assert audio_urls_found
+
+            # Check for freesound.org URLs in JSON data
+            freesound_urls_found = any(
+                "freesound.org" in n["attributes"].get("audio_urls", "")
+                for n in data["nodes"]
+            )
+            assert freesound_urls_found
 
     def test_audio_player_elements(self):
         """Test that audio player UI elements are present."""
@@ -299,12 +320,12 @@ class TestSigmaVisualizationWithFreesoundData:
             with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
-            # Check for audio player elements
-            assert "audio-player" in html_content
-            assert "play-btn" in html_content or "Play" in html_content
-            assert "pause-btn" in html_content or "Pause" in html_content
-            assert "loop-btn" in html_content or "Loop" in html_content
-            assert "timeline" in html_content
+            # Check for multi-player audio system elements
+            assert "active-players" in html_content
+            assert "transport-btn" in html_content
+            assert "bpm-input" in html_content
+            assert "Add to Mix" in html_content
+            assert "Tone.js" in html_content
 
     def test_large_freesound_graph(self):
         """Test visualization with larger Freesound-like graph."""
@@ -366,7 +387,7 @@ class TestSigmaVisualizationJavaScriptValidation:
     """Test JavaScript syntax and structure validation."""
 
     def test_valid_json_embedding(self):
-        """Test that embedded JSON is valid."""
+        """Test that graph data is written to external JSON file and referenced in HTML."""
         graph = nx.DiGraph()
         graph.add_node(1, name="Test", community=0, degree=1)
         graph.add_edge(1, 1)
@@ -381,29 +402,24 @@ class TestSigmaVisualizationJavaScriptValidation:
             with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
-            # Check that graphData variable is defined
-            assert "const graphData = " in html_content
+            # Check that HTML references external data file
+            assert "json_test_data.json" in html_content
+            assert "dataFile" in html_content
 
-            # Extract JSON data using regex - match the entire JSON object
-            graph_data_match = re.search(
-                r"const graphData = (\{[\s\S]*?\});[\s\n]*const config", html_content
-            )
+            # Check that JSON data file was created
+            json_file = os.path.join(tmpdir, "json_test_data.json")
+            assert os.path.exists(json_file), "JSON data file should be created"
 
-            if graph_data_match:
-                json_str = graph_data_match.group(1)
-                # Validate it's valid JSON
-                try:
-                    data = json.loads(json_str)
-                    assert "nodes" in data
-                    assert "edges" in data
-                    assert isinstance(data["nodes"], list)
-                    assert isinstance(data["edges"], list)
-                except json.JSONDecodeError as e:
-                    pytest.fail(f"Embedded graph data is not valid JSON: {e}")
-            else:
-                # If we can't extract it, at least verify the structure exists
-                assert "nodes" in html_content
-                assert "edges" in html_content
+            # Verify JSON contains valid node and edge data
+            with open(json_file, encoding="utf-8") as f:
+                data = json.load(f)
+
+            assert "nodes" in data
+            assert "edges" in data
+            assert isinstance(data["nodes"], list)
+            assert isinstance(data["edges"], list)
+            assert len(data["nodes"]) == 1
+            assert len(data["edges"]) == 1
 
     def test_javascript_initialization(self):
         """Test that JavaScript initialization code is present."""
