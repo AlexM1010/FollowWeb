@@ -55,6 +55,68 @@ class IncrementalFreesoundLoader(FreesoundLoader):
     - adaptable metadata updates
     - Queue-based BFS for recursive similar sounds discovery
     - Two-pass processing for correct edge preservation
+    """
+
+    # ============================================================================
+    # DEFAULT CONFIGURATION CONSTANTS - Single Source of Truth
+    # ============================================================================
+    # All default values are defined here to avoid duplication across the codebase.
+    # Override these via config dictionary when initializing the loader.
+    
+    # Edge Generation
+    DEFAULT_TAG_SIMILARITY_THRESHOLD = 0.15
+    """Minimum Jaccard similarity (15%) to create tag-based edges.
+    Lower values = larger, more connected communities.
+    Higher values = smaller, tighter communities.
+    Range: 0.0 (all nodes connect) to 1.0 (only identical tags connect)"""
+    
+    # Checkpoint & Persistence
+    DEFAULT_CHECKPOINT_DIR = "data/freesound_library"
+    """Directory for storing checkpoint files (graph topology, metadata DB, state)"""
+    
+    DEFAULT_CHECKPOINT_INTERVAL = 50
+    """Number of samples processed between checkpoint saves.
+    Lower = more frequent saves (safer but slower).
+    Higher = less frequent saves (faster but more data loss risk)"""
+    
+    # API Rate Limiting
+    DEFAULT_MAX_REQUESTS = 1950
+    """Maximum API requests per session (Freesound rate limit: 2000/day).
+    Set to 1950 to leave buffer for other operations"""
+    
+    DEFAULT_PAGE_SIZE = 150
+    """Freesound API maximum page size for search results"""
+    
+    # Backup Management
+    DEFAULT_BACKUP_INTERVAL_NODES = 25
+    """Create backup every N nodes added to graph"""
+    
+    DEFAULT_BACKUP_RETENTION_COUNT = 10
+    """Number of backup files to retain before cleanup"""
+    
+    DEFAULT_COMPRESSION_AGE_DAYS = 7
+    """Compress backups older than N days to save disk space"""
+    
+    # Discovery & Priority
+    DEFAULT_RELATIONSHIP_PRIORITY = 0.7
+    """For mixed discovery mode: ratio of relationship-based vs search-based discovery.
+    0.0 = all search, 1.0 = all relationships, 0.7 = 70% relationships"""
+    
+    DEFAULT_PRIORITY_WEIGHT_DOWNLOADS = 1.0
+    """Weight for download count in node priority calculation (most important)"""
+    
+    DEFAULT_PRIORITY_WEIGHT_DEGREE = 0.5
+    """Weight for node degree (connections) in priority calculation"""
+    
+    DEFAULT_PRIORITY_WEIGHT_AGE = 0.1
+    """Weight for sample age in priority calculation (least important)"""
+    
+    DEFAULT_DORMANT_PENALTY_MULTIPLIER = 0.01
+    """Penalty multiplier for nodes that don't discover new samples (dormant nodes)"""
+    
+    # Error Handling
+    DEFAULT_MAX_THROTTLE_ATTEMPTS = 3
+    """Maximum retry attempts when API returns 429 (rate limit) errors"""
 
     The loader maintains a checkpoint file that tracks:
     - Current graph state
@@ -131,15 +193,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         super().__init__(config)
 
         # Checkpoint configuration
-        checkpoint_dir = self.config.get("checkpoint_dir", "data/freesound_library")
-        self.checkpoint_interval = self.config.get("checkpoint_interval", 50)
+        checkpoint_dir = self.config.get("checkpoint_dir", self.DEFAULT_CHECKPOINT_DIR)
+        self.checkpoint_interval = self.config.get("checkpoint_interval", self.DEFAULT_CHECKPOINT_INTERVAL)
         self.max_runtime_hours = self.config.get("max_runtime_hours")
         self.verify_existing_sounds = self.config.get("verify_existing_sounds", False)
         self.max_samples_mode = self.config.get("max_samples_mode", "limit")
 
         # API quota circuit breaker
         self.session_request_count = 0
-        self.max_requests = self.config.get("max_requests", 1950)
+        self.max_requests = self.config.get("max_requests", self.DEFAULT_MAX_REQUESTS)
 
         # Search pagination state (restored from checkpoint if exists)
         self.pagination_state = {"page": 1, "query": "", "sort": "downloads_desc"}
@@ -172,11 +234,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         self.backup_manager = BackupManager(
             backup_dir=checkpoint_dir,
             config={
-                "backup_interval_nodes": self.config.get("backup_interval_nodes", 25),
-                "backup_retention_count": self.config.get("backup_retention_count", 10),
+                "backup_interval_nodes": self.config.get("backup_interval_nodes", self.DEFAULT_BACKUP_INTERVAL_NODES),
+                "backup_retention_count": self.config.get("backup_retention_count", self.DEFAULT_BACKUP_RETENTION_COUNT),
                 "enable_compression": self.config.get("backup_compression", True),
                 "enable_tiered_backups": self.config.get("tiered_backups", True),
-                "compression_age_days": self.config.get("compression_age_days", 7),
+                "compression_age_days": self.config.get("compression_age_days", self.DEFAULT_COMPRESSION_AGE_DAYS),
             },
             logger=self.logger,
         )
@@ -733,7 +795,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             if filters:
                 search_filter = " ".join(filters)
 
-            page_size = min(150, self.config.get("page_size", 150))  # API max is 150
+            page_size = min(self.DEFAULT_PAGE_SIZE, self.config.get("page_size", self.DEFAULT_PAGE_SIZE))  # API max
 
             while True:
                 # Check circuit breaker BEFORE making API request
@@ -862,11 +924,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         licenses: Optional[list[str]] = None,
         max_samples: int = 1000,
         discovery_mode: str = "search",
-        relationship_priority: float = 0.7,
+        relationship_priority: Optional[float] = None,
         include_user_edges: bool = True,
         include_pack_edges: bool = True,
         include_tag_edges: bool = True,
-        tag_similarity_threshold: float = 0.15,
+        tag_similarity_threshold: Optional[float] = None,
         use_pagination: bool = False,
         sort_order: str = "downloads_desc",
     ) -> dict[str, Any]:
@@ -890,13 +952,21 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             include_user_edges: Create edges for same-user samples
             include_pack_edges: Create edges for same-pack samples
             include_tag_edges: Create edges for tag similarity
-            tag_similarity_threshold: Minimum Jaccard similarity for tag edges
+            tag_similarity_threshold: Minimum Jaccard similarity for tag edges (default: from config or DEFAULT_TAG_SIMILARITY_THRESHOLD)
             use_pagination: Use pagination-based collection (continues from last page)
             sort_order: Sort order for pagination search (default: "downloads_desc")
 
         Returns:
             Dictionary with 'samples' and edge statistics
         """
+        # Apply defaults for optional parameters
+        if relationship_priority is None:
+            relationship_priority = self.DEFAULT_RELATIONSHIP_PRIORITY
+        if tag_similarity_threshold is None:
+            tag_similarity_threshold = self.config.get(
+                "tag_similarity_threshold", self.DEFAULT_TAG_SIMILARITY_THRESHOLD
+            )
+        
         # Note: Empty query string is valid per Freesound API docs (returns all sounds)
         if query is None and not tags:
             raise DataProcessingError(
@@ -1164,7 +1234,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Dormant node tracking
         # Track number of NEW samples discovered during each node expansion
-        self.config.get("dormant_penalty_multiplier", 0.01)
+        self.config.get("dormant_penalty_multiplier", self.DEFAULT_DORMANT_PENALTY_MULTIPLIER)
         dormant_nodes_count = 0
 
         # Counter for periodic checkpoint saves
@@ -1549,10 +1619,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             Priority score (higher = better)
         """
         # Configurable weights
-        w1 = self.config.get("priority_weight_downloads", 1.0)
-        w2 = self.config.get("priority_weight_degree", 0.5)
-        w3 = self.config.get("priority_weight_age", 0.1)
-        dormant_penalty = self.config.get("dormant_penalty_multiplier", 0.01)
+        w1 = self.config.get("priority_weight_downloads", self.DEFAULT_PRIORITY_WEIGHT_DOWNLOADS)
+        w2 = self.config.get("priority_weight_degree", self.DEFAULT_PRIORITY_WEIGHT_DEGREE)
+        w3 = self.config.get("priority_weight_age", self.DEFAULT_PRIORITY_WEIGHT_AGE)
+        dormant_penalty = self.config.get("dormant_penalty_multiplier", self.DEFAULT_DORMANT_PENALTY_MULTIPLIER)
 
         # Extract metrics
         downloads = sample.get("num_downloads", 0)
@@ -1616,9 +1686,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             return True
         return False
 
-    def handle_throttling(self, attempt: int = 0, max_attempts: int = 3) -> bool:
+    def handle_throttling(self, attempt: int = 0, max_attempts: Optional[int] = None) -> bool:
         """
         Handle 429 throttling responses with exponential backoff and jitter.
+        
+        Args:
+            attempt: Current retry attempt number
+            max_attempts: Maximum retry attempts (default: DEFAULT_MAX_THROTTLE_ATTEMPTS)
 
         Uses exponential backoff with random jitter to prevent thundering herd
         problem when multiple clients retry simultaneously.
@@ -1634,6 +1708,10 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             True if should retry, False if max attempts reached
         """
         import random
+
+        # Apply default if not specified
+        if max_attempts is None:
+            max_attempts = self.DEFAULT_MAX_THROTTLE_ATTEMPTS
 
         if attempt >= max_attempts:
             error_msg = EmojiFormatter.format(
@@ -1862,7 +1940,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Add tag similarity edges
         if include_tag_edges:
-            tag_similarity_threshold = self.config.get("tag_similarity_threshold", 0.15)
+            tag_similarity_threshold = self.config.get("tag_similarity_threshold", self.DEFAULT_TAG_SIMILARITY_THRESHOLD)
             tag_edges = self._add_tag_edges_batch(tag_similarity_threshold)
             stats["tag_edges_added"] = tag_edges
             self.stats["tag_edges_created"] = tag_edges
@@ -1990,7 +2068,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return edge_count
 
-    def _add_tag_edges_batch(self, similarity_threshold: float = 0.15) -> int:
+    def _add_tag_edges_batch(self, similarity_threshold: Optional[float] = None) -> int:
         """
         Add edges between samples with similar tags using Jaccard similarity.
 
@@ -2010,11 +2088,16 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         Adds edges for samples with similarity above threshold.
 
         Args:
-            similarity_threshold: Minimum Jaccard similarity to create edge (default: 0.15)
+            similarity_threshold: Minimum Jaccard similarity to create edge 
+                                 (default: DEFAULT_TAG_SIMILARITY_THRESHOLD)
 
         Returns:
             Number of edges added
         """
+        # Apply default if not specified
+        if similarity_threshold is None:
+            similarity_threshold = self.DEFAULT_TAG_SIMILARITY_THRESHOLD
+        
         # Treat all nodes as "new" to regenerate all edges
         all_node_ids = set(self.graph.nodes())
         
