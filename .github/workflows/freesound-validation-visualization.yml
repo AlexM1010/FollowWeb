@@ -448,8 +448,14 @@ jobs:
         cp -r Output /tmp/gh-pages-content/
         cp index.html /tmp/gh-pages-content/
         
+        # Copy JSON data files if they exist
+        if ls *_data.json 1> /dev/null 2>&1; then
+          cp *_data.json /tmp/gh-pages-content/
+          echo "✅ Copied JSON data files"
+        fi
+        
         # Remove generated files from working directory before branch switch
-        rm -f index.html
+        rm -f index.html *_data.json
         
         # Switch to gh-pages branch (now we can do it cleanly)
         git fetch origin gh-pages:gh-pages 2>/dev/null || true
@@ -472,7 +478,7 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add Output/ index.html
+          git add Output/ index.html *_data.json 2>/dev/null || git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')

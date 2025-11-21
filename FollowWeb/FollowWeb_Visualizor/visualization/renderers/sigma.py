@@ -362,7 +362,7 @@ class SigmaRenderer(Renderer):
 
             # Render HTML using Jinja2 template
             with ProgressTracker(
-                total=2,
+                total=3,
                 title="Generating HTML visualization",
                 logger=self.logger,
             ) as tracker:
@@ -371,13 +371,28 @@ class SigmaRenderer(Renderer):
                     f"Loading template: {self.template_name} from {Path(__file__).parent / 'templates'}"
                 )
 
+                # Ensure output directory exists
+                self._ensure_output_directory(output_filename)
+
+                # Write graph data to external JSON file
+                output_path = Path(output_filename)
+                json_filename = output_path.stem + "_data.json"
+                json_filepath = output_path.parent / json_filename
+                
+                import json
+                with open(json_filepath, "w", encoding="utf-8") as f:
+                    json.dump(graph_data, f, separators=(',', ':'))
+                
+                self.logger.info(f"Graph data written to: {json_filepath}")
+                tracker.update(1)
+
                 # Prepare template context based on template type
                 if self.template_name == "sigma_instagram.html":
                     # Instagram-specific template context
                     stats = self._calculate_network_stats(graph)
                     html_content = template.render(
                         title=f"Instagram Network - {graph.number_of_nodes()} users",
-                        graph_data=graph_data,
+                        data_file=json_filename,
                         config=config,
                         node_count=stats["node_count"],
                         edge_count=stats["edge_count"],
@@ -400,7 +415,7 @@ class SigmaRenderer(Renderer):
                     stats = self._calculate_network_stats(graph)
                     html_content = template.render(
                         title=f"Network Visualization - {graph.number_of_nodes()} nodes",
-                        graph_data=graph_data,
+                        data_file=json_filename,
                         config=config,
                         node_count=stats["node_count"],
                         edge_count=stats["edge_count"],
@@ -415,10 +430,7 @@ class SigmaRenderer(Renderer):
                         legend_html=legend_html,
                         legend_html_style="",  # Legend styles are inline in the legend HTML
                     )
-                tracker.update(1)
-
-                # Ensure output directory exists
-                self._ensure_output_directory(output_filename)
+                tracker.update(2)
 
                 # Write HTML file
                 with open(output_filename, "w", encoding="utf-8") as f:
@@ -428,7 +440,7 @@ class SigmaRenderer(Renderer):
                 if self.template_name == "sigma_instagram.html":
                     self._copy_forceatlas2_script(output_filename)
 
-                tracker.update(2)
+                tracker.update(3)
 
             success_msg = EmojiFormatter.format(
                 "success", f"Sigma.js HTML saved: {output_filename}"

@@ -122,6 +122,17 @@ def generate_landing_page(
 
     print(f"✅ Landing page created: {index_path}")
 
+    # Copy corresponding JSON data file if it exists
+    json_filename = latest_viz.stem + "_data.json"
+    json_source = latest_viz.parent / json_filename
+    
+    if json_source.exists():
+        json_dest = output_dir / json_filename
+        shutil.copy2(json_source, json_dest)
+        print(f"✅ Data file copied: {json_dest}")
+    else:
+        print(f"⚠️  No data file found: {json_source} (visualization may have embedded data)")
+
     # Future enhancement: Load metrics and milestone data
     # if metrics_history and metrics_history.exists():
     #     with open(metrics_history) as f:
