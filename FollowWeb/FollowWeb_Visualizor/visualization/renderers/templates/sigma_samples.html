@@ -848,9 +848,9 @@
 
 <body>
     <div id="container">
-        <div class="loading" id="loading" style="display: none;">
+        <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>Applying layout...</p>
+            <p>Loading visualization data...</p>
         </div>
 
         <div id="controls">
@@ -1078,9 +1078,11 @@
     </div>
 
     <script>
-        // Graph data from Jinja2 template
-        const graphData = {{ graph_data| tojson }};
+        // Configuration from Jinja2 template
         const config = {{ config| tojson }};
+        const dataFile = '{{ data_file }}';  // External JSON file to load
+        
+        let graphData = null;  // Will be loaded asynchronously
 
         let graph, renderer, layoutRunning = false, layoutWorker = null;
 
@@ -2067,9 +2069,38 @@
             console.log(`Generated legend with ${sortedColors.length} color categories`);
         }
 
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => {
+        // Load graph data from external JSON file
+        async function loadGraphData() {
             try {
+                document.getElementById('loading').style.display = 'block';
+                
+                const response = await fetch(dataFile);
+                if (!response.ok) {
+                    throw new Error(`Failed to load data: ${response.status} ${response.statusText}`);
+                }
+                
+                graphData = await response.json();
+                console.log('Graph data loaded:', graphData.nodes.length, 'nodes');
+                
+                return true;
+            } catch (error) {
+                console.error('Error loading graph data:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="spinner"></div>
+                    <p style="color: #e74c3c;">Failed to load visualization data</p>
+                    <p style="font-size: 12px; color: #888;">${error.message}</p>
+                `;
+                return false;
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Load external data first
+                const loaded = await loadGraphData();
+                if (!loaded) return;
+                
                 initGraph();
 
                 // Store base node sizes before any scaling
@@ -2114,6 +2145,9 @@
                     }
                 });
 
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
                 console.log('Sigma.js visualization initialized');
                 console.log('Nodes:', graph.order);
                 console.log('Edges:', graph.size);
