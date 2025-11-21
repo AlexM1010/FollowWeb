@@ -866,7 +866,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         include_user_edges: bool = True,
         include_pack_edges: bool = True,
         include_tag_edges: bool = True,
-        tag_similarity_threshold: float = 0.3,
+        tag_similarity_threshold: float = 0.15,
         use_pagination: bool = False,
         sort_order: str = "downloads_desc",
     ) -> dict[str, Any]:
@@ -1862,7 +1862,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Add tag similarity edges
         if include_tag_edges:
-            tag_similarity_threshold = self.config.get("tag_similarity_threshold", 0.3)
+            tag_similarity_threshold = self.config.get("tag_similarity_threshold", 0.15)
             tag_edges = self._add_tag_edges_batch(tag_similarity_threshold)
             stats["tag_edges_added"] = tag_edges
             self.stats["tag_edges_created"] = tag_edges
@@ -1990,9 +1990,17 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return edge_count
 
-    def _add_tag_edges_batch(self, similarity_threshold: float = 0.3) -> int:
+    def _add_tag_edges_batch(self, similarity_threshold: float = 0.15) -> int:
         """
         Add edges between samples with similar tags using Jaccard similarity.
+
+        This is a convenience wrapper around _add_tag_edges_incremental that
+        treats all nodes as "new" to regenerate all edges. Use this when:
+        - Threshold has changed
+        - Full regeneration is needed
+        - Initial edge generation
+
+        For incremental updates, use _add_tag_edges_incremental directly.
 
         NO API REQUESTS - uses only data already in the graph nodes.
 
@@ -2002,72 +2010,27 @@ class IncrementalFreesoundLoader(FreesoundLoader):
         Adds edges for samples with similarity above threshold.
 
         Args:
-            similarity_threshold: Minimum Jaccard similarity to create edge (default: 0.3)
+            similarity_threshold: Minimum Jaccard similarity to create edge (default: 0.15)
 
         Returns:
             Number of edges added
         """
-        edge_count = 0
-
-        # Get all nodes with tags
-        nodes_with_tags = []
-        for node_id in self.graph.nodes():
-            node_data = self.graph.nodes[node_id]
-            tags = node_data.get("tags", [])
-
-            if tags and len(tags) > 0:
-                # Convert to set for efficient intersection/union operations
-                tag_set = set(tags) if isinstance(tags, list) else {tags}
-                nodes_with_tags.append((node_id, tag_set))
-
-        if len(nodes_with_tags) < 2:
+        # Treat all nodes as "new" to regenerate all edges
+        all_node_ids = set(self.graph.nodes())
+        
+        if len(all_node_ids) < 2:
             self.logger.info(
                 "Not enough samples with tags for tag-based edge generation"
             )
             return 0
 
         self.logger.info(
-            f"Calculating tag similarity for {len(nodes_with_tags)} samples "
+            f"Full tag edge regeneration for {len(all_node_ids)} nodes "
             f"(threshold: {similarity_threshold})"
         )
 
-        # Calculate Jaccard similarity for all pairs
-        for i in range(len(nodes_with_tags)):
-            node1_id, tags1 = nodes_with_tags[i]
-
-            for j in range(i + 1, len(nodes_with_tags)):
-                node2_id, tags2 = nodes_with_tags[j]
-
-                # Calculate Jaccard similarity
-                intersection = len(tags1 & tags2)
-                union = len(tags1 | tags2)
-
-                if union == 0:
-                    continue
-
-                similarity = intersection / union
-
-                # Add edge if similarity exceeds threshold
-                if similarity >= similarity_threshold:
-                    # Add bidirectional edges with similarity as weight
-                    if not self.graph.has_edge(node1_id, node2_id):
-                        self.graph.add_edge(
-                            node1_id, node2_id, type="similar_tags", weight=similarity
-                        )
-                        edge_count += 1
-                    if not self.graph.has_edge(node2_id, node1_id):
-                        self.graph.add_edge(
-                            node2_id, node1_id, type="similar_tags", weight=similarity
-                        )
-                        edge_count += 1
-
-        if edge_count > 0:
-            self.logger.info(
-                f"✅ Added {edge_count} tag similarity edges "
-                f"(threshold: {similarity_threshold}, 0 API requests)"
-            )
-
-        return edge_count
+        # Use incremental method with all nodes marked as "new"
+        return self._add_tag_edges_incremental(similarity_threshold, all_node_ids)
 
     def _add_tag_edges_incremental(
         self,
@@ -2111,16 +2074,31 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 else:
                     existing_nodes_with_tags.append(node_tuple)
 
-        # If no new nodes specified, fallback to full regeneration
-        if not new_node_ids or len(new_nodes_with_tags) == 0:
-            self.logger.info("No new nodes specified, falling back to full regeneration")
-            return self._add_tag_edges_batch(similarity_threshold)
+        # If no new nodes specified, nothing to do
+        if not new_node_ids:
+            self.logger.info("No new nodes specified, skipping edge generation")
+            return 0
+        
+        # If no nodes have tags, nothing to do
+        if len(new_nodes_with_tags) == 0 and len(existing_nodes_with_tags) == 0:
+            self.logger.info("No nodes with tags found")
+            return 0
 
-        self.logger.info(
-            f"Incremental tag edge generation: "
-            f"{len(new_nodes_with_tags)} new nodes, "
-            f"{len(existing_nodes_with_tags)} existing nodes"
-        )
+        # Determine if this is full regeneration or incremental
+        is_full_regen = len(existing_nodes_with_tags) == 0
+        
+        if is_full_regen:
+            self.logger.info(
+                f"Generating tag edges for {len(new_nodes_with_tags)} nodes "
+                f"(threshold: {similarity_threshold})"
+            )
+        else:
+            self.logger.info(
+                f"Incremental tag edge generation: "
+                f"{len(new_nodes_with_tags)} new nodes, "
+                f"{len(existing_nodes_with_tags)} existing nodes "
+                f"(threshold: {similarity_threshold})"
+            )
 
         # 1. Check new node ↔ new node pairs
         for i in range(len(new_nodes_with_tags)):
@@ -2202,7 +2180,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             include_user: Create edges between samples by same user
             include_pack: Create edges between samples in same pack
             include_tag: Create edges based on tag similarity
-            tag_threshold: Minimum Jaccard similarity for tag edges (default: 0.3)
+            tag_threshold: Minimum Jaccard similarity for tag edges (default: 0.15)
 
         Returns:
             Dictionary with edge counts by type:

@@ -11,7 +11,7 @@
   "include_user_edges": true,
   "include_pack_edges": true,
   "include_tag_edges": false,
-  "tag_similarity_threshold": 0.3,
+  "tag_similarity_threshold": 0.15,
   
   "checkpoint_interval": 1,
   "max_pending_nodes": 10000,
