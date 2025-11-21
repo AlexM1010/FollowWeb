@@ -4,6 +4,7 @@ Unit tests for SigmaRenderer.
 Tests Sigma.js HTML generation, data format conversion, and configuration handling.
 """
 
+import json
 import os
 import tempfile
 
@@ -147,7 +148,6 @@ class TestSigmaRendererDataConversion:
         assert node["attributes"]["user"] == "testuser"
         # Audio URLs are now reconstructed from sample ID
         assert "audio_urls" in node["attributes"]
-        import json
         audio_urls = json.loads(node["attributes"]["audio_urls"])
         assert len(audio_urls) == 4  # HQ/LQ MP3 and OGG
         assert audio_urls[0] == "https://freesound.org/data/previews/0/1_preview-hq-mp3"
