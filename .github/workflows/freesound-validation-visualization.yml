@@ -457,8 +457,8 @@ jobs:
         fi
         
         # Find and copy latest data file with consistent naming
-        LATEST_DATA=$(ls -t Output/*_data.json 2>/dev/null | head -n1)
-        if [ -n "$LATEST_DATA" ]; then
+        LATEST_DATA=$(find Output -maxdepth 1 -name "*_data.json" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -n1 | cut -d' ' -f2-)
+        if [ -n "$LATEST_DATA" ] && [ -f "$LATEST_DATA" ]; then
           cp "$LATEST_DATA" /tmp/gh-pages-content/graph_data.json
           echo "✅ Copied latest data file: $(basename "$LATEST_DATA") → graph_data.json"
         else
@@ -466,24 +466,24 @@ jobs:
         fi
         
         # Copy static assets (CSS, JS, PNG) if they exist
-        if ls Output/*.css 1> /dev/null 2>&1; then
-          cp Output/*.css /tmp/gh-pages-content/
+        if find Output -maxdepth 1 -name "*.css" -type f -print -quit | grep -q .; then
+          find Output -maxdepth 1 -name "*.css" -type f -exec cp {} /tmp/gh-pages-content/ \;
           echo "✅ Copied CSS files"
         fi
         
-        if ls Output/*.js 1> /dev/null 2>&1; then
-          cp Output/*.js /tmp/gh-pages-content/
+        if find Output -maxdepth 1 -name "*.js" -type f -print -quit | grep -q .; then
+          find Output -maxdepth 1 -name "*.js" -type f -exec cp {} /tmp/gh-pages-content/ \;
           echo "✅ Copied JS files"
         fi
         
-        if ls Output/*.png 1> /dev/null 2>&1; then
-          cp Output/*.png /tmp/gh-pages-content/
+        if find Output -maxdepth 1 -name "*.png" -type f -print -quit | grep -q .; then
+          find Output -maxdepth 1 -name "*.png" -type f -exec cp {} /tmp/gh-pages-content/ \;
           echo "✅ Copied PNG files"
         fi
         
         echo ""
         echo "📦 Deployment package contents:"
-        ls -lh /tmp/gh-pages-content/
+        find /tmp/gh-pages-content/ -type f -exec ls -lh {} \;
         
         # Remove generated files from working directory before branch switch
         rm -f index.html
