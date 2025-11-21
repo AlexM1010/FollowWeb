@@ -448,23 +448,11 @@ jobs:
         cp -r Output /tmp/gh-pages-content/
         cp index.html /tmp/gh-pages-content/
         
-        # Copy JSON data files to gh-pages root for efficient loading
-        # (HTML files reference them as "./filename_data.json")
-        if find Output -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | grep -q .; then
-          find Output -maxdepth 1 -name "*_data.json" -type f -exec cp {} /tmp/gh-pages-content/ \;
-          echo "✅ Copied JSON data files from Output/ to root"
-        fi
+        # Note: JSON data files stay in Output/ directory alongside HTML files
+        # Audio panel assets also stay in Output/ directory
+        # All files are kept together for proper relative path references
         
-        # Copy audio panel assets to root for proper loading
-        # (HTML files reference them as "./audio-panel.css" and "./audio-panel.js")
-        if [ -f "Output/audio-panel.css" ]; then
-          cp Output/audio-panel.css /tmp/gh-pages-content/
-          echo "✅ Copied audio-panel.css to root"
-        fi
-        if [ -f "Output/audio-panel.js" ]; then
-          cp Output/audio-panel.js /tmp/gh-pages-content/
-          echo "✅ Copied audio-panel.js to root"
-        fi
+        echo "✅ Copied Output/ directory with all assets (HTML, JSON, CSS, JS)"
         
         # Remove generated files from working directory before branch switch
         rm -f index.html
@@ -490,7 +478,7 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add Output/ index.html ./*_data.json audio-panel.css audio-panel.js 2>/dev/null || git add Output/ index.html
+          git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
