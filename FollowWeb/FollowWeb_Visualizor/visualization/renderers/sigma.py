@@ -662,17 +662,25 @@ class SigmaRenderer(Renderer):
                 audio_urls = []
                 if "audio_url" in node_attrs and node_attrs["audio_url"]:
                     audio_urls.append(str(node_attrs["audio_url"]))
-                elif "previews" in node_attrs and isinstance(node_attrs["previews"], dict):
+                elif "previews" in node_attrs and isinstance(
+                    node_attrs["previews"], dict
+                ):
                     # Collect all available preview URLs in order of preference
                     # Howler.js will automatically select the best format for the browser
                     previews = node_attrs["previews"]
-                    for key in ["preview-hq-mp3", "preview-lq-mp3", "preview-hq-ogg", "preview-lq-ogg"]:
+                    for key in [
+                        "preview-hq-mp3",
+                        "preview-lq-mp3",
+                        "preview-hq-ogg",
+                        "preview-lq-ogg",
+                    ]:
                         if key in previews and previews[key]:
                             audio_urls.append(previews[key])
-                
+
                 # Store as JSON array string for JavaScript consumption
                 if audio_urls:
                     import json
+
                     sigma_node["attributes"]["audio_urls"] = json.dumps(audio_urls)
 
                 if "license" in node_attrs:
