@@ -376,9 +376,23 @@ class TestFreesoundSigmaPipelineIntegration:
             assert "tone" in html_content.lower()  # Tone.js for audio
             assert "audio" in html_content.lower()
 
-            # Check for Freesound data
-            assert "sample_" in html_content
-            assert "freesound.org" in html_content
+            # Check for external JSON data file reference
+            assert "_data.json" in html_content
+
+            # Verify JSON data file exists and contains Freesound data
+            json_files = list(Path(tmpdir).glob("*_data.json"))
+            assert len(json_files) > 0
+            
+            import json
+            with open(json_files[0], encoding="utf-8") as f:
+                graph_data = json.load(f)
+            
+            # Check for Freesound data in JSON
+            assert "nodes" in graph_data
+            assert len(graph_data["nodes"]) > 0
+            # Check that nodes have sample IDs (sample_XXXXX format)
+            node_ids = [node["key"] for node in graph_data["nodes"]]
+            assert any("sample_" in node_id for node_id in node_ids)
 
     @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
     def test_freesound_sigma_with_audio_disabled(self, mock_loader_class):
