@@ -890,8 +890,12 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         self._increment_request_count()
 
                         sample_data = self._extract_sample_metadata(full_sound)
-                        page_samples.append(sample_data)
-                        samples.append(sample_data)
+                        if sample_data is not None:
+                            page_samples.append(sample_data)
+                            samples.append(sample_data)
+                        else:
+                            # Mark as processed so we don't try to fetch it again
+                            self.processed_ids.add(str(sample_id))
                     except Exception as e:
                         self.logger.warning(f"Skipping invalid sample {sample_id}: {e}")
                         # Mark as processed so we don't try to fetch it again
@@ -2731,6 +2735,13 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     self._increment_request_count()
                     new_metadata = self._extract_sample_metadata(sound)
 
+                    # Skip if metadata is invalid
+                    if new_metadata is None:
+                        self.logger.warning(
+                            f"Skipping node {node_id} with invalid metadata"
+                        )
+                        continue
+
                     # Get current attributes
                     current_attrs = dict(self.graph.nodes[node_id])
 
@@ -3082,6 +3093,20 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
                     # Extract complete metadata
                     sample_data = self._extract_sample_metadata(sound)
+
+                    # Skip invalid samples (e.g., 0 byte filesize) but mark as processed
+                    if sample_data is None:
+                        # Add to metadata cache so we don't retry this sample
+                        if hasattr(self, "metadata_cache"):
+                            invalid_metadata = {
+                                "id": sound.id,
+                                "invalid": True,
+                                "invalid_reason": "zero_byte_filesize",
+                                "last_metadata_update_at": now,
+                            }
+                            self.metadata_cache.set(sound.id, invalid_metadata)
+                        continue
+
                     sample_data["last_metadata_update_at"] = now
 
                     samples.append(sample_data)

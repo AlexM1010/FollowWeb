@@ -447,7 +447,8 @@ class FreesoundLoader(DataLoader):
                     break
                 try:
                     sample_data = self._extract_sample_metadata(sound)
-                    samples.append(sample_data)
+                    if sample_data is not None:
+                        samples.append(sample_data)
                 except Exception as e:
                     self.logger.warning(
                         f"Failed to extract metadata for sample {sound.id}: {e}"
@@ -464,7 +465,8 @@ class FreesoundLoader(DataLoader):
                         break
                     try:
                         sample_data = self._extract_sample_metadata(sound)
-                        samples.append(sample_data)
+                        if sample_data is not None:
+                            samples.append(sample_data)
                     except Exception as e:
                         self.logger.warning(
                             f"Failed to extract metadata for sample {sound.id}: {e}"
@@ -476,7 +478,7 @@ class FreesoundLoader(DataLoader):
 
         return samples
 
-    def _extract_sample_metadata(self, sound) -> dict[str, Any]:
+    def _extract_sample_metadata(self, sound) -> Optional[dict[str, Any]]:
         """
         Extract metadata from Freesound sound object.
 
@@ -484,14 +486,18 @@ class FreesoundLoader(DataLoader):
             sound: Freesound sound object from API (must be full object from get_sound())
 
         Returns:
-            Dictionary with sample metadata (audio URLs reconstructed at visualization time)
+            Dictionary with sample metadata (audio URLs reconstructed at visualization time),
+            or None if the sample is invalid (e.g., 0 byte filesize)
         """
         # Get full metadata dict - this contains EVERYTHING from the API
         sound_dict = sound.as_dict()
 
-        # Validate filesize
+        # Validate filesize - return None for invalid samples (will be skipped)
         if sound_dict.get("filesize", 0) == 0:
-            raise ValueError(f"Sample {sound.id} has invalid filesize (0 bytes)")
+            self.logger.warning(
+                f"Skipping sample {sound.id} with invalid filesize (0 bytes)"
+            )
+            return None
 
         # Start with the complete API response (saves everything!)
         metadata = sound_dict.copy()
@@ -660,6 +666,8 @@ class FreesoundLoader(DataLoader):
             )
             sound = self._sound_cache[sample_id]
             metadata = self._extract_sample_metadata(sound)
+            if metadata is None:
+                raise ValueError(f"Sample {sample_id} has invalid metadata")
             if return_sound:
                 return metadata, sound
             return metadata
@@ -681,6 +689,8 @@ class FreesoundLoader(DataLoader):
 
         # Extract metadata
         metadata = self._extract_sample_metadata(sound)
+        if metadata is None:
+            raise ValueError(f"Sample {sample_id} has invalid metadata")
 
         if return_sound:
             return metadata, sound
@@ -709,6 +719,8 @@ class FreesoundLoader(DataLoader):
 
         # Extract metadata from the sound object
         metadata = self._extract_sample_metadata(sound)
+        if metadata is None:
+            raise ValueError(f"Sample {sample_id} has invalid metadata")
 
         # Fetch similar sounds using the same sound object (1 API call)
         similar_list = []
