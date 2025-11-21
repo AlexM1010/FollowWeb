@@ -137,7 +137,9 @@ class TestCompleteWorkflowFreesoundToSigma:
 
             # Verify Freesound data in JSON data file
             json_files = list(Path(tmpdir).glob("*_data.json"))
-            assert len(json_files) > 0, "Sigma renderer should generate a JSON data file"
+            assert len(json_files) > 0, (
+                "Sigma renderer should generate a JSON data file"
+            )
 
             import json
 
@@ -156,7 +158,7 @@ class TestCompleteWorkflowFreesoundToSigma:
 
             # Check node attributes contain expected Freesound data
             node_attrs = [node.get("attributes", {}) for node in graph_data["nodes"]]
-            
+
             # Check for names containing drum_sample_
             node_names = [attrs.get("name", "") for attrs in node_attrs if attrs]
             assert any("drum_sample_" in name for name in node_names), (
@@ -176,7 +178,7 @@ class TestCompleteWorkflowFreesoundToSigma:
                         all_urls.extend(urls)
                     except json.JSONDecodeError:
                         pass
-            
+
             assert any("freesound.org" in url for url in all_urls), (
                 "Should have freesound.org URLs"
             )
@@ -255,7 +257,9 @@ class TestAudioPlaybackIntegration:
 
             # Verify audio URLs are in JSON data file
             json_files = list(Path(tmpdir).glob("*_data.json"))
-            assert len(json_files) > 0, "Sigma renderer should generate a JSON data file"
+            assert len(json_files) > 0, (
+                "Sigma renderer should generate a JSON data file"
+            )
 
             import json
 
@@ -268,7 +272,7 @@ class TestAudioPlaybackIntegration:
                 for node in graph_data.get("nodes", [])
                 if node.get("attributes")
             ]
-            
+
             # Parse audio_urls JSON strings
             all_urls = []
             for attrs in node_attrs:
@@ -279,7 +283,7 @@ class TestAudioPlaybackIntegration:
                         all_urls.extend(urls)
                     except json.JSONDecodeError:
                         pass
-            
+
             assert any("preview" in url and ".mp3" in url for url in all_urls), (
                 "Should have preview.mp3 URLs in node data"
             )

@@ -449,9 +449,19 @@ jobs:
         cp index.html /tmp/gh-pages-content/
         
         # Copy JSON data files to gh-pages for efficient loading
-        if find . -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | grep -q .; then
-          find . -maxdepth 1 -name "*_data.json" -type f -exec cp {} /tmp/gh-pages-content/ \;
-          echo "✅ Copied JSON data files"
+        if find Output -maxdepth 1 -name "*_data.json" -type f 2>/dev/null | grep -q .; then
+          find Output -maxdepth 1 -name "*_data.json" -type f -exec cp {} /tmp/gh-pages-content/ \;
+          echo "✅ Copied JSON data files from Output/"
+        fi
+        
+        # Copy audio panel assets (CSS and JS) from Output directory
+        if [ -f "Output/audio-panel.css" ]; then
+          cp Output/audio-panel.css /tmp/gh-pages-content/
+          echo "✅ Copied audio-panel.css"
+        fi
+        if [ -f "Output/audio-panel.js" ]; then
+          cp Output/audio-panel.js /tmp/gh-pages-content/
+          echo "✅ Copied audio-panel.js"
         fi
         
         # Remove generated files from working directory before branch switch
@@ -479,7 +489,7 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add Output/ index.html ./*_data.json 2>/dev/null || git add Output/ index.html
+          git add Output/ index.html ./*_data.json audio-panel.css audio-panel.js 2>/dev/null || git add Output/ index.html
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
