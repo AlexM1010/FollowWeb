@@ -150,7 +150,9 @@ class TestSigmaRendererDataConversion:
         assert "audio_urls" in node["attributes"]
         audio_urls = json.loads(node["attributes"]["audio_urls"])
         assert len(audio_urls) == 4  # HQ/LQ MP3 and OGG
-        assert audio_urls[0] == "https://freesound.org/data/previews/0/1_preview-hq-mp3"
+        assert (
+            audio_urls[0] == "https://freesound.org/data/previews/0/1_preview-hq-mp3.mp3"
+        )
         assert node["attributes"]["x"] == 10.0
         assert node["attributes"]["y"] == 20.0
         assert node["attributes"]["size"] == 15.0

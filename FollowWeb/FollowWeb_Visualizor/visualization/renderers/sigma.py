@@ -669,12 +669,12 @@ class SigmaRenderer(Renderer):
                     )
 
                     # Generate all preview format URLs in order of preference (HQ first)
-                    # Format: {base}_preview-hq-{format} and {base}_preview-lq-{format}
+                    # Format: {base}_preview-hq-{format}.{ext}
                     audio_urls = [
-                        f"{base_url}_preview-hq-mp3",
-                        f"{base_url}_preview-lq-mp3",
-                        f"{base_url}_preview-hq-ogg",
-                        f"{base_url}_preview-lq-ogg",
+                        f"{base_url}_preview-hq-mp3.mp3",
+                        f"{base_url}_preview-lq-mp3.mp3",
+                        f"{base_url}_preview-hq-ogg.ogg",
+                        f"{base_url}_preview-lq-ogg.ogg",
                     ]
                 except (ValueError, TypeError):
                     # If node_id is not a valid integer, skip audio URLs
