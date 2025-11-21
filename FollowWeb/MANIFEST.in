@@ -8,6 +8,9 @@ include TESTING_QUICK_REFERENCE.md
 # Include configuration files
 recursive-include configs *.json *.md
 
+# Include template assets (CSS, JS for visualizations)
+recursive-include FollowWeb_Visualizor *.css *.js
+
 # Include documentation
 recursive-include docs *.md *.rst *.json
 

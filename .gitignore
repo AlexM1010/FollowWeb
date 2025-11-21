@@ -8,7 +8,13 @@ github-ci-logs.txt
 tests/Output/
 tests\Output
 TestOutput*.txt
-# Output/freesound_seed*.html  # Commented out to allow deployment triggers
+
+# Output directory - keep only one example visualization
+Output/*.html
+Output/*.png
+!Output/freesound_example.html
+!Output/.gitkeep
+
 analysis_reports/comprehensive_validation_*.json
 test_checkpoint/
 edge_stats.json

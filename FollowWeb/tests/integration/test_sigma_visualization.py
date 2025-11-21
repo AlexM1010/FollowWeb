@@ -441,13 +441,18 @@ class TestSigmaVisualizationJavaScriptValidation:
             with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
-            # Check for zoom controls
-            assert "zoom-in" in html_content
-            assert "zoom-out" in html_content
-            assert "reset-view" in html_content
-
-            # Check for search
-            assert "search-input" in html_content
+            # Check for control elements
+            assert 'id="search"' in html_content
+            assert "resetView()" in html_content
+            assert "highlightNode()" in html_content
+            
+            # Check for physics controls
+            assert "startLayout()" in html_content
+            assert "stopLayout()" in html_content
+            
+            # Check for toggle controls
+            assert 'id="showLabels"' in html_content
+            assert 'id="showTooltips"' in html_content
 
 
 @pytest.mark.integration
