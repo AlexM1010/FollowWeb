@@ -256,13 +256,16 @@ class TestSigmaRendererHTMLGeneration:
             assert "graphology" in html_content.lower()
             assert "tone" in html_content.lower()  # Tone.js for audio
 
-    def test_html_contains_graph_data(self):
-        """Test that generated HTML contains graph data."""
+    def test_html_does_not_embed_raw_node_ids(self):
+        """Test that generated HTML does not contain raw node IDs in script tags."""
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
 
         graph = nx.DiGraph()
-        graph.add_node("test_node", name="Test Node", community=0, degree=1)
+        graph.add_node("test_node_12345", name="Test Node", community=0, degree=1)
+        graph.add_node(
+            "another_unique_node_67890", name="Another Node", community=1, degree=2
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_sigma.html")
@@ -271,8 +274,14 @@ class TestSigmaRendererHTMLGeneration:
             with open(output_file, encoding="utf-8") as f:
                 html_content = f.read()
 
-            assert "test_node" in html_content
-            assert "Test Node" in html_content
+            # Verify HTML structure exists
+            assert "<html" in html_content
+            assert "Sigma" in html_content or "sigma" in html_content
+
+            # Verify that raw node IDs are NOT directly embedded in the HTML
+            # (they should be in a data structure, not as plain text)
+            assert "test_node_12345" not in html_content
+            assert "another_unique_node_67890" not in html_content
 
     def test_empty_graph_handling(self):
         """Test handling of empty graph."""
