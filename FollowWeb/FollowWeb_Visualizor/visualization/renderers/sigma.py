@@ -655,8 +655,23 @@ class SigmaRenderer(Renderer):
                 if "user" in node_attrs:
                     sigma_node["attributes"]["user"] = str(node_attrs["user"])
 
-                if "audio_url" in node_attrs:
-                    sigma_node["attributes"]["audio_url"] = str(node_attrs["audio_url"])
+                # Extract audio URL from previews dict or use direct audio_url
+                audio_url = ""
+                if "audio_url" in node_attrs and node_attrs["audio_url"]:
+                    audio_url = str(node_attrs["audio_url"])
+                elif "previews" in node_attrs and isinstance(node_attrs["previews"], dict):
+                    # Try to get high-quality MP3 preview
+                    previews = node_attrs["previews"]
+                    audio_url = (
+                        previews.get("preview-hq-mp3")
+                        or previews.get("preview-lq-mp3")
+                        or previews.get("preview-hq-ogg")
+                        or previews.get("preview-lq-ogg")
+                        or ""
+                    )
+                
+                if audio_url:
+                    sigma_node["attributes"]["audio_url"] = audio_url
 
                 if "license" in node_attrs:
                     sigma_node["attributes"]["license"] = str(node_attrs["license"])
