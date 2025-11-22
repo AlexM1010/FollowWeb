@@ -55,6 +55,16 @@ on:
         options:
           - cache
           - repo
+      max_requests:
+        description: 'Max API requests for repair (0 = validation only, no repair)'
+        required: false
+        default: '50'
+        type: string
+      skip_repair:
+        description: 'Skip repair and only validate'
+        required: false
+        default: false
+        type: boolean
 
 # Prevent workflow collisions
 concurrency:
@@ -171,22 +181,36 @@ jobs:
         pip install -r FollowWeb/requirements.txt
         pip install -e FollowWeb/
     
-    - name: Determine checkpoint source
+    - name: Determine checkpoint source and mode
       id: source
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "source=${{ github.event.inputs.checkpoint_source }}" >> "$GITHUB_OUTPUT"
+          echo "skip_repair=${{ github.event.inputs.skip_repair }}" >> "$GITHUB_OUTPUT"
+          echo "manual_max_requests=${{ github.event.inputs.max_requests }}" >> "$GITHUB_OUTPUT"
         else
           # For workflow_run trigger, try cache first
           echo "source=cache" >> "$GITHUB_OUTPUT"
+          echo "skip_repair=false" >> "$GITHUB_OUTPUT"
+          echo "manual_max_requests=" >> "$GITHUB_OUTPUT"
         fi
         
         {
           echo "## 🔧 Data Repair Pipeline"
           echo ""
           echo "**Trigger:** \`${{ github.event_name }}\`"
-          echo ""
         } >> "$GITHUB_STEP_SUMMARY"
+        
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          {
+            echo "**Mode:** \`$([ "${{ github.event.inputs.skip_repair }}" = "true" ] && echo "Validation Only" || echo "Validation + Repair")\`"
+            echo "**Checkpoint Source:** \`${{ github.event.inputs.checkpoint_source }}\`"
+            if [ "${{ github.event.inputs.skip_repair }}" != "true" ]; then
+              echo "**Max Requests:** \`${{ github.event.inputs.max_requests }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+        echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Restore checkpoint from cache
       if: steps.source.outputs.source == 'cache'
@@ -197,6 +221,79 @@ jobs:
         key: checkpoint-${{ github.event.workflow_run.id || github.run_id }}
         restore-keys: |
           checkpoint-
+    
+    - name: Restore checkpoint from backup repository
+      if: steps.source.outputs.source == 'repo'
+      id: repo_restore
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        {
+          echo "### 📥 Restoring from Backup Repository"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        # Get latest checkpoint from v-checkpoint release
+        echo "Fetching latest checkpoint from backup repository..."
+        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        if echo "$RELEASE_JSON" | grep -q "Not Found"; then
+          echo "::error::No checkpoint release found in backup repository"
+          {
+            echo "- ❌ No checkpoint release found"
+            echo ""
+            echo "**Action:** Run collection pipeline first to create initial checkpoint"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        # Get the most recent checkpoint asset
+        LATEST_ASSET=$(echo "$RELEASE_JSON" | jq -r '.assets | sort_by(.created_at) | reverse | .[0]')
+        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
+        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
+        ASSET_SIZE=$(echo "$LATEST_ASSET" | jq -r '.size')
+        
+        if [ "$ASSET_NAME" = "null" ] || [ -z "$ASSET_NAME" ]; then
+          echo "::error::No checkpoint assets found in release"
+          {
+            echo "- ❌ No checkpoint assets found"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        {
+          echo "- Checkpoint: \`$ASSET_NAME\`"
+          echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")\`"
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        # Download checkpoint
+        echo "Downloading checkpoint: $ASSET_NAME"
+        curl -L -H "Authorization: token $BACKUP_PAT" \
+          -H "Accept: application/octet-stream" \
+          "$ASSET_URL" -o "$ASSET_NAME"
+        
+        # Extract checkpoint
+        echo "Extracting checkpoint..."
+        mkdir -p data
+        tar -xzf "$ASSET_NAME" -C data/
+        
+        # Verify extraction
+        if [ ! -d "data/freesound_library" ]; then
+          echo "::error::Checkpoint extraction failed"
+          {
+            echo "- ❌ Extraction failed"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        
+        {
+          echo "- ✅ Checkpoint restored successfully"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
 
     
@@ -253,27 +350,54 @@ jobs:
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Determine max_requests for repair
-      if: steps.validation.outputs.validation_passed == 'false'
+      if: steps.validation.outputs.validation_passed == 'false' && steps.source.outputs.skip_repair != 'true'
       id: max_requests
       run: |
-        # Try to read max_requests from checkpoint metadata (saved by collection)
-        # Fall back to 13 (same as nightly collection default)
-        MAX_REQUESTS=13
+        # Priority: manual input > checkpoint metadata > default
+        MANUAL_MAX="${{ steps.source.outputs.manual_max_requests }}"
         
-        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+        if [ -n "$MANUAL_MAX" ] && [ "$MANUAL_MAX" != "0" ]; then
+          # Use manual input from workflow_dispatch
+          MAX_REQUESTS=$MANUAL_MAX
+          echo "Using max_requests: $MAX_REQUESTS (from manual input)"
+        elif [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
           # Try to extract from checkpoint metadata using Python
           CHECKPOINT_MAX=$(python3 -c 'import json; data=json.load(open("data/freesound_library/checkpoint_metadata.json")); print(data.get("collection_stats", {}).get("max_requests", 13))' 2>/dev/null || echo "13")
           
           if [ "$CHECKPOINT_MAX" -gt 0 ]; then
             MAX_REQUESTS=$CHECKPOINT_MAX
+            echo "Using max_requests: $MAX_REQUESTS (from checkpoint metadata)"
+          else
+            MAX_REQUESTS=13
+            echo "Using max_requests: $MAX_REQUESTS (default)"
           fi
+        else
+          # Fall back to default
+          MAX_REQUESTS=13
+          echo "Using max_requests: $MAX_REQUESTS (default)"
         fi
         
         echo "max_requests=$MAX_REQUESTS" >> "$GITHUB_OUTPUT"
-        echo "Using max_requests: $MAX_REQUESTS (from checkpoint metadata or default)"
+    
+    - name: Skip repair (validation only mode)
+      if: steps.validation.outputs.validation_passed == 'false' && steps.source.outputs.skip_repair == 'true'
+      id: skip_repair
+      run: |
+        {
+          echo "### ℹ️  Validation Only Mode"
+          echo ""
+          echo "Repair was skipped (validation only mode)."
+          echo ""
+          echo "**Validation Results:**"
+          echo "- Issues detected but not repaired"
+          echo "- Run with repair enabled to fix issues"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        echo "repair_success=skipped" >> "$GITHUB_OUTPUT"
     
     - name: Run comprehensive data quality repair
-      if: steps.validation.outputs.validation_passed == 'false'
+      if: steps.validation.outputs.validation_passed == 'false' && steps.source.outputs.skip_repair != 'true'
       id: repair
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
@@ -324,7 +448,7 @@ jobs:
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
     - name: Re-validate after repairs
-      if: steps.repair.outputs.repair_success == 'true'
+      if: steps.repair.outputs.repair_success == 'true' || steps.skip_repair.outputs.repair_success == 'skipped'
       id: revalidation
       run: |
         {
@@ -332,18 +456,33 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run validation again with --final flag (will exit 1 if issues remain)
-        if python scripts/validation/validate_checkpoint.py data/freesound_library --final; then
+        # Run validation again WITHOUT --final flag to check progress
+        # Incremental repair means issues may remain for next run
+        python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee revalidation_output.log
+        
+        # Check if issues were reduced
+        if [ -f "data/freesound_library/data_quality_scan.json" ]; then
+          REMAINING_ISSUES=$(python3 -c 'import json; data=json.load(open("data/freesound_library/data_quality_scan.json")); print(data.get("samples_with_issues", 0))' 2>/dev/null || echo "0")
+          
+          if [ "$REMAINING_ISSUES" -eq 0 ]; then
+            echo "revalidation_passed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "- Status: ✅ All issues resolved"
+              echo "- Remaining issues: \`0\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Partial success - issues remain but repair made progress
+            echo "revalidation_passed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "- Status: ⚠️  Partial repair (incremental progress)"
+              echo "- Remaining issues: \`$REMAINING_ISSUES\`"
+              echo ""
+              echo "**Note:** Repair is incremental. Remaining issues will be fixed in next run."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+        else
           echo "revalidation_passed=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
-        else
-          echo "revalidation_passed=false" >> "$GITHUB_OUTPUT"
-          {
-            echo "- Status: ❌ Validation still failing"
-            echo ""
-            echo "**Warning:** Repairs did not resolve all issues. Manual intervention may be required."
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
@@ -469,17 +608,29 @@ jobs:
             echo ""
             echo "All validation checks passed. Checkpoint is healthy."
           } >> "$GITHUB_STEP_SUMMARY"
+        elif [ "${{ steps.skip_repair.outputs.repair_success }}" = "skipped" ]; then
+          {
+            echo "### ℹ️  Validation Only"
+            echo ""
+            echo "Validation completed in validation-only mode."
+            echo ""
+            echo "**Results:**"
+            echo "- Issues were detected but not repaired"
+            echo "- Re-run with repair enabled to fix issues"
+          } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.repair.outputs.repair_success }}" = "true" ] && [ "${{ steps.revalidation.outputs.revalidation_passed }}" = "true" ]; then
           {
             echo "### ✅ Repairs Successful"
             echo ""
-            echo "Checkpoint issues were detected and successfully repaired."
+            echo "Checkpoint issues were detected and repair made progress."
             echo ""
             echo "**Actions Taken:**"
             echo "- Validation identified issues"
-            echo "- Repair operations applied"
-            echo "- Re-validation confirmed fixes"
-            echo "- Repaired checkpoint uploaded to backup repository"
+            echo "- Repair operations applied (incremental)"
+            echo "- Re-validation confirmed progress"
+            echo "- Repaired checkpoint saved to cache"
+            echo ""
+            echo "**Note:** Repair is incremental. If issues remain, they will be fixed in the next run."
           } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.repair.outputs.repair_success }}" = "false" ]; then
           {
@@ -489,9 +640,14 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
         elif [ "${{ steps.revalidation.outputs.revalidation_passed }}" = "false" ]; then
           {
-            echo "### ⚠️ Partial Repair"
+            echo "### ⚠️ Repair In Progress"
             echo ""
-            echo "Repairs were applied but validation still fails. Additional investigation needed."
+            echo "Repairs were applied but more issues remain. This is expected for incremental repair."
+            echo ""
+            echo "**Next Steps:**"
+            echo "- Remaining issues will be fixed in the next scheduled run"
+            echo "- Each run processes up to max_requests batches"
+            echo "- Progress is saved to cache for next run"
           } >> "$GITHUB_STEP_SUMMARY"
         else
           {

@@ -13,10 +13,19 @@ This directory contains all GitHub Actions workflow files for the FollowWeb proj
 
 ### Freesound Pipelines
 
+#### Automated Pipelines
 - **freesound-nightly-pipeline.yml** - Daily data collection (2 AM UTC Mon-Sat)
-- **freesound-validation.yml** - Weekly quick validation (Sunday 3 AM UTC)
-- **freesound-full-validation.yml** - Monthly full validation (1st of month 4 AM UTC)
-- **freesound-data-remediation.yml** - Manual data integrity fixes
+- **freesound-data-repair.yml** - Automated data validation and repair (runs after collection)
+- **freesound-validation-visualization.yml** - Validation and visualization generation
+- **freesound-backup.yml** - Checkpoint backup management (runs after validation)
+
+#### Scheduled Validation
+- **freesound-quick-validation.yml** - Weekly quick validation (Sunday 3 AM UTC, 300 samples)
+- **freesound-full-validation.yml** - Monthly full validation (1st of month 4 AM UTC, all samples)
+
+#### Maintenance
+- **freesound-backup-maintenance.yml** - Backup cleanup and retention management
+- **freesound-metrics-dashboard.yml** - Metrics dashboard generation
 
 ### Maintenance Workflows
 
