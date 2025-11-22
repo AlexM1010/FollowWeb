@@ -119,7 +119,7 @@ def benchmark_merge(results: list, original_graph: nx.DiGraph) -> tuple[float, f
 
 
 # ============================================================================
-# Task 16.5: Performance benchmarks
+# Performance benchmarks
 # ============================================================================
 
 

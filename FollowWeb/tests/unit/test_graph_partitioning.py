@@ -112,7 +112,7 @@ def temp_partition_dir():
 
 
 # ============================================================================
-# Task 16.1: Unit tests for GraphPartitioner
+# Unit tests for GraphPartitioner
 # ============================================================================
 
 
@@ -307,7 +307,7 @@ class TestGraphPartitioner:
 
 
 # ============================================================================
-# Task 16.2: Unit tests for PartitionAnalysisWorker
+# Unit tests for PartitionAnalysisWorker
 # ============================================================================
 
 
@@ -446,7 +446,7 @@ class TestPartitionAnalysisWorker:
 
 
 # ============================================================================
-# Task 16.3: Unit tests for PartitionResultsMerger
+# Unit tests for PartitionResultsMerger
 # ============================================================================
 
 

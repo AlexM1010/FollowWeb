@@ -197,7 +197,7 @@ def loader_config(temp_checkpoint_dir):
 
 
 class TestSearchBasedCollectionBenchmarks:
-    """Benchmark tests for search-based collection (Task 10.1)."""
+    """Benchmark tests for search-based collection."""
 
     @pytest.mark.benchmark
     def test_search_collection_speed(
@@ -372,7 +372,7 @@ class TestSearchBasedCollectionBenchmarks:
 
 
 class TestEdgeGenerationBenchmarks:
-    """Benchmark tests for edge generation (Task 10.2)."""
+    """Benchmark tests for edge generation."""
 
     @pytest.mark.benchmark
     def test_user_edge_generation_speed(

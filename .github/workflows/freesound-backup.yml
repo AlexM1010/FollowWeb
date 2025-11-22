@@ -158,7 +158,6 @@ jobs:
           echo "timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
         } >> "$GITHUB_OUTPUT"
     
-    # Subtask 11.1: Implement failure detection and cache restore
     - name: Detect backup reason and determine cache strategy
       id: backup_reason
       run: |
@@ -297,8 +296,6 @@ jobs:
         echo "✅ Cache restored successfully"
     
 
-
-    # Subtask 11.2: Implement checkpoint integrity verification
     - name: Verify checkpoint integrity
       id: verification
       run: |
@@ -551,7 +548,6 @@ jobs:
           fi
         fi
 
-    # Subtask 19.1: Implement backup verification
     - name: Verify backup file integrity
       if: steps.create_backup.outputs.backup_created == 'true'
       id: verify_backup
@@ -664,7 +660,6 @@ jobs:
         
         echo "verification_passed=true" >> "$GITHUB_OUTPUT"
 
-    # Subtask 11.4: Implement backup upload with tier-specific releases
     - name: Upload backup to PRIMARY repository
       if: steps.verify_backup.outputs.verification_passed == 'true'
       id: upload_backup
@@ -1005,7 +1000,6 @@ jobs:
         
         echo "✅ Retention policy applied"
 
-    # Subtask 19.3: Implement rollback on failure
     - name: Cleanup on failure
       if: failure()
       run: |
@@ -1075,7 +1069,6 @@ jobs:
           echo "4. Next scheduled run will attempt backup again"
         } >> "$GITHUB_STEP_SUMMARY"
 
-    # Subtask 11.6: Add run summary with failure recovery status
     - name: Generate backup summary
       if: always()
       env:

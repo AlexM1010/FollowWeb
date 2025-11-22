@@ -83,7 +83,7 @@ def temp_artifacts_dir():
 
 
 # ============================================================================
-# Task 16.4: Integration tests for full pipeline
+# Integration tests for full pipeline
 # ============================================================================
 
 

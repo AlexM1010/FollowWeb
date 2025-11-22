@@ -4,7 +4,7 @@ Memory profiling tests for the refactored Freesound search-based collection.
 These tests profile memory usage and verify the 30% reduction target compared
 to the legacy recursive implementation.
 
-Test Category: Task 10.3 - Profile memory usage
+Test Category: Memory profiling tests
 
 Usage:
     pytest tests/performance/test_freesound_memory_profiling.py -m performance -n 0
@@ -137,7 +137,7 @@ def get_memory_usage_mb():
 
 
 class TestMemoryProfiling:
-    """Memory profiling tests (Task 10.3)."""
+    """Memory profiling tests."""
 
     @pytest.mark.performance
     def test_peak_memory_during_collection(self, loader_config, mock_freesound_client):

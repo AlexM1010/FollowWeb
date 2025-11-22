@@ -6,7 +6,7 @@ These tests compare the performance characteristics of different discovery modes
 - relationships: Relationship-based discovery (user/pack)
 - mixed: Combination of search and relationships
 
-Test Category: Task 10.5 - Benchmark discovery modes
+Test Category: Discovery mode comparison tests
 
 Usage:
     pytest tests/performance/test_freesound_discovery_modes.py -m performance -n 0 -v
@@ -166,7 +166,7 @@ def collect_metrics(loader, elapsed_time: float, api_client) -> dict[str, Any]:
 
 
 class TestDiscoveryModeComparisons:
-    """Discovery mode comparison tests (Task 10.5)."""
+    """Discovery mode comparison tests."""
 
     @pytest.mark.performance
     def test_search_mode_performance(self, loader_config, mock_freesound_client):

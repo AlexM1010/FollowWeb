@@ -4,7 +4,7 @@ Large-scale performance tests for the refactored Freesound search-based collecti
 These tests verify that the system scales properly with large datasets and
 large pending node queues.
 
-Test Category: Task 10.4 - Run large-scale tests
+Test Category: Large-scale performance tests
 
 Usage:
     pytest tests/performance/test_freesound_large_scale.py -m performance -n 0 -v
@@ -121,7 +121,7 @@ def loader_config(temp_checkpoint_dir):
 
 
 class TestLargeScalePerformance:
-    """Large-scale performance tests (Task 10.4)."""
+    """Large-scale performance tests."""
 
     @pytest.mark.performance
     @pytest.mark.slow

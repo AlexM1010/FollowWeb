@@ -103,7 +103,6 @@ jobs:
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
-    # Subtask 10.1: Restore checkpoint from cache
     - name: Restore checkpoint from cache
       if: steps.params.outputs.use_cache == 'true'
       uses: actions/cache/restore@v3
@@ -229,7 +228,6 @@ jobs:
         echo "✅ All checkpoint files present and valid"
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
-    # Subtask 10.2: Validate checkpoint integrity
     - name: Validate checkpoint integrity
       id: validation
       continue-on-error: true
@@ -265,7 +263,6 @@ jobs:
           # Don't exit - continue with visualization
         fi
 
-    # Subtask 10.3: Generate edges from existing data
     - name: Generate edges (zero API requests)
       if: steps.validation.outputs.validation_passed == 'true'
       id: edge-generation
@@ -309,7 +306,6 @@ jobs:
           echo "⚠️  Edge statistics file not found"
         fi
 
-    # Subtask 10.4: Generate visualization
     - name: Generate Sigma.js visualization
       if: steps.validation.outputs.validation_passed == 'true'
       id: visualization
@@ -404,7 +400,6 @@ jobs:
           exit 1
         fi
 
-    # Subtask 10.5: Deploy to GitHub Pages
     - name: Update landing page
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true'
       id: landing-page
@@ -651,7 +646,6 @@ jobs:
           fi
         } >> "$GITHUB_STEP_SUMMARY"
 
-# Note: Subtask 10.6 - Backup workflow trigger
 # The backup workflow (freesound-backup.yml) is configured with:
 #   on:
 #     workflow_run:
