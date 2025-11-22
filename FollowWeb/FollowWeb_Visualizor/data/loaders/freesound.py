@@ -510,11 +510,27 @@ class FreesoundLoader(DataLoader):
         uploader_id_pattern = re.compile(r"_(\d+)-")
 
         if "previews" in sound_dict:
-            preview_url = sound_dict["previews"].get("preview-hq-mp3", "")
-            match = uploader_id_pattern.search(preview_url)
-            if match:
-                metadata["uploader_id"] = int(match.group(1))
-            elif not preview_url or not sound_dict["previews"]:
+            # Try all available preview formats (hq-mp3, lq-mp3, hq-ogg, lq-ogg)
+            preview_formats = [
+                "preview-hq-mp3",
+                "preview-lq-mp3",
+                "preview-hq-ogg",
+                "preview-lq-ogg"
+            ]
+            
+            preview_url = None
+            for format_key in preview_formats:
+                url = sound_dict["previews"].get(format_key, "")
+                if url:
+                    preview_url = url
+                    break
+            
+            if preview_url:
+                match = uploader_id_pattern.search(preview_url)
+                if match:
+                    metadata["uploader_id"] = int(match.group(1))
+            
+            if not preview_url or not sound_dict["previews"]:
                 # Previews field exists but is empty - mark as unavailable from Freesound
                 metadata["_missing_from_freesound"] = metadata.get(
                     "_missing_from_freesound", []

@@ -219,22 +219,27 @@ class ComprehensiveDataRepairer:
                 sample_id = sound.id
                 
                 # Extract uploader_id from preview URL if available
-                # Debug: Check what we're getting from the API
-                if sample_id in [59, 79, 137]:
-                    print(f"    DEBUG Sample {sample_id}:")
-                    print(f"      'previews' in sound_dict: {'previews' in sound_dict}")
-                    if 'previews' in sound_dict:
-                        print(f"      sound_dict['previews']: {sound_dict['previews']}")
-                        print(f"      Type: {type(sound_dict['previews'])}")
-                
+                # Try all available preview formats (hq-mp3, lq-mp3, hq-ogg, lq-ogg)
                 if "previews" in sound_dict and sound_dict["previews"]:
-                    preview_url = sound_dict["previews"].get("preview-hq-mp3", "")
+                    preview_formats = [
+                        "preview-hq-mp3",
+                        "preview-lq-mp3", 
+                        "preview-hq-ogg",
+                        "preview-lq-ogg"
+                    ]
+                    
+                    preview_url = None
+                    for format_key in preview_formats:
+                        url = sound_dict["previews"].get(format_key, "")
+                        if url:
+                            preview_url = url
+                            break
+                    
                     if preview_url:
                         match = UPLOADER_ID_PATTERN.search(preview_url)
                         if match:
                             sound_dict["uploader_id"] = int(match.group(1))
-                        # If URL exists but doesn't match pattern, uploader_id stays None
-                    # If preview URL is empty, uploader_id stays None (audio unavailable)
+                    # If no preview URL found in any format, uploader_id stays None
                 
                 fetched_data[sample_id] = sound_dict
             
