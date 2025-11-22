@@ -190,11 +190,15 @@ class ComprehensiveDataRepairer:
             print(f"⚠️  Reached max API requests limit ({self.max_requests})")
             return {}, False  # Not an error, just quota reached
         
-        # Build space-separated ID list for batch search
-        id_filter = " ".join(str(sid) for sid in sample_ids)
+        # Build OR-separated ID list for batch search (Freesound API filter syntax)
+        id_filter = " OR ".join(str(sid) for sid in sample_ids)
+        
+        print(f"  Requesting {len(sample_ids)} samples (filter length: {len(id_filter)} chars)")
         
         try:
             # Fetch comprehensive metadata fields
+            # Note: Freesound API returns paginated results, but the client library
+            # handles pagination automatically when iterating
             results = self.client.text_search(
                 query="",
                 filter=f"id:({id_filter})",
@@ -208,6 +212,7 @@ class ComprehensiveDataRepairer:
             self.stats["api_requests_used"] += 1
             
             # Extract data from results
+            # The freesound client returns a Pager object - iterate through ALL results
             fetched_data = {}
             for sound in results:
                 sound_dict = sound.as_dict()
@@ -221,6 +226,13 @@ class ComprehensiveDataRepairer:
                         sound_dict["uploader_id"] = int(match.group(1))
                 
                 fetched_data[sample_id] = sound_dict
+            
+            print(f"  Fetched {len(fetched_data)}/{len(sample_ids)} samples from API")
+            
+            # Mark samples not in results as missing
+            missing_count = len(sample_ids) - len(fetched_data)
+            if missing_count > 0:
+                print(f"  {missing_count} samples not found in API (will mark as permanently unavailable)")
             
             # API call succeeded - samples not in results simply don't exist
             return fetched_data, False
