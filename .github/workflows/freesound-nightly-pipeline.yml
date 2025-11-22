@@ -164,11 +164,19 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
         fi
 
+  restore-checkpoint:
+    name: Restore Checkpoint
+    needs: check-ci-status
+    if: needs.check-ci-status.outputs.ci_passed == 'true'
+    uses: ./.github/workflows/freesound-checkpoint-restore.yml
+    secrets:
+      BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+
   freesound-collection:
     name: Freesound Data Collection
     runs-on: ubuntu-latest
     timeout-minutes: 120  # 2-hour timeout
-    needs: check-ci-status  # Only run if CI passed
+    needs: [check-ci-status, restore-checkpoint]
     if: needs.check-ci-status.outputs.ci_passed == 'true'
     
     steps:
@@ -257,104 +265,13 @@ jobs:
         # Generate execution ID
         echo "execution_id=$(date +'%Y%m%d_%H%M%S')" >> "$GITHUB_OUTPUT"
     
-    - name: Download checkpoint from private repository
-      id: download_checkpoint
-      env:
-        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
-      run: |
-        {
-          echo "** Phase 1: Download Checkpoint from Private Repository**"
-          echo ""
-        } >> "$GITHUB_STEP_SUMMARY"
-        
-        # Check if BACKUP_PAT is configured (optional - for restoring from backup)
-        if [ -z "$BACKUP_PAT" ]; then
-          echo "::warning::BACKUP_PAT not configured - starting fresh collection"
-          {
-            echo "- Status: ⚠️  Starting fresh (no backup to restore)"
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        # Get repository owner and name from GITHUB_REPOSITORY
-        REPO_OWNER="${{ github.repository_owner }}"
-        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
-        
-        # List all assets from v-checkpoint release
-        echo "Fetching assets from ${BACKUP_REPO} release v-checkpoint..."
-        ASSETS_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
-          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
-        
-        # Check if release exists
-        if echo "$ASSETS_JSON" | grep -q "Not Found"; then
-          echo " Release v-checkpoint not found in ${BACKUP_REPO}"
-          {
-            echo "- Status: No backup available"
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        # Find best checkpoint backup (prefer non-zero nodes, then most recent)
-        # Extract node count from filename pattern: checkpoint_backup_XXXnodes_*.tar.gz
-        LATEST_ASSET=$(echo "$ASSETS_JSON" | jq -r '
-          .assets 
-          | map(select(.name | test("checkpoint_backup_[0-9]+nodes")))
-          | map(. + {node_count: (.name | capture("(?<nodes>[0-9]+)nodes") | .nodes | tonumber)})
-          | map(select(.node_count > 0))
-          | sort_by([.node_count, .created_at])
-          | reverse
-          | .[0]
-        ')
-        
-        if [ "$LATEST_ASSET" = "null" ] || [ -z "$LATEST_ASSET" ]; then
-          echo " No checkpoint backups found in ${BACKUP_REPO}"
-          {
-            echo "- Status: No backup available"
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        # Extract asset details
-        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
-        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
-        ASSET_SIZE=$(echo "$LATEST_ASSET" | jq -r '.size')
-        ASSET_CREATED=$(echo "$LATEST_ASSET" | jq -r '.created_at')
-        
-        echo " Found latest backup: $ASSET_NAME"
-        echo "- Size: $(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")"
-        echo "- Created: $ASSET_CREATED"
-        
-        # Download asset
-        echo "Downloading checkpoint backup..."
-        curl -L -H "Authorization: token $BACKUP_PAT" \
-          -H "Accept: application/octet-stream" \
-          "$ASSET_URL" -o checkpoint_backup.tar.gz
-        
-        # Extract to data/freesound_library/
-        echo "Extracting checkpoint to data/freesound_library/..."
-        mkdir -p data/freesound_library
-        tar -xzf checkpoint_backup.tar.gz -C data/
-        
-        # Verify extraction
-        if [ -f "data/freesound_library/graph_topology.gpickle" ]; then
-          echo " Checkpoint restored successfully"
-          {
-            echo "- Backup: \`$ASSET_NAME\`"
-            echo "- Size: \`$(numfmt --to=iec-i --suffix=B "$ASSET_SIZE")\`"
-            echo "- Created: \`$ASSET_CREATED\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "checkpoint_restored=true" >> "$GITHUB_OUTPUT"
-        else
-          echo " Checkpoint extraction failed"
-          echo "- Status: Extraction failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
-        fi
-        
-        # Cleanup
-        rm -f checkpoint_backup.tar.gz
+    - name: Restore checkpoint from cache
+      if: needs.restore-checkpoint.outputs.checkpoint_restored == 'true'
+      uses: actions/cache/restore@v3
+      with:
+        path: data/freesound_library
+        key: ${{ needs.restore-checkpoint.outputs.cache_key }}
+        fail-on-cache-miss: true
     
     - name: Check for workflow conflicts
       id: orchestration

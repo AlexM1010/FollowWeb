@@ -1,0 +1,82 @@
+# Freesound Checkpoint Restore Workflow
+name: Freesound Checkpoint Restore
+
+on:
+  workflow_call:
+    outputs:
+      checkpoint_restored:
+        description: 'Whether checkpoint was successfully restored'
+        value: ${{ jobs.restore-checkpoint.outputs.checkpoint_restored }}
+      cache_key:
+        description: 'Cache key for the restored checkpoint'
+        value: ${{ jobs.restore-checkpoint.outputs.cache_key }}
+    secrets:
+      BACKUP_PAT:
+        required: true
+
+jobs:
+  restore-checkpoint:
+    name: Restore Checkpoint from Backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      checkpoint_restored: ${{ steps.restore.outputs.checkpoint_restored }}
+      cache_key: ${{ steps.cache-save.outputs.cache-primary-key }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Restore checkpoint from backup repository
+      id: restore
+      env:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+      run: |
+        REPO_OWNER="${{ github.repository_owner }}"
+        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
+        
+        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
+          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
+        
+        if echo "$RELEASE_JSON" | grep -q "Not Found"; then
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        
+        LATEST_ASSET=$(echo "$RELEASE_JSON" | jq -r '
+          .assets 
+          | map(select(.name | test("checkpoint_backup_[0-9]+nodes")))
+          | map(. + {node_count: (.name | capture("(?<nodes>[0-9]+)nodes") | .nodes | tonumber)})
+          | map(select(.node_count > 0))
+          | sort_by([-.node_count, -.created_at])
+          | .[0]')
+        
+        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
+        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
+        
+        if [ "$ASSET_NAME" = "null" ] || [ -z "$ASSET_NAME" ]; then
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        
+        curl -L -H "Authorization: token $BACKUP_PAT" \
+          -H "Accept: application/octet-stream" \
+          "$ASSET_URL" -o "$ASSET_NAME"
+        
+        mkdir -p data
+        tar -xzf "$ASSET_NAME" -C data/
+        
+        if [ ! -d "data/freesound_library" ]; then
+          echo "checkpoint_restored=false" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+        
+        echo "checkpoint_restored=true" >> "$GITHUB_OUTPUT"
+    
+    - name: Save checkpoint to cache
+      if: steps.restore.outputs.checkpoint_restored == 'true'
+      id: cache-save
+      uses: actions/cache/save@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-restored-${{ github.run_id }}
