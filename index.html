@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Visualization - 3449 nodes</title>
+    <title>Network Visualization - 3479 nodes</title>
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
     <!-- ForceAtlas2 layout from graphology-library -->
@@ -1416,15 +1416,15 @@
             <h3>📊 Network Stats</h3>
             <div class="stat-item">
                 <span class="stat-label">Nodes:</span>
-                <span class="stat-value" id="node-count">3449</span>
+                <span class="stat-value" id="node-count">3479</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41363</span>
+                <span class="stat-value" id="edge-count">41829</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">23.99</span>
+                <span class="stat-value" id="avg-degree">24.05</span>
             </div>
             
             <div class="stat-item">
@@ -2436,7 +2436,7 @@
 
         // --- Core Functions ---
 
-        async function showSinglePlayer(nodeId) {
+        async function showSinglePlayer(nodeId, autoPlay = true) {
             await ensureAudioContext();
             
             // Validate node exists
@@ -2450,7 +2450,27 @@
             renderAudioPanel();
 
             if (!audioState.activePlayers[nodeId]) {
-                await togglePlay(nodeId);
+                // Create player and wait for it to load before playing
+                try {
+                    const player = await createPlayer(nodeId);
+                    // Now that audio is loaded, start playing automatically
+                    if (autoPlay && player) {
+                        const playerData = audioState.activePlayers[nodeId];
+                        if (playerData && playerData.duration > 0) {
+                            try {
+                                player.start('+0', 0);
+                                playerData.startTime = Tone.now();
+                                playerData.seekPosition = 0;
+                                highlightPlayingNode(nodeId, true);
+                                renderAudioPanel();
+                            } catch (e) {
+                                console.error('Failed to auto-play:', e);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load audio for node:', nodeId, error);
+                }
             }
         }
 
@@ -2464,9 +2484,14 @@
             }
             
             if (!audioState.activePlayers[nodeId]) {
-                const player = await createPlayer(nodeId);
-                if (!player) {
-                    console.error('Failed to create player for node:', nodeId);
+                try {
+                    const player = await createPlayer(nodeId);
+                    if (!player) {
+                        console.error('Failed to create player for node:', nodeId);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Failed to load audio for mix:', nodeId, error);
                     return;
                 }
             }
@@ -2525,78 +2550,80 @@
             
             console.log('Freesound preview URLs for node', nodeId, ':', audioUrls);
 
-            try {
-                // Create meter for visual feedback
-                const meter = new Tone.Meter();
-                
-                // Tone.js will try URLs in order until one loads successfully
-                console.log('Creating Tone.Player with URLs:', audioUrls);
-                
-                const player = new Tone.Player({
-                    url: audioUrls,
-                    loop: false,
-                    fadeIn: 0.01,  // Smooth fade in to prevent clicks
-                    fadeOut: 0.01, // Smooth fade out to prevent clicks
-                    onload: () => {
-                        console.log('✓ Audio loaded successfully for node:', nodeId, 'Duration:', player.buffer.duration);
-                        // Store duration once loaded
+            return new Promise((resolve, reject) => {
+                try {
+                    // Create meter for visual feedback
+                    const meter = new Tone.Meter();
+                    
+                    // Tone.js will try URLs in order until one loads successfully
+                    console.log('Creating Tone.Player with URLs:', audioUrls);
+                    
+                    const player = new Tone.Player({
+                        url: audioUrls,
+                        loop: false,
+                        fadeIn: 0.01,  // Smooth fade in to prevent clicks
+                        fadeOut: 0.01, // Smooth fade out to prevent clicks
+                        onload: () => {
+                            console.log('✓ Audio loaded successfully for node:', nodeId, 'Duration:', player.buffer.duration);
+                            // Store duration once loaded
+                            if (audioState.activePlayers[nodeId]) {
+                                audioState.activePlayers[nodeId].duration = player.buffer.duration;
+                                audioState.activePlayers[nodeId].isLoading = false;
+                            }
+                            renderAudioPanel();
+                            resolve(player);
+                        },
+                        onerror: (error) => {
+                            console.error('✗ Failed to load audio for node:', nodeId);
+                            console.error('Error details:', error);
+                            console.error('Attempted URLs:', audioUrls);
+                            // Clean up failed player
+                            if (audioState.activePlayers[nodeId]) {
+                                delete audioState.activePlayers[nodeId];
+                            }
+                            renderAudioPanel();
+                            reject(error);
+                        }
+                    });
+
+                    // Connect player through meter to master effects chain
+                    player.chain(meter, audioState.masterCompressor);
+
+                    // Set up event handlers
+                    player.onstop = () => {
+                        // Check if player finished naturally (not manually stopped)
                         if (audioState.activePlayers[nodeId]) {
-                            audioState.activePlayers[nodeId].duration = player.buffer.duration;
-                            audioState.activePlayers[nodeId].isLoading = false;
+                            const playerData = audioState.activePlayers[nodeId];
+                            // If looping is disabled and we reached the end, reset position
+                            if (!playerData.isLooping && playerData.duration > 0) {
+                                playerData.seekPosition = 0;
+                            }
                         }
+                        highlightPlayingNode(nodeId, false);
                         renderAudioPanel();
-                    },
-                    onerror: (error) => {
-                        console.error('✗ Failed to load audio for node:', nodeId);
-                        console.error('Error details:', error);
-                        console.error('Attempted URLs:', audioUrls);
-                        // Clean up failed player
-                        if (audioState.activePlayers[nodeId]) {
-                            delete audioState.activePlayers[nodeId];
-                        }
-                        renderAudioPanel();
-                    }
-                });
+                    };
 
-                // Connect player through meter to master effects chain
-                player.chain(meter, audioState.masterCompressor);
+                    audioState.activePlayers[nodeId] = {
+                        player: player,
+                        meter: meter,
+                        duration: 0, // Will be set on load
+                        volume: 0.8,
+                        isLooping: false,
+                        isExpanded: false,
+                        startTime: null,
+                        seekPosition: 0, // Track seek position for paused state
+                        isLoading: true // Track loading state
+                    };
 
-                // Set up event handlers
-                player.onstop = () => {
-                    // Check if player finished naturally (not manually stopped)
-                    if (audioState.activePlayers[nodeId]) {
-                        const playerData = audioState.activePlayers[nodeId];
-                        // If looping is disabled and we reached the end, reset position
-                        if (!playerData.isLooping && playerData.duration > 0) {
-                            playerData.seekPosition = 0;
-                        }
-                    }
-                    highlightPlayingNode(nodeId, false);
-                    renderAudioPanel();
-                };
-
-                audioState.activePlayers[nodeId] = {
-                    player: player,
-                    meter: meter,
-                    duration: 0, // Will be set on load
-                    volume: 0.8,
-                    isLooping: false,
-                    isExpanded: false,
-                    startTime: null,
-                    seekPosition: 0, // Track seek position for paused state
-                    isLoading: true // Track loading state
-                };
-
-                // Set volume safely - prevent NaN from 0 or negative values
-                const initialVolume = 0.8;
-                const safeVolume = Math.max(0.001, Math.min(1.0, initialVolume));
-                player.volume.value = Tone.gainToDb(safeVolume);
-
-                return player;
-            } catch (error) {
-                console.error('Error creating player for node:', nodeId, error);
-                return null;
-            }
+                    // Set volume safely - prevent NaN from 0 or negative values
+                    const initialVolume = 0.8;
+                    const safeVolume = Math.max(0.001, Math.min(1.0, initialVolume));
+                    player.volume.value = Tone.gainToDb(safeVolume);
+                } catch (error) {
+                    console.error('Error creating player for node:', nodeId, error);
+                    reject(error);
+                }
+            });
         }
 
         async function togglePlay(nodeId) {
@@ -2604,12 +2631,13 @@
 
             let playerData = audioState.activePlayers[nodeId];
             if (!playerData) {
-                const player = await createPlayer(nodeId);
-                if (!player) {
-                    console.error('Failed to create player for node:', nodeId);
+                try {
+                    await createPlayer(nodeId);
+                    playerData = audioState.activePlayers[nodeId];
+                } catch (error) {
+                    console.error('Failed to create player for node:', nodeId, error);
                     return;
                 }
-                playerData = audioState.activePlayers[nodeId];
             }
 
             if (playerData && playerData.player) {
@@ -2637,8 +2665,8 @@
                     }
                     
                     // Don't start if duration is not loaded yet
-                    if (playerData.duration === 0) {
-                        console.warn('Cannot start player: audio not loaded yet');
+                    if (playerData.duration === 0 || playerData.isLoading) {
+                        console.warn('Cannot start player: audio still loading');
                         // Show loading state in UI
                         playerData.isLoading = true;
                         renderAudioPanel();
@@ -2777,7 +2805,10 @@
         async function playAll() {
             await ensureAudioContext();
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
-                if (playerData.player.state !== 'started' && playerData.duration > 0) {
+                // Only play if not already playing, audio is loaded, and not currently loading
+                if (playerData.player.state !== 'started' && 
+                    playerData.duration > 0 && 
+                    !playerData.isLoading) {
                     // Ensure valid offset
                     let startOffset = playerData.seekPosition || 0;
                     if (!isFinite(startOffset) || startOffset < 0) {
