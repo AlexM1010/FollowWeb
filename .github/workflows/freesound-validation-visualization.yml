@@ -466,10 +466,18 @@ jobs:
         fi
 
     - name: Update landing page
-      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true')
       id: landing-page
       continue-on-error: true
       run: |
+        # For metadata-only updates, skip landing page regeneration
+        if [ "${{ steps.change-detection.outputs.metadata_only }}" = "true" ]; then
+          echo "Skipping landing page update (metadata-only change)"
+          echo "landing_page_updated=true" >> "$GITHUB_OUTPUT"
+          echo "✅ Landing page unchanged (metadata-only update)" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        
         echo "Updating landing page..."
         
         # Generate landing page with latest visualization and capture output
@@ -501,6 +509,49 @@ jobs:
       if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true') && steps.landing-page.outputs.landing_page_updated == 'true'
       id: deployment
       run: |
+        # For metadata-only updates, only update graph_data.json
+        if [ "${{ steps.change-detection.outputs.metadata_only }}" = "true" ]; then
+          echo "Deploying metadata-only update (graph_data.json only)..."
+          
+          # Switch to gh-pages branch
+          git fetch origin gh-pages:gh-pages 2>/dev/null || true
+          git checkout gh-pages || {
+            echo "❌ gh-pages branch not found - cannot deploy metadata-only update"
+            exit 1
+          }
+          
+          # Copy updated data file
+          if [ -f "Output/graph_data.json" ]; then
+            cp Output/graph_data.json graph_data.json
+            echo "✅ Updated graph_data.json"
+          else
+            echo "❌ graph_data.json not found in Output/"
+            exit 1
+          fi
+          
+          # Commit and push
+          git add graph_data.json
+          if git diff --cached --quiet; then
+            echo "No changes to graph_data.json"
+            echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "📊 Update graph metadata (repair workflow)
+            
+            - Updated metadata fields only
+            - No topology changes
+            - Automated metadata-only deployment"
+            
+            git push origin gh-pages
+            echo "deployment_successful=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Metadata-only deployment successful"
+          fi
+          
+          exit 0
+        fi
+        
+        # Full deployment path (topology changed)
+        echo "Deploying full visualization update..."
+        
         # Deploy only essential files to gh-pages for efficiency
         # Keep all visualizations in Output/ on main branch for posterity
         mkdir -p /tmp/gh-pages-content
