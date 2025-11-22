@@ -224,6 +224,10 @@ class ComprehensiveDataRepairer:
                     match = UPLOADER_ID_PATTERN.search(preview_url)
                     if match:
                         sound_dict["uploader_id"] = int(match.group(1))
+                    else:
+                        # Log samples where uploader_id extraction failed
+                        if sample_id in [59, 79, 137]:  # Log first few for debugging
+                            print(f"    DEBUG: Sample {sample_id} preview URL doesn't match pattern: {preview_url[:80]}")
                 
                 fetched_data[sample_id] = sound_dict
             
