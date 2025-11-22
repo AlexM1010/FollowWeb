@@ -487,7 +487,7 @@ jobs:
     
     # Debug: List checkpoint files before caching
     - name: Debug - List checkpoint files
-      if: always() && (steps.validation.outputs.validation_passed == 'true' || (steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'))
+      if: always() && steps.checkpoint_check.outputs.checkpoint_available == 'true'
       run: |
         echo "Listing checkpoint directory contents:"
         ls -laR data/freesound_library/ || echo "Directory not found"
@@ -498,10 +498,10 @@ jobs:
         echo "Total directory size:"
         du -sh data/freesound_library/ || echo "Directory not found"
     
-    # Save to cache as SECONDARY backup (after permanent storage)
-    # Cache has 7-day retention and should only be used as fallback
-    - name: Save checkpoint to cache (SECONDARY backup - for downstream workflows)
-      if: always() && (steps.validation.outputs.validation_passed == 'true' || (steps.repair.outputs.repair_success == 'true' && steps.revalidation.outputs.revalidation_passed == 'true'))
+    # Save to cache for downstream workflows (incremental repair)
+    # Save even if revalidation fails - repair made progress and should be preserved
+    - name: Save checkpoint to cache (for downstream workflows)
+      if: always() && steps.checkpoint_check.outputs.checkpoint_available == 'true' && (steps.validation.outputs.validation_passed == 'true' || steps.repair.outputs.repair_success == 'true')
       id: cache_save
       uses: actions/cache/save@v3
       with:
