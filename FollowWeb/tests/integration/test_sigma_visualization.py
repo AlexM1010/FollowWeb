@@ -101,6 +101,8 @@ class TestSigmaVisualizationEndToEnd:
         """Test that required JavaScript libraries are included."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -170,6 +172,8 @@ class TestSigmaVisualizationEndToEnd:
         """Test that configuration is properly embedded in HTML."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {
             "sigma_interactive": {
@@ -306,6 +310,14 @@ class TestSigmaVisualizationWithFreesoundData:
             community=0,
             degree=1,
         )
+        graph.add_node(
+            "2",
+            name="test_sample2.wav",
+            audio_url="https://example.com/audio2.mp3",
+            community=0,
+            degree=1,
+        )
+        graph.add_edge("1", "2")
 
         config = {
             "sigma_interactive": {"enable_audio": True},
@@ -425,6 +437,8 @@ class TestSigmaVisualizationJavaScriptValidation:
         """Test that JavaScript initialization code is present."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -446,6 +460,8 @@ class TestSigmaVisualizationJavaScriptValidation:
         """Test that event handlers are properly set up."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -466,6 +482,8 @@ class TestSigmaVisualizationJavaScriptValidation:
         """Test that control elements are properly wired."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -524,6 +542,14 @@ class TestSigmaVisualizationErrorHandling:
             community=0,
             degree=1,
         )
+        graph.add_node(
+            2,
+            name="Normal name",
+            tags=["normal"],
+            community=0,
+            degree=1,
+        )
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -554,6 +580,14 @@ class TestSigmaVisualizationErrorHandling:
             community=0,
             degree=1,
         )
+        graph.add_node(
+            2,
+            name="Normal name",
+            tags=["normal"],
+            community=0,
+            degree=1,
+        )
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -597,6 +631,8 @@ class TestSigmaVisualizationOutputQuality:
         """Test that responsive design elements are present."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
@@ -618,6 +654,8 @@ class TestSigmaVisualizationOutputQuality:
         """Test that CSS styling is properly applied."""
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         config = {"sigma_interactive": {}, "node_size_metric": "degree"}
         renderer = SigmaRenderer(config)
