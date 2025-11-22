@@ -246,29 +246,83 @@ jobs:
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
-    - name: Run repair operations
+    - name: Determine max_requests for repair
+      if: steps.validation.outputs.validation_passed == 'false'
+      id: max_requests
+      run: |
+        # Try to read max_requests from checkpoint metadata (saved by collection)
+        # Fall back to 13 (same as nightly collection default)
+        MAX_REQUESTS=13
+        
+        if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
+          # Try to extract from checkpoint metadata
+          CHECKPOINT_MAX=$(python3 -c "
+import json
+try:
+    with open('data/freesound_library/checkpoint_metadata.json') as f:
+        data = json.load(f)
+    # Check collection_stats for max_requests
+    max_req = data.get('collection_stats', {}).get('max_requests', 13)
+    print(max_req)
+except:
+    print(13)
+" 2>/dev/null || echo "13")
+          
+          if [ "$CHECKPOINT_MAX" -gt 0 ]; then
+            MAX_REQUESTS=$CHECKPOINT_MAX
+          fi
+        fi
+        
+        echo "max_requests=$MAX_REQUESTS" >> "$GITHUB_OUTPUT"
+        echo "Using max_requests: $MAX_REQUESTS (from checkpoint metadata or default)"
+    
+    - name: Run comprehensive data quality repair
       if: steps.validation.outputs.validation_passed == 'false'
       id: repair
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
+        MAX_REQUESTS="${{ steps.max_requests.outputs.max_requests }}"
+        
         {
-          echo "### 🔧 Repair Operations"
+          echo "### 🔧 Comprehensive Data Quality Repair"
+          echo ""
+          echo "Scanning ALL samples for data quality issues..."
+          echo "- Checks all fields in all samples"
+          echo "- Queues issues by sample ID (up to 150 per batch)"
+          echo "- Fetches missing data using efficient batch API"
+          echo "- Applies fixes across entire dataset"
+          echo "- Max requests: \`${MAX_REQUESTS}\` (same as collection)"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run repair script with API key and request limit
-        # Limit to 10 requests to avoid excessive API usage during repairs
-        if python scripts/validation/repair_checkpoint.py \
+        # Run comprehensive data quality repair with same max_requests as collection
+        # This script checks ALL samples and ALL fields, then fixes issues in batches
+        if python scripts/validation/comprehensive_data_repair.py \
           --checkpoint-dir data/freesound_library \
           --api-key "$FREESOUND_API_KEY" \
-          --max-requests 10 \
-          2>&1 | tee repair_output.log; then
+          --max-requests "${MAX_REQUESTS}" \
+          2>&1 | tee comprehensive_repair_output.log; then
           echo "repair_success=true" >> "$GITHUB_OUTPUT"
-          echo "- Status: ✅ Repairs completed" >> "$GITHUB_STEP_SUMMARY"
+          
+          # Extract statistics from log
+          issues_found=$(grep -oP "(?<=Issues found: )\d+" comprehensive_repair_output.log | tail -1 || echo "0")
+          issues_fixed=$(grep -oP "(?<=Issues fixed: )\d+" comprehensive_repair_output.log | tail -1 || echo "0")
+          marked_unavailable=$(grep -oP "(?<=Marked unavailable: )\d+" comprehensive_repair_output.log | tail -1 || echo "0")
+          api_requests=$(grep -oP "(?<=API requests used: )\d+" comprehensive_repair_output.log | tail -1 || echo "0")
+          
+          {
+            echo "**Results:**"
+            echo "- Issues found: \`${issues_found}\`"
+            echo "- Issues fixed: \`${issues_fixed}\`"
+            echo "- Marked unavailable: \`${marked_unavailable}\`"
+            echo "- API requests used: \`${api_requests}/${MAX_REQUESTS}\`"
+            echo ""
+            echo "✅ Comprehensive repair completed successfully"
+          } >> "$GITHUB_STEP_SUMMARY"
         else
           echo "repair_success=false" >> "$GITHUB_OUTPUT"
-          echo "- Status: ❌ Repairs failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Status: ❌ Comprehensive repair failed" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
