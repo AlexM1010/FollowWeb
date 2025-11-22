@@ -306,8 +306,73 @@ jobs:
           echo "⚠️  Edge statistics file not found"
         fi
 
-    - name: Generate Sigma.js visualization
+    - name: Detect change type
       if: steps.validation.outputs.validation_passed == 'true'
+      id: change-detection
+      run: |
+        echo "Detecting type of changes..."
+        
+        # Check collection_stats to see if nodes/edges were added
+        NODES_ADDED=$(python3 -c 'import json; data=json.load(open("data/freesound_library/checkpoint_metadata.json")); print(data.get("collection_stats", {}).get("nodes_added", 0))' 2>/dev/null || echo "0")
+        EDGES_ADDED=$(python3 -c 'import json; data=json.load(open("data/freesound_library/checkpoint_metadata.json")); print(data.get("collection_stats", {}).get("edges_added", 0))' 2>/dev/null || echo "0")
+        
+        # Get total counts for display
+        TOTAL_NODES=$(python3 -c 'import json; data=json.load(open("data/freesound_library/checkpoint_metadata.json")); print(data.get("nodes", 0))')
+        TOTAL_EDGES=$(python3 -c 'import json; data=json.load(open("data/freesound_library/checkpoint_metadata.json")); print(data.get("edges", 0))')
+        
+        # If no nodes/edges were added, this is metadata-only
+        if [ "$NODES_ADDED" = "0" ] && [ "$EDGES_ADDED" = "0" ]; then
+          echo "metadata_only=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "- Change type: **Metadata only** (no topology changes)"
+            echo "- Nodes added: 0 (total: $TOTAL_NODES)"
+            echo "- Edges added: 0 (total: $TOTAL_EDGES)"
+            echo "- Action: Update data JSON only (fast)"
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "metadata_only=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "- Change type: **Topology changed**"
+            echo "- Nodes added: $NODES_ADDED (total: $TOTAL_NODES)"
+            echo "- Edges added: $EDGES_ADDED (total: $TOTAL_EDGES)"
+            echo "- Action: Full visualization regeneration"
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+    - name: Update metadata only (fast path)
+      if: steps.validation.outputs.validation_passed == 'true' && steps.change-detection.outputs.metadata_only == 'true'
+      id: metadata-update
+      run: |
+        echo "Updating graph data JSON with latest metadata..."
+        {
+          echo ""
+          echo "**Metadata Update (Fast Path):**"
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        python scripts/visualization/update_metadata_only.py \
+          --checkpoint-dir data/freesound_library \
+          --output-file Output/graph_data.json
+        
+        if [ -f "Output/graph_data.json" ]; then
+          FILE_SIZE=$(du -h Output/graph_data.json | cut -f1)
+          {
+            echo "visualization_generated=true"
+            echo "visualization_file=Output/graph_data.json"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "✅ Graph data JSON updated"
+            echo "- File: \`graph_data.json\`"
+            echo "- Size: $FILE_SIZE"
+            echo "- Method: Metadata-only update (no HTML regeneration)"
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "visualization_generated=false" >> "$GITHUB_OUTPUT"
+          echo "❌ Failed to generate graph data JSON" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+
+    - name: Generate Sigma.js visualization (full path)
+      if: steps.validation.outputs.validation_passed == 'true' && steps.change-detection.outputs.metadata_only != 'true'
       id: visualization
       continue-on-error: true
       env:
@@ -316,7 +381,7 @@ jobs:
         echo "Generating Sigma.js visualization..."
         {
           echo ""
-          echo "**Visualization:**"
+          echo "**Visualization (Full Generation):**"
         } >> "$GITHUB_STEP_SUMMARY"
         
         # Generate visualization from checkpoint with verbose output
@@ -433,7 +498,7 @@ jobs:
     
     # Commit visualization and landing page to gh-pages branch
     - name: Commit visualization to gh-pages branch
-      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.landing-page.outputs.landing_page_updated == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true') && steps.landing-page.outputs.landing_page_updated == 'true'
       id: deployment
       run: |
         # Deploy only essential files to gh-pages for efficiency
