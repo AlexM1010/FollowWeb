@@ -266,6 +266,8 @@ class TestSigmaRendererHTMLGeneration:
         graph.add_node(
             "another_unique_node_67890", name="Another Node", community=1, degree=2
         )
+        # Add an edge so nodes aren't filtered out as isolated
+        graph.add_edge("test_node_12345", "another_unique_node_67890")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_sigma.html")
