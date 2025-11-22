@@ -209,9 +209,6 @@ class ComprehensiveDataRepairer:
                        "num_downloads,avg_rating,num_ratings,num_comments,geotag"
             )
             
-            self.api_requests_made += 1
-            self.stats["api_requests_used"] += 1
-            
             # Extract data from results
             # The freesound client returns a Pager object - iterate through ALL results
             fetched_data = {}
@@ -260,11 +257,18 @@ class ComprehensiveDataRepairer:
             if missing_count > 0:
                 print(f"  {missing_count} samples not found in API (will mark as permanently unavailable)")
             
+            # Increment counter after successful API call
+            self.api_requests_made += 1
+            self.stats["api_requests_used"] += 1
+            
             # API call succeeded - samples not in results simply don't exist
             return fetched_data, False
             
         except Exception as e:
             print(f"  ✗ Batch fetch error: {e}")
+            # Increment counter even on failure to respect max_requests limit
+            self.api_requests_made += 1
+            self.stats["api_requests_used"] += 1
             # API error - should retry later
             return {}, True
     
