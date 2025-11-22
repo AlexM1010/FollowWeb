@@ -506,7 +506,8 @@ class FreesoundLoader(DataLoader):
         # These can be reconstructed from sample ID or are not used
         fields_to_remove = [
             "description",  # Often lengthy license text (2-3KB per sample)
-            "previews",  # Reconstructed from sample ID at visualization time
+            # NOTE: previews MUST be kept - URLs include uploader ID that cannot be reconstructed
+            # Example: /335860/335860_5121236-hq.mp3 (the _5121236 is the uploader ID)
             "images",  # Not used in current visualizations
         ]
 

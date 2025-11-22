@@ -19,6 +19,7 @@ analysis_reports/comprehensive_validation_*.json
 test_checkpoint/
 edge_stats.json
 milestone_status.json
+FSD50K/
 
 # PyPI Credentials
 .pypirc
