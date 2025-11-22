@@ -1394,11 +1394,11 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">11789</span>
+                <span class="stat-value" id="edge-count">11796</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">14.11</span>
+                <span class="stat-value" id="avg-degree">14.12</span>
             </div>
             
             <div class="stat-item">
@@ -1460,7 +1460,7 @@
     <script>
         // Configuration from Jinja2 template
         const config = {"enable_audio": false, "show_labels": true, "show_tooltips": true, "ui_background_color": "#2d333c", "ui_highlight_color": "#415a76", "ui_text_color": "#b6e0fe"};
-        const dataFile = 'freesound_20251122_020143_data.json';  // External JSON file to load
+        const dataFile = 'freesound_20251122_020622_data.json';  // External JSON file to load
         
         let graphData = null;  // Will be loaded asynchronously
 
@@ -1734,7 +1734,11 @@
                 }
             }
 
-            // Audio panel will handle audio playback
+            // Trigger audio panel if available
+            if (window.audioPanel && window.audioPanel.showSinglePlayer) {
+                window.audioPanel.showSinglePlayer(nodeId);
+            }
+            
             document.getElementById('node-info').style.display = 'block';
         }
 

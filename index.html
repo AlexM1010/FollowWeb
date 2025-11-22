@@ -1398,11 +1398,11 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">11789</span>
+                <span class="stat-value" id="edge-count">11796</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">14.11</span>
+                <span class="stat-value" id="avg-degree">14.12</span>
             </div>
             
             <div class="stat-item">
@@ -1738,7 +1738,11 @@
                 }
             }
 
-            // Audio panel will handle audio playback
+            // Trigger audio panel if available
+            if (window.audioPanel && window.audioPanel.showSinglePlayer) {
+                window.audioPanel.showSinglePlayer(nodeId);
+            }
+            
             document.getElementById('node-info').style.display = 'block';
         }
 
