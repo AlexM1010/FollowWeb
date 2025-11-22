@@ -234,7 +234,7 @@ jobs:
 
     - name: Restore checkpoint from cache
       if: steps.backup_reason.outputs.use_cache == 'true'
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       id: cache-restore
       with:
         path: data/freesound_library

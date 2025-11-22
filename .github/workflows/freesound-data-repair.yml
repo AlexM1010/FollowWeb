@@ -225,7 +225,7 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Restore checkpoint from cache
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       with:
         path: data/freesound_library
         # Try restore job's cache first, then fall back to collection cache
@@ -442,7 +442,7 @@ jobs:
     - name: Save checkpoint to cache (for downstream workflows)
       if: always() && steps.checkpoint_check.outputs.checkpoint_available == 'true' && (steps.validation.outputs.validation_passed == 'true' || steps.repair.outputs.repair_success == 'true')
       id: cache_save
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       with:
         path: data/freesound_library
         key: checkpoint-repaired-${{ github.run_id }}
