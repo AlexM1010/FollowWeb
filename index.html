@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Visualization - 3479 nodes</title>
+    <title>Network Visualization - 3146 nodes</title>
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
     <!-- ForceAtlas2 layout from graphology-library -->
@@ -1416,20 +1416,20 @@
             <h3>📊 Network Stats</h3>
             <div class="stat-item">
                 <span class="stat-label">Nodes:</span>
-                <span class="stat-value" id="node-count">3479</span>
+                <span class="stat-value" id="node-count">3146</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41880</span>
+                <span class="stat-value" id="edge-count">41878</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">24.08</span>
+                <span class="stat-value" id="avg-degree">26.62</span>
             </div>
             
             <div class="stat-item">
                 <span class="stat-label">Density:</span>
-                <span class="stat-value">0.0035</span>
+                <span class="stat-value">0.0042</span>
             </div>
             
         </div>
@@ -2453,8 +2453,17 @@
                 // Create player and wait for it to load before playing
                 try {
                     const player = await createPlayer(nodeId);
+                    
+                    // If player creation failed, show error in UI
+                    if (!player) {
+                        console.error('Failed to create player for node:', nodeId);
+                        audioState.singlePlayerNode = null;
+                        renderAudioPanel();
+                        return;
+                    }
+                    
                     // Now that audio is loaded, start playing automatically
-                    if (autoPlay && player) {
+                    if (autoPlay) {
                         const playerData = audioState.activePlayers[nodeId];
                         if (playerData && playerData.duration > 0) {
                             try {
@@ -2470,6 +2479,8 @@
                     }
                 } catch (error) {
                     console.error('Failed to load audio for node:', nodeId, error);
+                    audioState.singlePlayerNode = null;
+                    renderAudioPanel();
                 }
             }
         }
@@ -2934,6 +2945,22 @@
                 // Node was removed from graph, clear single player mode
                 audioState.singlePlayerNode = null;
                 renderAudioPanel();
+                return;
+            }
+            
+            // Check if node has required data for audio playback
+            if (!node.uploader_id) {
+                panelContent.innerHTML = `
+                    <div class="single-player">
+                        <div class="sp-header">
+                            <div class="sp-title">${escapeHtml(node.name || 'Unknown Sample')}</div>
+                        </div>
+                        <div style="padding: 20px; text-align: center; color: #ff6b6b;">
+                            <p style="margin-bottom: 10px;">⚠️ Audio unavailable</p>
+                            <p style="font-size: 12px; color: #999;">This sample was collected before audio playback was implemented. Please regenerate the visualization data.</p>
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
