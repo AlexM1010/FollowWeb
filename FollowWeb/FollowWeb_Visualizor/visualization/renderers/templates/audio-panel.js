@@ -118,9 +118,14 @@
             }
             
             if (!audioState.activePlayers[nodeId]) {
-                const player = await createPlayer(nodeId);
-                if (!player) {
-                    console.error('Failed to create player for node:', nodeId);
+                try {
+                    const player = await createPlayer(nodeId);
+                    if (!player) {
+                        console.error('Failed to create player for node:', nodeId);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Failed to load audio for mix:', nodeId, error);
                     return;
                 }
             }
@@ -434,7 +439,10 @@
         async function playAll() {
             await ensureAudioContext();
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
-                if (playerData.player.state !== 'started' && playerData.duration > 0) {
+                // Only play if not already playing, audio is loaded, and not currently loading
+                if (playerData.player.state !== 'started' && 
+                    playerData.duration > 0 && 
+                    !playerData.isLoading) {
                     // Ensure valid offset
                     let startOffset = playerData.seekPosition || 0;
                     if (!isFinite(startOffset) || startOffset < 0) {
