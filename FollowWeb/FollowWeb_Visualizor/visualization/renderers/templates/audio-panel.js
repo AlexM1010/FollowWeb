@@ -144,7 +144,13 @@
                     startTime: null
                 };
 
-                player.volume.value = Tone.gainToDb(0.8);
+                // Set volume safely
+                try {
+                    player.volume.value = Tone.gainToDb(0.8);
+                } catch (e) {
+                    console.error('Failed to set volume:', e);
+                    player.volume.value = -10; // Fallback to reasonable dB value
+                }
 
                 return player;
             } catch (error) {
@@ -210,10 +216,22 @@
         function seekTo(nodeId, position) {
             const playerData = audioState.activePlayers[nodeId];
             if (playerData && playerData.player && playerData.duration > 0) {
+                // Validate position
+                if (isNaN(position) || position < 0) {
+                    console.error('Invalid seek position:', position);
+                    return;
+                }
+                
                 const wasPlaying = playerData.player.state === 'started';
                 playerData.player.stop();
-                playerData.player.start('+0', position);
-                playerData.startTime = Tone.now() - position;
+                
+                try {
+                    playerData.player.start('+0', Math.min(position, playerData.duration));
+                    playerData.startTime = Tone.now() - position;
+                } catch (e) {
+                    console.error('Failed to seek:', e);
+                }
+                
                 if (!wasPlaying) {
                     playerData.player.stop();
                     playerData.startTime = null;
