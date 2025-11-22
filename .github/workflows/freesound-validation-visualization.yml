@@ -509,7 +509,8 @@ jobs:
         else
           echo "Committing changes to gh-pages..."
           
-          git add .
+          # Add only Output directory and specific files, exclude checkpoint data
+          git add Output/ edge_stats.json graph_data.json index.html || true
           git commit -m "🎨 Update visualization from validation pipeline
           
           Generated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
