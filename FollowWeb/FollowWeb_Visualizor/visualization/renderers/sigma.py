@@ -318,12 +318,14 @@ class SigmaRenderer(Renderer):
         for u, v in graph.edges():
             nodes_with_edges.add(u)
             nodes_with_edges.add(v)
-        
+
         if len(nodes_with_edges) < graph.number_of_nodes():
             isolated_count = graph.number_of_nodes() - len(nodes_with_edges)
-            self.logger.info(f"Filtering out {isolated_count} isolated nodes (nodes with no edges)")
+            self.logger.info(
+                f"Filtering out {isolated_count} isolated nodes (nodes with no edges)"
+            )
             graph = graph.subgraph(nodes_with_edges).copy()
-            
+
             if graph.number_of_nodes() == 0:
                 self.logger.error("No nodes with edges to visualize")
                 return False
