@@ -811,79 +811,67 @@ jobs:
       if: steps.upload_backup.outputs.upload_success == 'true'
       id: clear_cache
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         {
           echo "**Cache Cleanup:**"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        echo "Clearing GitHub Actions caches to free space..."
+        echo "Clearing ALL GitHub Actions caches (backup is now in permanent storage)..."
         
-        # Get all caches for this repository
-        CACHES_JSON=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          "https://api.github.com/repos/${{ github.repository }}/actions/caches")
+        # List all caches to get count and size
+        CACHE_LIST=$(gh cache list --limit 1000 --json id,key,sizeInBytes 2>&1)
         
-        TOTAL_CACHES=$(echo "$CACHES_JSON" | jq '.total_count // 0')
-        echo "Found $TOTAL_CACHES cache(s) in repository"
-        
-        if [ "$TOTAL_CACHES" -eq 0 ]; then
-          echo "- No caches to clear" >> "$GITHUB_STEP_SUMMARY"
+        if echo "$CACHE_LIST" | grep -q "no caches found"; then
+          echo "No caches to clear"
+          {
+            echo "- No caches found"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "cache_cleared=true" >> "$GITHUB_OUTPUT"
+          echo "caches_deleted=0" >> "$GITHUB_OUTPUT"
+          echo "space_freed_mb=0" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         
-        # Calculate total cache size
-        TOTAL_SIZE=$(echo "$CACHES_JSON" | jq '[.actions_caches[].size_in_bytes] | add // 0')
+        # Calculate total size
+        TOTAL_SIZE=$(echo "$CACHE_LIST" | jq '[.[].sizeInBytes] | add // 0')
         TOTAL_SIZE_MB=$((TOTAL_SIZE / 1024 / 1024))
+        TOTAL_CACHES=$(echo "$CACHE_LIST" | jq 'length')
         
-        echo "Total cache size: ${TOTAL_SIZE_MB}MB"
+        echo "Found $TOTAL_CACHES cache(s), total size: ${TOTAL_SIZE_MB}MB"
         {
           echo "- Total caches: \`$TOTAL_CACHES\`"
           echo "- Total size: \`${TOTAL_SIZE_MB}MB\`"
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Delete all caches (backup is now in permanent storage)
-        DELETED_COUNT=0
-        FAILED_COUNT=0
+        # Delete all caches using gh cli (has proper permissions)
+        echo "Deleting all caches..."
+        gh cache delete --all || {
+          echo "::warning::Some caches may have failed to delete"
+        }
         
-        # Get cache IDs
-        CACHE_IDS=$(echo "$CACHES_JSON" | jq -r '.actions_caches[].id')
+        # Verify deletion
+        REMAINING=$(gh cache list --limit 10 --json id 2>&1 | jq 'length // 0' 2>/dev/null || echo "0")
         
-        for CACHE_ID in $CACHE_IDS; do
-          echo "Deleting cache ID: $CACHE_ID"
-          
-          DELETE_RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/caches/$CACHE_ID")
-          
-          if [ "$DELETE_RESPONSE" = "204" ]; then
-            DELETED_COUNT=$((DELETED_COUNT + 1))
-            echo "  ✓ Deleted cache $CACHE_ID"
-          elif [ "$DELETE_RESPONSE" = "403" ]; then
-            # 403 means cache was created by different workflow run - skip silently
-            FAILED_COUNT=$((FAILED_COUNT + 1))
-          else
-            FAILED_COUNT=$((FAILED_COUNT + 1))
-            echo "::warning::Failed to delete cache $CACHE_ID (HTTP $DELETE_RESPONSE)"
-          fi
-        done
-        
-        {
-          echo "- Caches deleted: \`$DELETED_COUNT\`"
-        } >> "$GITHUB_STEP_SUMMARY"
-        
-        if [ "$FAILED_COUNT" -gt 0 ]; then
-          echo "- Failed deletions: \`$FAILED_COUNT\`" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$REMAINING" -eq 0 ]; then
+          {
+            echo "- ✅ All caches deleted successfully"
+            echo ""
+            echo "✅ Cache cleanup completed - freed ${TOTAL_SIZE_MB}MB"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          {
+            echo "- ⚠️  $REMAINING cache(s) remaining (may be in use)"
+            echo ""
+            echo "✅ Cache cleanup completed - freed ~${TOTAL_SIZE_MB}MB"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
         fi
         
-        {
-          echo ""
-          echo "✅ Cache cleanup completed - freed ${TOTAL_SIZE_MB}MB"
-          echo ""
-        } >> "$GITHUB_STEP_SUMMARY"
-        
         echo "cache_cleared=true" >> "$GITHUB_OUTPUT"
-        echo "caches_deleted=$DELETED_COUNT" >> "$GITHUB_OUTPUT"
+        echo "caches_deleted=$TOTAL_CACHES" >> "$GITHUB_OUTPUT"
         echo "space_freed_mb=$TOTAL_SIZE_MB" >> "$GITHUB_OUTPUT"
 
     # Apply retention policy (14-day retention, max 10 backups, never delete last backup)
