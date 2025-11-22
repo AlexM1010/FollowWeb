@@ -1398,11 +1398,11 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41307</span>
+                <span class="stat-value" id="edge-count">41318</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">23.95</span>
+                <span class="stat-value" id="avg-degree">23.96</span>
             </div>
             
             <div class="stat-item">
@@ -2304,6 +2304,9 @@
                 console.log('Nodes:', graph.order);
                 console.log('Edges:', graph.size);
 
+                // Notify audio panel that graph is ready
+                window.dispatchEvent(new Event('graphInitialized'));
+
                 // Check if graphology-library is available
                 if (window.graphologyLibrary && window.graphologyLibrary.layoutForceAtlas2) {
                     console.log('✓ graphology-library loaded with ForceAtlas2');
@@ -2345,8 +2348,8 @@
 
     let audioContextStarted = false;
 
-    // Wait for DOM and global variables to be ready
-    window.addEventListener('DOMContentLoaded', function () {
+    // Wait for graph to be initialized
+    function initAudioPanel() {
         // Check if required globals exist
         if (typeof graph === 'undefined' || typeof renderer === 'undefined') {
             console.error('Audio panel: Required globals (graph, renderer) not found');
@@ -2835,6 +2838,15 @@
         renderAudioPanel();
 
         console.log('Audio panel initialized with Tone.js');
+    }
+
+    // Listen for graph initialization
+    window.addEventListener('graphInitialized', initAudioPanel);
+    
+    // Also try on DOMContentLoaded in case graph is already ready
+    window.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit for graph to initialize
+        setTimeout(initAudioPanel, 100);
     });
 })();
     </script>
