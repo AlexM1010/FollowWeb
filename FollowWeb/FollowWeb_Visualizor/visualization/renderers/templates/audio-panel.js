@@ -3,6 +3,7 @@
     'use strict';
 
     let audioContextStarted = false;
+    let audioContextInitializing = false;
 
     // Wait for graph to be initialized
     function initAudioPanel() {
@@ -37,9 +38,15 @@
         // --- Helper Functions ---
 
         async function ensureAudioContext() {
-            if (!audioContextStarted) {
+            // Guard against duplicate initialization (e.g., rapid hover events)
+            if (audioContextStarted || audioContextInitializing) {
+                return;
+            }
+            
+            audioContextInitializing = true;
+            
+            try {
                 await Tone.start();
-                audioContextStarted = true;
                 
                 // Initialize master effects chain on first user interaction
                 audioState.masterLimiter = new Tone.Limiter(-1).toDestination();
@@ -50,7 +57,10 @@
                     release: 0.2
                 }).connect(audioState.masterLimiter);
                 
+                audioContextStarted = true;
                 console.log('Tone.js audio context started');
+            } finally {
+                audioContextInitializing = false;
             }
         }
 
@@ -895,7 +905,13 @@
 
         // --- Event Listeners ---
 
-        // Update Node Click Handler
+        // Initialize AudioContext on hover (once only, no audio loading)
+        renderer.on('enterNode', async () => {
+            // Only initialize context, don't load any audio
+            await ensureAudioContext();
+        });
+
+        // Load and play audio on click
         renderer.on('clickNode', async ({ node }) => {
             await showSinglePlayer(node);
         });
