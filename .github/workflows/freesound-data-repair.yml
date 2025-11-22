@@ -90,7 +90,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # shellcheck disable=SC2129
         # For manual triggers, always run
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "should_run=true" >> "$GITHUB_OUTPUT"
@@ -186,14 +185,18 @@ jobs:
       id: source
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "source=${{ github.event.inputs.checkpoint_source }}" >> "$GITHUB_OUTPUT"
-          echo "skip_repair=${{ github.event.inputs.skip_repair }}" >> "$GITHUB_OUTPUT"
-          echo "manual_max_requests=${{ github.event.inputs.max_requests }}" >> "$GITHUB_OUTPUT"
+          {
+            echo "source=${{ github.event.inputs.checkpoint_source }}"
+            echo "skip_repair=${{ github.event.inputs.skip_repair }}"
+            echo "manual_max_requests=${{ github.event.inputs.max_requests }}"
+          } >> "$GITHUB_OUTPUT"
         else
           # For workflow_run trigger, try cache first
-          echo "source=cache" >> "$GITHUB_OUTPUT"
-          echo "skip_repair=false" >> "$GITHUB_OUTPUT"
-          echo "manual_max_requests=" >> "$GITHUB_OUTPUT"
+          {
+            echo "source=cache"
+            echo "skip_repair=false"
+            echo "manual_max_requests="
+          } >> "$GITHUB_OUTPUT"
         fi
         
         {
@@ -296,7 +299,6 @@ jobs:
     - name: Check checkpoint availability
       id: checkpoint_check
       run: |
-        # shellcheck disable=SC2129
         # Check if we have a checkpoint from either cache or repo
         if [ ! -d "data/freesound_library" ] || [ ! "$(ls -A data/freesound_library 2>/dev/null)" ]; then
           {
@@ -320,7 +322,6 @@ jobs:
       if: steps.checkpoint_check.outputs.checkpoint_available == 'true'
       id: validation
       run: |
-        # shellcheck disable=SC2129
         {
           echo "### 🔍 Initial Validation Checks"
           echo ""
@@ -381,7 +382,6 @@ jobs:
       if: steps.validation.outputs.validation_passed == 'false' && steps.source.outputs.skip_repair == 'true'
       id: skip_repair
       run: |
-        # shellcheck disable=SC2129
         {
           echo "### ℹ️  Validation Only Mode"
           echo ""
@@ -401,7 +401,6 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
-        # shellcheck disable=SC2129
         MAX_REQUESTS="${{ steps.max_requests.outputs.max_requests }}"
         
         {
