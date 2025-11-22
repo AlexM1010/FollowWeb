@@ -136,8 +136,14 @@ class ComprehensiveDataRepairer:
         if data.get("data_quality_checked") and data.get("api_data_unavailable"):
             return issues
         
+        # Get list of fields marked as missing from Freesound (intentionally empty)
+        missing_from_freesound = data.get("_missing_from_freesound", [])
+        
         # Check each expected field
         for field_name, expected_type in EXPECTED_FIELDS.items():
+            # Skip if field is marked as missing from Freesound
+            if field_name in missing_from_freesound:
+                continue
             # Check if field exists
             if field_name not in data:
                 issues.append(DataQualityIssue(sample_id, "missing_field", field_name))
@@ -386,8 +392,15 @@ class ComprehensiveDataRepairer:
                         batch_fixed += 1
                 else:
                     # Sample not found in API or data unavailable
+                    # Mark which fields are missing from Freesound
+                    missing_fields = []
+                    for field_name in EXPECTED_FIELDS:
+                        if field_name not in data or not data[field_name]:
+                            missing_fields.append(field_name)
+                    
                     data["data_quality_checked"] = datetime.now().isoformat()
                     data["api_data_unavailable"] = True
+                    data["_missing_from_freesound"] = missing_fields
                     
                     # Update database
                     cursor.execute(

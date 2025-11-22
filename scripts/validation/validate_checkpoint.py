@@ -532,8 +532,15 @@ class CheckpointValidator:
             if data.get("data_quality_checked") and data.get("api_data_unavailable"):
                 continue
 
+            # Get list of fields marked as missing from Freesound
+            missing_from_freesound = data.get("_missing_from_freesound", [])
+
             sample_has_issues = False
             for field_name, expected_type in expected_fields.items():
+                # Skip if field is marked as missing from Freesound (intentionally empty)
+                if field_name in missing_from_freesound:
+                    continue
+
                 # Check if field exists and is not empty
                 if field_name not in data or not data[field_name]:
                     # Allow None for optional fields

@@ -514,6 +514,11 @@ class FreesoundLoader(DataLoader):
             match = uploader_id_pattern.search(preview_url)
             if match:
                 metadata["uploader_id"] = int(match.group(1))
+            elif not preview_url or not sound_dict["previews"]:
+                # Previews field exists but is empty - mark as unavailable from Freesound
+                metadata["_missing_from_freesound"] = metadata.get("_missing_from_freesound", [])
+                if "uploader_id" not in metadata["_missing_from_freesound"]:
+                    metadata["_missing_from_freesound"].append("uploader_id")
 
         # Remove fields that are not needed for visualization
         # These can be reconstructed from sample ID or are not used
