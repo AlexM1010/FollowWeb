@@ -255,18 +255,8 @@ jobs:
         MAX_REQUESTS=13
         
         if [ -f "data/freesound_library/checkpoint_metadata.json" ]; then
-          # Try to extract from checkpoint metadata
-          CHECKPOINT_MAX=$(python3 -c "
-import json
-try:
-    with open('data/freesound_library/checkpoint_metadata.json') as f:
-        data = json.load(f)
-    # Check collection_stats for max_requests
-    max_req = data.get('collection_stats', {}).get('max_requests', 13)
-    print(max_req)
-except:
-    print(13)
-" 2>/dev/null || echo "13")
+          # Try to extract from checkpoint metadata using Python
+          CHECKPOINT_MAX=$(python3 -c 'import json; data=json.load(open("data/freesound_library/checkpoint_metadata.json")); print(data.get("collection_stats", {}).get("max_requests", 13))' 2>/dev/null || echo "13")
           
           if [ "$CHECKPOINT_MAX" -gt 0 ]; then
             MAX_REQUESTS=$CHECKPOINT_MAX
