@@ -184,16 +184,17 @@
             
             console.log('Freesound preview URLs for node', nodeId, ':', audioUrls);
 
-            return new Promise((resolve, reject) => {
+            return new Promise(async (resolve, reject) => {
                 try {
                     // Create meter for visual feedback
                     const meter = new Tone.Meter();
                     
-                    // Tone.js will try URLs in order until one loads successfully
+                    // Try URLs in order until one loads successfully
                     console.log('Creating Tone.Player with URLs:', audioUrls);
                     
+                    // Create player with first URL
                     const player = new Tone.Player({
-                        url: audioUrls,
+                        url: audioUrls[0],
                         loop: false,
                         fadeIn: 0.01,  // Smooth fade in to prevent clicks
                         fadeOut: 0.01, // Smooth fade out to prevent clicks
@@ -207,16 +208,31 @@
                             renderAudioPanel();
                             resolve(player);
                         },
-                        onerror: (error) => {
-                            console.error('✗ Failed to load audio for node:', nodeId);
-                            console.error('Error details:', error);
-                            console.error('Attempted URLs:', audioUrls);
-                            // Clean up failed player
+                        onerror: async (error) => {
+                            console.warn('Failed to load', audioUrls[0], '- trying fallback URLs');
+                            // Try fallback URLs
+                            for (let i = 1; i < audioUrls.length; i++) {
+                                try {
+                                    await player.load(audioUrls[i]);
+                                    console.log('✓ Audio loaded successfully from fallback:', audioUrls[i]);
+                                    if (audioState.activePlayers[nodeId]) {
+                                        audioState.activePlayers[nodeId].duration = player.buffer.duration;
+                                        audioState.activePlayers[nodeId].isLoading = false;
+                                    }
+                                    renderAudioPanel();
+                                    resolve(player);
+                                    return;
+                                } catch (e) {
+                                    console.warn('Failed to load', audioUrls[i]);
+                                }
+                            }
+                            // All URLs failed
+                            console.error('✗ Failed to load audio for node:', nodeId, '- all URLs failed');
                             if (audioState.activePlayers[nodeId]) {
                                 delete audioState.activePlayers[nodeId];
                             }
                             renderAudioPanel();
-                            reject(error);
+                            reject(new Error('All audio URLs failed to load'));
                         }
                     });
 
