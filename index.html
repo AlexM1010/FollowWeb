@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Visualization - 3148 nodes</title>
+    <title>Network Visualization - 3146 nodes</title>
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
     <!-- ForceAtlas2 layout from graphology-library -->
@@ -1416,15 +1416,15 @@
             <h3>📊 Network Stats</h3>
             <div class="stat-item">
                 <span class="stat-label">Nodes:</span>
-                <span class="stat-value" id="node-count">3148</span>
+                <span class="stat-value" id="node-count">3146</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41898</span>
+                <span class="stat-value" id="edge-count">41904</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">26.62</span>
+                <span class="stat-value" id="avg-degree">26.64</span>
             </div>
             
             <div class="stat-item">
@@ -2369,6 +2369,7 @@
     'use strict';
 
     let audioContextStarted = false;
+    let audioContextInitializing = false;
 
     // Wait for graph to be initialized
     function initAudioPanel() {
@@ -2393,15 +2394,6 @@
             masterLimiter: null
         };
 
-        // Initialize master effects chain
-        audioState.masterLimiter = new Tone.Limiter(-1).toDestination();
-        audioState.masterCompressor = new Tone.Compressor({
-            threshold: -24,
-            ratio: 4,
-            attack: 0.05,
-            release: 0.2
-        }).connect(audioState.masterLimiter);
-
         // DOM Elements
         const panelContent = document.getElementById('panel-content');
         if (!panelContent) {
@@ -2412,10 +2404,29 @@
         // --- Helper Functions ---
 
         async function ensureAudioContext() {
-            if (!audioContextStarted) {
+            // Guard against duplicate initialization (e.g., rapid hover events)
+            if (audioContextStarted || audioContextInitializing) {
+                return;
+            }
+            
+            audioContextInitializing = true;
+            
+            try {
                 await Tone.start();
+                
+                // Initialize master effects chain on first user interaction
+                audioState.masterLimiter = new Tone.Limiter(-1).toDestination();
+                audioState.masterCompressor = new Tone.Compressor({
+                    threshold: -24,
+                    ratio: 4,
+                    attack: 0.05,
+                    release: 0.2
+                }).connect(audioState.masterLimiter);
+                
                 audioContextStarted = true;
                 console.log('Tone.js audio context started');
+            } finally {
+                audioContextInitializing = false;
             }
         }
 
@@ -3260,7 +3271,7 @@
 
         // --- Event Listeners ---
 
-        // Update Node Click Handler
+        // Load and play audio on click (initializes AudioContext on first click)
         renderer.on('clickNode', async ({ node }) => {
             await showSinglePlayer(node);
         });
