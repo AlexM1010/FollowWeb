@@ -366,18 +366,24 @@ class ComprehensiveDataRepairer:
                     
                     if updated:
                         print(f"    Sample {sample_id}: updating {len(fields_updated)} fields: {', '.join(fields_updated[:3])}{'...' if len(fields_updated) > 3 else ''}")
-                    
-                    # Mark fields that are unavailable from Freesound API
-                    if unavailable_fields:
-                        data["_missing_from_freesound"] = unavailable_fields
-                        updated = True  # Need to save this marker
-                        # Mark as checked - collection tried once, repair tried once
+                        
+                        # Mark as repaired
                         data["data_quality_checked"] = datetime.now().isoformat()
                         data["data_quality_repaired"] = True
-                        # Remove any previous unavailable markers
-                        data.pop("api_data_unavailable", None)
-                        data.pop("_missing_from_freesound", None)
-                        data.pop("permanently_unavailable", None)
+                        
+                        # Update database with fixed data
+                        cursor.execute(
+                            "UPDATE metadata SET data = ? WHERE sample_id = ?",
+                            (json.dumps(data), sample_id)
+                        )
+                        batch_fixed += 1
+                    
+                    # Mark fields that are unavailable from Freesound API
+                    elif unavailable_fields:
+                        # Fields are missing from API - mark as checked but not available
+                        data["_missing_from_freesound"] = unavailable_fields
+                        data["data_quality_checked"] = datetime.now().isoformat()
+                        data["data_quality_repaired"] = True
                         
                         # Update database
                         cursor.execute(
