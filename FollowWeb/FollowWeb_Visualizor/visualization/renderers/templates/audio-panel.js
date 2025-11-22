@@ -178,6 +178,7 @@
                         // Store duration once loaded
                         if (audioState.activePlayers[nodeId]) {
                             audioState.activePlayers[nodeId].duration = player.buffer.duration;
+                            audioState.activePlayers[nodeId].isLoading = false;
                         }
                         renderAudioPanel();
                     },
@@ -216,7 +217,8 @@
                     isLooping: false,
                     isExpanded: false,
                     startTime: null,
-                    seekPosition: 0 // Track seek position for paused state
+                    seekPosition: 0, // Track seek position for paused state
+                    isLoading: true // Track loading state
                 };
 
                 // Set volume safely - prevent NaN from 0 or negative values
@@ -271,9 +273,14 @@
                     // Don't start if duration is not loaded yet
                     if (playerData.duration === 0) {
                         console.warn('Cannot start player: audio not loaded yet');
+                        // Show loading state in UI
+                        playerData.isLoading = true;
                         renderAudioPanel();
                         return;
                     }
+                    
+                    // Clear loading state
+                    playerData.isLoading = false;
                     
                     // Clamp to duration
                     if (startOffset >= playerData.duration) {
@@ -493,6 +500,7 @@
             const player = playerData?.player;
             const isPlaying = player && player.state === 'started';
             const duration = playerData?.duration || 0;
+            const isLoading = playerData?.isLoading || false;
 
             // Calculate current position using player.progress for accuracy
             let seek = 0;
@@ -529,8 +537,8 @@
                         </div>
                     </div>
                     <div class="sp-controls">
-                        <button class="btn-control ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${node.id}')">
-                            ${isPlaying ? 'ΓÅ╕' : 'Γû╢'}
+                        <button class="btn-control ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${node.id}')" ${isLoading ? 'disabled' : ''} title="${isLoading ? 'Loading audio...' : (isPlaying ? 'Pause' : 'Play')}">
+                            ${isLoading ? '⏳' : (isPlaying ? 'ΓÅ╕' : 'Γû╢')}
                         </button>
                         <div class="sp-timeline-wrapper">
                             <div class="sp-timeline" onclick="window.audioPanel.handleTimelineClick(event, '${node.id}')">
@@ -568,6 +576,7 @@
                 const duration = playerData?.duration || 0;
                 const volume = playerData?.volume || 0.8;
                 const isLooping = playerData?.isLooping || false;
+                const isLoadingAudio = playerData?.isLoading || false;
 
                 // Calculate current position using player.progress for accuracy
                 let seek = 0;
@@ -621,8 +630,8 @@
                                 </div>
                                 <div class="mix-time">${formatTime(seek)} / ${formatTime(duration)}</div>
                                 <div class="mix-controls-row">
-                                    <button class="btn-mini ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${id}')" title="Play/Pause">
-                                        ${isPlaying ? 'ΓÅ╕' : 'Γû╢'}
+                                    <button class="btn-mini ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${id}')" title="${isLoadingAudio ? 'Loading...' : 'Play/Pause'}" ${isLoadingAudio ? 'disabled' : ''}>
+                                        ${isLoadingAudio ? '⏳' : (isPlaying ? 'ΓÅ╕' : 'Γû╢')}
                                     </button>
                                     <button class="btn-mini" onclick="window.audioPanel.stopPlayer('${id}')" title="Stop">ΓÅ╣</button>
                                     <button class="btn-mini ${isLooping ? 'active' : ''}" onclick="window.audioPanel.toggleLoop('${id}')" title="Loop">

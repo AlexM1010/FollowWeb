@@ -78,6 +78,13 @@
     color: white;
 }
 
+.btn-control:disabled,
+.btn-mini:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .sp-timeline-wrapper {
     flex: 1;
     display: flex;
