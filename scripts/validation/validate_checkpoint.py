@@ -244,7 +244,25 @@ class CheckpointValidator:
             checks_passed += 1
             self.logger.info("✓ All sampled nodes have metadata")
 
-        # Check 6: Validate pagination state
+        # Check 6: Verify data quality (check for missing/incomplete fields)
+        checks_run += 1
+        data_quality_result = self._check_data_quality(metadata_cache)
+
+        if data_quality_result["samples_with_issues"] > 0:
+            # Data quality issues found - fail validation to trigger repair
+            errors.append(
+                f"Data quality: {data_quality_result['samples_with_issues']} samples "
+                f"missing {data_quality_result['total_issues']} fields"
+            )
+            metadata["data_quality_issues"] = data_quality_result
+            self.logger.warning(
+                f"⚠️  {data_quality_result['samples_with_issues']} samples need repair"
+            )
+        else:
+            checks_passed += 1
+            self.logger.info("✓ All samples have complete data")
+
+        # Check 7: Validate pagination state
         checks_run += 1
         pagination_result = self._check_pagination_state(checkpoint_meta)
 
@@ -456,6 +474,56 @@ class CheckpointValidator:
             }
 
         return {"error": None}
+
+    def _check_data_quality(self, metadata_cache: MetadataCache) -> dict[str, Any]:
+        """
+        Check data quality by scanning for missing/incomplete critical fields.
+
+        Scans all samples to identify data quality issues that need repair.
+        Critical fields: uploader_id, name, tags, duration, username
+
+        Args:
+            metadata_cache: Metadata cache with sample data
+
+        Returns:
+            Dictionary with samples_with_issues, total_issues, issues_by_field
+        """
+        import sqlite3
+
+        critical_fields = ["uploader_id", "name", "tags", "duration", "username"]
+
+        samples_with_issues = 0
+        total_issues = 0
+        issues_by_field = {}
+
+        conn = sqlite3.connect(str(self.metadata_db_path))
+        cursor = conn.cursor()
+        cursor.execute("SELECT sample_id, data FROM metadata")
+
+        for sample_id, data_json in cursor.fetchall():
+            data = json.loads(data_json)
+
+            # Skip samples already checked and marked unavailable
+            if data.get("data_quality_checked") and data.get("api_data_unavailable"):
+                continue
+
+            sample_has_issues = False
+            for field in critical_fields:
+                if field not in data or not data[field]:
+                    sample_has_issues = True
+                    total_issues += 1
+                    issues_by_field[field] = issues_by_field.get(field, 0) + 1
+
+            if sample_has_issues:
+                samples_with_issues += 1
+
+        conn.close()
+
+        return {
+            "samples_with_issues": samples_with_issues,
+            "total_issues": total_issues,
+            "issues_by_field": issues_by_field,
+        }
 
     def _check_pagination_state(
         self, checkpoint_meta: dict[str, Any]
