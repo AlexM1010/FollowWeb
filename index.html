@@ -1398,11 +1398,11 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41307</span>
+                <span class="stat-value" id="edge-count">41338</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">23.95</span>
+                <span class="stat-value" id="avg-degree">23.97</span>
             </div>
             
             <div class="stat-item">
@@ -2363,11 +2363,22 @@
 
         // State management
         const audioState = {
-            activePlayers: {}, // Map<nodeId, {player: Tone.Player, duration: number, volume: number, isLooping: boolean, isExpanded: boolean}>
+            activePlayers: {}, // Map<nodeId, {player: Tone.Player, meter: Tone.Meter, duration: number, volume: number, isLooping: boolean, isExpanded: boolean}>
             singlePlayerNode: null, // nodeId
             mixMode: false,
-            globalBPM: 120
+            globalBPM: 120,
+            masterCompressor: null,
+            masterLimiter: null
         };
+
+        // Initialize master effects chain
+        audioState.masterLimiter = new Tone.Limiter(-1).toDestination();
+        audioState.masterCompressor = new Tone.Compressor({
+            threshold: -24,
+            ratio: 4,
+            attack: 0.05,
+            release: 0.2
+        }).connect(audioState.masterLimiter);
 
         // DOM Elements
         const panelContent = document.getElementById('panel-content');
@@ -2405,6 +2416,13 @@
 
         async function showSinglePlayer(nodeId) {
             await ensureAudioContext();
+            
+            // Validate node exists
+            if (!graph.hasNode(nodeId)) {
+                console.error('Node not found in graph:', nodeId);
+                return;
+            }
+            
             audioState.singlePlayerNode = nodeId;
             audioState.mixMode = false;
             renderAudioPanel();
@@ -2416,8 +2434,19 @@
 
         async function addToMix(nodeId) {
             await ensureAudioContext();
+            
+            // Validate node exists
+            if (!graph.hasNode(nodeId)) {
+                console.error('Node not found in graph:', nodeId);
+                return;
+            }
+            
             if (!audioState.activePlayers[nodeId]) {
-                await createPlayer(nodeId);
+                const player = await createPlayer(nodeId);
+                if (!player) {
+                    console.error('Failed to create player for node:', nodeId);
+                    return;
+                }
             }
             audioState.mixMode = true;
             renderAudioPanel();
@@ -2426,8 +2455,22 @@
         function removeFromMix(nodeId) {
             if (audioState.activePlayers[nodeId]) {
                 const playerData = audioState.activePlayers[nodeId];
-                playerData.player.stop();
-                playerData.player.dispose();
+                
+                try {
+                    playerData.player.stop();
+                    playerData.player.dispose();
+                } catch (e) {
+                    console.error('Error disposing player:', e);
+                }
+                
+                try {
+                    if (playerData.meter) {
+                        playerData.meter.dispose();
+                    }
+                } catch (e) {
+                    console.error('Error disposing meter:', e);
+                }
+                
                 delete audioState.activePlayers[nodeId];
             }
 
@@ -2444,13 +2487,19 @@
         async function createPlayer(nodeId) {
             const node = getNodeData(nodeId);
             
+            if (!node) {
+                console.error('Node not found:', nodeId);
+                return null;
+            }
+            
             // Parse audio URLs from JSON array
             let audioUrls = [];
-            if (node && node.audio_urls) {
+            if (node.audio_urls) {
                 try {
                     audioUrls = JSON.parse(node.audio_urls);
                 } catch (e) {
-                    console.error('Failed to parse audio_urls:', e);
+                    console.error('Failed to parse audio_urls for node:', nodeId, e);
+                    return null;
                 }
             }
             
@@ -2460,35 +2509,64 @@
             }
 
             try {
+                // Create meter for visual feedback
+                const meter = new Tone.Meter();
+                
                 // Tone.js will try URLs in order until one loads successfully
                 const player = new Tone.Player({
                     url: audioUrls,
                     loop: false,
+                    fadeIn: 0.01,  // Smooth fade in to prevent clicks
+                    fadeOut: 0.01, // Smooth fade out to prevent clicks
                     onload: () => {
                         // Store duration once loaded
                         if (audioState.activePlayers[nodeId]) {
                             audioState.activePlayers[nodeId].duration = player.buffer.duration;
                         }
                         renderAudioPanel();
+                    },
+                    onerror: (error) => {
+                        console.error('Failed to load audio for node:', nodeId, error);
+                        // Clean up failed player
+                        if (audioState.activePlayers[nodeId]) {
+                            delete audioState.activePlayers[nodeId];
+                        }
+                        renderAudioPanel();
                     }
-                }).toDestination();
+                });
+
+                // Connect player through meter to master effects chain
+                player.chain(meter, audioState.masterCompressor);
 
                 // Set up event handlers
                 player.onstop = () => {
+                    // Check if player finished naturally (not manually stopped)
+                    if (audioState.activePlayers[nodeId]) {
+                        const playerData = audioState.activePlayers[nodeId];
+                        // If looping is disabled and we reached the end, reset position
+                        if (!playerData.isLooping && playerData.duration > 0) {
+                            playerData.seekPosition = 0;
+                        }
+                    }
                     highlightPlayingNode(nodeId, false);
                     renderAudioPanel();
                 };
 
                 audioState.activePlayers[nodeId] = {
                     player: player,
+                    meter: meter,
                     duration: 0, // Will be set on load
                     volume: 0.8,
                     isLooping: false,
                     isExpanded: false,
-                    startTime: null
+                    startTime: null,
+                    seekPosition: 0 // Track seek position for paused state
                 };
 
-                player.volume.value = Tone.gainToDb(0.8);
+                // Set volume safely - prevent NaN from 0 or negative values
+                const initialVolume = 0.8;
+                const safeVolume = Math.max(0.001, Math.min(1.0, initialVolume));
+                player.volume.value = Tone.gainToDb(safeVolume);
 
                 return player;
             } catch (error) {
@@ -2502,7 +2580,11 @@
 
             let playerData = audioState.activePlayers[nodeId];
             if (!playerData) {
-                await createPlayer(nodeId);
+                const player = await createPlayer(nodeId);
+                if (!player) {
+                    console.error('Failed to create player for node:', nodeId);
+                    return;
+                }
                 playerData = audioState.activePlayers[nodeId];
             }
 
@@ -2510,13 +2592,26 @@
                 const player = playerData.player;
 
                 if (player.state === 'started') {
+                    // Pause: store current position
+                    if (playerData.duration > 0) {
+                        const currentProgress = player.progress;
+                        playerData.seekPosition = currentProgress * playerData.duration;
+                    }
                     player.stop();
                     playerData.startTime = null;
                     highlightPlayingNode(nodeId, false);
                 } else {
-                    player.start();
-                    playerData.startTime = Tone.now();
-                    highlightPlayingNode(nodeId, true);
+                    // Resume from last position or start from beginning
+                    const startOffset = playerData.seekPosition || 0;
+                    try {
+                        player.start('+0', startOffset);
+                        playerData.startTime = Tone.now() - startOffset;
+                        highlightPlayingNode(nodeId, true);
+                    } catch (e) {
+                        console.error('Failed to start player:', e);
+                        playerData.startTime = null;
+                        highlightPlayingNode(nodeId, false);
+                    }
                 }
 
                 renderAudioPanel();
@@ -2528,6 +2623,7 @@
             if (playerData && playerData.player) {
                 playerData.player.stop();
                 playerData.startTime = null;
+                playerData.seekPosition = 0; // Reset to beginning
                 highlightPlayingNode(nodeId, false);
                 renderAudioPanel();
             }
@@ -2545,8 +2641,18 @@
         function setVolume(nodeId, volume) {
             const playerData = audioState.activePlayers[nodeId];
             if (playerData && playerData.player) {
-                playerData.volume = volume;
-                playerData.player.volume.value = Tone.gainToDb(volume);
+                // Clamp volume to valid range and prevent NaN
+                const safeVolume = Math.max(0.001, Math.min(1.0, parseFloat(volume) || 0.001));
+                playerData.volume = safeVolume;
+                
+                try {
+                    const db = Tone.gainToDb(safeVolume);
+                    // Smooth volume change to prevent clicks
+                    playerData.player.volume.rampTo(db, 0.05);
+                } catch (e) {
+                    console.error('Failed to set volume:', e);
+                }
+                
                 renderAudioPanel();
             }
         }
@@ -2554,14 +2660,37 @@
         function seekTo(nodeId, position) {
             const playerData = audioState.activePlayers[nodeId];
             if (playerData && playerData.player && playerData.duration > 0) {
+                // Validate and clamp position
+                const safePosition = Math.max(0, Math.min(position, playerData.duration));
+                
+                if (isNaN(safePosition)) {
+                    console.error('Invalid seek position:', position);
+                    return;
+                }
+                
                 const wasPlaying = playerData.player.state === 'started';
+                
+                // Stop current playback
                 playerData.player.stop();
-                playerData.player.start('+0', position);
-                playerData.startTime = Tone.now() - position;
-                if (!wasPlaying) {
-                    playerData.player.stop();
+                
+                // Update seek position
+                playerData.seekPosition = safePosition;
+                
+                // If was playing, restart from new position
+                if (wasPlaying) {
+                    try {
+                        playerData.player.start('+0', safePosition);
+                        playerData.startTime = Tone.now() - safePosition;
+                        highlightPlayingNode(nodeId, true);
+                    } catch (e) {
+                        console.error('Failed to seek:', e);
+                        playerData.startTime = null;
+                        highlightPlayingNode(nodeId, false);
+                    }
+                } else {
                     playerData.startTime = null;
                 }
+                
                 renderAudioPanel();
             }
         }
@@ -2578,6 +2707,7 @@
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
                 playerData.player.stop();
                 playerData.startTime = null;
+                playerData.seekPosition = 0; // Reset to beginning
                 highlightPlayingNode(nodeId, false);
             });
             renderAudioPanel();
@@ -2587,8 +2717,9 @@
             await ensureAudioContext();
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
                 if (playerData.player.state !== 'started') {
-                    playerData.player.start();
-                    playerData.startTime = Tone.now();
+                    const startOffset = playerData.seekPosition || 0;
+                    playerData.player.start('+0', startOffset);
+                    playerData.startTime = Tone.now() - startOffset;
                     highlightPlayingNode(nodeId, true);
                 }
             });
@@ -2598,6 +2729,9 @@
         function pauseAll() {
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
                 if (playerData.player.state === 'started') {
+                    // Store current position before pausing
+                    const currentProgress = playerData.player.progress;
+                    playerData.seekPosition = currentProgress * playerData.duration;
                     playerData.player.stop();
                     playerData.startTime = null;
                     highlightPlayingNode(nodeId, false);
@@ -2608,8 +2742,21 @@
 
         function clearAll() {
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
-                playerData.player.stop();
-                playerData.player.dispose();
+                try {
+                    playerData.player.stop();
+                    playerData.player.dispose();
+                } catch (e) {
+                    console.error('Error disposing player:', e);
+                }
+                
+                try {
+                    if (playerData.meter) {
+                        playerData.meter.dispose();
+                    }
+                } catch (e) {
+                    console.error('Error disposing meter:', e);
+                }
+                
                 highlightPlayingNode(nodeId, false);
             });
             audioState.activePlayers = {};
@@ -2632,19 +2779,34 @@
 
         function renderSinglePlayer() {
             const node = getNodeData(audioState.singlePlayerNode);
-            if (!node) return;
+            if (!node) {
+                // Node was removed from graph, clear single player mode
+                audioState.singlePlayerNode = null;
+                renderAudioPanel();
+                return;
+            }
 
             const playerData = audioState.activePlayers[node.id];
             const player = playerData?.player;
             const isPlaying = player && player.state === 'started';
             const duration = playerData?.duration || 0;
 
-            // Calculate current position
+            // Calculate current position using player.progress for accuracy
             let seek = 0;
-            if (playerData?.startTime && isPlaying) {
-                seek = Math.min(Tone.now() - playerData.startTime, duration);
+            let progress = 0;
+            
+            if (player && duration > 0) {
+                if (isPlaying) {
+                    // Use built-in progress property for playing state
+                    const playerProgress = player.progress;
+                    seek = playerProgress * duration;
+                    progress = Math.min(playerProgress * 100, 100);
+                } else {
+                    // Use stored seek position for paused state
+                    seek = playerData.seekPosition || 0;
+                    progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
+                }
             }
-            const progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
 
             panelContent.innerHTML = `
                 <div class="single-player">
@@ -2675,8 +2837,18 @@
 
         function renderMixMode() {
             const playerIds = Object.keys(audioState.activePlayers);
+            
+            // Filter out nodes that no longer exist in graph
+            const validPlayerIds = playerIds.filter(id => graph.hasNode(id));
+            
+            // Clean up invalid players
+            playerIds.forEach(id => {
+                if (!graph.hasNode(id)) {
+                    removeFromMix(id);
+                }
+            });
 
-            let listHtml = playerIds.map(id => {
+            let listHtml = validPlayerIds.map(id => {
                 const node = getNodeData(id);
                 const playerData = audioState.activePlayers[id];
                 const player = playerData?.player;
@@ -2686,12 +2858,35 @@
                 const volume = playerData?.volume || 0.8;
                 const isLooping = playerData?.isLooping || false;
 
-                // Calculate current position
+                // Calculate current position using player.progress for accuracy
                 let seek = 0;
-                if (playerData?.startTime && isPlaying) {
-                    seek = Math.min(Tone.now() - playerData.startTime, duration);
+                let progress = 0;
+                let audioLevel = 0;
+                
+                if (player && duration > 0) {
+                    if (isPlaying) {
+                        // Use built-in progress property for playing state
+                        const playerProgress = player.progress;
+                        seek = playerProgress * duration;
+                        progress = Math.min(playerProgress * 100, 100);
+                        
+                        // Get audio level from meter
+                        if (playerData.meter) {
+                            try {
+                                const meterValue = playerData.meter.getValue();
+                                // Convert dB to 0-100 range (assuming -60dB to 0dB range)
+                                audioLevel = Math.max(0, Math.min(100, ((meterValue + 60) / 60) * 100));
+                            } catch (e) {
+                                // Meter might not be ready yet
+                                audioLevel = 0;
+                            }
+                        }
+                    } else {
+                        // Use stored seek position for paused state
+                        seek = playerData.seekPosition || 0;
+                        progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
+                    }
                 }
-                const progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
 
                 if (isExpanded) {
                     return `
@@ -2721,6 +2916,7 @@
                                                oninput="window.audioPanel.setVolume('${id}', this.value / 100)">
                                         <span class="volume-percent">${Math.round(volume * 100)}%</span>
                                     </div>
+                                    ${isPlaying ? `<div class="audio-level-meter" style="width: ${audioLevel}%; background: linear-gradient(90deg, #4CAF50 0%, #FFC107 70%, #F44336 90%); height: 4px; border-radius: 2px; margin-top: 4px;"></div>` : ''}
                                 </div>
                                 <div class="mix-metadata">
                                     ${node?.user ? `<div class="meta-row"><span class="meta-label">User:</span> ${escapeHtml(node.user)}</div>` : ''}
@@ -2751,7 +2947,7 @@
             panelContent.innerHTML = `
                 <div class="mix-mode">
                     <div class="mix-header">
-                        <div class="mix-title">≡ƒÄ╡ Audio Mix (${playerIds.length})</div>
+                        <div class="mix-title">≡ƒÄ╡ Audio Mix (${validPlayerIds.length})</div>
                         <div class="mix-master-controls">
                             <button class="btn-mini" onclick="window.audioPanel.playAll()" title="Play All">Γû╢ All</button>
                             <button class="btn-mini" onclick="window.audioPanel.pauseAll()" title="Pause All">ΓÅ╕ All</button>
@@ -2775,7 +2971,7 @@
             const timeline = event.currentTarget;
             const rect = timeline.getBoundingClientRect();
             const clickX = event.clientX - rect.left;
-            const percentage = clickX / rect.width;
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
             
             const playerData = audioState.activePlayers[nodeId];
             if (playerData && playerData.duration > 0) {
@@ -2785,13 +2981,20 @@
         }
 
         function setBPM(bpm) {
-            audioState.globalBPM = parseInt(bpm) || 120;
+            const newBPM = parseInt(bpm) || 120;
+            const clampedBPM = Math.max(60, Math.min(200, newBPM));
+            audioState.globalBPM = clampedBPM;
+            
+            // Update Tone.js Transport BPM
+            Tone.getTransport().bpm.value = clampedBPM;
+            
             renderAudioPanel();
         }
 
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = String(text);
             return div.innerHTML;
         }
 
@@ -2821,12 +3024,42 @@
             await showSinglePlayer(node);
         });
 
-        // Periodic update for timelines
-        setInterval(() => {
-            if (audioState.singlePlayerNode || audioState.mixMode) {
-                renderAudioPanel();
+        // Periodic update for timelines and meters
+        let updateInterval = null;
+        
+        function startPeriodicUpdate() {
+            if (!updateInterval) {
+                updateInterval = setInterval(() => {
+                    // Only update if there are active players
+                    const hasActivePlayers = Object.keys(audioState.activePlayers).length > 0;
+                    if (hasActivePlayers && (audioState.singlePlayerNode || audioState.mixMode)) {
+                        renderAudioPanel();
+                    }
+                }, 200);
             }
-        }, 200);
+        }
+        
+        function stopPeriodicUpdate() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+        
+        // Start periodic updates
+        startPeriodicUpdate();
+
+        // --- Cleanup on page unload ---
+        window.addEventListener('beforeunload', () => {
+            stopPeriodicUpdate();
+            clearAll();
+            if (audioState.masterCompressor) {
+                audioState.masterCompressor.dispose();
+            }
+            if (audioState.masterLimiter) {
+                audioState.masterLimiter.dispose();
+            }
+        });
 
         // --- Expose API to window ---
         window.audioPanel = {
@@ -2843,7 +3076,14 @@
             setVolume,
             toggleExpand,
             handleTimelineClick,
-            setBPM
+            setBPM,
+            // Expose state for debugging
+            getState: () => audioState,
+            // Expose cleanup for testing
+            cleanup: () => {
+                stopPeriodicUpdate();
+                clearAll();
+            }
         };
 
         // Initial render
