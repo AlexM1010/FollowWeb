@@ -90,6 +90,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        # shellcheck disable=SC2129
         # For manual triggers, always run
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "should_run=true" >> "$GITHUB_OUTPUT"
@@ -199,18 +200,17 @@ jobs:
           echo "## 🔧 Data Repair Pipeline"
           echo ""
           echo "**Trigger:** \`${{ github.event_name }}\`"
-        } >> "$GITHUB_STEP_SUMMARY"
-        
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          {
-            echo "**Mode:** \`$([ "${{ github.event.inputs.skip_repair }}" = "true" ] && echo "Validation Only" || echo "Validation + Repair")\`"
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            MODE="$([ "${{ github.event.inputs.skip_repair }}" = "true" ] && echo "Validation Only" || echo "Validation + Repair")"
+            echo "**Mode:** \`$MODE\`"
             echo "**Checkpoint Source:** \`${{ github.event.inputs.checkpoint_source }}\`"
             if [ "${{ github.event.inputs.skip_repair }}" != "true" ]; then
               echo "**Max Requests:** \`${{ github.event.inputs.max_requests }}\`"
             fi
-          } >> "$GITHUB_STEP_SUMMARY"
-        fi
-        echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
     
     - name: Restore checkpoint from cache
       if: steps.source.outputs.source == 'cache'
@@ -259,9 +259,7 @@ jobs:
         
         if [ "$ASSET_NAME" = "null" ] || [ -z "$ASSET_NAME" ]; then
           echo "::error::No checkpoint assets found in release"
-          {
-            echo "- ❌ No checkpoint assets found"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "- ❌ No checkpoint assets found" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
@@ -284,9 +282,7 @@ jobs:
         # Verify extraction
         if [ ! -d "data/freesound_library" ]; then
           echo "::error::Checkpoint extraction failed"
-          {
-            echo "- ❌ Extraction failed"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "- ❌ Extraction failed" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         fi
         
@@ -300,6 +296,7 @@ jobs:
     - name: Check checkpoint availability
       id: checkpoint_check
       run: |
+        # shellcheck disable=SC2129
         # Check if we have a checkpoint from either cache or repo
         if [ ! -d "data/freesound_library" ] || [ ! "$(ls -A data/freesound_library 2>/dev/null)" ]; then
           {
@@ -323,6 +320,7 @@ jobs:
       if: steps.checkpoint_check.outputs.checkpoint_available == 'true'
       id: validation
       run: |
+        # shellcheck disable=SC2129
         {
           echo "### 🔍 Initial Validation Checks"
           echo ""
@@ -383,6 +381,7 @@ jobs:
       if: steps.validation.outputs.validation_passed == 'false' && steps.source.outputs.skip_repair == 'true'
       id: skip_repair
       run: |
+        # shellcheck disable=SC2129
         {
           echo "### ℹ️  Validation Only Mode"
           echo ""
@@ -402,6 +401,7 @@ jobs:
       env:
         FREESOUND_API_KEY: ${{ secrets.FREESOUND_API_KEY }}
       run: |
+        # shellcheck disable=SC2129
         MAX_REQUESTS="${{ steps.max_requests.outputs.max_requests }}"
         
         {
