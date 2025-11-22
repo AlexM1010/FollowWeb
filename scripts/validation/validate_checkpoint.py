@@ -542,8 +542,10 @@ class CheckpointValidator:
                 if field_name in missing_from_freesound:
                     continue
 
-                # Check if field exists and is not empty
-                if field_name not in data or not data[field_name]:
+                # Check if field exists and is not None
+                # Note: We check for None specifically, not falsy values
+                # because 0, [], False are valid values for some fields
+                if field_name not in data or data[field_name] is None:
                     # Allow None for optional fields
                     if expected_type == (str, type(None)) or expected_type == type(None):
                         continue

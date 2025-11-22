@@ -316,13 +316,15 @@ class ComprehensiveDataRepairer:
                 if sample_id in fetched_data:
                     fresh_data = fetched_data[sample_id]
                     
-                    # Update all missing/empty fields
+                    # Update all missing/None fields
+                    # Note: We check for None specifically, not falsy values
+                    # because 0, [], False are valid values for some fields
                     updated = False
                     fields_updated = []
                     for field_name in EXPECTED_FIELDS:
-                        if field_name in fresh_data and fresh_data[field_name]:
-                            # Only update if current value is missing/empty
-                            if field_name not in data or not data[field_name]:
+                        if field_name in fresh_data and fresh_data[field_name] is not None:
+                            # Only update if current value is missing/None
+                            if field_name not in data or data[field_name] is None:
                                 data[field_name] = fresh_data[field_name]
                                 updated = True
                                 fields_updated.append(field_name)
@@ -350,7 +352,7 @@ class ComprehensiveDataRepairer:
                     # Sample not found in API results
                     missing_fields = []
                     for field_name in EXPECTED_FIELDS:
-                        if field_name not in data or not data[field_name]:
+                        if field_name not in data or data[field_name] is None:
                             missing_fields.append(field_name)
                     
                     if api_error:
