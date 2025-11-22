@@ -68,6 +68,9 @@
             };
         }
 
+        // Track failed player creation attempts to prevent retries
+        const failedPlayers = new Set();
+
         // --- Core Functions ---
 
         async function showSinglePlayer(nodeId, autoPlay = true) {
@@ -83,15 +86,20 @@
             audioState.mixMode = false;
             renderAudioPanel();
 
+            // Don't retry if player creation already failed for this node
+            if (failedPlayers.has(nodeId)) {
+                return;
+            }
+
             if (!audioState.activePlayers[nodeId]) {
                 // Create player and wait for it to load before playing
                 try {
                     const player = await createPlayer(nodeId);
                     
-                    // If player creation failed, show error in UI
+                    // If player creation failed, mark as failed and show error in UI
                     if (!player) {
                         console.error('Failed to create player for node:', nodeId);
-                        audioState.singlePlayerNode = null;
+                        failedPlayers.add(nodeId);
                         renderAudioPanel();
                         return;
                     }
@@ -113,7 +121,7 @@
                     }
                 } catch (error) {
                     console.error('Failed to load audio for node:', nodeId, error);
-                    audioState.singlePlayerNode = null;
+                    failedPlayers.add(nodeId);
                     renderAudioPanel();
                 }
             }
@@ -582,8 +590,8 @@
                 return;
             }
             
-            // Check if node has required data for audio playback
-            if (!node.uploader_id) {
+            // Check if player creation failed for this node
+            if (failedPlayers.has(node.id)) {
                 panelContent.innerHTML = `
                     <div class="single-player">
                         <div class="sp-header">
