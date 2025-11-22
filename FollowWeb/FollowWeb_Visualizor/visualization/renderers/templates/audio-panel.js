@@ -251,14 +251,35 @@
                     // Pause: store current position
                     if (playerData.duration > 0) {
                         const currentProgress = player.progress;
-                        playerData.seekPosition = currentProgress * playerData.duration;
+                        const calculatedPosition = currentProgress * playerData.duration;
+                        // Ensure valid number
+                        playerData.seekPosition = isFinite(calculatedPosition) ? calculatedPosition : 0;
                     }
                     player.stop();
                     playerData.startTime = null;
                     highlightPlayingNode(nodeId, false);
                 } else {
                     // Resume from last position or start from beginning
-                    const startOffset = playerData.seekPosition || 0;
+                    // Ensure startOffset is a valid, finite number
+                    let startOffset = playerData.seekPosition || 0;
+                    
+                    // Validate and clamp offset
+                    if (!isFinite(startOffset) || startOffset < 0) {
+                        startOffset = 0;
+                    }
+                    
+                    // Don't start if duration is not loaded yet
+                    if (playerData.duration === 0) {
+                        console.warn('Cannot start player: audio not loaded yet');
+                        renderAudioPanel();
+                        return;
+                    }
+                    
+                    // Clamp to duration
+                    if (startOffset >= playerData.duration) {
+                        startOffset = 0;
+                    }
+                    
                     try {
                         player.start('+0', startOffset);
                         playerData.startTime = Tone.now() - startOffset;
@@ -315,40 +336,51 @@
 
         function seekTo(nodeId, position) {
             const playerData = audioState.activePlayers[nodeId];
-            if (playerData && playerData.player && playerData.duration > 0) {
-                // Validate and clamp position
-                const safePosition = Math.max(0, Math.min(position, playerData.duration));
-                
-                if (isNaN(safePosition)) {
-                    console.error('Invalid seek position:', position);
-                    return;
-                }
-                
-                const wasPlaying = playerData.player.state === 'started';
-                
-                // Stop current playback
-                playerData.player.stop();
-                
-                // Update seek position
-                playerData.seekPosition = safePosition;
-                
-                // If was playing, restart from new position
-                if (wasPlaying) {
-                    try {
-                        playerData.player.start('+0', safePosition);
-                        playerData.startTime = Tone.now() - safePosition;
-                        highlightPlayingNode(nodeId, true);
-                    } catch (e) {
-                        console.error('Failed to seek:', e);
-                        playerData.startTime = null;
-                        highlightPlayingNode(nodeId, false);
-                    }
-                } else {
-                    playerData.startTime = null;
-                }
-                
-                renderAudioPanel();
+            if (!playerData || !playerData.player) {
+                console.warn('Player not found for node:', nodeId);
+                return;
             }
+            
+            // Don't seek if audio not loaded yet
+            if (playerData.duration === 0) {
+                console.warn('Cannot seek: audio not loaded yet');
+                return;
+            }
+            
+            // Validate and clamp position
+            let safePosition = parseFloat(position);
+            
+            if (!isFinite(safePosition) || isNaN(safePosition)) {
+                console.error('Invalid seek position:', position);
+                return;
+            }
+            
+            safePosition = Math.max(0, Math.min(safePosition, playerData.duration));
+            
+            const wasPlaying = playerData.player.state === 'started';
+            
+            // Stop current playback
+            playerData.player.stop();
+            
+            // Update seek position
+            playerData.seekPosition = safePosition;
+            
+            // If was playing, restart from new position
+            if (wasPlaying) {
+                try {
+                    playerData.player.start('+0', safePosition);
+                    playerData.startTime = Tone.now() - safePosition;
+                    highlightPlayingNode(nodeId, true);
+                } catch (e) {
+                    console.error('Failed to seek:', e);
+                    playerData.startTime = null;
+                    highlightPlayingNode(nodeId, false);
+                }
+            } else {
+                playerData.startTime = null;
+            }
+            
+            renderAudioPanel();
         }
 
         function toggleExpand(nodeId) {
@@ -372,11 +404,23 @@
         async function playAll() {
             await ensureAudioContext();
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
-                if (playerData.player.state !== 'started') {
-                    const startOffset = playerData.seekPosition || 0;
-                    playerData.player.start('+0', startOffset);
-                    playerData.startTime = Tone.now() - startOffset;
-                    highlightPlayingNode(nodeId, true);
+                if (playerData.player.state !== 'started' && playerData.duration > 0) {
+                    // Ensure valid offset
+                    let startOffset = playerData.seekPosition || 0;
+                    if (!isFinite(startOffset) || startOffset < 0) {
+                        startOffset = 0;
+                    }
+                    if (startOffset >= playerData.duration) {
+                        startOffset = 0;
+                    }
+                    
+                    try {
+                        playerData.player.start('+0', startOffset);
+                        playerData.startTime = Tone.now() - startOffset;
+                        highlightPlayingNode(nodeId, true);
+                    } catch (e) {
+                        console.error('Failed to start player:', nodeId, e);
+                    }
                 }
             });
             renderAudioPanel();
@@ -386,8 +430,11 @@
             Object.entries(audioState.activePlayers).forEach(([nodeId, playerData]) => {
                 if (playerData.player.state === 'started') {
                     // Store current position before pausing
-                    const currentProgress = playerData.player.progress;
-                    playerData.seekPosition = currentProgress * playerData.duration;
+                    if (playerData.duration > 0) {
+                        const currentProgress = playerData.player.progress;
+                        const calculatedPosition = currentProgress * playerData.duration;
+                        playerData.seekPosition = isFinite(calculatedPosition) ? calculatedPosition : 0;
+                    }
                     playerData.player.stop();
                     playerData.startTime = null;
                     highlightPlayingNode(nodeId, false);
@@ -455,11 +502,19 @@
                 if (isPlaying) {
                     // Use built-in progress property for playing state
                     const playerProgress = player.progress;
-                    seek = playerProgress * duration;
-                    progress = Math.min(playerProgress * 100, 100);
+                    const calculatedSeek = playerProgress * duration;
+                    const calculatedProgress = playerProgress * 100;
+                    
+                    // Ensure finite values
+                    seek = isFinite(calculatedSeek) ? calculatedSeek : 0;
+                    progress = isFinite(calculatedProgress) ? Math.min(calculatedProgress, 100) : 0;
                 } else {
                     // Use stored seek position for paused state
                     seek = playerData.seekPosition || 0;
+                    // Ensure seek is valid
+                    if (!isFinite(seek) || seek < 0) {
+                        seek = 0;
+                    }
                     progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
                 }
             }
@@ -523,8 +578,12 @@
                     if (isPlaying) {
                         // Use built-in progress property for playing state
                         const playerProgress = player.progress;
-                        seek = playerProgress * duration;
-                        progress = Math.min(playerProgress * 100, 100);
+                        const calculatedSeek = playerProgress * duration;
+                        const calculatedProgress = playerProgress * 100;
+                        
+                        // Ensure finite values
+                        seek = isFinite(calculatedSeek) ? calculatedSeek : 0;
+                        progress = isFinite(calculatedProgress) ? Math.min(calculatedProgress, 100) : 0;
                         
                         // Get audio level from meter
                         if (playerData.meter) {
@@ -540,6 +599,10 @@
                     } else {
                         // Use stored seek position for paused state
                         seek = playerData.seekPosition || 0;
+                        // Ensure seek is valid
+                        if (!isFinite(seek) || seek < 0) {
+                            seek = 0;
+                        }
                         progress = duration > 0 ? Math.min((seek / duration) * 100, 100) : 0;
                     }
                 }
