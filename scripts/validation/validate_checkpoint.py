@@ -528,8 +528,9 @@ class CheckpointValidator:
         for sample_id, data_json in cursor.fetchall():
             data = json.loads(data_json)
 
-            # Skip samples already checked and marked unavailable
-            if data.get("data_quality_checked") and data.get("api_data_unavailable"):
+            # Skip samples marked as permanently unavailable
+            # (tried twice: collection + repair, data doesn't exist on Freesound)
+            if data.get("permanently_unavailable"):
                 continue
 
             # Get list of fields marked as missing from Freesound

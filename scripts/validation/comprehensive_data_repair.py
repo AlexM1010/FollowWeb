@@ -177,15 +177,18 @@ class ComprehensiveDataRepairer:
         
         return samples_needing_repair, issues_by_field
     
-    def fetch_batch_data(self, sample_ids: List[int]) -> Dict[int, Dict[str, Any]]:
+    def fetch_batch_data(self, sample_ids: List[int]) -> Tuple[Dict[int, Dict[str, Any]], bool]:
         """
         Fetch data for a batch of samples using efficient batch API.
         
-        Returns dict mapping sample_id to fetched data.
+        Returns:
+            Tuple of (fetched_data dict, api_error bool)
+            - fetched_data: dict mapping sample_id to fetched data
+            - api_error: True if there was an API error (should retry), False if successful (data just missing)
         """
         if self.api_requests_made >= self.max_requests:
             print(f"⚠️  Reached max API requests limit ({self.max_requests})")
-            return {}
+            return {}, False  # Not an error, just quota reached
         
         # Build space-separated ID list for batch search
         id_filter = " ".join(str(sid) for sid in sample_ids)
@@ -219,11 +222,13 @@ class ComprehensiveDataRepairer:
                 
                 fetched_data[sample_id] = sound_dict
             
-            return fetched_data
+            # API call succeeded - samples not in results simply don't exist
+            return fetched_data, False
             
         except Exception as e:
             print(f"  ✗ Batch fetch error: {e}")
-            return {}
+            # API error - should retry later
+            return {}, True
     
     def apply_fixes(self, samples_needing_repair: Set[int], issues_by_field: Dict[str, Set[int]]):
         """
@@ -273,7 +278,7 @@ class ComprehensiveDataRepairer:
             print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Batch {batch_num}/{total_batches}: Fetching {len(batch)} samples...")
             
             # Fetch data for this batch
-            fetched_data = self.fetch_batch_data(batch)
+            fetched_data, api_error = self.fetch_batch_data(batch)
             
             # Apply fixes for each sample in batch
             batch_fixed = 0
@@ -302,8 +307,13 @@ class ComprehensiveDataRepairer:
                                 updated = True
                     
                     if updated:
+                        # Mark as checked - collection tried once, repair tried once
                         data["data_quality_checked"] = datetime.now().isoformat()
                         data["data_quality_repaired"] = True
+                        # Remove any previous unavailable markers
+                        data.pop("api_data_unavailable", None)
+                        data.pop("_missing_from_freesound", None)
+                        data.pop("permanently_unavailable", None)
                         
                         # Update database
                         cursor.execute(
@@ -312,22 +322,30 @@ class ComprehensiveDataRepairer:
                         )
                         batch_fixed += 1
                 else:
-                    # Sample not found in API or data unavailable
-                    # Mark which fields are missing from Freesound
+                    # Sample not found in API results
                     missing_fields = []
                     for field_name in EXPECTED_FIELDS:
                         if field_name not in data or not data[field_name]:
                             missing_fields.append(field_name)
                     
-                    data["data_quality_checked"] = datetime.now().isoformat()
-                    data["api_data_unavailable"] = True
-                    data["_missing_from_freesound"] = missing_fields
+                    if api_error:
+                        # API error occurred - leave fields empty, don't mark as checked
+                        # Collection will try again next run
+                        pass  # Don't update database - keep original state
+                    else:
+                        # API call succeeded but sample not in results - data doesn't exist
+                        # Mark as permanently unavailable (tried twice: collection + repair)
+                        data["data_quality_checked"] = datetime.now().isoformat()
+                        data["permanently_unavailable"] = True
+                        data["api_data_unavailable"] = True
+                        data["_missing_from_freesound"] = missing_fields
+                        
+                        # Update database
+                        cursor.execute(
+                            "UPDATE metadata SET data = ? WHERE sample_id = ?",
+                            (json.dumps(data), sample_id)
+                        )
                     
-                    # Update database
-                    cursor.execute(
-                        "UPDATE metadata SET data = ? WHERE sample_id = ?",
-                        (json.dumps(data), sample_id)
-                    )
                     batch_unavailable += 1
             
             # Commit after each batch
