@@ -70,7 +70,7 @@
 
         // --- Core Functions ---
 
-        async function showSinglePlayer(nodeId) {
+        async function showSinglePlayer(nodeId, autoPlay = true) {
             await ensureAudioContext();
             
             // Validate node exists
@@ -86,9 +86,22 @@
             if (!audioState.activePlayers[nodeId]) {
                 // Create player and wait for it to load before playing
                 try {
-                    await createPlayer(nodeId);
-                    // Now that audio is loaded, start playing
-                    await togglePlay(nodeId);
+                    const player = await createPlayer(nodeId);
+                    // Now that audio is loaded, start playing automatically
+                    if (autoPlay && player) {
+                        const playerData = audioState.activePlayers[nodeId];
+                        if (playerData && playerData.duration > 0) {
+                            try {
+                                player.start('+0', 0);
+                                playerData.startTime = Tone.now();
+                                playerData.seekPosition = 0;
+                                highlightPlayingNode(nodeId, true);
+                                renderAudioPanel();
+                            } catch (e) {
+                                console.error('Failed to auto-play:', e);
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.error('Failed to load audio for node:', nodeId, error);
                 }
