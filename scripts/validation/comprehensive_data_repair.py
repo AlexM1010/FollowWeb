@@ -163,6 +163,9 @@ class ComprehensiveDataRepairer:
         """
         Scan all samples and categorize issues.
         
+        First checks if validation already scanned and saved results.
+        If so, uses those results to avoid double scanning.
+        
         Returns:
             - Set of sample IDs that need repair
             - Dict mapping field names to sample IDs with issues in that field
@@ -170,6 +173,37 @@ class ComprehensiveDataRepairer:
         print("\n" + "=" * 70)
         print("Phase 1: Data Quality Scan")
         print("=" * 70)
+        
+        # Check if validation already scanned and saved results
+        scan_results_file = self.checkpoint_dir / "data_quality_scan.json"
+        if scan_results_file.exists():
+            print("\n✓ Using validation scan results (avoiding double scan)")
+            with open(scan_results_file) as f:
+                scan_data = json.load(f)
+            
+            samples_needing_repair = set(scan_data["samples_needing_repair"])
+            self.stats["total_samples"] = len(samples_needing_repair)
+            self.stats["samples_checked"] = len(samples_needing_repair)
+            self.stats["issues_found"] = scan_data["total_issues"]
+            
+            # Convert issues_by_field to proper format
+            issues_by_field = {}
+            for field, count in scan_data["issues_by_field"].items():
+                issues_by_field[field] = set()  # We don't have individual IDs, but that's ok
+            
+            print(f"\n✓ Loaded scan results: {len(samples_needing_repair)} samples need repair")
+            print(f"  Total issues found: {self.stats['issues_found']}")
+            print(f"\nIssues by field:")
+            for field_name, count in scan_data["issues_by_field"].items():
+                print(f"  - {field_name}: {count} samples")
+            
+            print(f"\n💡 Efficiency: {len(samples_needing_repair)} samples = {(len(samples_needing_repair) + BATCH_SIZE - 1) // BATCH_SIZE} API requests")
+            print(f"   (Each request fetches ALL fields for up to {BATCH_SIZE} samples)")
+            
+            return samples_needing_repair, issues_by_field
+        
+        # No validation results - do full scan
+        print("\n⚠️  No validation scan results found, performing full scan...")
         
         conn = sqlite3.connect(str(self.db_path))
         cursor = conn.cursor()

@@ -477,24 +477,49 @@ class CheckpointValidator:
 
     def _check_data_quality(self, metadata_cache: MetadataCache) -> dict[str, Any]:
         """
-        Check data quality by scanning for missing/incomplete critical fields.
+        Check data quality by scanning for missing/incomplete fields.
 
-        Scans all samples to identify data quality issues that need repair.
-        Critical fields: uploader_id, name, tags, duration, username
+        Scans ALL samples for ALL expected fields to identify data quality issues.
+        Results are saved to a file that the repair script can read to avoid
+        scanning twice.
 
         Args:
             metadata_cache: Metadata cache with sample data
 
         Returns:
-            Dictionary with samples_with_issues, total_issues, issues_by_field
+            Dictionary with samples_with_issues, total_issues, issues_by_field,
+            and samples_needing_repair (list of sample IDs)
         """
         import sqlite3
 
-        critical_fields = ["uploader_id", "name", "tags", "duration", "username"]
+        # ALL expected fields (matches comprehensive_data_repair.py)
+        expected_fields = {
+            # Critical for visualization
+            "uploader_id": int,
+            "name": str,
+            "tags": list,
+            "duration": (int, float),
+            "username": str,
+            # Important metadata
+            "license": str,
+            "created": str,
+            "url": str,
+            "category": str,
+            "type": str,
+            "channels": int,
+            "filesize": int,
+            "samplerate": (int, float),
+            # Engagement metrics
+            "num_downloads": int,
+            "num_ratings": int,
+            "avg_rating": (int, float),
+            "num_comments": int,
+        }
 
         samples_with_issues = 0
         total_issues = 0
         issues_by_field = {}
+        samples_needing_repair = []
 
         conn = sqlite3.connect(str(self.metadata_db_path))
         cursor = conn.cursor()
@@ -508,21 +533,44 @@ class CheckpointValidator:
                 continue
 
             sample_has_issues = False
-            for field in critical_fields:
-                if field not in data or not data[field]:
+            for field_name, expected_type in expected_fields.items():
+                # Check if field exists and is not empty
+                if field_name not in data or not data[field_name]:
+                    # Allow None for optional fields
+                    if expected_type == (str, type(None)) or expected_type == type(None):
+                        continue
                     sample_has_issues = True
                     total_issues += 1
-                    issues_by_field[field] = issues_by_field.get(field, 0) + 1
+                    issues_by_field[field_name] = issues_by_field.get(field_name, 0) + 1
 
             if sample_has_issues:
                 samples_with_issues += 1
+                samples_needing_repair.append(sample_id)
 
         conn.close()
+
+        # Save results to file for repair script to read (avoid double scanning)
+        results_file = self.checkpoint_dir / "data_quality_scan.json"
+        with open(results_file, "w") as f:
+            json.dump(
+                {
+                    "samples_needing_repair": samples_needing_repair,
+                    "samples_with_issues": samples_with_issues,
+                    "total_issues": total_issues,
+                    "issues_by_field": issues_by_field,
+                    "scan_timestamp": json.dumps(
+                        __import__("datetime").datetime.now().isoformat()
+                    ),
+                },
+                f,
+                indent=2,
+            )
 
         return {
             "samples_with_issues": samples_with_issues,
             "total_issues": total_issues,
             "issues_by_field": issues_by_field,
+            "samples_needing_repair": samples_needing_repair,
         }
 
     def _check_pagination_state(
