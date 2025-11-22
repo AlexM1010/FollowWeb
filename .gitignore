@@ -48,6 +48,11 @@ data/freesound_library/backups/
 data/freesound_library/checkpoint_metadata.json
 logs/pipeline_*.log
 
+# Checkpoint backups and database files (should never be in Git)
+*.tar.gz
+*.db
+freesound_library/
+
 # Workflow Orchestration
 .workflow_locks/
 *.lock

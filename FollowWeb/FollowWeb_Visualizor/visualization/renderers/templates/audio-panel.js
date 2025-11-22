@@ -173,25 +173,27 @@
                 return null;
             }
             
-            // Get preview URLs from node data
-            // URLs include uploader ID that cannot be reconstructed (e.g., 335860_5121236-hq.mp3)
-            // Freesound API provides these URLs with proper CORS headers
-            if (!node.previews) {
-                console.error('No preview URLs in node data for:', nodeId);
+            // Reconstruct preview URLs from uploader ID (space-efficient storage)
+            // URL Pattern: https://freesound.org/data/previews/[folder]/[sound_id]_[uploader_id]-[quality].mp3
+            // - folder: sound_id // 1000 (calculable)
+            // - sound_id: node ID (already have)
+            // - uploader_id: stored in node data (~7 bytes vs ~75 bytes for full URL)
+            
+            if (!node.uploader_id) {
+                console.error('No uploader_id in node data for:', nodeId);
                 console.error('Node data:', node);
                 return null;
             }
             
-            const audioUrls = [
-                node.previews['preview-hq-mp3'],
-                node.previews['preview-lq-mp3'],
-                node.previews['preview-lq-ogg']
-            ].filter(url => url); // Remove any undefined URLs
+            const soundId = nodeId;
+            const uploaderId = node.uploader_id;
+            const folderId = Math.floor(soundId / 1000);
             
-            if (audioUrls.length === 0) {
-                console.error('No valid preview URLs found for node:', nodeId);
-                return null;
-            }
+            const audioUrls = [
+                `https://freesound.org/data/previews/${folderId}/${soundId}_${uploaderId}-hq.mp3`,
+                `https://freesound.org/data/previews/${folderId}/${soundId}_${uploaderId}-lq.mp3`,
+                `https://freesound.org/data/previews/${folderId}/${soundId}_${uploaderId}-lq.ogg`
+            ];
             
             console.log('Freesound preview URLs for node', nodeId, ':', audioUrls);
 
