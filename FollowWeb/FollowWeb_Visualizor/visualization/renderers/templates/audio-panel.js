@@ -4,8 +4,8 @@
 
     let audioContextStarted = false;
 
-    // Wait for DOM and global variables to be ready
-    window.addEventListener('DOMContentLoaded', function () {
+    // Wait for graph to be initialized
+    function initAudioPanel() {
         // Check if required globals exist
         if (typeof graph === 'undefined' || typeof renderer === 'undefined') {
             console.error('Audio panel: Required globals (graph, renderer) not found');
@@ -494,5 +494,14 @@
         renderAudioPanel();
 
         console.log('Audio panel initialized with Tone.js');
+    }
+
+    // Listen for graph initialization
+    window.addEventListener('graphInitialized', initAudioPanel);
+    
+    // Also try on DOMContentLoaded in case graph is already ready
+    window.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit for graph to initialize
+        setTimeout(initAudioPanel, 100);
     });
 })();

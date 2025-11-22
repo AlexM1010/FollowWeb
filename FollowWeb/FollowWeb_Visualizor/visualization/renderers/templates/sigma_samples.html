@@ -1910,6 +1910,9 @@
                 console.log('Nodes:', graph.order);
                 console.log('Edges:', graph.size);
 
+                // Notify audio panel that graph is ready
+                window.dispatchEvent(new Event('graphInitialized'));
+
                 // Check if graphology-library is available
                 if (window.graphologyLibrary && window.graphologyLibrary.layoutForceAtlas2) {
                     console.log('✓ graphology-library loaded with ForceAtlas2');
