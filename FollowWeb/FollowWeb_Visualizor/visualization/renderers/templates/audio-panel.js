@@ -27,15 +27,6 @@
             masterLimiter: null
         };
 
-        // Initialize master effects chain
-        audioState.masterLimiter = new Tone.Limiter(-1).toDestination();
-        audioState.masterCompressor = new Tone.Compressor({
-            threshold: -24,
-            ratio: 4,
-            attack: 0.05,
-            release: 0.2
-        }).connect(audioState.masterLimiter);
-
         // DOM Elements
         const panelContent = document.getElementById('panel-content');
         if (!panelContent) {
@@ -49,6 +40,16 @@
             if (!audioContextStarted) {
                 await Tone.start();
                 audioContextStarted = true;
+                
+                // Initialize master effects chain on first user interaction
+                audioState.masterLimiter = new Tone.Limiter(-1).toDestination();
+                audioState.masterCompressor = new Tone.Compressor({
+                    threshold: -24,
+                    ratio: 4,
+                    attack: 0.05,
+                    release: 0.2
+                }).connect(audioState.masterLimiter);
+                
                 console.log('Tone.js audio context started');
             }
         }
