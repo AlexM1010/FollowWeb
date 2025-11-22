@@ -47,9 +47,11 @@ def setup_logging():
             sys.stderr.buffer, encoding="utf-8", errors="replace"
         )
 
+    # Simplified logging format without logger name and milliseconds
     logging.basicConfig(
-        level=logging.DEBUG,  # Changed to DEBUG
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        level=logging.DEBUG,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
         handlers=[
             logging.StreamHandler(sys.stdout),
             logging.FileHandler(

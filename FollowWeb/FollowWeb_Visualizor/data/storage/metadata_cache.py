@@ -271,7 +271,8 @@ class MetadataCache:
                 )
 
             self._conn.commit()
-            self.logger.info(
+            # Reduced verbosity - only log at DEBUG level
+            self.logger.debug(
                 f"Bulk inserted {total_rows} metadata entries in {(total_rows + self.SAFE_MAX_BATCH_SIZE - 1) // self.SAFE_MAX_BATCH_SIZE} chunks"
             )
         else:
@@ -285,7 +286,8 @@ class MetadataCache:
                 rows,
             )
             self._conn.commit()
-            self.logger.info(f"Bulk inserted {len(rows)} metadata entries")
+            # Reduced verbosity - only log at DEBUG level
+            self.logger.debug(f"Bulk inserted {len(rows)} metadata entries")
 
     def exists(self, sample_id: int) -> bool:
         """

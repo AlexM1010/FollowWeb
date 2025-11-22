@@ -574,9 +574,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             # Bulk insert/update metadata
             if metadata_dict:
                 self.metadata_cache.bulk_insert(metadata_dict)
-                self.logger.debug(
-                    f"Saved {len(metadata_dict)} metadata entries to SQLite"
-                )
+                # bulk_insert already logs this
 
         # 3. Save checkpoint metadata JSON
         checkpoint_meta_path = checkpoint_dir / "checkpoint_metadata.json"
@@ -1082,12 +1080,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                         i + 1, len(new_samples), elapsed
                     )
 
-                    self.logger.info(
-                        f"Progress: {stats['percentage']:.1f}% "
-                        f"({stats['current']}/{stats['total']}), "
-                        f"ETA: {stats['eta_minutes']:.1f} min"
-                    )
-
+                    # Progress already shown by ProgressTracker - no need to log
                     self._save_checkpoint({"progress": stats})
 
                 tracker.update(i + 1)
