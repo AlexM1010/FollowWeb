@@ -657,11 +657,15 @@ def main():
         # Unix/Linux or UTF-8 console: use full emojis
         EmojiFormatter.set_fallback_level("full")
 
-    # Get checkpoint directory from command line or use default
-    if len(sys.argv) > 1:
-        checkpoint_dir = sys.argv[1]
-    else:
-        checkpoint_dir = "data/freesound_library"
+    # Parse command line arguments
+    checkpoint_dir = "data/freesound_library"
+    is_final_validation = False
+    
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if arg == "--final":
+            is_final_validation = True
+        elif not arg.startswith("--"):
+            checkpoint_dir = arg
 
     try:
         # Run validation
@@ -710,8 +714,21 @@ def main():
 
     print("=" * 60)
 
-    # Exit with appropriate code
-    sys.exit(0 if result.passed else 1)
+    # Exit code logic:
+    # - Initial validation (no --final flag): Exit 0 even if data quality issues found
+    #   This allows repair to run
+    # - Final validation (--final flag): Exit 1 if any errors remain
+    #   This indicates repair failed to fix issues
+    if result.passed:
+        sys.exit(0)
+    elif is_final_validation:
+        # Final validation after repair - failure is fatal
+        print(f"\n{EmojiFormatter.format('warning', 'FINAL VALIDATION FAILED - Repair did not resolve all issues')}")
+        sys.exit(1)
+    else:
+        # Initial validation - data quality issues are expected and repairable
+        print(f"\n{EmojiFormatter.format('info', 'Data quality issues detected - repair will attempt to fix')}")
+        sys.exit(0)
 
 
 if __name__ == "__main__":

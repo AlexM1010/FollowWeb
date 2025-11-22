@@ -227,22 +227,28 @@ jobs:
       id: validation
       run: |
         {
-          echo "### 🔍 Validation Checks"
+          echo "### 🔍 Initial Validation Checks"
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run validation script and capture exit code (use PIPESTATUS to get python exit code, not tee)
-        set +e  # Disable exit on error temporarily
+        # Run validation script (without --final flag, so data quality issues won't cause failure)
+        # This allows repair to run even when issues are detected
         python scripts/validation/validate_checkpoint.py data/freesound_library 2>&1 | tee validation_output.log
-        VALIDATION_EXIT_CODE=${PIPESTATUS[0]}
-        set -e  # Re-enable exit on error
         
-        if [ "$VALIDATION_EXIT_CODE" -eq 0 ]; then
+        # Check if data quality issues were found by looking for the scan results file
+        if [ -f "data/freesound_library/data_quality_scan.json" ]; then
+          ISSUES_FOUND=$(python3 -c 'import json; data=json.load(open("data/freesound_library/data_quality_scan.json")); print(data.get("samples_with_issues", 0))' 2>/dev/null || echo "0")
+          
+          if [ "$ISSUES_FOUND" -gt 0 ]; then
+            echo "validation_passed=false" >> "$GITHUB_OUTPUT"
+            echo "- Status: ⚠️  Data quality issues detected ($ISSUES_FOUND samples need repair)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "validation_passed=true" >> "$GITHUB_OUTPUT"
+            echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        else
           echo "validation_passed=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
-        else
-          echo "validation_passed=false" >> "$GITHUB_OUTPUT"
-          echo "- Status: ❌ Validation failed" >> "$GITHUB_STEP_SUMMARY"
         fi
         echo "" >> "$GITHUB_STEP_SUMMARY"
     
@@ -326,8 +332,8 @@ jobs:
           echo ""
         } >> "$GITHUB_STEP_SUMMARY"
         
-        # Run validation again
-        if python scripts/validation/validate_checkpoint.py data/freesound_library; then
+        # Run validation again with --final flag (will exit 1 if issues remain)
+        if python scripts/validation/validate_checkpoint.py data/freesound_library --final; then
           echo "revalidation_passed=true" >> "$GITHUB_OUTPUT"
           echo "- Status: ✅ All checks passed" >> "$GITHUB_STEP_SUMMARY"
         else

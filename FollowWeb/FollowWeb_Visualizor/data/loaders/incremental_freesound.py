@@ -504,6 +504,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 "total_api_requests": self.session_request_count,
                 "new_samples_added": nodes_added,  # Same as nodes_added for consistency
                 "duplicates_skipped": self.stats.get("samples_skipped", 0),
+                "max_requests": self.max_requests,  # Save for repair workflow
             },
         }
 
