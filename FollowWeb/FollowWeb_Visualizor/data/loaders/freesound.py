@@ -506,13 +506,14 @@ class FreesoundLoader(DataLoader):
         # URL Pattern: /previews/335/335860_5121236-hq.mp3
         # We extract and store only "5121236" (~7 bytes) instead of full URL (~75 bytes)
         import re
-        uploader_id_pattern = re.compile(r'_(\d+)-')
-        
-        if 'previews' in sound_dict:
-            preview_url = sound_dict['previews'].get('preview-hq-mp3', '')
+
+        uploader_id_pattern = re.compile(r"_(\d+)-")
+
+        if "previews" in sound_dict:
+            preview_url = sound_dict["previews"].get("preview-hq-mp3", "")
             match = uploader_id_pattern.search(preview_url)
             if match:
-                metadata['uploader_id'] = int(match.group(1))
+                metadata["uploader_id"] = int(match.group(1))
 
         # Remove fields that are not needed for visualization
         # These can be reconstructed from sample ID or are not used
