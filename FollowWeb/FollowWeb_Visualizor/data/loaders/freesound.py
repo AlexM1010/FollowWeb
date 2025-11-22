@@ -515,30 +515,35 @@ class FreesoundLoader(DataLoader):
                 "preview-hq-ogg": "ogg-hq",
                 "preview-lq-ogg": "ogg-lq",
                 "preview-hq-mp3": "mp3-hq",
-                "preview-lq-mp3": "mp3-lq"
+                "preview-lq-mp3": "mp3-lq",
             }
-            
+
             available_formats = []
             preview_url = None
-            
+
             # Prefer OGG for better quality/compression, then MP3
-            for api_key in ["preview-hq-ogg", "preview-lq-ogg", "preview-hq-mp3", "preview-lq-mp3"]:
+            for api_key in [
+                "preview-hq-ogg",
+                "preview-lq-ogg",
+                "preview-hq-mp3",
+                "preview-lq-mp3",
+            ]:
                 url = sound_dict["previews"].get(api_key, "")
                 if url:
                     available_formats.append(preview_formats[api_key])
                     if preview_url is None:
                         preview_url = url
-            
+
             # Store available formats for website to offer user choice
             if available_formats:
                 metadata["available_preview_formats"] = available_formats
-            
+
             # Extract uploader_id from first available preview URL
             if preview_url:
                 match = uploader_id_pattern.search(preview_url)
                 if match:
                     metadata["uploader_id"] = int(match.group(1))
-            
+
             if not preview_url or not sound_dict["previews"]:
                 # Previews field exists but is empty - mark as unavailable from Freesound
                 metadata["_missing_from_freesound"] = metadata.get(
