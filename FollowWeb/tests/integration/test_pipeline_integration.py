@@ -391,9 +391,11 @@ class TestFreesoundSigmaPipelineIntegration:
             # Check for Freesound data in JSON
             assert "nodes" in graph_data
             assert len(graph_data["nodes"]) > 0
-            # Check that nodes have sample IDs (sample_XXXXX format)
-            node_ids = [node["key"] for node in graph_data["nodes"]]
-            assert any("sample_" in node_id for node_id in node_ids)
+            # Check that nodes have Freesound sample names
+            node_names = [
+                node["attributes"].get("name", "") for node in graph_data["nodes"]
+            ]
+            assert any("sample_" in name for name in node_names)
 
     @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
     def test_freesound_sigma_with_audio_disabled(self, mock_loader_class):
