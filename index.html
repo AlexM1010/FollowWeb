@@ -9,7 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Visualization - 3146 nodes</title>
+    <title>Network Visualization - 3148 nodes</title>
     <script src="https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
     <!-- ForceAtlas2 layout from graphology-library -->
@@ -1416,11 +1416,11 @@
             <h3>📊 Network Stats</h3>
             <div class="stat-item">
                 <span class="stat-label">Nodes:</span>
-                <span class="stat-value" id="node-count">3146</span>
+                <span class="stat-value" id="node-count">3148</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41878</span>
+                <span class="stat-value" id="edge-count">41898</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
@@ -2434,6 +2434,9 @@
             };
         }
 
+        // Track failed player creation attempts to prevent retries
+        const failedPlayers = new Set();
+
         // --- Core Functions ---
 
         async function showSinglePlayer(nodeId, autoPlay = true) {
@@ -2449,15 +2452,20 @@
             audioState.mixMode = false;
             renderAudioPanel();
 
+            // Don't retry if player creation already failed for this node
+            if (failedPlayers.has(nodeId)) {
+                return;
+            }
+
             if (!audioState.activePlayers[nodeId]) {
                 // Create player and wait for it to load before playing
                 try {
                     const player = await createPlayer(nodeId);
                     
-                    // If player creation failed, show error in UI
+                    // If player creation failed, mark as failed and show error in UI
                     if (!player) {
                         console.error('Failed to create player for node:', nodeId);
-                        audioState.singlePlayerNode = null;
+                        failedPlayers.add(nodeId);
                         renderAudioPanel();
                         return;
                     }
@@ -2479,7 +2487,7 @@
                     }
                 } catch (error) {
                     console.error('Failed to load audio for node:', nodeId, error);
-                    audioState.singlePlayerNode = null;
+                    failedPlayers.add(nodeId);
                     renderAudioPanel();
                 }
             }
@@ -2948,8 +2956,8 @@
                 return;
             }
             
-            // Check if node has required data for audio playback
-            if (!node.uploader_id) {
+            // Check if player creation failed for this node
+            if (failedPlayers.has(node.id)) {
                 panelContent.innerHTML = `
                     <div class="single-player">
                         <div class="sp-header">
