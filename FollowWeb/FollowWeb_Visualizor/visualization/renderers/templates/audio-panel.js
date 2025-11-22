@@ -537,16 +537,32 @@
                         </div>
                     </div>
                     <div class="sp-controls">
-                        <button class="btn-control ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${node.id}')" ${isLoading ? 'disabled' : ''} title="${isLoading ? 'Loading audio...' : (isPlaying ? 'Pause' : 'Play')}">
+                        <button class="btn-control ${isPlaying ? 'active' : ''}" 
+                                onclick="window.audioPanel.togglePlay('${node.id}')" 
+                                ${isLoading ? 'disabled' : ''} 
+                                title="${isLoading ? 'Loading audio...' : (isPlaying ? 'Pause' : 'Play')}"
+                                aria-label="${isLoading ? 'Loading audio' : (isPlaying ? 'Pause audio' : 'Play audio')}"
+                                aria-pressed="${isPlaying}">
                             ${isLoading ? '⏳' : (isPlaying ? 'ΓÅ╕' : 'Γû╢')}
                         </button>
                         <div class="sp-timeline-wrapper">
-                            <div class="sp-timeline" onclick="window.audioPanel.handleTimelineClick(event, '${node.id}')">
-                                <div class="sp-progress" style="width: ${progress}%"></div>
+                            <div class="sp-timeline" 
+                                 onclick="window.audioPanel.handleTimelineClick(event, '${node.id}')"
+                                 role="slider"
+                                 aria-label="Audio timeline"
+                                 aria-valuemin="0"
+                                 aria-valuemax="${duration}"
+                                 aria-valuenow="${seek}"
+                                 aria-valuetext="${formatTime(seek)} of ${formatTime(duration)}"
+                                 tabindex="0">
+                                <div class="sp-progress" style="width: ${progress}%" role="presentation"></div>
                             </div>
-                            <div class="sp-time">${formatTime(seek)} / ${formatTime(duration)}</div>
+                            <div class="sp-time" aria-live="polite">${formatTime(seek)} / ${formatTime(duration)}</div>
                         </div>
-                        <button class="btn-control" onclick="window.audioPanel.addToMix('${node.id}')" title="Add to Mix">
+                        <button class="btn-control" 
+                                onclick="window.audioPanel.addToMix('${node.id}')" 
+                                title="Add to Mix"
+                                aria-label="Add sample to mix">
                             Γ₧ò
                         </button>
                     </div>
@@ -630,21 +646,41 @@
                                 </div>
                                 <div class="mix-time">${formatTime(seek)} / ${formatTime(duration)}</div>
                                 <div class="mix-controls-row">
-                                    <button class="btn-mini ${isPlaying ? 'active' : ''}" onclick="window.audioPanel.togglePlay('${id}')" title="${isLoadingAudio ? 'Loading...' : 'Play/Pause'}" ${isLoadingAudio ? 'disabled' : ''}>
+                                    <button class="btn-mini ${isPlaying ? 'active' : ''}" 
+                                            onclick="window.audioPanel.togglePlay('${id}')" 
+                                            title="${isLoadingAudio ? 'Loading...' : 'Play/Pause'}" 
+                                            ${isLoadingAudio ? 'disabled' : ''}
+                                            aria-label="${isLoadingAudio ? 'Loading audio' : (isPlaying ? 'Pause' : 'Play')}"
+                                            aria-pressed="${isPlaying}">
                                         ${isLoadingAudio ? '⏳' : (isPlaying ? 'ΓÅ╕' : 'Γû╢')}
                                     </button>
-                                    <button class="btn-mini" onclick="window.audioPanel.stopPlayer('${id}')" title="Stop">ΓÅ╣</button>
-                                    <button class="btn-mini ${isLooping ? 'active' : ''}" onclick="window.audioPanel.toggleLoop('${id}')" title="Loop">
+                                    <button class="btn-mini" 
+                                            onclick="window.audioPanel.stopPlayer('${id}')" 
+                                            title="Stop"
+                                            aria-label="Stop playback">ΓÅ╣</button>
+                                    <button class="btn-mini ${isLooping ? 'active' : ''}" 
+                                            onclick="window.audioPanel.toggleLoop('${id}')" 
+                                            title="Loop"
+                                            aria-label="Toggle loop"
+                                            aria-pressed="${isLooping}">
                                         Γƒ▓
                                     </button>
                                     <div class="volume-control">
-                                        <span class="volume-icon">≡ƒöè</span>
-                                        <input type="range" min="0" max="100" value="${Math.round(volume * 100)}" 
+                                        <span class="volume-icon" aria-hidden="true">≡ƒöè</span>
+                                        <input type="range" 
+                                               min="0" 
+                                               max="100" 
+                                               value="${Math.round(volume * 100)}" 
                                                class="volume-slider" 
-                                               oninput="window.audioPanel.setVolume('${id}', this.value / 100)">
-                                        <span class="volume-percent">${Math.round(volume * 100)}%</span>
+                                               oninput="window.audioPanel.setVolume('${id}', this.value / 100)"
+                                               aria-label="Volume"
+                                               aria-valuemin="0"
+                                               aria-valuemax="100"
+                                               aria-valuenow="${Math.round(volume * 100)}"
+                                               aria-valuetext="${Math.round(volume * 100)} percent">
+                                        <span class="volume-percent" aria-live="polite">${Math.round(volume * 100)}%</span>
                                     </div>
-                                    ${isPlaying ? `<div class="audio-level-meter" style="width: ${audioLevel}%; background: linear-gradient(90deg, #4CAF50 0%, #FFC107 70%, #F44336 90%); height: 4px; border-radius: 2px; margin-top: 4px;"></div>` : ''}
+                                    ${isPlaying ? `<div class="audio-level-meter" role="progressbar" aria-label="Audio level" aria-valuenow="${Math.round(audioLevel)}" aria-valuemin="0" aria-valuemax="100" style="width: ${audioLevel}%; background: linear-gradient(90deg, #4CAF50 0%, #FFC107 70%, #F44336 90%); height: 4px; border-radius: 2px; margin-top: 4px;"></div>` : ''}
                                 </div>
                                 <div class="mix-metadata">
                                     ${node?.user ? `<div class="meta-row"><span class="meta-label">User:</span> ${escapeHtml(node.user)}</div>` : ''}
@@ -789,6 +825,68 @@
             }
         });
 
+        // --- Keyboard Shortcuts ---
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Don't trigger if user is typing in an input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                
+                // Space: Play/Pause current player
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (audioState.singlePlayerNode) {
+                        togglePlay(audioState.singlePlayerNode);
+                    } else if (audioState.mixMode) {
+                        const firstPlayer = Object.keys(audioState.activePlayers)[0];
+                        if (firstPlayer) togglePlay(firstPlayer);
+                    }
+                }
+                
+                // M: Toggle mix mode for current node
+                if (e.code === 'KeyM' && audioState.singlePlayerNode) {
+                    e.preventDefault();
+                    addToMix(audioState.singlePlayerNode);
+                }
+                
+                // L: Toggle loop for current player
+                if (e.code === 'KeyL' && audioState.singlePlayerNode) {
+                    e.preventDefault();
+                    toggleLoop(audioState.singlePlayerNode);
+                }
+                
+                // Escape: Close/clear
+                if (e.code === 'Escape') {
+                    e.preventDefault();
+                    if (audioState.mixMode) {
+                        clearAll();
+                    } else if (audioState.singlePlayerNode) {
+                        stopPlayer(audioState.singlePlayerNode);
+                        audioState.singlePlayerNode = null;
+                        renderAudioPanel();
+                    }
+                }
+                
+                // Arrow Left/Right: Seek ±5 seconds
+                if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+                    e.preventDefault();
+                    const nodeId = audioState.singlePlayerNode || Object.keys(audioState.activePlayers)[0];
+                    if (nodeId) {
+                        const playerData = audioState.activePlayers[nodeId];
+                        if (playerData && playerData.duration > 0) {
+                            const currentSeek = playerData.seekPosition || 0;
+                            const delta = e.code === 'ArrowLeft' ? -5 : 5;
+                            const newSeek = Math.max(0, Math.min(currentSeek + delta, playerData.duration));
+                            seekTo(nodeId, newSeek);
+                        }
+                    }
+                }
+            });
+            
+            console.log('Keyboard shortcuts initialized: Space (play/pause), M (mix), L (loop), Esc (close), ←/→ (seek)');
+        }
+
         // --- Expose API to window ---
         window.audioPanel = {
             togglePlay,
@@ -813,6 +911,9 @@
                 clearAll();
             }
         };
+        
+        // Initialize keyboard shortcuts
+        initKeyboardShortcuts();
 
         // Initial render
         renderAudioPanel();
