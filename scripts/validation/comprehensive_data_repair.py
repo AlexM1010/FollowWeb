@@ -345,8 +345,7 @@ class ComprehensiveDataRepairer:
                             "UPDATE metadata SET data = ? WHERE sample_id = ?",
                             (json.dumps(data), sample_id)
                         )
-                    
-                    batch_unavailable += 1
+                        batch_unavailable += 1
             
             # Commit after each batch
             conn.commit()
