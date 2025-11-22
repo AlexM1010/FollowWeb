@@ -1420,7 +1420,7 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">41829</span>
+                <span class="stat-value" id="edge-count">41835</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
@@ -2555,11 +2555,12 @@
                     // Create meter for visual feedback
                     const meter = new Tone.Meter();
                     
-                    // Tone.js will try URLs in order until one loads successfully
+                    // Try URLs in order until one loads successfully
                     console.log('Creating Tone.Player with URLs:', audioUrls);
                     
+                    // Create player with first URL
                     const player = new Tone.Player({
-                        url: audioUrls,
+                        url: audioUrls[0],
                         loop: false,
                         fadeIn: 0.01,  // Smooth fade in to prevent clicks
                         fadeOut: 0.01, // Smooth fade out to prevent clicks
@@ -2574,15 +2575,45 @@
                             resolve(player);
                         },
                         onerror: (error) => {
-                            console.error('✗ Failed to load audio for node:', nodeId);
-                            console.error('Error details:', error);
-                            console.error('Attempted URLs:', audioUrls);
-                            // Clean up failed player
-                            if (audioState.activePlayers[nodeId]) {
-                                delete audioState.activePlayers[nodeId];
-                            }
-                            renderAudioPanel();
-                            reject(error);
+                            console.warn('Failed to load', audioUrls[0], '- Error:', error);
+                            // Try fallback URLs sequentially
+                            let currentUrlIndex = 1;
+                            
+                            const tryNextUrl = () => {
+                                if (currentUrlIndex >= audioUrls.length) {
+                                    // All URLs failed
+                                    console.error('✗ Failed to load audio for node:', nodeId, '- all URLs failed');
+                                    console.error('Attempted URLs:', audioUrls);
+                                    
+                                    // Show user-friendly error in UI
+                                    if (audioState.activePlayers[nodeId]) {
+                                        audioState.activePlayers[nodeId].loadError = true;
+                                        audioState.activePlayers[nodeId].isLoading = false;
+                                    }
+                                    renderAudioPanel();
+                                    reject(new Error('All audio URLs failed to load'));
+                                    return;
+                                }
+                                
+                                const nextUrl = audioUrls[currentUrlIndex];
+                                console.warn('Trying fallback URL:', nextUrl);
+                                
+                                player.load(nextUrl).then(() => {
+                                    console.log('✓ Audio loaded successfully from fallback:', nextUrl);
+                                    if (audioState.activePlayers[nodeId]) {
+                                        audioState.activePlayers[nodeId].duration = player.buffer.duration;
+                                        audioState.activePlayers[nodeId].isLoading = false;
+                                    }
+                                    renderAudioPanel();
+                                    resolve(player);
+                                }).catch((e) => {
+                                    console.warn('Failed to load', nextUrl, '- Error:', e);
+                                    currentUrlIndex++;
+                                    tryNextUrl();
+                                });
+                            };
+                            
+                            tryNextUrl();
                         }
                     });
 
@@ -2898,6 +2929,7 @@
             const isPlaying = player && player.state === 'started';
             const duration = playerData?.duration || 0;
             const isLoading = playerData?.isLoading || false;
+            const loadError = playerData?.loadError || false;
 
             // Calculate current position using player.progress for accuracy
             let seek = 0;
