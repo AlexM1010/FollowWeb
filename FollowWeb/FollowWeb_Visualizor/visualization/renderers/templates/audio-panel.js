@@ -87,8 +87,17 @@
                 // Create player and wait for it to load before playing
                 try {
                     const player = await createPlayer(nodeId);
+                    
+                    // If player creation failed, show error in UI
+                    if (!player) {
+                        console.error('Failed to create player for node:', nodeId);
+                        audioState.singlePlayerNode = null;
+                        renderAudioPanel();
+                        return;
+                    }
+                    
                     // Now that audio is loaded, start playing automatically
-                    if (autoPlay && player) {
+                    if (autoPlay) {
                         const playerData = audioState.activePlayers[nodeId];
                         if (playerData && playerData.duration > 0) {
                             try {
@@ -104,6 +113,8 @@
                     }
                 } catch (error) {
                     console.error('Failed to load audio for node:', nodeId, error);
+                    audioState.singlePlayerNode = null;
+                    renderAudioPanel();
                 }
             }
         }
@@ -568,6 +579,22 @@
                 // Node was removed from graph, clear single player mode
                 audioState.singlePlayerNode = null;
                 renderAudioPanel();
+                return;
+            }
+            
+            // Check if node has required data for audio playback
+            if (!node.uploader_id) {
+                panelContent.innerHTML = `
+                    <div class="single-player">
+                        <div class="sp-header">
+                            <div class="sp-title">${escapeHtml(node.name || 'Unknown Sample')}</div>
+                        </div>
+                        <div style="padding: 20px; text-align: center; color: #ff6b6b;">
+                            <p style="margin-bottom: 10px;">⚠️ Audio unavailable</p>
+                            <p style="font-size: 12px; color: #999;">This sample was collected before audio playback was implemented. Please regenerate the visualization data.</p>
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
