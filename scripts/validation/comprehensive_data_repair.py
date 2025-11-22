@@ -292,6 +292,13 @@ class ComprehensiveDataRepairer:
             # Fetch data for this batch
             fetched_data, api_error = self.fetch_batch_data(batch)
             
+            # Debug: Show what we got
+            print(f"  DEBUG: fetched_data has {len(fetched_data)} entries")
+            if fetched_data:
+                first_key = next(iter(fetched_data.keys()))
+                print(f"  DEBUG: First fetched key type: {type(first_key)}, value: {first_key}")
+            print(f"  DEBUG: First batch sample type: {type(batch[0])}, value: {batch[0]}")
+            
             # Apply fixes for each sample in batch
             batch_fixed = 0
             batch_unavailable = 0
@@ -311,14 +318,17 @@ class ComprehensiveDataRepairer:
                     
                     # Update all missing/empty fields
                     updated = False
+                    fields_updated = []
                     for field_name in EXPECTED_FIELDS:
                         if field_name in fresh_data and fresh_data[field_name]:
                             # Only update if current value is missing/empty
                             if field_name not in data or not data[field_name]:
                                 data[field_name] = fresh_data[field_name]
                                 updated = True
+                                fields_updated.append(field_name)
                     
                     if updated:
+                        print(f"    Sample {sample_id}: updating {len(fields_updated)} fields: {', '.join(fields_updated[:3])}{'...' if len(fields_updated) > 3 else ''}")
                         # Mark as checked - collection tried once, repair tried once
                         data["data_quality_checked"] = datetime.now().isoformat()
                         data["data_quality_repaired"] = True
@@ -333,7 +343,10 @@ class ComprehensiveDataRepairer:
                             (json.dumps(data), sample_id)
                         )
                         batch_fixed += 1
+                    else:
+                        print(f"    Sample {sample_id}: no fields needed updating (already complete)")
                 else:
+                    print(f"    Sample {sample_id}: NOT in fetched_data")
                     # Sample not found in API results
                     missing_fields = []
                     for field_name in EXPECTED_FIELDS:
