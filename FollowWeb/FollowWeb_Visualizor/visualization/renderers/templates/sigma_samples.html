@@ -1344,7 +1344,11 @@
                 }
             }
 
-            // Audio panel will handle audio playback
+            // Trigger audio panel if available
+            if (window.audioPanel && window.audioPanel.showSinglePlayer) {
+                window.audioPanel.showSinglePlayer(nodeId);
+            }
+            
             document.getElementById('node-info').style.display = 'block';
         }
 
