@@ -148,33 +148,31 @@
                 return null;
             }
             
-            // Parse audio URLs from JSON array
-            let audioUrls = [];
-            if (node.audio_urls) {
-                try {
-                    audioUrls = JSON.parse(node.audio_urls);
-                } catch (e) {
-                    console.error('Failed to parse audio_urls for node:', nodeId, e);
-                    return null;
-                }
-            }
+            // Reconstruct Freesound preview URLs from sample ID
+            // Freesound preview URL pattern: https://freesound.org/data/previews/{id}/{id}-hq.mp3
+            const sampleId = nodeId;
+            const audioUrls = [
+                `https://freesound.org/data/previews/${sampleId}/${sampleId}-hq.mp3`,
+                `https://freesound.org/data/previews/${sampleId}/${sampleId}-lq.mp3`,
+                `https://freesound.org/data/previews/${sampleId}/${sampleId}-lq.ogg`
+            ];
             
-            if (!audioUrls || audioUrls.length === 0) {
-                console.warn('No audio URL for node:', nodeId);
-                return null;
-            }
+            console.log('Freesound preview URLs for node', nodeId, ':', audioUrls);
 
             try {
                 // Create meter for visual feedback
                 const meter = new Tone.Meter();
                 
                 // Tone.js will try URLs in order until one loads successfully
+                console.log('Creating Tone.Player with URLs:', audioUrls);
+                
                 const player = new Tone.Player({
                     url: audioUrls,
                     loop: false,
                     fadeIn: 0.01,  // Smooth fade in to prevent clicks
                     fadeOut: 0.01, // Smooth fade out to prevent clicks
                     onload: () => {
+                        console.log('✓ Audio loaded successfully for node:', nodeId, 'Duration:', player.buffer.duration);
                         // Store duration once loaded
                         if (audioState.activePlayers[nodeId]) {
                             audioState.activePlayers[nodeId].duration = player.buffer.duration;
@@ -183,7 +181,9 @@
                         renderAudioPanel();
                     },
                     onerror: (error) => {
-                        console.error('Failed to load audio for node:', nodeId, error);
+                        console.error('✗ Failed to load audio for node:', nodeId);
+                        console.error('Error details:', error);
+                        console.error('Attempted URLs:', audioUrls);
                         // Clean up failed player
                         if (audioState.activePlayers[nodeId]) {
                             delete audioState.activePlayers[nodeId];
