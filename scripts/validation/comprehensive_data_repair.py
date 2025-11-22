@@ -124,132 +124,53 @@ class ComprehensiveDataRepairer:
                         key, value = line.split("=", 1)
                         os.environ[key.strip()] = value.strip()
     
-    def check_sample_data_quality(self, sample_id: int, data: Dict[str, Any]) -> List[DataQualityIssue]:
-        """
-        Check a single sample for data quality issues.
-        
-        Returns list of issues found.
-        """
-        issues = []
-        
-        # Skip if already marked as checked and unavailable
-        if data.get("data_quality_checked") and data.get("api_data_unavailable"):
-            return issues
-        
-        # Get list of fields marked as missing from Freesound (intentionally empty)
-        missing_from_freesound = data.get("_missing_from_freesound", [])
-        
-        # Check each expected field
-        for field_name, expected_type in EXPECTED_FIELDS.items():
-            # Skip if field is marked as missing from Freesound
-            if field_name in missing_from_freesound:
-                continue
-            # Check if field exists
-            if field_name not in data:
-                issues.append(DataQualityIssue(sample_id, "missing_field", field_name))
-                continue
-            
-            value = data[field_name]
-            
-            # Check if value is empty/None (but not for optional fields)
-            if value is None or value == "" or value == [] or value == {}:
-                # Some fields can be None
-                if expected_type == (str, type(None)) or expected_type == type(None):
-                    continue
-                issues.append(DataQualityIssue(sample_id, "empty_value", field_name))
-                continue
-            
-            # Check type (basic validation)
-            if not isinstance(value, expected_type if isinstance(expected_type, type) else expected_type):
-                issues.append(DataQualityIssue(sample_id, "invalid_type", field_name))
-        
-        return issues
+
     
-    def scan_all_samples(self) -> Tuple[Set[int], Dict[str, Set[int]]]:
+    def load_validation_results(self) -> Tuple[Set[int], Dict[str, int]]:
         """
-        Scan all samples and categorize issues.
+        Load validation scan results from file.
         
-        First checks if validation already scanned and saved results.
-        If so, uses those results to avoid double scanning.
+        Repair script ALWAYS uses validation results - never scans itself.
+        This ensures single source of truth and no duplicate work.
         
         Returns:
             - Set of sample IDs that need repair
-            - Dict mapping field names to sample IDs with issues in that field
+            - Dict mapping field names to count of samples with issues
+        
+        Raises:
+            FileNotFoundError: If validation results not found
         """
         print("\n" + "=" * 70)
-        print("Phase 1: Data Quality Scan")
+        print("Phase 1: Load Validation Results")
         print("=" * 70)
         
-        # Check if validation already scanned and saved results
         scan_results_file = self.checkpoint_dir / "data_quality_scan.json"
-        if scan_results_file.exists():
-            print("\n✓ Using validation scan results (avoiding double scan)")
-            with open(scan_results_file) as f:
-                scan_data = json.load(f)
-            
-            samples_needing_repair = set(scan_data["samples_needing_repair"])
-            self.stats["total_samples"] = len(samples_needing_repair)
-            self.stats["samples_checked"] = len(samples_needing_repair)
-            self.stats["issues_found"] = scan_data["total_issues"]
-            
-            # Convert issues_by_field to proper format
-            issues_by_field = {}
-            for field, count in scan_data["issues_by_field"].items():
-                issues_by_field[field] = set()  # We don't have individual IDs, but that's ok
-            
-            print(f"\n✓ Loaded scan results: {len(samples_needing_repair)} samples need repair")
-            print(f"  Total issues found: {self.stats['issues_found']}")
-            print(f"\nIssues by field:")
-            for field_name, count in scan_data["issues_by_field"].items():
-                print(f"  - {field_name}: {count} samples")
-            
-            print(f"\n💡 Efficiency: {len(samples_needing_repair)} samples = {(len(samples_needing_repair) + BATCH_SIZE - 1) // BATCH_SIZE} API requests")
-            print(f"   (Each request fetches ALL fields for up to {BATCH_SIZE} samples)")
-            
-            return samples_needing_repair, issues_by_field
         
-        # No validation results - do full scan
-        print("\n⚠️  No validation scan results found, performing full scan...")
+        if not scan_results_file.exists():
+            raise FileNotFoundError(
+                f"Validation results not found: {scan_results_file}\n"
+                "Repair script requires validation to run first.\n"
+                "This should not happen - check workflow configuration."
+            )
         
-        conn = sqlite3.connect(str(self.db_path))
-        cursor = conn.cursor()
+        print(f"\n✓ Loading validation scan results from {scan_results_file.name}")
         
-        cursor.execute("SELECT sample_id, data FROM metadata")
-        rows = cursor.fetchall()
+        with open(scan_results_file) as f:
+            scan_data = json.load(f)
         
-        self.stats["total_samples"] = len(rows)
-        print(f"\nScanning {len(rows)} samples for data quality issues...")
+        samples_needing_repair = set(scan_data["samples_needing_repair"])
+        issues_by_field = scan_data["issues_by_field"]
         
-        # Track which samples need repair (efficient: one API call gets ALL fields)
-        samples_needing_repair: Set[int] = set()
+        self.stats["total_samples"] = scan_data.get("total_samples", len(samples_needing_repair))
+        self.stats["samples_checked"] = len(samples_needing_repair)
+        self.stats["issues_found"] = scan_data["total_issues"]
         
-        # Also track issues by field for reporting
-        issues_by_field: Dict[str, Set[int]] = defaultdict(set)
-        
-        for sample_id, data_json in rows:
-            data = json.loads(data_json)
-            issues = self.check_sample_data_quality(sample_id, data)
-            
-            if issues:
-                # This sample needs repair - add to queue
-                samples_needing_repair.add(sample_id)
-                
-                # Track which fields have issues (for reporting)
-                for issue in issues:
-                    issues_by_field[issue.field_name].add(sample_id)
-            
-            self.stats["samples_checked"] += 1
-            self.stats["issues_found"] += len(issues)
-        
-        conn.close()
-        
-        # Print summary
-        print(f"\n✓ Scan complete: {self.stats['samples_checked']} samples checked")
-        print(f"  Total issues found: {self.stats['issues_found']}")
-        print(f"  Samples needing repair: {len(samples_needing_repair)}")
+        print(f"\n✓ Loaded scan results:")
+        print(f"  - Samples needing repair: {len(samples_needing_repair)}")
+        print(f"  - Total issues: {self.stats['issues_found']}")
         print(f"\nIssues by field:")
-        for field_name, sample_ids in sorted(issues_by_field.items()):
-            print(f"  - {field_name}: {len(sample_ids)} samples")
+        for field_name, count in sorted(issues_by_field.items()):
+            print(f"  - {field_name}: {count} samples")
         
         print(f"\n💡 Efficiency: {len(samples_needing_repair)} samples = {(len(samples_needing_repair) + BATCH_SIZE - 1) // BATCH_SIZE} API requests")
         print(f"   (Each request fetches ALL fields for up to {BATCH_SIZE} samples)")
@@ -462,8 +383,12 @@ class ComprehensiveDataRepairer:
         print(f"\nCheckpoint: {self.checkpoint_dir}")
         print(f"Max API requests: {self.max_requests}")
         
-        # Phase 1: Scan all samples
-        samples_needing_repair, issues_by_field = self.scan_all_samples()
+        # Phase 1: Load validation results (never scan ourselves)
+        try:
+            samples_needing_repair, issues_by_field = self.load_validation_results()
+        except FileNotFoundError as e:
+            print(f"\n✗ Error: {e}")
+            return 1
         
         if self.stats['issues_found'] == 0:
             print("\n✅ No data quality issues found!")
