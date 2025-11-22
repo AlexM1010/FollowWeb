@@ -1398,11 +1398,11 @@
             </div>
             <div class="stat-item">
                 <span class="stat-label">Edges:</span>
-                <span class="stat-value" id="edge-count">11783</span>
+                <span class="stat-value" id="edge-count">11789</span>
             </div>
             <div class="stat-item">
                 <span class="stat-label">Avg Degree:</span>
-                <span class="stat-value" id="avg-degree">14.10</span>
+                <span class="stat-value" id="avg-degree">14.11</span>
             </div>
             
             <div class="stat-item">
@@ -1469,17 +1469,6 @@
         let graphData = null;  // Will be loaded asynchronously
 
         let graph, renderer, layoutRunning = false, layoutWorker = null;
-
-        // Tone.js multi-player system
-        let activePlayers = new Map(); // nodeId -> { player, volume, name }
-        let transportRunning = false;
-
-        // Persistent audio player settings
-        let audioSettings = {
-            volume: 0.8,
-            muted: false,
-            loop: false
-        };
 
         // Track previous state of labels/tooltips before physics
         let labelsBeforePhysics = true;
@@ -1749,233 +1738,8 @@
                 }
             }
 
-            if (audioUrls.length > 0) {
-                // Create add to mix button
-                const addBtn = document.createElement('button');
-                addBtn.textContent = activePlayers.has(nodeId) ? '✓ In Mix' : '+ Add to Mix';
-                addBtn.style.width = '100%';
-                addBtn.style.padding = '10px';
-                addBtn.style.marginTop = '10px';
-                addBtn.disabled = activePlayers.has(nodeId);
-
-                if (activePlayers.has(nodeId)) {
-                    addBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
-                } else {
-                    addBtn.style.background = 'linear-gradient(135deg, #6c8eff 0%, #5a7de8 100%)';
-                }
-
-                addBtn.onclick = function () {
-                    addPlayerToMix(nodeId, audioUrls, attributes.name || attributes.label || nodeId);
-                };
-
-                audioPlayerDiv.appendChild(addBtn);
-            }
-
+            // Audio panel will handle audio playback
             document.getElementById('node-info').style.display = 'block';
-        }
-
-        // Tone.js Multi-Player Functions
-
-        async function addPlayerToMix(nodeId, audioUrls, name) {
-            // Check if already in mix
-            if (activePlayers.has(nodeId)) {
-                console.log('Player already in mix:', nodeId);
-                return;
-            }
-
-            try {
-                // Ensure Tone.js is started (required for user interaction)
-                await Tone.start();
-                console.log('Tone.js audio context started');
-
-                // Use first available URL (prefer mp3)
-                const audioUrl = audioUrls.find(url => url.includes('.mp3')) || audioUrls[0];
-
-                // Create Tone.js Player with loop enabled
-                const player = new Tone.Player({
-                    url: audioUrl,
-                    loop: true,
-                    autostart: false,
-                    onload: () => {
-                        console.log('Loaded:', name);
-                        updatePlayersList();
-                    }
-                }).toDestination();
-
-                // Create volume control
-                const volume = new Tone.Volume(Tone.gainToDb(audioSettings.volume)).toDestination();
-                player.connect(volume);
-
-                // Store player info
-                activePlayers.set(nodeId, {
-                    player: player,
-                    volume: volume,
-                    name: name,
-                    volumeValue: audioSettings.volume
-                });
-
-                // Start player if transport is running
-                if (transportRunning) {
-                    player.start();
-                }
-
-                // Update UI
-                updatePlayersList();
-                document.getElementById('active-players').classList.add('visible');
-
-                // Update button in node info if still open
-                const addBtn = document.querySelector('#node-audio-player button');
-                if (addBtn) {
-                    addBtn.textContent = '✓ In Mix';
-                    addBtn.disabled = true;
-                    addBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
-                }
-
-                console.log('Added to mix:', name);
-            } catch (error) {
-                console.error('Failed to add player:', error);
-                alert('Failed to load audio: ' + error.message);
-            }
-        }
-
-        function removePlayerFromMix(nodeId) {
-            const playerInfo = activePlayers.get(nodeId);
-            if (!playerInfo) return;
-
-            // Stop and dispose player
-            playerInfo.player.stop();
-            playerInfo.player.dispose();
-            playerInfo.volume.dispose();
-
-            // Remove from map
-            activePlayers.delete(nodeId);
-
-            // Update UI
-            updatePlayersList();
-
-            if (activePlayers.size === 0) {
-                document.getElementById('active-players').classList.remove('visible');
-                if (transportRunning) {
-                    Tone.Transport.stop();
-                    transportRunning = false;
-                    document.getElementById('transport-btn').textContent = '▶ Start';
-                }
-            }
-
-            console.log('Removed from mix:', playerInfo.name);
-        }
-
-        function updatePlayersList() {
-            const listDiv = document.getElementById('players-list');
-            listDiv.innerHTML = '';
-
-            if (activePlayers.size === 0) {
-                listDiv.innerHTML = '<p style="color: #888; font-size: 12px; text-align: center; padding: 20px;">No active players. Click "Add to Mix" on any sample.</p>';
-                return;
-            }
-
-            activePlayers.forEach((info, nodeId) => {
-                const item = document.createElement('div');
-                item.className = 'player-item';
-
-                const header = document.createElement('div');
-                header.className = 'player-item-header';
-
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'player-item-name';
-                nameSpan.textContent = info.name;
-                nameSpan.title = info.name;
-
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'player-item-remove';
-                removeBtn.textContent = '✕';
-                removeBtn.onclick = () => removePlayerFromMix(nodeId);
-
-                header.appendChild(nameSpan);
-                header.appendChild(removeBtn);
-
-                const controls = document.createElement('div');
-                controls.className = 'player-item-controls';
-
-                const volumeLabel = document.createElement('span');
-                volumeLabel.textContent = '🔊';
-                volumeLabel.style.fontSize = '14px';
-
-                const volumeSlider = document.createElement('input');
-                volumeSlider.type = 'range';
-                volumeSlider.min = '0';
-                volumeSlider.max = '100';
-                volumeSlider.value = Math.round(info.volumeValue * 100);
-                volumeSlider.oninput = function () {
-                    const vol = parseInt(this.value) / 100;
-                    info.volume.volume.value = Tone.gainToDb(vol);
-                    info.volumeValue = vol;
-                };
-
-                controls.appendChild(volumeLabel);
-                controls.appendChild(volumeSlider);
-
-                item.appendChild(header);
-                item.appendChild(controls);
-                listDiv.appendChild(item);
-            });
-        }
-
-        function updateBPM() {
-            const bpm = parseInt(document.getElementById('bpm-input').value);
-            if (bpm >= 40 && bpm <= 240) {
-                Tone.Transport.bpm.value = bpm;
-                console.log('BPM set to:', bpm);
-            } else {
-                alert('BPM must be between 40 and 240');
-            }
-        }
-
-        function toggleTransport() {
-            if (activePlayers.size === 0) {
-                alert('Add some samples to the mix first!');
-                return;
-            }
-
-            if (transportRunning) {
-                // Stop transport
-                Tone.Transport.stop();
-                activePlayers.forEach(info => {
-                    info.player.stop();
-                });
-                transportRunning = false;
-                document.getElementById('transport-btn').textContent = '▶ Start';
-                console.log('Transport stopped');
-            } else {
-                // Start transport and all players
-                Tone.Transport.start();
-                activePlayers.forEach(info => {
-                    info.player.start();
-                });
-                transportRunning = true;
-                document.getElementById('transport-btn').textContent = '⏸ Stop';
-                console.log('Transport started');
-            }
-        }
-
-        function stopAllPlayers() {
-            if (transportRunning) {
-                Tone.Transport.stop();
-                transportRunning = false;
-                document.getElementById('transport-btn').textContent = '▶ Start';
-            }
-
-            activePlayers.forEach((info, nodeId) => {
-                info.player.stop();
-                info.player.dispose();
-                info.volume.dispose();
-            });
-
-            activePlayers.clear();
-            updatePlayersList();
-            document.getElementById('active-players').classList.remove('visible');
-
-            console.log('All players stopped and cleared');
         }
 
         function closeNodeInfo() {
