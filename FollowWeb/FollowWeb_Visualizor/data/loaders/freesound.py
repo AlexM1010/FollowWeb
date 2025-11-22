@@ -510,21 +510,30 @@ class FreesoundLoader(DataLoader):
         uploader_id_pattern = re.compile(r"_(\d+)-")
 
         if "previews" in sound_dict:
-            # Try all available preview formats (hq-mp3, lq-mp3, hq-ogg, lq-ogg)
-            preview_formats = [
-                "preview-hq-mp3",
-                "preview-lq-mp3",
-                "preview-hq-ogg",
-                "preview-lq-ogg"
-            ]
+            # Check all available preview formats and store which ones exist
+            preview_formats = {
+                "preview-hq-ogg": "ogg-hq",
+                "preview-lq-ogg": "ogg-lq",
+                "preview-hq-mp3": "mp3-hq",
+                "preview-lq-mp3": "mp3-lq"
+            }
             
+            available_formats = []
             preview_url = None
-            for format_key in preview_formats:
-                url = sound_dict["previews"].get(format_key, "")
-                if url:
-                    preview_url = url
-                    break
             
+            # Prefer OGG for better quality/compression, then MP3
+            for api_key in ["preview-hq-ogg", "preview-lq-ogg", "preview-hq-mp3", "preview-lq-mp3"]:
+                url = sound_dict["previews"].get(api_key, "")
+                if url:
+                    available_formats.append(preview_formats[api_key])
+                    if preview_url is None:
+                        preview_url = url
+            
+            # Store available formats for website to offer user choice
+            if available_formats:
+                metadata["available_preview_formats"] = available_formats
+            
+            # Extract uploader_id from first available preview URL
             if preview_url:
                 match = uploader_id_pattern.search(preview_url)
                 if match:
