@@ -99,14 +99,26 @@
 
         async function createPlayer(nodeId) {
             const node = getNodeData(nodeId);
-            if (!node || !node.audio_url) {
+            
+            // Parse audio URLs from JSON array
+            let audioUrls = [];
+            if (node && node.audio_urls) {
+                try {
+                    audioUrls = JSON.parse(node.audio_urls);
+                } catch (e) {
+                    console.error('Failed to parse audio_urls:', e);
+                }
+            }
+            
+            if (!audioUrls || audioUrls.length === 0) {
                 console.warn('No audio URL for node:', nodeId);
                 return null;
             }
 
             try {
+                // Tone.js will try URLs in order until one loads successfully
                 const player = new Tone.Player({
-                    url: node.audio_url,
+                    url: audioUrls,
                     loop: false,
                     onload: () => {
                         // Store duration once loaded
@@ -498,10 +510,4 @@
 
     // Listen for graph initialization
     window.addEventListener('graphInitialized', initAudioPanel);
-    
-    // Also try on DOMContentLoaded in case graph is already ready
-    window.addEventListener('DOMContentLoaded', function() {
-        // Wait a bit for graph to initialize
-        setTimeout(initAudioPanel, 100);
-    });
 })();
