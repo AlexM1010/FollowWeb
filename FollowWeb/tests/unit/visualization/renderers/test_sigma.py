@@ -333,6 +333,8 @@ class TestSigmaRendererConfiguration:
 
         graph = nx.DiGraph()
         graph.add_node(1, community=0, degree=1)
+        graph.add_node(2, community=0, degree=1)
+        graph.add_edge(1, 2)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output_file = os.path.join(tmpdir, "test_sigma.html")
