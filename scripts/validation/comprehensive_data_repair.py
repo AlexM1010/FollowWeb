@@ -219,15 +219,22 @@ class ComprehensiveDataRepairer:
                 sample_id = sound.id
                 
                 # Extract uploader_id from preview URL if available
+                # Debug: Check what we're getting from the API
+                if sample_id in [59, 79, 137]:
+                    print(f"    DEBUG Sample {sample_id}:")
+                    print(f"      'previews' in sound_dict: {'previews' in sound_dict}")
+                    if 'previews' in sound_dict:
+                        print(f"      sound_dict['previews']: {sound_dict['previews']}")
+                        print(f"      Type: {type(sound_dict['previews'])}")
+                
                 if "previews" in sound_dict and sound_dict["previews"]:
                     preview_url = sound_dict["previews"].get("preview-hq-mp3", "")
-                    match = UPLOADER_ID_PATTERN.search(preview_url)
-                    if match:
-                        sound_dict["uploader_id"] = int(match.group(1))
-                    else:
-                        # Log samples where uploader_id extraction failed
-                        if sample_id in [59, 79, 137]:  # Log first few for debugging
-                            print(f"    DEBUG: Sample {sample_id} preview URL doesn't match pattern: {preview_url[:80]}")
+                    if preview_url:
+                        match = UPLOADER_ID_PATTERN.search(preview_url)
+                        if match:
+                            sound_dict["uploader_id"] = int(match.group(1))
+                        # If URL exists but doesn't match pattern, uploader_id stays None
+                    # If preview URL is empty, uploader_id stays None (audio unavailable)
                 
                 fetched_data[sample_id] = sound_dict
             
@@ -325,16 +332,30 @@ class ComprehensiveDataRepairer:
                     # because 0, [], False are valid values for some fields
                     updated = False
                     fields_updated = []
+                    unavailable_fields = []
+                    
                     for field_name in EXPECTED_FIELDS:
-                        if field_name in fresh_data and fresh_data[field_name] is not None:
-                            # Only update if current value is missing/None
-                            if field_name not in data or data[field_name] is None:
-                                data[field_name] = fresh_data[field_name]
+                        current_value = data.get(field_name)
+                        fresh_value = fresh_data.get(field_name)
+                        
+                        # Only process if current value is missing/None
+                        if current_value is None:
+                            if fresh_value is not None:
+                                # Fresh data available - update it
+                                data[field_name] = fresh_value
                                 updated = True
                                 fields_updated.append(field_name)
+                            else:
+                                # Fresh data also None - field unavailable from API
+                                unavailable_fields.append(field_name)
                     
                     if updated:
                         print(f"    Sample {sample_id}: updating {len(fields_updated)} fields: {', '.join(fields_updated[:3])}{'...' if len(fields_updated) > 3 else ''}")
+                    
+                    # Mark fields that are unavailable from Freesound API
+                    if unavailable_fields:
+                        data["_missing_from_freesound"] = unavailable_fields
+                        updated = True  # Need to save this marker
                         # Mark as checked - collection tried once, repair tried once
                         data["data_quality_checked"] = datetime.now().isoformat()
                         data["data_quality_repaired"] = True
