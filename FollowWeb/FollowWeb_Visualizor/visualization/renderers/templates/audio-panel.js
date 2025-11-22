@@ -905,13 +905,7 @@
 
         // --- Event Listeners ---
 
-        // Initialize AudioContext on hover (once only, no audio loading)
-        renderer.on('enterNode', async () => {
-            // Only initialize context, don't load any audio
-            await ensureAudioContext();
-        });
-
-        // Load and play audio on click
+        // Load and play audio on click (initializes AudioContext on first click)
         renderer.on('clickNode', async ({ node }) => {
             await showSinglePlayer(node);
         });
