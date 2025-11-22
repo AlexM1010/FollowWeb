@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [check-collection-status, restore-checkpoint]
-    if: needs.check-collection-status.outputs.should_run == 'true' && always()
+    if: needs.check-collection-status.outputs.should_run == 'true' && !failure() && !cancelled()
     
     steps:
     - name: Checkout code
