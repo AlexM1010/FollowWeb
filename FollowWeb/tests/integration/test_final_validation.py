@@ -76,7 +76,7 @@ class TestCompleteWorkflowFreesoundToSigma:
         mock_loader.max_samples = 50
         mock_loader.tags = []
         mock_loader.checkpoint_dir = None
- mock_loader_class.return_value = mock_loader
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -211,7 +211,7 @@ class TestAudioPlaybackIntegration:
         mock_loader.max_samples = 50
         mock_loader.tags = []
         mock_loader.checkpoint_dir = None
- mock_loader_class.return_value = mock_loader
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -492,7 +492,7 @@ class TestFreesoundDataWithBothRenderers:
         mock_loader.max_samples = 50
         mock_loader.tags = []
         mock_loader.checkpoint_dir = None
- mock_loader_class.return_value = mock_loader
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -591,7 +591,7 @@ class TestAllConfigurationOptions:
         mock_loader.max_samples = 50
         mock_loader.tags = []
         mock_loader.checkpoint_dir = None
- mock_loader_class.return_value = mock_loader
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -717,7 +717,7 @@ class TestErrorHandlingAndRecovery:
         mock_loader.max_samples = 50
         mock_loader.tags = []
         mock_loader.checkpoint_dir = None
- mock_loader_class.return_value = mock_loader
+        mock_loader_class.return_value = mock_loader
 
         config = {
             "input_file": "dummy.json",
@@ -813,7 +813,7 @@ class TestMultipleRenderersOutput:
         mock_loader.max_samples = 50
         mock_loader.tags = []
         mock_loader.checkpoint_dir = None
- mock_loader_class.return_value = mock_loader
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -846,4 +846,3 @@ class TestMultipleRenderersOutput:
             # Should generate HTML files
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
-
