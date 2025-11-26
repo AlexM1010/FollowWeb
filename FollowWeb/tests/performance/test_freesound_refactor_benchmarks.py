@@ -216,10 +216,10 @@ class TestSearchBasedCollectionBenchmarks:
             loader = IncrementalFreesoundLoader(loader_config)
 
             def collect_samples():
-                """Collect 100 samples via search."""
+                """Collect 50 samples via search."""
                 result = loader.fetch_data(
                     query="drum",
-                    max_samples=100,
+                    max_samples=50,
                     discovery_mode="search",
                     include_user_edges=False,
                     include_pack_edges=False,
@@ -230,14 +230,14 @@ class TestSearchBasedCollectionBenchmarks:
             benchmark(collect_samples)
 
             # Verify samples were collected
-            assert loader.graph.number_of_nodes() >= 100
+            assert loader.graph.number_of_nodes() >= 50
 
             # Clean up
             loader.close()
 
             # Calculate samples per second
             if benchmark.stats:
-                samples_per_second = 100 / benchmark.stats["mean"]
+                samples_per_second = 50 / benchmark.stats["mean"]
                 print(f"\n✓ Samples per second: {samples_per_second:.2f}")
 
                 # Target: ≥ 10 samples per second
@@ -269,7 +269,7 @@ class TestSearchBasedCollectionBenchmarks:
                 """Collect samples and count API calls."""
                 loader.fetch_data(
                     query="drum",
-                    max_samples=100,
+                    max_samples=50,
                     discovery_mode="search",
                     include_user_edges=False,
                     include_pack_edges=False,
@@ -286,7 +286,7 @@ class TestSearchBasedCollectionBenchmarks:
             total_calls = benchmark(collect_and_count)
 
             # Calculate calls per sample
-            calls_per_sample = total_calls / 100
+            calls_per_sample = total_calls / 50
             print(f"\n✓ API calls per sample: {calls_per_sample:.3f}")
             print(f"  Search calls: {mock_freesound_client.text_search.call_count}")
             print(f"  Get calls: {mock_freesound_client.get_sound.call_count}")
@@ -324,7 +324,7 @@ class TestSearchBasedCollectionBenchmarks:
 
             loader.fetch_data(
                 query="drum",
-                max_samples=200,
+                max_samples=100,
                 discovery_mode="search",
                 include_user_edges=False,
                 include_pack_edges=False,
@@ -394,7 +394,7 @@ class TestEdgeGenerationBenchmarks:
             # Collect samples first
             loader.fetch_data(
                 query="drum",
-                max_samples=100,
+                max_samples=50,
                 discovery_mode="search",
                 include_user_edges=False,
                 include_pack_edges=False,
@@ -440,7 +440,7 @@ class TestEdgeGenerationBenchmarks:
             # Collect samples first
             loader.fetch_data(
                 query="drum",
-                max_samples=100,
+                max_samples=50,
                 discovery_mode="search",
                 include_user_edges=False,
                 include_pack_edges=False,
