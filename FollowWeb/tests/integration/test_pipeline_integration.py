@@ -93,7 +93,7 @@ class TestFreesoundPipelineIntegration:
         mock_graph.add_node("1", name="test_sample", community=0, degree=1)
 
         with patch(
-            "FollowWeb_Visualizor.__main__.FreesoundLoader"
+            "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
         ) as mock_loader_class:
             mock_loader = Mock()
             mock_loader.load.return_value = mock_graph
@@ -116,7 +116,7 @@ class TestFreesoundPipelineIntegration:
             assert "config" in call_kwargs
             assert call_kwargs["config"]["api_key"] == "test_key"
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_freesound_pipeline_end_to_end_mocked(self, mock_loader_class):
         """Test end-to-end pipeline with mocked Freesound data."""
         # Create mock graph with Freesound-like attributes
@@ -278,7 +278,7 @@ class TestSigmaRendererPipelineIntegration:
 class TestFreesoundSigmaPipelineIntegration:
     """Test complete pipeline with Freesound data and Sigma renderer."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_freesound_sigma_end_to_end(self, mock_loader_class):
         """Test complete workflow: Freesound data → Analysis → Sigma visualization."""
         # Create realistic Freesound graph
@@ -397,7 +397,7 @@ class TestFreesoundSigmaPipelineIntegration:
             ]
             assert any("sample_" in name for name in node_names)
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_freesound_sigma_with_audio_disabled(self, mock_loader_class):
         """Test Freesound + Sigma pipeline with audio playback disabled."""
         # Create graph with multiple nodes and edges to survive k-core pruning
@@ -487,7 +487,7 @@ class TestPipelineErrorHandling:
 
         # Mock FreesoundLoader to raise authentication error
         with patch(
-            "FollowWeb_Visualizor.__main__.FreesoundLoader"
+            "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
         ) as mock_loader_class:
             mock_loader = Mock()
             mock_loader.load.side_effect = Exception("Authentication failed")
@@ -497,7 +497,7 @@ class TestPipelineErrorHandling:
 
             assert success is False
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_empty_freesound_graph_handling(self, mock_loader_class):
         """Test handling of empty graph from Freesound."""
         # Return empty graph
@@ -541,7 +541,7 @@ class TestPipelineErrorHandling:
         with pytest.raises(ValueError, match="renderer_type"):
             load_config_from_dict(config)
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_visualization_phase_error_handling(self, mock_loader_class):
         """Test that pipeline handles visualization phase errors gracefully."""
         # Create graph with multiple nodes and edges
@@ -643,7 +643,7 @@ class TestMultipleRenderersPipeline:
 class TestPipelineOutputGeneration:
     """Test output file generation in pipeline."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_output_file_naming(self, mock_loader_class):
         """Test that output files are named correctly."""
         # Create graph with multiple nodes and edges
@@ -698,7 +698,7 @@ class TestPipelineOutputGeneration:
             html_files = list(output_dir.glob("*.html"))
             assert len(html_files) > 0
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_metrics_report_generation(self, mock_loader_class):
         """Test that metrics report is generated."""
         mock_graph = nx.DiGraph()
