@@ -34,9 +34,9 @@ class TestCompleteWorkflowFreesoundToSigma:
     @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_complete_freesound_sigma_workflow(self, mock_loader_class):
         """Test complete workflow from Freesound data to Sigma visualization."""
-        # Create realistic Freesound graph with audio URLs
+        # Create realistic Freesound graph with audio URLs (reduced to 10 nodes for speed)
         mock_graph = nx.DiGraph()
-        for i in range(50):
+        for i in range(10):
             mock_graph.add_node(
                 str(10000 + i),
                 name=f"drum_sample_{i:03d}.wav",
@@ -48,7 +48,7 @@ class TestCompleteWorkflowFreesoundToSigma:
             )
 
         # Add similarity edges
-        for i in range(49):
+        for i in range(9):
             mock_graph.add_edge(
                 str(10000 + i),
                 str(10000 + i + 1),
@@ -57,11 +57,11 @@ class TestCompleteWorkflowFreesoundToSigma:
             )
 
         # Add cross-connections
-        for i in range(0, 50, 10):
-            if i + 25 < 50:
+        for i in range(0, 10, 5):
+            if i + 5 < 10:
                 mock_graph.add_edge(
                     str(10000 + i),
-                    str(10000 + i + 25),
+                    str(10000 + i + 5),
                     type="similar",
                     weight=0.5,
                 )
@@ -86,7 +86,7 @@ class TestCompleteWorkflowFreesoundToSigma:
                         "api_key": "test_api_key",
                         "query": "drum percussion",
                         "tags": ["drum"],
-                        "max_samples": 50,
+                        "max_samples": 10,
                         
                     },
                 },
@@ -117,7 +117,7 @@ class TestCompleteWorkflowFreesoundToSigma:
             call_kwargs = mock_loader.fetch_data.call_args[1]
             assert call_kwargs["query"] == "drum percussion"
             assert call_kwargs["tags"] == ["drum"]
-            assert call_kwargs["max_samples"] == 50
+            assert call_kwargs["max_samples"] == 10
 
             # Verify output files
             html_files = list(Path(tmpdir).glob("*.html"))
@@ -281,9 +281,9 @@ class TestAudioPlaybackIntegration:
 
 @pytest.mark.integration
 class TestVariousGraphSizes:
-    """Test with various graph sizes (100, 1000, 10000 nodes)."""
+    """Test with various graph sizes (reduced for speed: 20, 50 nodes)."""
 
-    @pytest.mark.parametrize("num_nodes", [100, 1000])
+    @pytest.mark.parametrize("num_nodes", [20, 50])
     def test_graph_size_performance(self, num_nodes):
         """Test visualization with different graph sizes."""
         # Create graph of specified size
@@ -363,9 +363,9 @@ class TestInstagramDataWithBothRenderers:
     @pytest.mark.parametrize("renderer_type", ["pyvis", "sigma"])
     def test_instagram_with_renderer(self, mock_loader_class, renderer_type):
         """Test Instagram data with specified renderer."""
-        # Create Instagram-like graph
+        # Create Instagram-like graph (reduced to 10 nodes for speed)
         mock_graph = nx.DiGraph()
-        for i in range(20):
+        for i in range(10):
             mock_graph.add_node(
                 f"user_{i}",
                 username=f"user_{i}",

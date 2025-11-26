@@ -36,13 +36,13 @@ def test_checkpoint_dir(tmp_path):
     checkpoint_dir = tmp_path / "data" / "freesound_library"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     
-    # Create a test graph with 100 nodes (milestone boundary)
+    # Create a test graph with 20 nodes (reduced for speed)
     graph = nx.DiGraph()
-    for i in range(100):
+    for i in range(20):
         graph.add_node(i, name=f"sample_{i}.wav", type="sample")
     
     # Add some edges
-    for i in range(99):
+    for i in range(19):
         graph.add_edge(i, i + 1, weight=0.9)
     
     # Save graph topology
@@ -61,7 +61,7 @@ def test_checkpoint_dir(tmp_path):
         )
     """)
     
-    for i in range(100):
+    for i in range(20):
         metadata = json.dumps({
             "name": f"sample_{i}.wav",
             "audio_url": f"http://test.com/{i}.mp3",

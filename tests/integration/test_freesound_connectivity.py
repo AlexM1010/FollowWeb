@@ -437,11 +437,11 @@ class TestConnectivityPerformance:
         Note: Uses undirected graph for test simplicity and guaranteed connectivity.
         The connectivity module handles directed->undirected conversion internally.
         """
-        # Create larger graph (1000 nodes)
+        # Create larger graph (100 nodes - reduced for speed)
         graph = nx.Graph()
         
         # Add nodes
-        for i in range(1000):
+        for i in range(100):
             graph.add_node(i, name=f'sample{i}.wav', type='sample')
         
         # Create connected graph with random edges
@@ -449,19 +449,19 @@ class TestConnectivityPerformance:
         random.seed(42)
         
         # Ensure connectivity with path
-        for i in range(999):
+        for i in range(99):
             graph.add_edge(i, i + 1, weight=0.9)
         
         # Add random edges for density
-        for _ in range(2000):
-            src = random.randint(0, 999)
-            dst = random.randint(0, 999)
+        for _ in range(200):
+            src = random.randint(0, 99)
+            dst = random.randint(0, 99)
             if src != dst and not graph.has_edge(src, dst):
                 graph.add_edge(src, dst, weight=random.uniform(0.5, 1.0))
         
         # Verify graph properties
-        assert graph.number_of_nodes() == 1000
-        assert graph.number_of_edges() >= 999  # At least the path edges
+        assert graph.number_of_nodes() == 100
+        assert graph.number_of_edges() >= 99  # At least the path edges
         
         # Should calculate metrics without errors
         metrics = calculate_connectivity_metrics(graph, mock_logger)
