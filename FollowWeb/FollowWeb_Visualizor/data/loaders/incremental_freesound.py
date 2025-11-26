@@ -1228,7 +1228,7 @@ class IncrementalFreesoundLoader(DataLoader):
                     break
 
                 # Add sample to graph (simplified - no similar sounds)
-                self._add_sample_to_graph(sample, include_similar=False)
+                self._add_sample_to_graph(sample)
                 processed_samples.append(sample)
 
                 # Mark as processed
@@ -1350,7 +1350,6 @@ class IncrementalFreesoundLoader(DataLoader):
         seed_samples: list[dict[str, Any]],
         depth: int,
         max_total_samples: int,
-        include_similar: bool,
     ) -> None:
         """
         Process samples recursively using queue-based BFS with two-pass processing.
@@ -1381,7 +1380,6 @@ class IncrementalFreesoundLoader(DataLoader):
             seed_samples: Initial samples to start recursive discovery from
             depth: Maximum depth to recurse (0 = no recursion, 1 = one level, etc.)
             max_total_samples: Maximum total samples to discover across all depths
-            include_similar: Whether to fetch similar sounds relationships
 
         Example:
             # Fetch drum samples with 2 levels of recursion
@@ -1389,8 +1387,7 @@ class IncrementalFreesoundLoader(DataLoader):
             loader._process_samples_recursive(
                 seed_samples=seed_samples,
                 depth=2,
-                max_total_samples=100,
-                include_similar=True
+                max_total_samples=100
             )
             # Result: Graph with up to 100 nodes connected by similarity edges
         """
@@ -1534,7 +1531,7 @@ class IncrementalFreesoundLoader(DataLoader):
             # Fetch similar sounds if we haven't reached the depth limit
             # Note: current_depth < depth (not <=) because we want to fetch
             # similar sounds for samples at depth N to discover samples at depth N+1
-            if current_depth < depth and include_similar:
+            if current_depth < depth:
                 # Apply quality thresholds - only expand from high-quality nodes
                 downloads = sample.get("num_downloads", 0)
                 avg_rating = sample.get("avg_rating", 0.0)
@@ -2612,7 +2609,7 @@ class IncrementalFreesoundLoader(DataLoader):
             )
 
     def _add_sample_to_graph(
-        self, sample: dict[str, Any], include_similar: bool = True
+        self, sample: dict[str, Any]
     ) -> None:
         """
         Add a single sample to the graph with relationships.
@@ -2621,7 +2618,6 @@ class IncrementalFreesoundLoader(DataLoader):
 
         Args:
             sample: Sample dictionary with metadata
-            include_similar: Whether to fetch and add similar sounds
         """
         # Use the shared node creation logic
         self._add_node_to_graph(sample)
@@ -2632,8 +2628,8 @@ class IncrementalFreesoundLoader(DataLoader):
         if sample_id not in self.graph:
             return
 
-        # Fetch and add similar sounds relationships
-        if include_similar:
+        # Fetch and add similar sounds relationships (deprecated - API non-functional)
+        if False:  # Disabled - similar sounds API is deprecated
             try:
                 similar_list = self._fetch_similar_sounds_for_sample(int(sample["id"]))
 
