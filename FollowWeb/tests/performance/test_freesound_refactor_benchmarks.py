@@ -400,16 +400,16 @@ class TestEdgeGenerationBenchmarks:
                 include_tag_edges=False,
             )
 
-            # Get unique usernames
+            # Get unique usernames for reporting
             usernames = set()
             for node_id in loader.graph.nodes():
-                metadata = loader.metadata_cache.get(str(node_id))
-                if metadata and metadata.get("username"):
-                    usernames.add(metadata["username"])
+                node_data = loader.graph.nodes[node_id]
+                if node_data.get("username"):
+                    usernames.add(node_data["username"])
 
             def generate_user_edges():
                 """Generate user edges."""
-                return loader._add_user_edges_batch(usernames)
+                return loader._add_user_edges_batch()
 
             edge_count = benchmark(generate_user_edges)
 
