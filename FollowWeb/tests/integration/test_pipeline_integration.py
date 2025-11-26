@@ -36,7 +36,7 @@ class TestFreesoundPipelineIntegration:
                     "query": "drum",
                     "tags": ["percussion", "kick"],
                     "max_samples": 50,
-                    "include_similar": True,
+                    
                 },
             },
             "checkpoint": {
@@ -324,7 +324,7 @@ class TestFreesoundSigmaPipelineIntegration:
                         "query": "drum percussion",
                         "tags": ["drum"],
                         "max_samples": 20,
-                        "include_similar": True,
+                        
                     },
                 },
                 "checkpoint": {"checkpoint_dir": os.path.join(tmpdir, "checkpoints")},

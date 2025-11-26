@@ -87,7 +87,7 @@ class TestCompleteWorkflowFreesoundToSigma:
                         "query": "drum percussion",
                         "tags": ["drum"],
                         "max_samples": 50,
-                        "include_similar": True,
+                        
                     },
                 },
                 "checkpoint": {"checkpoint_dir": os.path.join(tmpdir, "checkpoints")},
@@ -599,7 +599,7 @@ class TestAllConfigurationOptions:
                         "query": "test query",
                         "tags": ["tag1", "tag2"],
                         "max_samples": 10,
-                        "include_similar": True,
+                        
                     },
                 },
                 "checkpoint": {
