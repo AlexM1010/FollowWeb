@@ -691,36 +691,11 @@ class SigmaRenderer(Renderer):
                 if "user" in node_attrs:
                     sigma_node["attributes"]["user"] = str(node_attrs["user"])
 
-                # Reconstruct audio preview URLs from sample ID
-                # Freesound URL pattern: https://freesound.org/data/previews/{folder}/{id}_preview-hq-{format}
-                # Folder is calculated as: id // 1000
-                # API documentation: previews object contains preview-hq-mp3, preview-lq-mp3, preview-hq-ogg, preview-lq-ogg
-                try:
-                    sample_id = int(node_id)
-                    folder = sample_id // 1000
-                    base_url = (
-                        f"https://freesound.org/data/previews/{folder}/{sample_id}"
-                    )
-
-                    # Generate all preview format URLs in order of preference (HQ first)
-                    # Format: {base}_preview-hq-{format}.{ext}
-                    audio_urls = [
-                        f"{base_url}_preview-hq-mp3.mp3",
-                        f"{base_url}_preview-lq-mp3.mp3",
-                        f"{base_url}_preview-hq-ogg.ogg",
-                        f"{base_url}_preview-lq-ogg.ogg",
-                    ]
-                except (ValueError, TypeError):
-                    # If node_id is not a valid integer, skip audio URLs
-                    audio_urls = []
-                    self.logger.debug(
-                        f"Skipping audio URLs for non-numeric node ID: {node_id}"
-                    )
-                # Store as JSON array string for JavaScript consumption
-                if audio_urls:
-                    import json
-
-                    sigma_node["attributes"]["audio_urls"] = json.dumps(audio_urls)
+                # Store uploader_id for space-efficient audio URL reconstruction in frontend
+                # Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
+                # This saves ~70 bytes per node vs storing full URLs
+                if "uploader_id" in node_attrs and node_attrs["uploader_id"] is not None:
+                    sigma_node["attributes"]["uploader_id"] = int(node_attrs["uploader_id"])
 
                 if "license" in node_attrs:
                     sigma_node["attributes"]["license"] = str(node_attrs["license"])
