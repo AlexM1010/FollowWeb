@@ -413,11 +413,17 @@ class IncrementalFreesoundLoader(DataLoader):
 
         metadata = sound_dict.copy()
 
-        # Extract uploader_id from preview URL
+        # Extract uploader_id from preview URL (REQUIRED for audio playback)
         if "previews" in sound_dict:
             uploader_id = self._extract_uploader_id(sound_dict["previews"])
             if uploader_id:
                 metadata["uploader_id"] = uploader_id
+            else:
+                # Log warning - sample cannot be played without uploader_id
+                self.logger.warning(
+                    f"Sample {sound_dict.get('id', 'unknown')} missing uploader_id - "
+                    "audio playback will not work"
+                )
 
         # Remove bulky fields
         for field in ["description", "previews", "images"]:

@@ -215,6 +215,7 @@ class TestSigmaVisualizationWithFreesoundData:
             duration=1.5,
             user="audio_producer",
             audio_url="https://freesound.org/data/previews/12/12345_preview.mp3",
+            uploader_id=98765,  # REQUIRED for audio playback
             type="sample",
             community=0,
             degree=3,
@@ -227,6 +228,7 @@ class TestSigmaVisualizationWithFreesoundData:
             duration=0.8,
             user="sound_designer",
             audio_url="https://freesound.org/data/previews/12/12346_preview.mp3",
+            uploader_id=98766,  # REQUIRED for audio playback
             type="sample",
             community=0,
             degree=2,
@@ -239,6 +241,7 @@ class TestSigmaVisualizationWithFreesoundData:
             duration=3.2,
             user="synth_master",
             audio_url="https://freesound.org/data/previews/12/12347_preview.mp3",
+            uploader_id=98767,  # REQUIRED for audio playback
             type="sample",
             community=1,
             degree=2,
@@ -287,13 +290,19 @@ class TestSigmaVisualizationWithFreesoundData:
             assert "snare_hit_02.wav" in node_names
             assert "bass_synth.wav" in node_names
 
-            # Check for uploader_id in JSON data (used for audio URL reconstruction)
+            # Check for uploader_id in JSON data (REQUIRED for audio URL reconstruction)
             # Note: Sigma renderer now uses uploader_id for space-efficient audio URLs
             # Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-            # uploader_id is optional - only present if available in source data
-            # For this test with mock data, it may not be present
-            # Just verify the nodes have the expected structure
+            # Without uploader_id, audio playback will not work
+            uploader_ids = [
+                n["attributes"].get("uploader_id") for n in data["nodes"]
+            ]
+            
+            # Verify structure and that uploader_id is present
             assert len(data["nodes"]) == 3
+            assert all(uid is not None for uid in uploader_ids), (
+                "All Freesound nodes must have uploader_id for audio playback"
+            )
 
     def test_audio_player_elements(self):
         """Test that audio player UI elements are present."""
