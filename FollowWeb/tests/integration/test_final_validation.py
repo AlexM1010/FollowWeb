@@ -70,14 +70,26 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     mock_loader._api_call_count = 0
     mock_loader._start_time = 0
 
-    # Add __str__ and __repr__ to prevent formatting issues
-    mock_loader.__str__ = (
-        lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
-    )
-    mock_loader.__repr__ = (
-        lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
-    )
-    mock_loader.__format__ = lambda fmt: str(mock_loader)
+    # Add __str__, __repr__, and __format__ to prevent formatting issues
+    # These must be proper methods, not lambdas, to work correctly
+    def mock_str(self):
+        return (
+            f"MockFreesoundLoader(query={self.query}, max_samples={self.max_samples})"
+        )
+
+    def mock_repr(self):
+        return (
+            f"MockFreesoundLoader(query={self.query}, max_samples={self.max_samples})"
+        )
+
+    def mock_format(self, format_spec):
+        # Handle any format spec by converting to string
+        return format(str(self), format_spec) if format_spec else str(self)
+
+    # Bind methods to the mock instance
+    mock_loader.__str__ = lambda: mock_str(mock_loader)
+    mock_loader.__repr__ = lambda: mock_repr(mock_loader)
+    mock_loader.__format__ = lambda fmt: mock_format(mock_loader, fmt)
 
     return mock_loader
 
