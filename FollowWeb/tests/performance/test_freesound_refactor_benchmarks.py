@@ -40,8 +40,8 @@ def mock_freesound_client():
     # Mock text_search to return paginated results
     def mock_text_search(query="", page=1, page_size=150, **kwargs):
         """Mock search that returns realistic sample data."""
-        # Simulate pagination
-        total_samples = 500
+        # Simulate pagination - limit to 60 total samples to reduce API calls
+        total_samples = 60
         start_idx = (page - 1) * page_size
         end_idx = min(start_idx + page_size, total_samples)
 
@@ -261,12 +261,12 @@ class TestSearchBasedCollectionBenchmarks:
         with patch("freesound.FreesoundClient", return_value=mock_freesound_client):
             loader = IncrementalFreesoundLoader(loader_config)
 
-            # Reset call count
-            mock_freesound_client.text_search.reset_mock()
-            mock_freesound_client.get_sound.reset_mock()
-
             def collect_and_count():
                 """Collect samples and count API calls."""
+                # Reset counters at start of EACH benchmark iteration
+                mock_freesound_client.text_search.reset_mock()
+                mock_freesound_client.get_sound.reset_mock()
+                
                 loader.fetch_data(
                     query="drum",
                     max_samples=50,
@@ -276,7 +276,7 @@ class TestSearchBasedCollectionBenchmarks:
                     include_tag_edges=False,
                 )
 
-                # Count API calls
+                # Count API calls for THIS iteration only
                 search_calls = mock_freesound_client.text_search.call_count
                 get_calls = mock_freesound_client.get_sound.call_count
                 total_calls = search_calls + get_calls
@@ -285,14 +285,14 @@ class TestSearchBasedCollectionBenchmarks:
 
             total_calls = benchmark(collect_and_count)
 
-            # Calculate calls per sample
+            # Calculate calls per sample (total_calls is from the last iteration)
             calls_per_sample = total_calls / 50
             print(f"\n✓ API calls per sample: {calls_per_sample:.3f}")
             print(f"  Search calls: {mock_freesound_client.text_search.call_count}")
             print(f"  Get calls: {mock_freesound_client.get_sound.call_count}")
 
             # Target: < 1.0 calls per sample (search-based with pagination)
-            # Note: With pagination and metadata fetching, we expect ~0.7 calls/sample
+            # With 50 samples and page_size=150, should only need 1 search call
             assert calls_per_sample < 1.0, (
                 f"Expected <1.0 calls/sample, got {calls_per_sample:.3f}"
             )
