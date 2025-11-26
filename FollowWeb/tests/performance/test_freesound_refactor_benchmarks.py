@@ -236,13 +236,14 @@ class TestSearchBasedCollectionBenchmarks:
             loader.close()
 
             # Calculate samples per second
-            samples_per_second = 100 / benchmark.stats["mean"]
-            print(f"\n✓ Samples per second: {samples_per_second:.2f}")
+            if benchmark.stats:
+                samples_per_second = 100 / benchmark.stats["mean"]
+                print(f"\n✓ Samples per second: {samples_per_second:.2f}")
 
-            # Target: ≥ 10 samples per second
-            assert samples_per_second >= 10.0, (
-                f"Expected ≥10 samples/sec, got {samples_per_second:.2f}"
-            )
+                # Target: ≥ 10 samples per second
+                assert samples_per_second >= 10.0, (
+                    f"Expected ≥10 samples/sec, got {samples_per_second:.2f}"
+                )
 
     @pytest.mark.benchmark
     def test_api_calls_per_sample(
@@ -415,7 +416,8 @@ class TestEdgeGenerationBenchmarks:
 
             print(f"\n✓ User edges created: {edge_count}")
             print(f"  Unique users: {len(usernames)}")
-            print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
+            if benchmark.stats:
+                print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
 
             assert edge_count >= 0, "Should create some user edges"
 
@@ -445,21 +447,22 @@ class TestEdgeGenerationBenchmarks:
                 include_tag_edges=False,
             )
 
-            # Get unique pack names
+            # Get unique pack names for reporting
             pack_names = set()
             for node_id in loader.graph.nodes():
-                metadata = loader.metadata_cache.get(str(node_id))
-                if metadata and metadata.get("pack_name"):
-                    pack_names.add(metadata["pack_name"])
+                node_data = loader.graph.nodes[node_id]
+                if node_data.get("pack_name"):
+                    pack_names.add(node_data["pack_name"])
 
             def generate_pack_edges():
                 """Generate pack edges."""
-                return loader._add_pack_edges_batch(pack_names)
+                return loader._add_pack_edges_batch()
 
             edge_count = benchmark(generate_pack_edges)
 
             print(f"\n✓ Pack edges created: {edge_count}")
             print(f"  Unique packs: {len(pack_names)}")
-            print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
+            if benchmark.stats:
+                print(f"  Edges per second: {edge_count / benchmark.stats['mean']:.2f}")
 
             assert edge_count >= 0, "Should create some pack edges"
