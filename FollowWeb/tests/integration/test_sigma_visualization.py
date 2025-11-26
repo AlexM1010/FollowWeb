@@ -294,9 +294,7 @@ class TestSigmaVisualizationWithFreesoundData:
             # Note: Sigma renderer now uses uploader_id for space-efficient audio URLs
             # Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
             # Without uploader_id, audio playback will not work (but repair workflow can fix it)
-            uploader_ids = [
-                n["attributes"].get("uploader_id") for n in data["nodes"]
-            ]
+            uploader_ids = [n["attributes"].get("uploader_id") for n in data["nodes"]]
 
             # Verify structure
             assert len(data["nodes"]) == 3

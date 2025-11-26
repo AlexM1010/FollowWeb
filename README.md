@@ -1,5 +1,6 @@
 # FollowWeb
 
+[![CI Pipeline](https://github.com/AlexM1010/FollowWeb/actions/workflows/ci.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/ci.yml)
 [![Freesound Nightly Pipeline](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -80,16 +81,18 @@ This architecture delivers 50x faster I/O operations and 20-30% overall speed im
 - **Centralized Caching**: 80-95% reduction in hash/conversion overhead through intelligent caching
 - **Parallel Processing**: nx-parallel integration for graph operations on Python 3.11+
 - **Worker Auto-Detection**: Dynamic parallelization based on CPU cores and available memory
+- **Space-Efficient Audio URLs**: Stores `uploader_id` (~7 bytes) instead of full URLs (~200 bytes), enabling client-side reconstruction for 96.5% storage reduction
 
 ### Automated CI/CD Pipeline
 
 Multi-stage workflow architecture for continuous data collection and validation:
 
-**Four-Pipeline Architecture**:
-1. **Collection Pipeline**: Nightly data gathering (Mon-Sat 2 AM UTC) with circuit breaker (1,950 requests/day)
-2. **Repair Pipeline**: Validates and repairs data integrity issues
-3. **Validation Pipeline**: Weekly quick validation (300 samples, Sunday) and monthly full validation
-4. **Backup Pipeline**: Creates and manages tiered backups
+**Five-Pipeline Architecture**:
+1. **Collection Pipeline**: [![Freesound Nightly Pipeline](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml) - Nightly data gathering (Mon-Sat 2 AM UTC) with circuit breaker (1,950 requests/day)
+2. **Repair Pipeline**: [![Freesound Data Repair](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-data-repair.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-data-repair.yml) - Validates and repairs data integrity issues
+3. **Validation Pipeline**: [![Freesound Validation](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-validation.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-validation.yml) - Weekly quick validation (300 samples, Sunday) and monthly full validation
+4. **Backup Pipeline**: [![Freesound Backup](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-backup.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-backup.yml) - Creates and manages tiered backups
+5. **Publish Pipeline**: [![Deploy Website](https://github.com/AlexM1010/FollowWeb/actions/workflows/deploy-website.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/deploy-website.yml) - Deploys visualizations to GitHub Pages
 
 **Key Design Decisions**:
 - **Ephemeral Cache Strategy**: Workflow cache populated from private repo at start, wiped at end
