@@ -91,7 +91,6 @@ class TestCompleteWorkflowFreesoundToSigma:
                         "query": "drum percussion",
                         "tags": ["drum"],
                         "max_samples": 10,
-                        
                     },
                 },
                 "checkpoint": {"checkpoint_dir": os.path.join(tmpdir, "checkpoints")},
@@ -173,10 +172,8 @@ class TestCompleteWorkflowFreesoundToSigma:
             # Check for uploader_id (used for client-side audio URL reconstruction)
             # Note: Audio URLs are now reconstructed client-side from uploader_id
             # Format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-            uploader_ids = [
-                attrs.get("uploader_id") for attrs in node_attrs if attrs
-            ]
-            
+            uploader_ids = [attrs.get("uploader_id") for attrs in node_attrs if attrs]
+
             # uploader_id is optional - only present if available in source data
             # Just verify we have the expected node structure
             assert len(node_attrs) > 0, "Should have node attributes"
@@ -324,11 +321,11 @@ class TestVariousGraphSizes:
                 mock_loader = Mock()
                 mock_loader.graph = mock_graph
                 mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader_class.return_value = mock_loader
+                # Ensure all attributes return proper values (not Mock objects)
+                mock_loader.api_key = "test_key"
+                mock_loader.query = "test"
+                mock_loader.max_samples = 50
+                mock_loader_class.return_value = mock_loader
                 config = {
                     "input_file": "dummy.json",
                     "output_file_prefix": os.path.join(tmpdir, f"size_{num_nodes}"),
@@ -607,7 +604,6 @@ class TestAllConfigurationOptions:
                         "query": "test query",
                         "tags": ["tag1", "tag2"],
                         "max_samples": 10,
-                        
                     },
                 },
                 "checkpoint": {
@@ -839,4 +835,3 @@ class TestMultipleRenderersOutput:
             # Should generate HTML files
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
-

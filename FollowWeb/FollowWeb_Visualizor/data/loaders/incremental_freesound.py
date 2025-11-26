@@ -2608,9 +2608,7 @@ class IncrementalFreesoundLoader(DataLoader):
                 is_dormant=False,
             )
 
-    def _add_sample_to_graph(
-        self, sample: dict[str, Any]
-    ) -> None:
+    def _add_sample_to_graph(self, sample: dict[str, Any]) -> None:
         """
         Add a single sample to the graph with relationships.
 
