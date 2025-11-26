@@ -31,9 +31,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 class TestCompleteWorkflowFreesoundToSigma:
     """Test complete workflow: Freesound → Analysis → Sigma visualization."""
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_complete_freesound_sigma_workflow(self, mock_loader_class):
         """Test complete workflow from Freesound data to Sigma visualization."""
         # Create realistic Freesound graph with audio URLs
@@ -194,9 +192,7 @@ class TestCompleteWorkflowFreesoundToSigma:
 class TestAudioPlaybackIntegration:
     """Test audio playback with real Freesound samples."""
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_audio_playback_elements_present(self, mock_loader_class):
         """Test that audio playback elements are properly integrated."""
         mock_graph = nx.DiGraph()
@@ -465,9 +461,7 @@ class TestInstagramDataWithBothRenderers:
 class TestFreesoundDataWithBothRenderers:
     """Test Freesound data with both pyvis and sigma renderers."""
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     @pytest.mark.parametrize("renderer_type", ["pyvis", "sigma"])
     def test_freesound_with_renderer(self, mock_loader_class, renderer_type):
         """Test Freesound data with specified renderer."""
@@ -567,9 +561,7 @@ class TestFreesoundDataWithBothRenderers:
 class TestAllConfigurationOptions:
     """Test all configuration options."""
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_comprehensive_configuration(self, mock_loader_class):
         """Test pipeline with comprehensive configuration options."""
         mock_graph = nx.DiGraph()
@@ -674,9 +666,7 @@ class TestErrorHandlingAndRecovery:
         with pytest.raises(ValueError, match="source"):
             load_config_from_dict(config)
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_api_error_recovery(self, mock_loader_class):
         """Test recovery from API errors."""
         mock_loader = Mock()
@@ -704,9 +694,7 @@ class TestErrorHandlingAndRecovery:
         success = orchestrator.execute_pipeline()
         assert success is False
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_empty_graph_handling(self, mock_loader_class):
         """Test handling of empty graph."""
         mock_graph = nx.DiGraph()  # Empty graph
@@ -737,9 +725,7 @@ class TestErrorHandlingAndRecovery:
         success = orchestrator.execute_pipeline()
         assert success is False
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_partial_failure_recovery(self, mock_loader_class):
         """Test recovery from partial failures."""
         # Create valid graph
@@ -788,9 +774,7 @@ class TestErrorHandlingAndRecovery:
 class TestMultipleRenderersOutput:
     """Test generating multiple renderer outputs."""
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
-    )
+    @patch("FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader")
     def test_all_renderers_output(self, mock_loader_class):
         """Test that 'all' renderer type generates multiple outputs."""
         mock_graph = nx.DiGraph()
