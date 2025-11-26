@@ -357,7 +357,7 @@ class TestFreesoundSigmaPipelineIntegration:
             assert call_kwargs["query"] == "drum percussion"
             assert call_kwargs["tags"] == ["drum"]
             assert call_kwargs["max_samples"] == 20
-            assert call_kwargs["include_similar"] is True
+            # Note: include_similar is no longer passed (deprecated parameter)
 
             # Verify HTML output was created
             html_files = list(Path(tmpdir).glob("*.html"))

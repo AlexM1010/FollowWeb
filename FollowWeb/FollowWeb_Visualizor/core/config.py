@@ -504,7 +504,6 @@ class FreesoundConfig:
     query: Optional[str] = None
     tags: Optional[list[str]] = None
     max_samples: int = 1000
-    include_similar: bool = True
 
     def __post_init__(self) -> None:
         """Validate Freesound configuration after initialization."""
@@ -815,7 +814,6 @@ def load_config_from_dict(config_dict: dict[str, Any]) -> FollowWebConfig:
             query=freesound_dict.get("query"),
             tags=freesound_dict.get("tags"),
             max_samples=freesound_dict.get("max_samples", 1000),
-            include_similar=freesound_dict.get("include_similar", True),
         )
         data_source_config = DataSourceConfig(
             source=data_source_dict.get("source", "instagram"),
@@ -1174,7 +1172,6 @@ class ConfigurationManager:
                     "query": config.data_source.freesound.query,
                     "tags": config.data_source.freesound.tags,
                     "max_samples": config.data_source.freesound.max_samples,
-                    "include_similar": config.data_source.freesound.include_similar,
                 },
             },
             "renderer": {
