@@ -335,7 +335,6 @@ class PipelineOrchestrator:
                         "query": self.config.data_source.freesound.query,
                         "tags": self.config.data_source.freesound.tags,
                         "max_samples": self.config.data_source.freesound.max_samples,
-                        "include_similar": self.config.data_source.freesound.include_similar,
                     }
 
                     # Add edge generation parameters if present

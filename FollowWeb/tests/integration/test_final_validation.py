@@ -70,7 +70,7 @@ class TestCompleteWorkflowFreesoundToSigma:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -215,7 +215,7 @@ class TestAudioPlaybackIntegration:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -329,7 +329,7 @@ class TestVariousGraphSizes:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -491,7 +491,7 @@ class TestFreesoundDataWithBothRenderers:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -586,7 +586,7 @@ class TestAllConfigurationOptions:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -711,7 +711,7 @@ class TestErrorHandlingAndRecovery:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         config = {
@@ -749,7 +749,7 @@ class TestErrorHandlingAndRecovery:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -799,7 +799,7 @@ class TestMultipleRenderersOutput:
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = None
+        mock_loader.load.return_value = mock_graph
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
