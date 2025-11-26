@@ -1,10 +1,10 @@
 # FollowWeb Network Analysis Package
 
-[![Freesound Nightly Pipeline](https://github.com/alexmeckes/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/alexmeckes/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml)
+[![Freesound Nightly Pipeline](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml)
 
 A comprehensive network analysis tool supporting multiple data sources including Instagram social networks and Freesound audio sample relationships. Transform connection data into interactive visualizations with automatic community detection, influence metrics, and audio playback capabilities.
 
-**🎵 Freesound Network Explorer**: [View Live Visualization](https://alexmeckes.github.io/FollowWeb/) - Interactive network of Freesound audio samples with audio playback, automatically updated nightly.
+**🎵 Freesound Network Explorer**: [View Live Visualization](https://visualise.music/) - Interactive network of Freesound audio samples with audio playback, automatically updated nightly.
 
 ---
 
@@ -77,7 +77,7 @@ The Freesound nightly pipeline has been enhanced with advanced features for data
 
 ### 📊 Current Network Statistics
 
-Visit the [Freesound Network Explorer](https://alexmeckes.github.io/FollowWeb/) to see:
+Visit the [Freesound Network Explorer](https://visualise.music/) to see:
 - Total nodes and edges
 - Growth over time
 - Latest interactive visualization

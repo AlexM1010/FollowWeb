@@ -214,9 +214,9 @@ Complete index of all FollowWeb documentation.
 - [NetworkX Documentation](https://networkx.org/)
 
 ### FollowWeb
-- [GitHub Repository](https://github.com/alexmeckes/FollowWeb)
-- [Live Freesound Visualization](https://alexmeckes.github.io/FollowWeb/)
-- [GitHub Issues](https://github.com/alexmeckes/FollowWeb/issues)
+- [GitHub Repository](https://github.com/AlexM1010/FollowWeb)
+- [Live Freesound Visualization](https://visualise.music/)
+- [GitHub Issues](https://github.com/AlexM1010/FollowWeb/issues)
 
 ---
 

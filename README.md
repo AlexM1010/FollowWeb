@@ -6,7 +6,7 @@
 
 Network analysis and visualization tool that transforms connection data into interactive visualizations with automatic community detection, influence metrics, and audio playback capabilities.
 
-**🎵 [Live Demo: Freesound Network Explorer](https://alexm1010.github.io/FollowWeb/)** - Interactive network of 1000+ audio samples with click-to-play audio, automatically updated nightly.
+**🎵 [Live Demo: Freesound Network Explorer](https://visualise.music)** - Interactive network of 1000+ audio samples with click-to-play audio, automatically updated nightly.
 
 ---
 
@@ -63,29 +63,87 @@ Explore audio sample similarity networks from the Freesound API:
 - Discover related sounds through network connections
 - Automated nightly collection building a growing audio library
 
-## Architecture Highlights
+## Technical Highlights
 
-### Split Checkpoint System
-Scalable architecture for handling large networks:
-- **Graph Topology**: NetworkX graph with edges only (.gpickle)
-- **SQLite Metadata**: Indexed database for sample metadata (.db)
-- **Checkpoint Metadata**: Processing state and metrics (.json)
+### Scalable Architecture
 
-**Benefits**: 50x faster I/O, 20-30% speed improvement, scales to millions of nodes
+**Split Checkpoint System** - Designed for handling large-scale networks efficiently:
+- **Graph Topology**: NetworkX graph serialized with pickle for fast I/O
+- **SQLite Metadata**: Indexed database with WAL mode for concurrent access
+- **Checkpoint Metadata**: JSON state tracking for recovery and metrics
 
-### Automated Freesound Pipeline
-Nightly data collection with advanced features:
+This architecture delivers 50x faster I/O operations and 20-30% overall speed improvement compared to monolithic pickle files, enabling the system to scale to millions of nodes without performance degradation.
+
+### Performance Optimizations
+
+- **Batch Processing**: SQLite writes batched at 50 samples to minimize I/O overhead
+- **Centralized Caching**: 80-95% reduction in hash/conversion overhead through intelligent caching
+- **Parallel Processing**: nx-parallel integration for graph operations on Python 3.11+
+- **Worker Auto-Detection**: Dynamic parallelization based on CPU cores and available memory
+
+### Automated CI/CD Pipeline
+
+Multi-stage workflow architecture for continuous data collection and validation:
+
+**Four-Pipeline Architecture**:
+1. **Collection Pipeline**: Nightly data gathering (Mon-Sat 2 AM UTC) with circuit breaker (1,950 requests/day)
+2. **Repair Pipeline**: Validates and repairs data integrity issues
+3. **Validation Pipeline**: Weekly quick validation (300 samples, Sunday) and monthly full validation
+4. **Backup Pipeline**: Creates and manages tiered backups
+
+**Key Design Decisions**:
+- **Ephemeral Cache Strategy**: Workflow cache populated from private repo at start, wiped at end
+- **Fail-Fast Backup**: Pipeline fails if backup fails (no data collection without successful backup)
 - **Parallel Milestone Execution**: 4-core processing at every 100-node milestone
-- **Automated Validation**: Checkpoint integrity verification and anomaly detection
-- **Network Enrichment**: User and pack relationship edges
-- **Public Deployment**: GitHub Pages with growth metrics dashboard
-- **Tiered Backup Retention**: Intelligent retention policy (14-day to permanent)
+- **TOS-Compliant Storage**: Private GitHub repository for checkpoint backups (graph topology only)
+- **Tiered Retention**: Frequent (14-day) → Moderate → Milestone → Permanent backups
 
 ### Visualization Engines
-Three rendering options for different needs:
-- **Sigma.js**: High-performance WebGL for large networks (10,000+ nodes) with audio playback
-- **Pyvis**: Interactive HTML with physics simulation and hover tooltips
-- **Matplotlib**: Static PNG images for presentations and papers
+
+Three specialized rendering engines with a consistent interface pattern:
+- **SigmaRenderer**: WebGL-accelerated visualization using Jinja2 templates for 10,000+ node networks
+- **PyvisRenderer**: Physics-based interactive HTML with hover tooltips for exploratory analysis
+- **MatplotlibRenderer**: Static PNG generation for presentations and publications
+
+Each renderer implements a common base interface, enabling easy extension and consistent behavior across visualization types.
+
+### Production-Grade Testing
+
+Comprehensive test suite with 337 passing tests organized by execution profile:
+- **Unit Tests**: Fast, isolated tests with maximum parallelization
+- **Integration Tests**: Cross-module tests with controlled parallelization
+- **Performance Tests**: Sequential execution for accurate timing benchmarks
+- **Benchmark Tests**: Regression detection for performance-critical paths
+
+Test infrastructure includes worker isolation, CI-optimized configurations, and intelligent dataset selection based on test requirements.
+
+## Design Decisions
+
+### Modular Architecture
+
+Clear architectural boundaries between components:
+- **Data Layer**: Loaders (Instagram, Freesound), storage (SQLite metadata cache), and checkpoint management
+- **Analysis Layer**: Network algorithms (k-core, centrality) and metrics calculation
+- **Visualization Layer**: Rendering engines (Sigma.js, Pyvis, matplotlib) and output formatting
+- **Utility Layer**: Progress tracking, validation, rate limiting, and parallel processing
+
+This separation enables independent testing, easier maintenance, and flexible composition of pipeline stages.
+
+### Incremental Data Collection
+
+The Freesound loader implements a pagination-based incremental collection strategy:
+- **Checkpoint Recovery**: Automatic resume from last successful state
+- **Duplicate Detection**: SQLite-based deduplication before API requests
+- **Rate Limiting**: Tenacity-based retry logic with exponential backoff
+- **Circuit Breaker**: Configurable request limits to prevent API quota exhaustion
+
+### Intelligent Test Configuration
+
+Test fixtures use dataset-aware k-value calculation:
+- **Dynamic K-Values**: Calculated based on degree distribution, density, and reciprocity
+- **Dataset Scaling**: Appropriate values for tiny (5% sample) through full (100%) datasets
+- **CI Optimization**: Reduced complexity for fast CI execution without sacrificing coverage
+- **Performance Isolation**: Worker-specific temporary directories and memory cleanup
 
 ## Project Structure
 
@@ -95,16 +153,22 @@ FollowWeb/
 │   ├── FollowWeb_Visualizor/       # Core package code
 │   │   ├── analysis/               # Network analysis algorithms
 │   │   ├── data/                   # Data loading and storage
+│   │   │   ├── loaders/            # Data source loaders
+│   │   │   ├── storage/            # SQLite metadata cache
+│   │   │   └── checkpoint.py       # Checkpoint management
 │   │   ├── visualization/          # Rendering engines
+│   │   │   └── renderers/          # Sigma.js, Pyvis, matplotlib
 │   │   └── utils/                  # Utilities and helpers
 │   ├── tests/                      # Comprehensive test suite
-│   ├── configs/                    # Configuration presets
-│   ├── examples/                   # Sample data
+│   │   ├── unit/                   # Unit tests (fast, parallel)
+│   │   ├── integration/            # Integration tests
+│   │   ├── performance/            # Performance benchmarks
+│   │   └── conftest.py             # Shared fixtures
 │   └── docs/                       # Documentation
-├── scripts/                        # Pipeline and utility scripts
+├── .github/workflows/              # CI/CD workflows
 ├── Output/                         # Generated visualizations
 ├── data/                           # Pipeline data (gitignored)
-└── Docs/                           # Project documentation
+└── generate_freesound_visualization.py  # Main pipeline script
 ```
 
 ## Documentation
@@ -122,43 +186,68 @@ FollowWeb/
 
 ## Testing
 
-Comprehensive test suite with 337 passing tests:
+Comprehensive test suite with 337 passing tests and 73.95% code coverage:
 
 ```bash
 # Run all tests with coverage
 pytest --cov=FollowWeb_Visualizor --cov-report=term-missing
 
 # Run specific test categories
-pytest tests/unit/          # Unit tests (fast, parallel)
-pytest tests/integration/   # Integration tests (cross-module)
-pytest tests/performance/   # Performance benchmarks (sequential)
+pytest -m unit -n auto              # Unit tests (fast, parallel)
+pytest -m integration -n auto       # Integration tests (cross-module)
+pytest -m performance               # Performance benchmarks (sequential)
+pytest -m benchmark                 # Regression detection
 
-# Run tests in parallel
-pytest -n auto
+# Run full CI pipeline locally
+python FollowWeb/tests/run_tests.py all
 ```
+
+**Test Infrastructure Features**:
+- Worker isolation with parallel execution
+- Dataset-aware configuration with intelligent k-value calculation
+- CI optimization with platform-specific timeouts
+- Performance isolation with memory cleanup
+- Fixture caching to avoid repeated file reads
 
 See **[tests/README.md](FollowWeb/tests/README.md)** for detailed testing procedures.
 
 ## Technology Stack
 
-- **Python**: 3.9+ (supports 3.9, 3.10, 3.11, 3.12)
-- **Core Libraries**: NetworkX, NumPy, pandas, matplotlib
-- **Visualization**: Sigma.js (WebGL), Pyvis, matplotlib
-- **Audio**: Tone.js for synchronized multi-sample playback
-- **Data Storage**: SQLite with WAL mode, pickle for graph topology
-- **Testing**: pytest with xdist for parallel execution
-- **CI/CD**: GitHub Actions with automated workflows
+### Core Technologies
+- **Python**: 3.9-3.12 with gradual typing (mypy)
+- **NetworkX**: Graph analysis with nx-parallel backend for Python 3.11+
+- **NumPy/pandas**: Numerical computing and data manipulation
+- **SQLite**: Metadata storage with WAL mode and batch writes
 
-## Performance
+### Visualization Stack
+- **Sigma.js**: WebGL-accelerated rendering via CDN
+- **Pyvis**: Interactive HTML with physics simulation
+- **matplotlib**: Static image generation
+- **Jinja2**: Template engine for HTML generation
+- **Tone.js**: Web Audio framework for synchronized playback
 
-- **Caching System**: 80-95% reduction in hash/conversion overhead
-- **Parallel Processing**: nx-parallel for graph operations (Python 3.11+)
-- **SQLite Optimizations**: Batch writes, WAL mode, indexed queries
-- **Worker Auto-Detection**: Optimal parallelization based on CPU cores and memory
+### Development Tools
+- **pytest**: Testing framework with xdist for parallelization
+- **ruff**: Fast linting and formatting (replaces black, isort, flake8)
+- **mypy**: Static type checking with gradual typing
+- **GitHub Actions**: CI/CD with multi-stage workflows
+
+### Data Management
+- **joblib**: Atomic checkpoint serialization with compression
+- **tenacity**: Retry logic with exponential backoff
+- **freesound-api**: Official Freesound API client
+
+## Performance Characteristics
+
+- **I/O Operations**: 50x reduction through split checkpoint architecture
+- **Caching**: 80-95% reduction in hash/conversion overhead
+- **Parallel Processing**: Automatic worker detection based on system resources
+- **Database**: Batch writes (50 samples), WAL mode, composite indexes for O(1) seed selection
+- **Memory Management**: Aggressive garbage collection after integration tests
 
 ## Current Statistics
 
-Visit the [Freesound Network Explorer](https://alexm1010.github.io/FollowWeb/) to see:
+Visit the [Freesound Network Explorer](https://visualise.music) to see:
 - Total nodes and edges in the network
 - Growth metrics over time
 - Latest interactive visualization
@@ -188,7 +277,7 @@ See **[docs/attribution/CONTRIBUTORS.md](FollowWeb/docs/attribution/CONTRIBUTORS
 
 ## Links
 
-- **[Live Demo](https://alexm1010.github.io/FollowWeb/)** - Freesound Network Explorer
+- **[Live Demo](https://visualise.music)** - Freesound Network Explorer
 - **[Documentation](FollowWeb/docs/)** - Complete documentation
 - **[Package Source](FollowWeb/)** - Main Python package
 - **[Issue Tracker](https://github.com/AlexM1010/FollowWeb/issues)** - Report bugs or request features
