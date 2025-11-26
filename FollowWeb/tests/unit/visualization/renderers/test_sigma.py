@@ -4,7 +4,6 @@ Unit tests for SigmaRenderer.
 Tests Sigma.js HTML generation, data format conversion, and configuration handling.
 """
 
-import json
 import os
 import tempfile
 
@@ -149,7 +148,6 @@ class TestSigmaRendererDataConversion:
         # Audio URLs are now reconstructed from uploader_id (not stored directly)
         # uploader_id should be present if available
         # Note: audio_urls field was removed in favor of uploader_id
-        )
         assert node["attributes"]["x"] == 10.0
         assert node["attributes"]["y"] == 20.0
         assert node["attributes"]["size"] == 15.0

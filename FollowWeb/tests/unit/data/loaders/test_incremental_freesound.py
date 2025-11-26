@@ -62,9 +62,10 @@ def create_mock_sound(
 @pytest.fixture
 def mock_freesound_client():
     """Create a mock Freesound client."""
-    with patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.freesound") as mock_fs:
+    # freesound is imported inside __init__, so patch it where it's imported
+    with patch("freesound.FreesoundClient") as mock_client_class:
         client = Mock()
-        mock_fs.FreesoundClient.return_value = client
+        mock_client_class.return_value = client
         yield client
 
 
