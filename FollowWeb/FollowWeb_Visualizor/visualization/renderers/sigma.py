@@ -694,19 +694,35 @@ class SigmaRenderer(Renderer):
                 # Store uploader_id for space-efficient audio URL reconstruction in frontend
                 # Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
                 # This saves ~70 bytes per node vs storing full URLs
+                uploader_id = None
                 if (
                     "uploader_id" in node_attrs
                     and node_attrs["uploader_id"] is not None
                 ):
-                    sigma_node["attributes"]["uploader_id"] = int(
-                        node_attrs["uploader_id"]
-                    )
-                else:
-                    # Debug: log first few nodes missing uploader_id
-                    if len(nodes) < 3:
-                        self.logger.warning(
-                            f"Node {node_id} missing uploader_id. Available keys: {list(node_attrs.keys())}"
-                        )
+                    uploader_id = int(node_attrs["uploader_id"])
+                elif "previews" in node_attrs and node_attrs["previews"]:
+                    # Extract uploader_id from preview URLs if not already stored
+                    # URL format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
+                    import re
+
+                    previews = node_attrs["previews"]
+                    if isinstance(previews, dict):
+                        # Try to get any preview URL
+                        for key in [
+                            "preview-hq-mp3",
+                            "preview-lq-mp3",
+                            "preview-hq-ogg",
+                            "preview-lq-ogg",
+                        ]:
+                            if key in previews and previews[key]:
+                                url = previews[key]
+                                match = re.search(r"_(\d+)-", url)
+                                if match:
+                                    uploader_id = int(match.group(1))
+                                    break
+
+                if uploader_id:
+                    sigma_node["attributes"]["uploader_id"] = uploader_id
 
                 if "license" in node_attrs:
                     sigma_node["attributes"]["license"] = str(node_attrs["license"])
