@@ -344,7 +344,7 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
         
         # Build command with optional seed sample ID
-        cmd="python generate_freesound_visualization.py"
+        cmd="python scripts/freesound/generate_freesound_visualization.py"
         if [ -n "${{ steps.params.outputs.seed_sample_id }}" ]; then
           cmd="$cmd --seed-sample-id ${{ steps.params.outputs.seed_sample_id }}"
         fi
