@@ -32,7 +32,7 @@ class TestCompleteWorkflowFreesoundToSigma:
     """Test complete workflow: Freesound → Analysis → Sigma visualization."""
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_complete_freesound_sigma_workflow(self, mock_loader_class):
         """Test complete workflow from Freesound data to Sigma visualization."""
@@ -195,7 +195,7 @@ class TestAudioPlaybackIntegration:
     """Test audio playback with real Freesound samples."""
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_audio_playback_elements_present(self, mock_loader_class):
         """Test that audio playback elements are properly integrated."""
@@ -299,11 +299,8 @@ class TestAudioPlaybackIntegration:
 class TestVariousGraphSizes:
     """Test with various graph sizes (100, 1000, 10000 nodes)."""
 
-    @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
-    )
     @pytest.mark.parametrize("num_nodes", [100, 1000])
-    def test_graph_size_performance(self, mock_loader_class, num_nodes):
+    def test_graph_size_performance(self, num_nodes):
         """Test visualization with different graph sizes."""
         # Create graph of specified size
         mock_graph = nx.DiGraph()
@@ -327,42 +324,47 @@ class TestVariousGraphSizes:
             if i + 100 < num_nodes:
                 mock_graph.add_edge(str(i), str(i + 100), type="similar", weight=0.6)
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.load.return_value = mock_graph
-        mock_loader_class.return_value = mock_loader
-
         with tempfile.TemporaryDirectory() as tmpdir:
-            config = {
-                "input_file": "dummy.json",
-                "output_file_prefix": os.path.join(tmpdir, f"size_{num_nodes}"),
-                "strategy": "k-core",
-                "k_values": {
-                    "strategy_k_values": {"k-core": 1},
-                    "default_k_value": 1,
-                },
-                "data_source": {
-                    "source": "freesound",
-                    "freesound": {
-                        "api_key": "test_key",
-                        "query": "test",
-                        "max_samples": num_nodes,
+            # Patch the loader where it's imported in __main__.py
+            with patch(
+                "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
+            ) as mock_loader_class:
+                mock_loader = Mock()
+                mock_loader.graph = mock_graph
+                mock_loader.load.return_value = mock_graph
+                mock_loader_class.return_value = mock_loader
+                config = {
+                    "input_file": "dummy.json",
+                    "output_file_prefix": os.path.join(tmpdir, f"size_{num_nodes}"),
+                    "strategy": "k-core",
+                    "k_values": {
+                        "strategy_k_values": {"k-core": 1},
+                        "default_k_value": 1,
                     },
-                },
-                "checkpoint": {"checkpoint_dir": os.path.join(tmpdir, "checkpoints")},
-                "renderer": {"renderer_type": "sigma"},
-                "visualization": {"static_image": {"generate": False}},
-            }
+                    "data_source": {
+                        "source": "freesound",
+                        "freesound": {
+                            "api_key": "test_key",
+                            "query": "test",
+                            "max_samples": num_nodes,
+                        },
+                    },
+                    "checkpoint": {
+                        "checkpoint_dir": os.path.join(tmpdir, "checkpoints")
+                    },
+                    "renderer": {"renderer_type": "sigma"},
+                    "visualization": {"static_image": {"generate": False}},
+                }
 
-            config_obj = load_config_from_dict(config)
-            orchestrator = PipelineOrchestrator(config_obj)
+                config_obj = load_config_from_dict(config)
+                orchestrator = PipelineOrchestrator(config_obj)
 
-            success = orchestrator.execute_pipeline()
-            assert success is True
+                success = orchestrator.execute_pipeline()
+                assert success is True
 
-            # Verify output exists
-            html_files = list(Path(tmpdir).glob("*.html"))
-            assert len(html_files) > 0
+                # Verify output exists
+                html_files = list(Path(tmpdir).glob("*.html"))
+                assert len(html_files) > 0
 
             # Verify file size is reasonable
             file_size = os.path.getsize(html_files[0])
@@ -464,7 +466,7 @@ class TestFreesoundDataWithBothRenderers:
     """Test Freesound data with both pyvis and sigma renderers."""
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     @pytest.mark.parametrize("renderer_type", ["pyvis", "sigma"])
     def test_freesound_with_renderer(self, mock_loader_class, renderer_type):
@@ -566,7 +568,7 @@ class TestAllConfigurationOptions:
     """Test all configuration options."""
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_comprehensive_configuration(self, mock_loader_class):
         """Test pipeline with comprehensive configuration options."""
@@ -673,7 +675,7 @@ class TestErrorHandlingAndRecovery:
             load_config_from_dict(config)
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_api_error_recovery(self, mock_loader_class):
         """Test recovery from API errors."""
@@ -703,7 +705,7 @@ class TestErrorHandlingAndRecovery:
         assert success is False
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_empty_graph_handling(self, mock_loader_class):
         """Test handling of empty graph."""
@@ -736,7 +738,7 @@ class TestErrorHandlingAndRecovery:
         assert success is False
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_partial_failure_recovery(self, mock_loader_class):
         """Test recovery from partial failures."""
@@ -787,7 +789,7 @@ class TestMultipleRenderersOutput:
     """Test generating multiple renderer outputs."""
 
     @patch(
-        "FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader"
+        "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
     )
     def test_all_renderers_output(self, mock_loader_class):
         """Test that 'all' renderer type generates multiple outputs."""
