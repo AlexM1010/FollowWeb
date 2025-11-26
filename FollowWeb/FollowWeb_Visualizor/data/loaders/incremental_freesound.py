@@ -276,6 +276,35 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             f"initial_edges={self._initial_edge_count}"
         )
 
+    def _extract_uploader_id(self, previews: dict[str, str]) -> Optional[int]:
+        """
+        Extract uploader_id from preview URLs for space-efficient storage.
+        
+        Instead of storing full preview URLs (~200 bytes), we store uploader_id (~7 bytes).
+        Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
+        
+        Args:
+            previews: Dictionary of preview URLs from Freesound API
+            
+        Returns:
+            uploader_id as integer, or None if not found
+        """
+        import re
+        
+        if not previews or not isinstance(previews, dict):
+            return None
+        
+        # Try to extract from any available preview URL
+        # URL format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
+        for key in ["preview-hq-mp3", "preview-lq-mp3", "preview-hq-ogg", "preview-lq-ogg"]:
+            if key in previews and previews[key]:
+                url = previews[key]
+                match = re.search(r"_(\d+)-", url)
+                if match:
+                    return int(match.group(1))
+        
+        return None
+
     def close(self) -> None:
         """Close resources and cleanup."""
         if hasattr(self, "metadata_cache") and self.metadata_cache:
@@ -2465,11 +2494,8 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 channels=sample.get("channels", 0),  # Mono=1, Stereo=2
                 filesize=sample.get("filesize", 0),  # Bytes
                 samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
-                # URLs and media assets
-                audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
-                previews=sample.get(
-                    "previews", {}
-                ),  # All preview URLs (mp3/ogg, hq/lq)
+                # URLs and media assets - extract uploader_id for space efficiency (~200 bytes → ~7 bytes)
+                uploader_id=self._extract_uploader_id(sample.get("previews", {})),
                 images=sample.get("images", {}),  # Waveform and spectrogram URLs
                 # Note: download and analysis_files can be fetched on-demand via API
                 # Engagement and quality metrics
@@ -2502,70 +2528,14 @@ class IncrementalFreesoundLoader(FreesoundLoader):
             sample: Sample dictionary with metadata
             include_similar: Whether to fetch and add similar sounds
         """
+        # Use the shared node creation logic
+        self._add_node_to_graph(sample)
+        
         sample_id = str(sample["id"])
-
-        # Validate filesize - skip empty files
-        if not self._validate_sample_filesize(sample):
-            return  # Skip this sample
-
-        # Add node if not already in graph
+        
+        # If node wasn't added (e.g., invalid filesize), return early
         if sample_id not in self.graph:
-            now = datetime.now(timezone.utc).isoformat()
-
-            # Calculate priority score for this node
-            priority_score = self.calculate_node_priority(sample)
-
-            self.graph.add_node(
-                sample_id,
-                # Basic metadata
-                name=sample["name"],
-                tags=sample.get("tags", []),
-                description=sample.get("description", ""),
-                duration=sample.get("duration", 0),
-                # User and pack relationships (for edge generation)
-                user=sample.get("username", ""),
-                username=sample.get("username", ""),  # Store both for compatibility
-                pack=sample.get("pack", ""),  # Pack URI or empty string
-                # License and attribution (LEGAL REQUIREMENT)
-                license=sample.get("license", ""),
-                created=sample.get("created", ""),  # Upload timestamp
-                url=sample.get("url", ""),  # Freesound website URL (for attribution)
-                # Sound taxonomy (Broad Sound Taxonomy)
-                category=sample.get("category", []),  # [category, subcategory]
-                category_code=sample.get("category_code", ""),  # e.g. "fx-a"
-                category_is_user_provided=sample.get(
-                    "category_is_user_provided", False
-                ),
-                # Technical audio properties
-                type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
-                file_type=sample.get("type", ""),  # Alias for compatibility
-                channels=sample.get("channels", 0),  # Mono=1, Stereo=2
-                filesize=sample.get("filesize", 0),  # Bytes
-                samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
-                # URLs and media assets
-                audio_url=sample.get("audio_url", ""),  # Preview URL (legacy)
-                previews=sample.get(
-                    "previews", {}
-                ),  # All preview URLs (mp3/ogg, hq/lq)
-                images=sample.get("images", {}),  # Waveform and spectrogram URLs
-                # Note: download and analysis_files can be fetched on-demand via API
-                # Engagement and quality metrics
-                num_downloads=sample.get("num_downloads", 0),
-                num_ratings=sample.get("num_ratings", 0),  # Sample size for avg_rating
-                avg_rating=sample.get("avg_rating", 0.0),  # 0-5 scale
-                num_comments=sample.get("num_comments", 0),  # Community engagement
-                # Geographic metadata
-                geotag=sample.get("geotag", ""),  # "lat lon" format
-                # Internal metadata
-                node_type="sample",  # For compatibility
-                collected_at=now,
-                # Validation history timestamps (ISO format)
-                last_existence_check_at=None,  # When we last verified sample exists
-                last_metadata_update_at=now,  # When we last refreshed metadata
-                # Priority scoring for SQL-based seed selection
-                priority_score=priority_score,
-                is_dormant=False,
-            )
+            return
 
         # Fetch and add similar sounds relationships
         if include_similar:
