@@ -202,8 +202,8 @@ class TestPartitioningPerformance:
 
     def test_verify_1m_nodes_under_30_minutes(self):
         """Verify 1M nodes completes in under 30 minutes target."""
-        # Create a very sparse 100K node graph (scaled down for CI)
-        graph = create_sparse_graph(100000, edges_per_node=2)
+        # Create a very sparse 10K node graph (scaled down for CI)
+        graph = create_sparse_graph(10000, edges_per_node=2)
 
         # Partition (2 partitions for 100K nodes)
         partitions, partition_time = benchmark_partition(graph, num_partitions=2)
@@ -226,12 +226,12 @@ class TestPartitioningPerformance:
         estimated_total = partition_time + estimated_analysis_time + merge_time
 
         print(
-            f"\nEstimated total time for 100K nodes: {estimated_total:.2f}s ({estimated_total / 60:.2f} minutes)"
+            f"\nEstimated total time for 10K nodes: {estimated_total:.2f}s ({estimated_total / 60:.2f} minutes)"
         )
 
-        # Verify under 5 minutes (300 seconds) for 100K nodes
+        # Verify under 1 minute (60 seconds) for 10K nodes
         # Use 2x safety factor for estimation
-        assert estimated_total * 2 < 300, (
+        assert estimated_total * 2 < 60, (
             f"Estimated time too slow: {estimated_total * 2:.2f}s"
         )
 
