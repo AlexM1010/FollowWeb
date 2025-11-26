@@ -298,20 +298,12 @@ class PipelineOrchestrator:
                         "verify_existing_sounds": self.config.checkpoint.verify_existing_sounds,
                     }
 
-                    # Use IncrementalFreesoundLoader if recursive depth is specified
-                    use_incremental = (
-                        hasattr(self.config.data_source.freesound, "recursive_depth")
-                        and self.config.data_source.freesound.recursive_depth > 0
+                    # Always use IncrementalFreesoundLoader (FreesoundLoader removed)
+                    from .data.loaders import IncrementalFreesoundLoader
+
+                    self.graph_loader = IncrementalFreesoundLoader(
+                        config=freesound_config
                     )
-
-                    if use_incremental:
-                        from .data.loaders import IncrementalFreesoundLoader
-
-                        self.graph_loader = IncrementalFreesoundLoader(
-                            config=freesound_config
-                        )
-                    else:
-                        self.graph_loader = FreesoundLoader(config=freesound_config)
                 else:
                     raise ValueError(f"Unsupported data source: {data_source}")
 
