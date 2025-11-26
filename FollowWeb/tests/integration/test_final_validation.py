@@ -27,7 +27,7 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 
 
-def __create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
+def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     """
     Create a properly configured mock FreesoundLoader with all required attributes.
 
