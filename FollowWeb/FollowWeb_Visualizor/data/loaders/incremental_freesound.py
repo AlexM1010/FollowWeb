@@ -28,7 +28,7 @@ Two-Pass Processing:
 import heapq
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 
 import networkx as nx
 
@@ -193,6 +193,31 @@ class IncrementalFreesoundLoader(DataLoader):
         """
         super().__init__(config)
 
+        # Initialize Freesound API client and rate limiter (from FreesoundLoader)
+        import os
+        import freesound
+        from ...utils.rate_limiter import RateLimiter
+
+        api_key = self.config.get("api_key") or os.getenv("FREESOUND_API_KEY")
+        if not api_key:
+            from ...core.exceptions import DataProcessingError
+
+            raise DataProcessingError(
+                "Freesound API key required. Provide via config['api_key'] "
+                "or FREESOUND_API_KEY environment variable"
+            )
+
+        self.client = freesound.FreesoundClient()
+        self.client.set_token(api_key)
+
+        requests_per_minute = self.config.get("requests_per_minute", 60)
+        self.rate_limiter = RateLimiter(requests_per_minute=requests_per_minute)
+
+        # Sound cache for efficiency
+        self._sound_cache: dict[int, Any] = {}
+        self._cache_hits = 0
+        self._cache_misses = 0
+
         # Checkpoint configuration
         checkpoint_dir = self.config.get("checkpoint_dir", self.DEFAULT_CHECKPOINT_DIR)
         self.checkpoint_interval = self.config.get(
@@ -309,6 +334,105 @@ class IncrementalFreesoundLoader(DataLoader):
                     return int(match.group(1))
 
         return None
+
+    @staticmethod
+    def _is_retryable_error(exception: Exception) -> bool:
+        """
+        Determine if an exception should trigger a retry.
+
+        Retries on:
+        - ConnectionError: Network connectivity issues
+        - TimeoutError: Request timeouts
+        - freesound.FreesoundException with code 429: Rate limit errors only
+        """
+        import freesound
+
+        if isinstance(exception, (ConnectionError, TimeoutError)):
+            return True
+        if isinstance(exception, freesound.FreesoundException):
+            return hasattr(exception, "code") and exception.code == 429
+        return False
+
+    def _retry_with_backoff(
+        self,
+        func: Callable,
+        *args,
+        max_retries: int = 3,
+        initial_wait: float = 2.0,
+        **kwargs,
+    ) -> Any:
+        """
+        Retry a function on rate limit and network errors using tenacity library.
+
+        Uses exponential backoff with configurable retry attempts.
+        """
+        from tenacity import (
+            before_sleep_log,
+            retry,
+            retry_if_exception,
+            stop_after_attempt,
+            wait_exponential,
+        )
+        import logging
+
+        retry_decorator = retry(
+            stop=stop_after_attempt(max_retries),
+            wait=wait_exponential(multiplier=1, min=initial_wait, max=10),
+            retry=retry_if_exception(self._is_retryable_error),
+            before_sleep=before_sleep_log(self.logger, logging.WARNING),
+            reraise=True,
+        )
+
+        @retry_decorator
+        def _wrapped_func():
+            return func(*args, **kwargs)
+
+        return _wrapped_func()
+
+    def _extract_sample_metadata(self, sound) -> Optional[dict[str, Any]]:
+        """
+        Extract metadata from Freesound sound object.
+
+        Args:
+            sound: Freesound sound object from API
+
+        Returns:
+            Dictionary with sample metadata, or None if invalid
+        """
+        sound_dict = sound.as_dict()
+
+        # Validate filesize
+        if sound_dict.get("filesize", 0) == 0:
+            self.logger.warning(
+                f"Skipping sample {sound.id} with invalid filesize (0 bytes)"
+            )
+            return None
+
+        metadata = sound_dict.copy()
+
+        # Extract uploader_id from preview URL
+        if "previews" in sound_dict:
+            uploader_id = self._extract_uploader_id(sound_dict["previews"])
+            if uploader_id:
+                metadata["uploader_id"] = uploader_id
+
+        # Remove bulky fields
+        for field in ["description", "previews", "images"]:
+            if field in metadata:
+                del metadata[field]
+
+        # Ensure critical fields
+        metadata.setdefault("id", sound.id)
+        metadata.setdefault("name", sound.name)
+        metadata.setdefault("tags", sound.tags if hasattr(sound, "tags") else [])
+        metadata.setdefault(
+            "duration", sound.duration if hasattr(sound, "duration") else 0
+        )
+        metadata.setdefault(
+            "username", sound.username if hasattr(sound, "username") else ""
+        )
+
+        return metadata
 
     def close(self) -> None:
         """Close resources and cleanup."""
@@ -1163,11 +1287,11 @@ class IncrementalFreesoundLoader(DataLoader):
                                     pack_names.add(pack)
 
                         if include_user_edges and usernames:
-                            user_edges = self._add_user_edges_batch(usernames)
+                            user_edges = self._add_user_edges_batch()
                             edge_stats["user_edges_added"] = user_edges
 
                         if include_pack_edges and pack_names:
-                            pack_edges = self._add_pack_edges_batch(pack_names)
+                            pack_edges = self._add_pack_edges_batch()
                             edge_stats["pack_edges_added"] = pack_edges
 
                     if include_tag_edges:
@@ -1999,13 +2123,13 @@ class IncrementalFreesoundLoader(DataLoader):
 
         # Add user relationship edges
         if include_user_edges and usernames:
-            user_edges = self._add_user_edges_batch(usernames)
+            user_edges = self._add_user_edges_batch()
             stats["user_edges_added"] = user_edges
             self.stats["user_edges_created"] = user_edges
 
         # Add pack relationship edges
         if include_pack_edges and pack_names:
-            pack_edges = self._add_pack_edges_batch(pack_names)
+            pack_edges = self._add_pack_edges_batch()
             stats["pack_edges_added"] = pack_edges
             self.stats["pack_edges_created"] = pack_edges
 
