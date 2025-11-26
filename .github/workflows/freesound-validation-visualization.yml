@@ -605,6 +605,9 @@ jobs:
         git rm -rf . 2>/dev/null || true
         cp -r /tmp/gh-pages-content/* .
         
+        # Stage the new files (only what we copied from /tmp/gh-pages-content)
+        git add index.html graph_data.json *.png 2>/dev/null || true
+        
         # Check if there are actual changes
         if git diff --quiet && git diff --cached --quiet; then
           echo "No changes to commit"
