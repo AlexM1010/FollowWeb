@@ -64,15 +64,14 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
 
     # Create sub-mocks with proper __str__ to prevent formatting errors
     def create_named_mock(name):
-        m = Mock()
-        # Use spec_set to prevent attribute access that might trigger formatting
-        m.configure_mock(
-            **{
-                "__str__": lambda: f"Mock{name}",
-                "__repr__": lambda: f"Mock{name}",
-                "__format__": lambda fmt: f"Mock{name}",
-            }
-        )
+        # Use MagicMock to allow magic method overrides
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        # Directly set magic methods on the mock's class
+        type(m).__str__ = lambda self: f"Mock{name}"
+        type(m).__repr__ = lambda self: f"Mock{name}"
+        type(m).__format__ = lambda self, fmt: f"Mock{name}"
         return m
 
     mock_loader.client = create_named_mock("Client")
@@ -100,10 +99,10 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
         # Handle any format spec by converting to string
         return format(str(self), format_spec) if format_spec else str(self)
 
-    # Bind methods to the mock instance
-    mock_loader.__str__ = lambda: mock_str(mock_loader)
-    mock_loader.__repr__ = lambda: mock_repr(mock_loader)
-    mock_loader.__format__ = lambda fmt: mock_format(mock_loader, fmt)
+    # Directly set magic methods on the mock's type to override Mock behavior
+    type(mock_loader).__str__ = mock_str
+    type(mock_loader).__repr__ = mock_repr
+    type(mock_loader).__format__ = mock_format
 
     return mock_loader
 
