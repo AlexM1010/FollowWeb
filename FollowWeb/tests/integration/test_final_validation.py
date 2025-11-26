@@ -31,7 +31,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 class TestCompleteWorkflowFreesoundToSigma:
     """Test complete workflow: Freesound → Analysis → Sigma visualization."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_complete_freesound_sigma_workflow(self, mock_loader_class):
         """Test complete workflow from Freesound data to Sigma visualization."""
         # Create realistic Freesound graph with audio URLs
@@ -67,7 +67,8 @@ class TestCompleteWorkflowFreesoundToSigma:
                 )
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -112,8 +113,8 @@ class TestCompleteWorkflowFreesoundToSigma:
             assert success is True
 
             # Verify Freesound loader was called correctly
-            mock_loader.load.assert_called_once()
-            call_kwargs = mock_loader.load.call_args[1]
+            mock_loader.fetch_data.assert_called_once()
+            call_kwargs = mock_loader.fetch_data.call_args[1]
             assert call_kwargs["query"] == "drum percussion"
             assert call_kwargs["tags"] == ["drum"]
             assert call_kwargs["max_samples"] == 50
@@ -191,7 +192,7 @@ class TestCompleteWorkflowFreesoundToSigma:
 class TestAudioPlaybackIntegration:
     """Test audio playback with real Freesound samples."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_audio_playback_elements_present(self, mock_loader_class):
         """Test that audio playback elements are properly integrated."""
         mock_graph = nx.DiGraph()
@@ -209,7 +210,8 @@ class TestAudioPlaybackIntegration:
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -293,7 +295,7 @@ class TestAudioPlaybackIntegration:
 class TestVariousGraphSizes:
     """Test with various graph sizes (100, 1000, 10000 nodes)."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     @pytest.mark.parametrize("num_nodes", [100, 1000])
     def test_graph_size_performance(self, mock_loader_class, num_nodes):
         """Test visualization with different graph sizes."""
@@ -320,7 +322,8 @@ class TestVariousGraphSizes:
                 mock_graph.add_edge(str(i), str(i + 100), type="similar", weight=0.6)
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -454,7 +457,7 @@ class TestInstagramDataWithBothRenderers:
 class TestFreesoundDataWithBothRenderers:
     """Test Freesound data with both pyvis and sigma renderers."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     @pytest.mark.parametrize("renderer_type", ["pyvis", "sigma"])
     def test_freesound_with_renderer(self, mock_loader_class, renderer_type):
         """Test Freesound data with specified renderer."""
@@ -479,7 +482,8 @@ class TestFreesoundDataWithBothRenderers:
             )
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -553,7 +557,7 @@ class TestFreesoundDataWithBothRenderers:
 class TestAllConfigurationOptions:
     """Test all configuration options."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_comprehensive_configuration(self, mock_loader_class):
         """Test pipeline with comprehensive configuration options."""
         mock_graph = nx.DiGraph()
@@ -571,7 +575,8 @@ class TestAllConfigurationOptions:
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -657,11 +662,11 @@ class TestErrorHandlingAndRecovery:
         with pytest.raises(ValueError, match="source"):
             load_config_from_dict(config)
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_api_error_recovery(self, mock_loader_class):
         """Test recovery from API errors."""
         mock_loader = Mock()
-        mock_loader.load.side_effect = Exception("API connection failed")
+        mock_loader.fetch_data.side_effect = Exception("API connection failed")
         mock_loader_class.return_value = mock_loader
 
         config = {
@@ -685,13 +690,14 @@ class TestErrorHandlingAndRecovery:
         success = orchestrator.execute_pipeline()
         assert success is False
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_empty_graph_handling(self, mock_loader_class):
         """Test handling of empty graph."""
         mock_graph = nx.DiGraph()  # Empty graph
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         config = {
@@ -715,7 +721,7 @@ class TestErrorHandlingAndRecovery:
         success = orchestrator.execute_pipeline()
         assert success is False
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_partial_failure_recovery(self, mock_loader_class):
         """Test recovery from partial failures."""
         # Create valid graph
@@ -726,7 +732,8 @@ class TestErrorHandlingAndRecovery:
             mock_graph.add_edge(str(i), str(i + 1))
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -763,7 +770,7 @@ class TestErrorHandlingAndRecovery:
 class TestMultipleRenderersOutput:
     """Test generating multiple renderer outputs."""
 
-    @patch("FollowWeb_Visualizor.__main__.FreesoundLoader")
+    @patch("FollowWeb_Visualizor.data.loaders.incremental_freesound.IncrementalFreesoundLoader")
     def test_all_renderers_output(self, mock_loader_class):
         """Test that 'all' renderer type generates multiple outputs."""
         mock_graph = nx.DiGraph()
@@ -773,7 +780,8 @@ class TestMultipleRenderersOutput:
             mock_graph.add_edge(str(i), str(i + 1))
 
         mock_loader = Mock()
-        mock_loader.load.return_value = mock_graph
+        mock_loader.graph = mock_graph
+        mock_loader.fetch_data.return_value = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
