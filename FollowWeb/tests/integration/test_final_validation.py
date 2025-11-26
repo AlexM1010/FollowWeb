@@ -27,6 +27,35 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 
 
+def create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
+    """
+    Create a properly configured mock FreesoundLoader with all required attributes.
+    
+    This centralizes mock configuration to avoid repetition and ensure all
+    attributes are set to prevent Mock.__format__ errors during logging.
+    
+    Args:
+        graph: NetworkX graph to return from fetch_data
+        max_samples: Maximum samples value
+        checkpoint_dir: Checkpoint directory path
+        
+    Returns:
+        Configured Mock object with all necessary attributes
+    """
+    mock_loader = Mock()
+    mock_loader.graph = graph
+    mock_loader.fetch_data.return_value = graph
+    # Ensure all attributes return proper values (not Mock objects that can't be formatted)
+    mock_loader.api_key = "test_key"
+    mock_loader.query = "test"
+    mock_loader.max_samples = max_samples
+    mock_loader.tags = []
+    mock_loader.checkpoint_dir = checkpoint_dir
+    mock_loader.discovery_mode = "search"
+    mock_loader.max_requests = 100
+    return mock_loader
+
+
 @pytest.mark.integration
 class TestCompleteWorkflowFreesoundToSigma:
     """Test complete workflow: Freesound → Analysis → Sigma visualization."""
@@ -67,18 +96,8 @@ class TestCompleteWorkflowFreesoundToSigma:
                     weight=0.5,
                 )
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -204,18 +223,8 @@ class TestAudioPlaybackIntegration:
         for i in range(9):
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -321,18 +330,8 @@ class TestVariousGraphSizes:
             with patch(
                 "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
             ) as mock_loader_class:
-                mock_loader = Mock()
-                mock_loader.graph = mock_graph
-                mock_loader.fetch_data.return_value = mock_graph
-                # Ensure all attributes return proper values (not Mock objects that can't be formatted)
-                mock_loader.api_key = "test_key"
-                mock_loader.query = "test"
-                mock_loader.max_samples = num_nodes
-                mock_loader.tags = []
-                mock_loader.checkpoint_dir = tmpdir
-                mock_loader.discovery_mode = "search"
-                mock_loader.max_requests = 100
-                mock_loader_class.return_value = mock_loader
+                mock_loader = create_mock_freesound_loader(mock_graph, max_samples=num_nodes, checkpoint_dir=tmpdir)
+        mock_loader_class.return_value = mock_loader
                 config = {
                     "input_file": "dummy.json",
                     "output_file_prefix": os.path.join(tmpdir, f"size_{num_nodes}"),
@@ -489,18 +488,8 @@ class TestFreesoundDataWithBothRenderers:
                 f"sample_{i}.wav", f"sample_{i + 1}.wav", type="similar", weight=0.8
             )
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -590,18 +579,8 @@ class TestAllConfigurationOptions:
         for i in range(9):
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -718,18 +697,8 @@ class TestErrorHandlingAndRecovery:
         """Test handling of empty graph."""
         mock_graph = nx.DiGraph()  # Empty graph
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         config = {
             "input_file": "dummy.json",
@@ -762,18 +731,8 @@ class TestErrorHandlingAndRecovery:
         for i in range(4):
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects that can't be formatted)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 5
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=5, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -818,18 +777,8 @@ class TestMultipleRenderersOutput:
         for i in range(9):
             mock_graph.add_edge(str(i), str(i + 1))
 
-        mock_loader = Mock()
-        mock_loader.graph = mock_graph
-        mock_loader.fetch_data.return_value = mock_graph
-        # Ensure all attributes return proper values (not Mock objects)
-        mock_loader.api_key = "test_key"
-        mock_loader.query = "test"
-        mock_loader.max_samples = 50
-        mock_loader.tags = []
-        mock_loader.checkpoint_dir = None
-        mock_loader.discovery_mode = "search"
-        mock_loader.max_requests = 100
- mock_loader_class.return_value = mock_loader
+        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
             config = {
@@ -862,4 +811,5 @@ class TestMultipleRenderersOutput:
             # Should generate HTML files
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
+
 
