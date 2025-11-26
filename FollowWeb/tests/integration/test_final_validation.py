@@ -747,6 +747,8 @@ class TestErrorHandlingAndRecovery:
         mock_loader.api_key = "test_key"
         mock_loader.query = "test"
         mock_loader.max_samples = 5
+        mock_loader.tags = []
+        mock_loader.checkpoint_dir = None
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
