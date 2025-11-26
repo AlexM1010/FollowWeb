@@ -257,6 +257,19 @@ jobs:
           echo "checkpoint_available=true" >> "$GITHUB_OUTPUT"
         fi
     
+    - name: Migrate audio_urls to uploader_id
+      if: steps.checkpoint_check.outputs.checkpoint_available == 'true'
+      run: |
+        {
+          echo "### 🔄 Migrating Data Format"
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"
+        
+        # Migrate from old audio_urls format to compact uploader_id format
+        python scripts/validation/migrate_audio_urls.py data/freesound_library 2>&1 | tee migration_output.log
+        
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+    
     - name: Run validation checks
       if: steps.checkpoint_check.outputs.checkpoint_available == 'true'
       id: validation
