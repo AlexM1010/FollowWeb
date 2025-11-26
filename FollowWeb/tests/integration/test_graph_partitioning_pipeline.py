@@ -13,13 +13,21 @@ from pathlib import Path
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.integration, pytest.mark.analysis]
-
 from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
 from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
 
+# Skip all tests in this module on Windows (pymetis not available)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.analysis,
+    pytest.mark.skipif(
+        sys.platform == "win32",
         reason="pymetis not available on Windows - graph partitioning not supported",
+    ),
+]
+
+
 # ============================================================================
 # Test Fixtures
 # ============================================================================
@@ -312,9 +320,9 @@ class TestGraphPartitioningPipeline:
             assert "betweenness" in final_graph.nodes[node]
 
         # Verify community assignments are valid
-        communities = set(
+        communities = {
             final_graph.nodes[node]["community"] for node in final_graph.nodes()
-        )
+        }
         assert len(communities) > 0  # Should have at least one community
 
         # Verify centrality scores are normalized

@@ -11,11 +11,19 @@ import time
 import networkx as nx
 import pytest
 
-pytestmark = [pytest.mark.performance, pytest.mark.benchmark]
-
 from FollowWeb_Visualizor.analysis.partition_merger import PartitionResultsMerger
 from FollowWeb_Visualizor.analysis.partition_worker import PartitionAnalysisWorker
 from FollowWeb_Visualizor.analysis.partitioning import GraphPartitioner
+
+# Skip all tests in this module on Windows (pymetis not available)
+pytestmark = [
+    pytest.mark.performance,
+    pytest.mark.benchmark,
+    pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="pymetis not available on Windows - graph partitioning not supported",
+    ),
+]
 
 # ============================================================================
 # Helper Functions
@@ -91,7 +99,7 @@ def benchmark_analysis(partitions: list[nx.DiGraph]) -> tuple[list, float]:
     return results, elapsed_time
 
 
-def benchmark_merge(results: List, original_graph: nx.DiGraph) -> Tuple[float, float]:
+def benchmark_merge(results: list, original_graph: nx.DiGraph) -> tuple[float, float]:
     """
     Benchmark result merging.
 
@@ -196,8 +204,6 @@ class TestPartitioningPerformance:
         """Verify 1M nodes completes in under 30 minutes target."""
         # Create a very sparse 1M node graph
         graph = create_sparse_graph(1000000, edges_per_node=2)
-
-        start_time = time.perf_counter()
 
         # Partition (20 partitions for 1M nodes)
         partitions, partition_time = benchmark_partition(graph, num_partitions=20)
