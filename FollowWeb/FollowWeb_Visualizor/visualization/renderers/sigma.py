@@ -696,6 +696,10 @@ class SigmaRenderer(Renderer):
                 # This saves ~70 bytes per node vs storing full URLs
                 if "uploader_id" in node_attrs and node_attrs["uploader_id"] is not None:
                     sigma_node["attributes"]["uploader_id"] = int(node_attrs["uploader_id"])
+                else:
+                    # Debug: log first few nodes missing uploader_id
+                    if len(nodes) < 3:
+                        self.logger.warning(f"Node {node_id} missing uploader_id. Available keys: {list(node_attrs.keys())}")
 
                 if "license" in node_attrs:
                     sigma_node["attributes"]["license"] = str(node_attrs["license"])
