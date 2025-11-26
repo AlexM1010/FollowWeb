@@ -195,7 +195,9 @@ class IncrementalFreesoundLoader(DataLoader):
 
         # Initialize Freesound API client and rate limiter (from FreesoundLoader)
         import os
+
         import freesound
+
         from ...utils.rate_limiter import RateLimiter
 
         api_key = self.config.get("api_key") or os.getenv("FREESOUND_API_KEY")
@@ -366,6 +368,8 @@ class IncrementalFreesoundLoader(DataLoader):
 
         Uses exponential backoff with configurable retry attempts.
         """
+        import logging
+
         from tenacity import (
             before_sleep_log,
             retry,
@@ -373,7 +377,6 @@ class IncrementalFreesoundLoader(DataLoader):
             stop_after_attempt,
             wait_exponential,
         )
-        import logging
 
         retry_decorator = retry(
             stop=stop_after_attempt(max_retries),
