@@ -293,15 +293,17 @@ class TestSigmaVisualizationWithFreesoundData:
             # Check for uploader_id in JSON data (REQUIRED for audio URL reconstruction)
             # Note: Sigma renderer now uses uploader_id for space-efficient audio URLs
             # Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-            # Without uploader_id, audio playback will not work
+            # Without uploader_id, audio playback will not work (but repair workflow can fix it)
             uploader_ids = [
                 n["attributes"].get("uploader_id") for n in data["nodes"]
             ]
-            
-            # Verify structure and that uploader_id is present
+
+            # Verify structure
             assert len(data["nodes"]) == 3
+            
+            # In this test with proper mock data, uploader_id should be present
             assert all(uid is not None for uid in uploader_ids), (
-                "All Freesound nodes must have uploader_id for audio playback"
+                "Test fixtures should include uploader_id for realistic testing"
             )
 
     def test_audio_player_elements(self):

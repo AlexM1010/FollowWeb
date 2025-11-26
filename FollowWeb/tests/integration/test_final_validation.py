@@ -173,14 +173,10 @@ class TestCompleteWorkflowFreesoundToSigma:
             # Check for uploader_id (REQUIRED for client-side audio URL reconstruction)
             # Note: Audio URLs are now reconstructed client-side from uploader_id
             # Format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-            # Without uploader_id, audio playback will not work
-            uploader_ids = [attrs.get("uploader_id") for attrs in node_attrs if attrs]
+            # Without uploader_id, audio playback will not work (but repair workflow can fix it)
             
             # Verify we have node attributes
             assert len(node_attrs) > 0, "Should have node attributes"
-            
-            # Note: In test fixtures, uploader_id may not be present
-            # In production, samples without uploader_id should be logged as warnings
 
 
 @pytest.mark.integration
@@ -277,18 +273,10 @@ class TestAudioPlaybackIntegration:
             ]
 
             # Check that nodes have uploader_id for audio reconstruction (REQUIRED)
-            # Without uploader_id, audio playback will not work
-            uploader_ids = [
-                attrs.get("uploader_id")
-                for attrs in node_attrs
-                if attrs.get("uploader_id")
-            ]
+            # Without uploader_id, audio playback will not work (but repair workflow can fix it)
             
             # Verify structure
             assert len(node_attrs) > 0, "Should have node attributes in JSON data"
-            
-            # Note: In test fixtures, uploader_id may not be present
-            # In production, samples without uploader_id should be logged as warnings
 
 
 @pytest.mark.integration
