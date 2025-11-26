@@ -290,9 +290,6 @@ class TestSigmaVisualizationWithFreesoundData:
             # Check for uploader_id in JSON data (used for audio URL reconstruction)
             # Note: Sigma renderer now uses uploader_id for space-efficient audio URLs
             # Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-            uploader_id_found = any(
-                "uploader_id" in n["attributes"] for n in data["nodes"]
-            )
             # uploader_id is optional - only present if available in source data
             # For this test with mock data, it may not be present
             # Just verify the nodes have the expected structure

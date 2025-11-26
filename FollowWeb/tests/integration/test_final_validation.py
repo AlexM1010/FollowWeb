@@ -172,8 +172,6 @@ class TestCompleteWorkflowFreesoundToSigma:
             # Check for uploader_id (used for client-side audio URL reconstruction)
             # Note: Audio URLs are now reconstructed client-side from uploader_id
             # Format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-            uploader_ids = [attrs.get("uploader_id") for attrs in node_attrs if attrs]
-
             # uploader_id is optional - only present if available in source data
             # Just verify we have the expected node structure
             assert len(node_attrs) > 0, "Should have node attributes"
@@ -273,12 +271,6 @@ class TestAudioPlaybackIntegration:
             ]
 
             # Check that nodes have uploader_id for audio reconstruction
-            uploader_ids = [
-                attrs.get("uploader_id")
-                for attrs in node_attrs
-                if attrs.get("uploader_id")
-            ]
-
             # uploader_id is optional - only present if available in source data
             # For this test, just verify the structure is correct
             assert len(node_attrs) > 0, "Should have node attributes in JSON data"
