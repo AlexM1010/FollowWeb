@@ -174,7 +174,7 @@ class TestCompleteWorkflowFreesoundToSigma:
             # Note: Audio URLs are now reconstructed client-side from uploader_id
             # Format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
             # Without uploader_id, audio playback will not work (but repair workflow can fix it)
-            
+
             # Verify we have node attributes
             assert len(node_attrs) > 0, "Should have node attributes"
 
@@ -274,7 +274,7 @@ class TestAudioPlaybackIntegration:
 
             # Check that nodes have uploader_id for audio reconstruction (REQUIRED)
             # Without uploader_id, audio playback will not work (but repair workflow can fix it)
-            
+
             # Verify structure
             assert len(node_attrs) > 0, "Should have node attributes in JSON data"
 

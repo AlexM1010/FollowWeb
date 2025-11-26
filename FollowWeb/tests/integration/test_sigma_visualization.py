@@ -300,7 +300,7 @@ class TestSigmaVisualizationWithFreesoundData:
 
             # Verify structure
             assert len(data["nodes"]) == 3
-            
+
             # In this test with proper mock data, uploader_id should be present
             assert all(uid is not None for uid in uploader_ids), (
                 "Test fixtures should include uploader_id for realistic testing"
