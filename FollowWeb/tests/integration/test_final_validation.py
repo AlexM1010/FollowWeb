@@ -61,11 +61,20 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     mock_loader.checkpoint_interval = 50
     mock_loader.backup_interval_nodes = 100
     mock_loader.max_runtime_hours = None
-    mock_loader.client = Mock()
-    mock_loader.rate_limiter = Mock()
-    mock_loader.metadata_store = Mock()
-    mock_loader.checkpoint_manager = Mock()
-    mock_loader.backup_manager = Mock()
+
+    # Create sub-mocks with proper __str__ to prevent formatting errors
+    def create_named_mock(name):
+        m = Mock()
+        m.__str__ = lambda: f"Mock{name}"
+        m.__repr__ = lambda: f"Mock{name}"
+        m.__format__ = lambda fmt: f"Mock{name}"
+        return m
+
+    mock_loader.client = create_named_mock("Client")
+    mock_loader.rate_limiter = create_named_mock("RateLimiter")
+    mock_loader.metadata_store = create_named_mock("MetadataStore")
+    mock_loader.checkpoint_manager = create_named_mock("CheckpointManager")
+    mock_loader.backup_manager = create_named_mock("BackupManager")
     mock_loader._processed_samples = set()
     mock_loader._api_call_count = 0
     mock_loader._start_time = 0
