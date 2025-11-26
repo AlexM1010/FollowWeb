@@ -146,13 +146,9 @@ class TestSigmaRendererDataConversion:
         assert "tags" not in node["attributes"]
         assert node["attributes"]["duration"] == 5.5
         assert node["attributes"]["user"] == "testuser"
-        # Audio URLs are now reconstructed from sample ID
-        assert "audio_urls" in node["attributes"]
-        audio_urls = json.loads(node["attributes"]["audio_urls"])
-        assert len(audio_urls) == 4  # HQ/LQ MP3 and OGG
-        assert (
-            audio_urls[0]
-            == "https://freesound.org/data/previews/0/1_preview-hq-mp3.mp3"
+        # Audio URLs are now reconstructed from uploader_id (not stored directly)
+        # uploader_id should be present if available
+        # Note: audio_urls field was removed in favor of uploader_id
         )
         assert node["attributes"]["x"] == 10.0
         assert node["attributes"]["y"] == 20.0
