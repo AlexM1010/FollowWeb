@@ -431,8 +431,7 @@ class CheckpointValidator:
         Returns:
             Dictionary with 'error' (str or None) and 'count' (int)
         """
-        # Support both old and new field names for backward compatibility
-        expected_edges = checkpoint_meta.get("edge_count") or checkpoint_meta.get("edges", 0)
+        expected_edges = checkpoint_meta.get("edges", 0)
         actual_edges = graph.number_of_edges()
 
         if expected_edges != actual_edges:
@@ -595,10 +594,7 @@ class CheckpointValidator:
         Returns:
             Dictionary with 'error', 'warning', 'page', and 'query' fields
         """
-        # Support both old and new field names for backward compatibility
-        pagination = checkpoint_meta.get("pagination_state") or checkpoint_meta.get(
-            "pagination", {}
-        )
+        pagination = checkpoint_meta.get("pagination_state", {})
 
         if not pagination:
             return {

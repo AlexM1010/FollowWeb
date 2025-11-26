@@ -34,15 +34,7 @@ def get_preview_url(
         base = metadata["preview_base"]
         return f"https://cdn.freesound.org/{base}-{quality}.{format}"
 
-    # Fallback to old format (full previews dict)
-    if "previews" in metadata and isinstance(metadata["previews"], dict):
-        key = f"preview_{quality}_{format}"
-        return metadata["previews"].get(key)
-
-    # Fallback to audio_url (legacy)
-    if "audio_url" in metadata:
-        return metadata["audio_url"]
-
+    # No uploader_id available - cannot reconstruct URL
     return None
 
 

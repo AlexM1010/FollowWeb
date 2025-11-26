@@ -27,7 +27,6 @@ from .checkpoint import GraphCheckpoint
 from .checkpoint_verifier import CheckpointVerifier
 from .loaders import (
     DataLoader,
-    FreesoundLoader,
     IncrementalFreesoundLoader,
     InstagramLoader,
 )
@@ -44,7 +43,6 @@ __all__ = [
     # Data loading
     "DataLoader",
     "InstagramLoader",
-    "FreesoundLoader",
     "IncrementalFreesoundLoader",
     # Checkpoint management
     "GraphCheckpoint",

@@ -31,7 +31,7 @@ from .core.config import (
     load_config_from_dict,
 )
 from .data.cache import CentralizedCache, get_cache_manager
-from .data.loaders import DataLoader, FreesoundLoader, InstagramLoader
+from .data.loaders import DataLoader, InstagramLoader
 from .data.strategies import GraphStrategy
 from .output.formatters import EmojiFormatter
 from .output.logging import Logger

@@ -39,10 +39,10 @@ from ...utils.math import format_time_duration
 from ...utils.validation import validate_choice
 from ..backup_manager import BackupManager
 from ..checkpoint import GraphCheckpoint
-from .freesound import FreesoundLoader
+from .base import DataLoader
 
 
-class IncrementalFreesoundLoader(FreesoundLoader):
+class IncrementalFreesoundLoader(DataLoader):
     """
     Incremental Freesound loader with checkpoint support and queue-based recursive fetching.
 
@@ -2015,14 +2015,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return stats
 
-    def _add_user_edges_batch(self, usernames: set[str]) -> int:
+    def _add_user_edges_batch(self) -> int:
         """
         Add edges between samples by the same user using existing graph data.
 
         NO API REQUESTS - uses only data already in the graph nodes.
-
-        Args:
-            usernames: Set of unique usernames (unused, kept for compatibility)
 
         Returns:
             Number of edges added
@@ -2034,7 +2031,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         for node_id in self.graph.nodes():
             node_data = self.graph.nodes[node_id]
-            username = node_data.get("user") or node_data.get("username")
+            username = node_data.get("username")
 
             if username:
                 if username not in samples_by_user:
@@ -2072,14 +2069,11 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         return edge_count
 
-    def _add_pack_edges_batch(self, pack_names: set[str]) -> int:
+    def _add_pack_edges_batch(self) -> int:
         """
         Add edges between samples in the same pack using existing graph data.
 
         NO API REQUESTS - uses only data already in the graph nodes.
-
-        Args:
-            pack_names: Set of unique pack names (unused, kept for compatibility)
 
         Returns:
             Number of edges added
@@ -2364,43 +2358,15 @@ class IncrementalFreesoundLoader(FreesoundLoader):
 
         # Generate user edges if requested
         if include_user:
-            # Collect unique usernames from graph (parameter unused but kept for compatibility)
-            usernames = set()
-            for node_id in self.graph.nodes():
-                node_data = self.graph.nodes[node_id]
-                username = node_data.get("user") or node_data.get("username")
-                if username:
-                    usernames.add(username)
-
-            if usernames:
-                user_edges = self._add_user_edges_batch(usernames)
-                edge_stats["user_edges"] = user_edges
-                self.stats["user_edges_created"] = user_edges
-            else:
-                self.logger.info("No usernames found in graph, skipping user edges")
+            user_edges = self._add_user_edges_batch()
+            edge_stats["user_edges"] = user_edges
+            self.stats["user_edges_created"] = user_edges
 
         # Generate pack edges if requested
         if include_pack:
-            # Collect unique pack names from graph (parameter unused but kept for compatibility)
-            pack_names = set()
-            for node_id in self.graph.nodes():
-                node_data = self.graph.nodes[node_id]
-                pack = node_data.get("pack")
-                if pack:
-                    # Extract pack name from URI if needed
-                    if isinstance(pack, str) and "/" in pack:
-                        pack_name = pack.split("/")[-2]
-                    else:
-                        pack_name = str(pack)
-                    if pack_name:
-                        pack_names.add(pack_name)
-
-            if pack_names:
-                pack_edges = self._add_pack_edges_batch(pack_names)
-                edge_stats["pack_edges"] = pack_edges
-                self.stats["pack_edges_created"] = pack_edges
-            else:
-                self.logger.info("No packs found in graph, skipping pack edges")
+            pack_edges = self._add_pack_edges_batch()
+            edge_stats["pack_edges"] = pack_edges
+            self.stats["pack_edges_created"] = pack_edges
 
         # Generate tag edges if requested
         if include_tag:
@@ -2475,8 +2441,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 description=sample.get("description", ""),
                 duration=sample.get("duration", 0),
                 # User and pack relationships (for edge generation)
-                user=sample.get("username", ""),
-                username=sample.get("username", ""),  # Store both for compatibility
+                username=sample.get("username", ""),
                 pack=sample.get("pack", ""),  # Pack URI or empty string
                 # License and attribution (LEGAL REQUIREMENT)
                 license=sample.get("license", ""),
@@ -2489,8 +2454,7 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                     "category_is_user_provided", False
                 ),
                 # Technical audio properties
-                type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
-                file_type=sample.get("type", ""),  # Alias for compatibility
+                file_type=sample.get("type", ""),  # File type (wav, mp3, ogg, etc.)
                 channels=sample.get("channels", 0),  # Mono=1, Stereo=2
                 filesize=sample.get("filesize", 0),  # Bytes
                 samplerate=sample.get("samplerate", 0),  # Hz (e.g. 44100, 48000)
@@ -2506,7 +2470,6 @@ class IncrementalFreesoundLoader(FreesoundLoader):
                 # Geographic metadata
                 geotag=sample.get("geotag", ""),  # "lat lon" format
                 # Internal metadata
-                node_type="sample",  # For compatibility
                 collected_at=now,
                 # Validation history timestamps (ISO format)
                 last_existence_check_at=None,  # When we last verified sample exists
