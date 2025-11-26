@@ -172,8 +172,9 @@ class TestCompleteWorkflowFreesoundToSigma:
             assert success is True
 
             # Verify Freesound loader was called correctly
-            mock_loader.fetch_data.assert_called_once()
-            call_kwargs = mock_loader.fetch_data.call_args[1]
+            # Pipeline calls load() not fetch_data()
+            mock_loader.load.assert_called_once()
+            call_kwargs = mock_loader.load.call_args[1]
             assert call_kwargs["query"] == "drum percussion"
             assert call_kwargs["tags"] == ["drum"]
             assert call_kwargs["max_samples"] == 10
