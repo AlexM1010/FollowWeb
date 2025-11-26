@@ -279,30 +279,35 @@ class IncrementalFreesoundLoader(DataLoader):
     def _extract_uploader_id(self, previews: dict[str, str]) -> Optional[int]:
         """
         Extract uploader_id from preview URLs for space-efficient storage.
-        
+
         Instead of storing full preview URLs (~200 bytes), we store uploader_id (~7 bytes).
         Frontend reconstructs: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-        
+
         Args:
             previews: Dictionary of preview URLs from Freesound API
-            
+
         Returns:
             uploader_id as integer, or None if not found
         """
         import re
-        
+
         if not previews or not isinstance(previews, dict):
             return None
-        
+
         # Try to extract from any available preview URL
         # URL format: https://freesound.org/data/previews/{folder}/{id}_{uploader_id}-{quality}.mp3
-        for key in ["preview-hq-mp3", "preview-lq-mp3", "preview-hq-ogg", "preview-lq-ogg"]:
+        for key in [
+            "preview-hq-mp3",
+            "preview-lq-mp3",
+            "preview-hq-ogg",
+            "preview-lq-ogg",
+        ]:
             if key in previews and previews[key]:
                 url = previews[key]
                 match = re.search(r"_(\d+)-", url)
                 if match:
                     return int(match.group(1))
-        
+
         return None
 
     def close(self) -> None:
@@ -2493,9 +2498,9 @@ class IncrementalFreesoundLoader(DataLoader):
         """
         # Use the shared node creation logic
         self._add_node_to_graph(sample)
-        
+
         sample_id = str(sample["id"])
-        
+
         # If node wasn't added (e.g., invalid filesize), return early
         if sample_id not in self.graph:
             return
