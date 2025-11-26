@@ -27,18 +27,18 @@ from FollowWeb_Visualizor.main import PipelineOrchestrator
 pytestmark = [pytest.mark.integration, pytest.mark.final_validation]
 
 
-def create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
+def __create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     """
     Create a properly configured mock FreesoundLoader with all required attributes.
-    
+
     This centralizes mock configuration to avoid repetition and ensure all
     attributes are set to prevent Mock.__format__ errors during logging.
-    
+
     Args:
         graph: NetworkX graph to return from fetch_data
         max_samples: Maximum samples value
         checkpoint_dir: Checkpoint directory path
-        
+
     Returns:
         Configured Mock object with all necessary attributes
     """
@@ -96,7 +96,9 @@ class TestCompleteWorkflowFreesoundToSigma:
                     weight=0.5,
                 )
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=50, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,7 +225,9 @@ class TestAudioPlaybackIntegration:
         for i in range(9):
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=50, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -330,8 +334,10 @@ class TestVariousGraphSizes:
             with patch(
                 "FollowWeb_Visualizor.data.loaders.IncrementalFreesoundLoader"
             ) as mock_loader_class:
-                mock_loader = create_mock_freesound_loader(mock_graph, max_samples=num_nodes, checkpoint_dir=tmpdir)
-        mock_loader_class.return_value = mock_loader
+                mock_loader = _create_mock_freesound_loader(
+                    mock_graph, max_samples=num_nodes, checkpoint_dir=tmpdir
+                )
+                mock_loader_class.return_value = mock_loader
                 config = {
                     "input_file": "dummy.json",
                     "output_file_prefix": os.path.join(tmpdir, f"size_{num_nodes}"),
@@ -488,7 +494,9 @@ class TestFreesoundDataWithBothRenderers:
                 f"sample_{i}.wav", f"sample_{i + 1}.wav", type="similar", weight=0.8
             )
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=50, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -579,7 +587,9 @@ class TestAllConfigurationOptions:
         for i in range(9):
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=50, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -697,7 +707,9 @@ class TestErrorHandlingAndRecovery:
         """Test handling of empty graph."""
         mock_graph = nx.DiGraph()  # Empty graph
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=50, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         config = {
@@ -731,7 +743,9 @@ class TestErrorHandlingAndRecovery:
         for i in range(4):
             mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=5, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=5, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -777,7 +791,9 @@ class TestMultipleRenderersOutput:
         for i in range(9):
             mock_graph.add_edge(str(i), str(i + 1))
 
-        mock_loader = create_mock_freesound_loader(mock_graph, max_samples=50, checkpoint_dir=None)
+        mock_loader = _create_mock_freesound_loader(
+            mock_graph, max_samples=50, checkpoint_dir=None
+        )
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -811,5 +827,3 @@ class TestMultipleRenderersOutput:
             # Should generate HTML files
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
-
-
