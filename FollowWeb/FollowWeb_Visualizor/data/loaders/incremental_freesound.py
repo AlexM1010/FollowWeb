@@ -3205,32 +3205,40 @@ class IncrementalFreesoundLoader(DataLoader):
         Returns:
             Dictionary with sample metadata, or tuple if return_sound=True
         """
-        # Only increment if not in cache (parent checks cache first)
-        if sample_id not in self._sound_cache:
-            self._increment_request_count()
+        # Check cache first
+        if sample_id in self._sound_cache:
+            self._cache_hits += 1
+            sound = self._sound_cache[sample_id]
+            metadata = self._extract_sample_metadata(sound)
+            if metadata is None:
+                raise ValueError(f"Sample {sample_id} has invalid metadata")
+            if return_sound:
+                return metadata, sound
+            return metadata
 
-        # Call parent implementation
-        result = super()._fetch_sample_metadata(sample_id, return_sound)
+        # Cache miss - fetch from API
+        self._cache_misses += 1
+        self._increment_request_count()
 
-        # Set last_metadata_update_at timestamp
+        # Rate limit and fetch
+        self.rate_limiter.acquire()
+        sound = self._retry_with_backoff(self.client.get_sound, sample_id)
+
+        # Cache the sound object
+        self._sound_cache[sample_id] = sound
+
+        # Extract metadata
+        metadata = self._extract_sample_metadata(sound)
+        if metadata is None:
+            raise ValueError(f"Sample {sample_id} has invalid metadata")
+
+        # Set timestamp
         now = datetime.now(timezone.utc).isoformat()
+        metadata["last_metadata_update_at"] = now
 
         if return_sound:
-            if isinstance(result, tuple):
-                metadata, sound = result
-                metadata["last_metadata_update_at"] = now
-                return metadata, sound
-            else:
-                # Shouldn't happen but handle gracefully
-                result["last_metadata_update_at"] = now
-                return result
-        else:
-            if isinstance(result, dict):
-                result["last_metadata_update_at"] = now
-                return result
-            else:
-                # Shouldn't happen but handle gracefully
-                return result
+            return metadata, sound
+        return metadata
 
     def _fetch_similar_sounds_for_sample(
         self, sample_id: int
