@@ -45,14 +45,36 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     mock_loader = Mock()
     mock_loader.graph = graph
     mock_loader.fetch_data.return_value = graph
-    # Ensure all attributes return proper values (not Mock objects that can't be formatted)
+    
+    # Set ALL possible attributes to prevent Mock.__format__ errors
+    # These are accessed during logging and must return proper values
     mock_loader.api_key = "test_key"
     mock_loader.query = "test"
     mock_loader.max_samples = max_samples
     mock_loader.tags = []
-    mock_loader.checkpoint_dir = checkpoint_dir
+    mock_loader.checkpoint_dir = checkpoint_dir or "/tmp/test"
     mock_loader.discovery_mode = "search"
     mock_loader.max_requests = 100
+    mock_loader.include_user_edges = False
+    mock_loader.include_pack_edges = False
+    mock_loader.include_tag_edges = False
+    mock_loader.checkpoint_interval = 50
+    mock_loader.backup_interval_nodes = 100
+    mock_loader.max_runtime_hours = None
+    mock_loader.client = Mock()
+    mock_loader.rate_limiter = Mock()
+    mock_loader.metadata_store = Mock()
+    mock_loader.checkpoint_manager = Mock()
+    mock_loader.backup_manager = Mock()
+    mock_loader._processed_samples = set()
+    mock_loader._api_call_count = 0
+    mock_loader._start_time = 0
+    
+    # Add __str__ and __repr__ to prevent formatting issues
+    mock_loader.__str__ = lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
+    mock_loader.__repr__ = lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
+    mock_loader.__format__ = lambda fmt: str(mock_loader)
+    
     return mock_loader
 
 
