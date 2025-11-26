@@ -56,7 +56,7 @@ class TestFreesoundPipelineIntegration:
         assert config_obj.data_source.freesound.query == "drum"
         assert config_obj.data_source.freesound.tags == ["percussion", "kick"]
         assert config_obj.data_source.freesound.max_samples == 50
-        assert config_obj.data_source.freesound.include_similar is True
+        # Note: include_similar removed (deprecated parameter)
 
         # Verify checkpoint configuration
         assert config_obj.checkpoint.checkpoint_dir == "./test_checkpoints"
