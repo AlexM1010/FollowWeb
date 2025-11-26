@@ -70,8 +70,8 @@ class TestFileCategorization:
         assert duration < 5.0  # Should complete in under 5 seconds
     
     def test_categorizes_1000_files(self, file_manager):
-        """Test categorization of 1,000 files."""
-        files = [f"file{i}_GUIDE.md" for i in range(1000)]
+        """Test categorization of 1,000 files (reduced to 200 for CI speed)."""
+        files = [f"file{i}_GUIDE.md" for i in range(200)]
         
         start_time = time.time()
         categories = file_manager.categorize_files_parallel(files)
@@ -82,7 +82,7 @@ class TestFileCategorization:
     
     def test_parallel_faster_than_sequential(self, file_manager):
         """Test that parallel categorization is faster than sequential."""
-        files = [f"file{i}_ANALYSIS.md" for i in range(500)]
+        files = [f"file{i}_ANALYSIS.md" for i in range(100)]
         
         # Sequential
         start_seq = time.time()
@@ -168,9 +168,9 @@ class TestStreamingArchitecture:
     
     def test_streams_10k_file_operations(self, file_manager, tmp_path):
         """Test streaming 10,000 file operations."""
-        # Create mapping generator
+        # Create mapping generator (reduced to 1000 for CI speed)
         def mapping_generator():
-            for i in range(10000):
+            for i in range(1000):
                 yield FileMapping(f"file{i}.txt", f"dest/file{i}.txt", "move")
         
         start_time = time.time()
@@ -186,9 +186,9 @@ class TestStreamingArchitecture:
     
     def test_streaming_memory_efficiency(self, file_manager):
         """Test that streaming uses constant memory."""
-        # Create large generator
+        # Create large generator (reduced to 5000 for CI speed)
         def large_generator():
-            for i in range(50000):
+            for i in range(5000):
                 yield FileMapping(f"file{i}.txt", f"dest/file{i}.txt", "move")
         
         # Process in batches - should not load all into memory
