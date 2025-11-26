@@ -40,11 +40,15 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
         checkpoint_dir: Checkpoint directory path
 
     Returns:
-        Configured Mock object with all necessary attributes
+        Configured MagicMock object with all necessary attributes
     """
-    mock_loader = Mock()
+    from unittest.mock import MagicMock
+
+    # Use MagicMock which properly handles magic methods like __format__
+    mock_loader = MagicMock()
     mock_loader.graph = graph
     mock_loader.fetch_data.return_value = graph
+    mock_loader.load.return_value = graph
 
     # Set ALL possible attributes to prevent Mock.__format__ errors
     # These are accessed during logging and must return proper values
@@ -61,48 +65,23 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     mock_loader.checkpoint_interval = 50
     mock_loader.backup_interval_nodes = 100
     mock_loader.max_runtime_hours = None
-
-    # Create sub-mocks with proper __str__ to prevent formatting errors
-    def create_named_mock(name):
-        # Use MagicMock to allow magic method overrides
-        from unittest.mock import MagicMock
-
-        m = MagicMock()
-        # Directly set magic methods on the mock's class
-        type(m).__str__ = lambda self: f"Mock{name}"
-        type(m).__repr__ = lambda self: f"Mock{name}"
-        type(m).__format__ = lambda self, fmt: f"Mock{name}"
-        return m
-
-    mock_loader.client = create_named_mock("Client")
-    mock_loader.rate_limiter = create_named_mock("RateLimiter")
-    mock_loader.metadata_store = create_named_mock("MetadataStore")
-    mock_loader.checkpoint_manager = create_named_mock("CheckpointManager")
-    mock_loader.backup_manager = create_named_mock("BackupManager")
+    mock_loader.client = MagicMock()
+    mock_loader.rate_limiter = MagicMock()
+    mock_loader.metadata_store = MagicMock()
+    mock_loader.checkpoint_manager = MagicMock()
+    mock_loader.backup_manager = MagicMock()
     mock_loader._processed_samples = set()
     mock_loader._api_call_count = 0
     mock_loader._start_time = 0
 
-    # Add __str__, __repr__, and __format__ to prevent formatting issues
-    # These must be proper methods, not lambdas, to work correctly
-    def mock_str(self):
-        return (
-            f"MockFreesoundLoader(query={self.query}, max_samples={self.max_samples})"
-        )
-
-    def mock_repr(self):
-        return (
-            f"MockFreesoundLoader(query={self.query}, max_samples={self.max_samples})"
-        )
-
-    def mock_format(self, format_spec):
-        # Handle any format spec by converting to string
-        return format(str(self), format_spec) if format_spec else str(self)
-
-    # Directly set magic methods on the mock's type to override Mock behavior
-    type(mock_loader).__str__ = mock_str
-    type(mock_loader).__repr__ = mock_repr
-    type(mock_loader).__format__ = mock_format
+    # MagicMock handles __str__, __repr__, __format__ automatically
+    # But we can customize them if needed
+    mock_loader.__str__ = MagicMock(
+        return_value=f"MockFreesoundLoader(query=test, max_samples={max_samples})"
+    )
+    mock_loader.__repr__ = MagicMock(
+        return_value=f"MockFreesoundLoader(query=test, max_samples={max_samples})"
+    )
 
     return mock_loader
 
