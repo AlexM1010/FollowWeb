@@ -266,7 +266,7 @@ class TestSearchBasedCollectionBenchmarks:
                 # Reset counters at start of EACH benchmark iteration
                 mock_freesound_client.text_search.reset_mock()
                 mock_freesound_client.get_sound.reset_mock()
-                
+
                 loader.fetch_data(
                     query="drum",
                     max_samples=50,

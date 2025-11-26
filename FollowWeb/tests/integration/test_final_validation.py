@@ -45,7 +45,7 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     mock_loader = Mock()
     mock_loader.graph = graph
     mock_loader.fetch_data.return_value = graph
-    
+
     # Set ALL possible attributes to prevent Mock.__format__ errors
     # These are accessed during logging and must return proper values
     mock_loader.api_key = "test_key"
@@ -69,12 +69,16 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     mock_loader._processed_samples = set()
     mock_loader._api_call_count = 0
     mock_loader._start_time = 0
-    
+
     # Add __str__ and __repr__ to prevent formatting issues
-    mock_loader.__str__ = lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
-    mock_loader.__repr__ = lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
+    mock_loader.__str__ = (
+        lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
+    )
+    mock_loader.__repr__ = (
+        lambda: f"MockFreesoundLoader(query={mock_loader.query}, max_samples={mock_loader.max_samples})"
+    )
     mock_loader.__format__ = lambda fmt: str(mock_loader)
-    
+
     return mock_loader
 
 
