@@ -69,6 +69,10 @@ class TestCompleteWorkflowFreesoundToSigma:
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -202,6 +206,10 @@ class TestAudioPlaybackIntegration:
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -316,7 +324,11 @@ class TestVariousGraphSizes:
                 mock_loader = Mock()
                 mock_loader.graph = mock_graph
                 mock_loader.fetch_data.return_value = mock_graph
-                mock_loader_class.return_value = mock_loader
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
+        mock_loader_class.return_value = mock_loader
                 config = {
                     "input_file": "dummy.json",
                     "output_file_prefix": os.path.join(tmpdir, f"size_{num_nodes}"),
@@ -476,6 +488,10 @@ class TestFreesoundDataWithBothRenderers:
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -569,6 +585,10 @@ class TestAllConfigurationOptions:
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -690,6 +710,10 @@ class TestErrorHandlingAndRecovery:
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
         mock_loader_class.return_value = mock_loader
 
         config = {
@@ -719,13 +743,17 @@ class TestErrorHandlingAndRecovery:
         # Create valid graph
         mock_graph = nx.DiGraph()
         for i in range(5):
-            mock_graph.add_node(str(i), name=f"test_{i}")
+            mock_graph.add_node(str(i), name=f"test_{i}", type="sample")
         for i in range(4):
-            mock_graph.add_edge(str(i), str(i + 1))
+            mock_graph.add_edge(str(i), str(i + 1), type="similar", weight=0.8)
 
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects that can't be formatted)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 5
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -774,6 +802,10 @@ class TestMultipleRenderersOutput:
         mock_loader = Mock()
         mock_loader.graph = mock_graph
         mock_loader.fetch_data.return_value = mock_graph
+        # Ensure all attributes return proper values (not Mock objects)
+        mock_loader.api_key = "test_key"
+        mock_loader.query = "test"
+        mock_loader.max_samples = 50
         mock_loader_class.return_value = mock_loader
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -807,3 +839,4 @@ class TestMultipleRenderersOutput:
             # Should generate HTML files
             html_files = list(Path(tmpdir).glob("*.html"))
             assert len(html_files) > 0
+

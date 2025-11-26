@@ -208,7 +208,7 @@ class TestParallelExecution:
             with lock:
                 execution_order.append("validation_start")
             start = time.time()
-            time.sleep(1)
+            time.sleep(0.1)  # Reduced for speed
             duration = time.time() - start
             with lock:
                 execution_times["validation"] = duration
@@ -220,7 +220,7 @@ class TestParallelExecution:
             with lock:
                 execution_order.append("edges_start")
             start = time.time()
-            time.sleep(1.5)
+            time.sleep(0.15)  # Reduced for speed
             duration = time.time() - start
             with lock:
                 execution_times["edges"] = duration
@@ -232,7 +232,7 @@ class TestParallelExecution:
             with lock:
                 execution_order.append("website_start")
             start = time.time()
-            time.sleep(0.5)
+            time.sleep(0.05)  # Reduced for speed
             duration = time.time() - start
             with lock:
                 execution_times["website"] = duration
@@ -287,15 +287,15 @@ class TestParallelExecution:
             for i in range(5):
                 with lock:
                     pipeline_progress.append(f"sample_{100 + i}")
-                time.sleep(0.2)  # Simulate sample processing
+                time.sleep(0.02)  # Simulate sample processing (reduced for speed)
         
         def milestone_actions_job():
             """Simulate milestone actions running in background."""
-            time.sleep(0.1)  # Small delay to ensure pipeline starts first
+            time.sleep(0.01)  # Small delay to ensure pipeline starts first (reduced for speed)
             for action in ["validation", "edges", "website"]:
                 with lock:
                     milestone_progress.append(action)
-                time.sleep(0.3)  # Simulate action execution
+                time.sleep(0.03)  # Simulate action execution (reduced for speed)
         
         # Start both jobs
         pipeline_thread = threading.Thread(target=main_pipeline_job)
@@ -490,18 +490,18 @@ class TestEndToEndMilestoneWorkflow:
         
         def run_validation():
             """Simulate validation."""
-            time.sleep(0.2)
-            results["validation"] = {"status": "passed", "duration": 0.2}
+            time.sleep(0.02)  # Reduced for speed
+            results["validation"] = {"status": "passed", "duration": 0.02}
         
         def run_edge_generation():
             """Simulate edge generation."""
-            time.sleep(0.3)
-            results["edges"] = {"user_edges": 10, "pack_edges": 5, "duration": 0.3}
+            time.sleep(0.03)  # Reduced for speed
+            results["edges"] = {"user_edges": 10, "pack_edges": 5, "duration": 0.03}
         
         def run_website_deployment():
             """Simulate website deployment."""
-            time.sleep(0.1)
-            results["website"] = {"deployed": True, "duration": 0.1}
+            time.sleep(0.01)  # Reduced for speed
+            results["website"] = {"deployed": True, "duration": 0.01}
         
         # Start parallel jobs
         threads = [
@@ -545,17 +545,17 @@ class TestEndToEndMilestoneWorkflow:
         
         def run_validation():
             """Simulate validation failure."""
-            time.sleep(0.1)
+            time.sleep(0.01)  # Reduced for speed
             results["validation"] = {"status": "failed", "error": "Corrupted checkpoint"}
         
         def run_edge_generation():
             """Simulate edge generation success."""
-            time.sleep(0.2)
+            time.sleep(0.02)  # Reduced for speed
             results["edges"] = {"user_edges": 10, "pack_edges": 5}
         
         def run_website_deployment():
             """Simulate website deployment success."""
-            time.sleep(0.1)
+            time.sleep(0.01)  # Reduced for speed
             results["website"] = {"deployed": True}
         
         # Start parallel jobs
