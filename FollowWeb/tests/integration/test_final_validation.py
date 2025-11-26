@@ -316,10 +316,12 @@ class TestVariousGraphSizes:
                 mock_loader = Mock()
                 mock_loader.graph = mock_graph
                 mock_loader.fetch_data.return_value = mock_graph
-                # Ensure all attributes return proper values (not Mock objects)
+                # Ensure all attributes return proper values (not Mock objects that can't be formatted)
                 mock_loader.api_key = "test_key"
                 mock_loader.query = "test"
-                mock_loader.max_samples = 50
+                mock_loader.max_samples = num_nodes
+                mock_loader.tags = []
+                mock_loader.checkpoint_dir = tmpdir
                 mock_loader_class.return_value = mock_loader
                 config = {
                     "input_file": "dummy.json",
