@@ -65,9 +65,12 @@ def _create_mock_freesound_loader(graph, max_samples=50, checkpoint_dir=None):
     # Create sub-mocks with proper __str__ to prevent formatting errors
     def create_named_mock(name):
         m = Mock()
-        m.__str__ = lambda: f"Mock{name}"
-        m.__repr__ = lambda: f"Mock{name}"
-        m.__format__ = lambda fmt: f"Mock{name}"
+        # Use spec_set to prevent attribute access that might trigger formatting
+        m.configure_mock(**{
+            '__str__': lambda: f"Mock{name}",
+            '__repr__': lambda: f"Mock{name}",
+            '__format__': lambda fmt: f"Mock{name}"
+        })
         return m
 
     mock_loader.client = create_named_mock("Client")
