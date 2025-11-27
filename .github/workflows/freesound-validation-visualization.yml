@@ -143,16 +143,31 @@ jobs:
 
     
     - name: Verify checkpoint files
+      id: verify-checkpoint
       run: |
         echo "Verifying checkpoint files..."
         
         if [ "${{ steps.params.outputs.use_cache }}" = "true" ]; then
           # Check if cache was restored
           if [ ! -d "data/freesound_library" ]; then
-            echo "❌ Cache restore failed - checkpoint directory not found"
-            exit 1
+            echo "⚠️ Cache restore failed - checkpoint directory not found"
+            echo "This is expected if the upstream workflow (Repair) skipped due to no data."
+            echo "checkpoint_available=false" >> "$GITHUB_OUTPUT"
+            {
+              echo ""
+              echo "### ℹ️  Validation Skipped"
+              echo ""
+              echo "No checkpoint data found. This is expected if:"
+              echo "- Collection pipeline found no new data"
+              echo "- Repair pipeline skipped due to no data"
+              echo ""
+              echo "**Status:** Workflow will complete successfully without generating visualization."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
         fi
+        
+        echo "checkpoint_available=true" >> "$GITHUB_OUTPUT"
         
         # Check required files exist
         CHECKPOINT_DIR="data/freesound_library"
@@ -230,6 +245,7 @@ jobs:
     
     - name: Validate checkpoint integrity
       id: validation
+      if: steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       continue-on-error: true
       run: |
         echo "Running checkpoint validation..."
@@ -264,7 +280,7 @@ jobs:
         fi
 
     - name: Generate edges (zero API requests)
-      if: steps.validation.outputs.validation_passed == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       id: edge-generation
       run: |
         echo "Generating edges from existing checkpoint data..."
@@ -307,7 +323,7 @@ jobs:
         fi
 
     - name: Detect change type
-      if: steps.validation.outputs.validation_passed == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       id: change-detection
       run: |
         echo "Detecting type of changes..."
@@ -340,7 +356,7 @@ jobs:
         fi
 
     - name: Update metadata only (fast path)
-      if: steps.validation.outputs.validation_passed == 'true' && steps.change-detection.outputs.metadata_only == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && steps.change-detection.outputs.metadata_only == 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       id: metadata-update
       run: |
         echo "Updating graph data JSON with latest metadata..."
@@ -372,7 +388,7 @@ jobs:
         fi
 
     - name: Generate Sigma.js visualization (full path)
-      if: steps.validation.outputs.validation_passed == 'true' && steps.change-detection.outputs.metadata_only != 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && steps.change-detection.outputs.metadata_only != 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       id: visualization
       continue-on-error: true
       env:
@@ -466,7 +482,7 @@ jobs:
         fi
 
     - name: Update landing page
-      if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true')
+      if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true') && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       id: landing-page
       continue-on-error: true
       run: |
@@ -506,7 +522,7 @@ jobs:
     
     # Commit visualization and landing page to gh-pages branch
     - name: Commit visualization to gh-pages branch
-      if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true') && steps.landing-page.outputs.landing_page_updated == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && (steps.visualization.outputs.visualization_generated == 'true' || steps.metadata-update.outputs.visualization_generated == 'true') && steps.landing-page.outputs.landing_page_updated == 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       id: deployment
       run: |
         # For metadata-only updates, only update graph_data.json
@@ -667,7 +683,7 @@ jobs:
     
     # Save checkpoint to cache for downstream workflows
     - name: Save to cache for Pages and Backup workflows
-      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.deployment.outputs.deployment_successful == 'true'
+      if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.deployment.outputs.deployment_successful == 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
       uses: actions/cache/save@v3
       with:
         path: data/freesound_library

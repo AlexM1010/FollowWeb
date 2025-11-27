@@ -265,38 +265,38 @@ jobs:
       id: cache-check
       run: |
         if [ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]; then
-          echo "::error::Cache restore failed - upstream workflow should have saved valid checkpoint"
+          echo "::warning::Cache restore failed - upstream workflow did not save checkpoint"
           {
-            echo "## ❌ Cache Restore Failed"
+            echo "## ⚠️ Cache Restore Failed"
+            echo ""
+            echo "Could not restore checkpoint from cache."
             echo ""
             echo "**Expected cache key:** \`${{ steps.backup_reason.outputs.cache_key }}\`"
             echo ""
-            echo "**Possible causes:**"
-            echo "- Upstream workflow failed before saving to cache"
-            echo "- Cache expired (7-day retention)"
-            echo "- Cache key mismatch"
-            echo ""
-            echo "**Action:** Check upstream workflow logs"
+            echo "**Action:** Backup skipped (no data to backup)"
           } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "cache_restored=false" >> "$GITHUB_OUTPUT"
+          exit 0
         fi
         
         # Verify checkpoint directory exists (basic sanity check)
         if [ ! -d "data/freesound_library" ]; then
-          echo "::error::Cache restored but checkpoint directory not found"
+          echo "::warning::Cache restored but checkpoint directory not found"
           {
-            echo "## ❌ Invalid Cache Contents"
+            echo "## ⚠️ Invalid Cache Contents"
             echo ""
             echo "Cache was restored but checkpoint directory is missing."
-            echo "This indicates a critical issue with cache saving in upstream workflow."
           } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          echo "cache_restored=false" >> "$GITHUB_OUTPUT"
+          exit 0
         fi
         
+        echo "cache_restored=true" >> "$GITHUB_OUTPUT"
         echo "✅ Cache restored successfully"
     
 
     - name: Verify checkpoint integrity
+      if: steps.cache-check.outputs.cache_restored == 'true'
       id: verification
       run: |
         {
@@ -380,7 +380,7 @@ jobs:
         } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Create backup archive
-      if: steps.verification.outputs.verification_passed == 'true'
+      if: steps.verification.outputs.verification_passed == 'true' && steps.cache-check.outputs.cache_restored == 'true'
       id: create_backup
       run: |
         node_count="${{ steps.verification.outputs.node_count }}"
