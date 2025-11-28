@@ -692,6 +692,12 @@ jobs:
     - name: Check workflow success
       if: always()
       run: |
+        # If checkpoint was missing, we consider it a success (skipped)
+        if [ "${{ steps.verify-checkpoint.outputs.checkpoint_available }}" != "true" ]; then
+          echo "✅ Workflow skipped successfully (no checkpoint)"
+          exit 0
+        fi
+
         # Only fail if visualization or deployment failed
         # Validation issues are handled by repair workflow and don't block visualization
         
