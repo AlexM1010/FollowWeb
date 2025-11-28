@@ -12,7 +12,7 @@ recursive-include configs *.json *.md
 recursive-include FollowWeb_Visualizor *.css *.js
 
 # Include documentation
-recursive-include docs *.md *.rst *.json
+recursive-include docs *.md *.rst *.json *.gif
 
 # Include example data
 recursive-include examples *.json *.md
