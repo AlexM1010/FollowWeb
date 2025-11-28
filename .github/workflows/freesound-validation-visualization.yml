@@ -705,8 +705,13 @@ jobs:
         fi
         
         if [ "${{ steps.deployment.outputs.deployment_successful }}" != "true" ]; then
-          echo "❌ Workflow failed: Deployment was not successful"
-          exit 1
+          # Only fail if checkpoint was available (if missing, we expect deployment to skip)
+          if [ "${{ steps.verify-checkpoint.outputs.checkpoint_available }}" == "true" ]; then
+            echo "❌ Workflow failed: Deployment was not successful"
+            exit 1
+          else
+            echo "⚠️ Deployment skipped (no checkpoint available) - this is expected"
+          fi
         fi
         
         echo "✅ Visualization and deployment completed successfully"
