@@ -232,19 +232,21 @@ jobs:
         
         echo "" >> "$GITHUB_STEP_SUMMARY"
 
-    - name: Restore checkpoint from cache
+    - name: Restore checkpoint
       if: steps.backup_reason.outputs.use_cache == 'true'
-      uses: actions/cache/restore@v3
-      id: cache-restore
+      id: restore
+      uses: ./.github/workflows/freesound-checkpoint-restore.yml
+      secrets:
+        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       with:
-        path: data/freesound_library
-        key: ${{ steps.backup_reason.outputs.cache_key }}
-        fail-on-cache-miss: false
-        # Note: Cache restore works even if upstream workflow failed
-        # because cache is saved with if: always() condition
+        run_id: ${{ github.event.workflow_run.id }}
+        restore-keys: |
+          checkpoint-restored-
+          checkpoint-repaired-
+          checkpoint-
     
     - name: Monitor cache size after restore
-      if: steps.backup_reason.outputs.use_cache == 'true' && steps.cache-restore.outputs.cache-hit == 'true'
+      if: steps.backup_reason.outputs.use_cache == 'true' && steps.restore.outputs.checkpoint_restored == 'true'
       id: cache_monitor
       run: |
         python scripts/cache_monitor.py --checkpoint-dir data/freesound_library
@@ -264,7 +266,7 @@ jobs:
       if: steps.backup_reason.outputs.use_cache == 'true'
       id: cache-check
       run: |
-        if [ "${{ steps.cache-restore.outputs.cache-hit }}" != "true" ]; then
+        if [ "${{ steps.restore.outputs.checkpoint_restored }}" != "true" ]; then
           echo "::warning::Cache restore failed - upstream workflow did not save checkpoint"
           {
             echo "## ⚠️ Cache Restore Failed"
