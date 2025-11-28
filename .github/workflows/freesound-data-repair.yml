@@ -65,6 +65,11 @@ on:
         required: false
         default: false
         type: boolean
+      run_id:
+        description: 'Upstream run ID to restore checkpoint from (optional)'
+        required: false
+        default: ''
+        type: string
 
 # Prevent workflow collisions
 concurrency:
@@ -229,7 +234,8 @@ jobs:
       with:
         path: data/freesound_library
         # Try restore job's cache first, then fall back to collection cache
-        key: ${{ needs.restore-checkpoint.outputs.cache_key || format('checkpoint-{0}', github.event.workflow_run.id) }}
+        # If manual trigger has run_id, use that
+        key: ${{ needs.restore-checkpoint.outputs.cache_key || format('checkpoint-{0}', github.event.inputs.run_id || github.event.workflow_run.id) }}
         restore-keys: |
           checkpoint-restored-
           checkpoint-repaired-
