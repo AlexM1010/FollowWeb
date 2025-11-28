@@ -191,3 +191,55 @@ jobs:
         twine upload dist/* --verbose
         python ../.github/scripts/ci_helpers.py completion "Package published to PyPI" --summary-only
         echo "Install with: pip install followweb-visualizor" >> "$GITHUB_STEP_SUMMARY"
+
+  update-changelog:
+    name: Update Changelog
+    runs-on: ubuntu-latest
+    needs: publish-pypi
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Update CHANGELOG.md
+      run: |
+        VERSION="${{ github.event.release.tag_name }}"
+        DATE=$(date +%Y-%m-%d)
+        RELEASE_NOTES=$(cat << 'EOF'
+        ${{ github.event.release.body }}
+        EOF
+        )
+        
+        # Create temp file with new entry
+        {
+          # Keep header
+          sed -n '1,/## \[Unreleased\]/p' FollowWeb/CHANGELOG.md
+          
+          # Add new release section
+          echo ""
+          echo "## [${VERSION#v}] - ${DATE}"
+          echo ""
+          echo "${RELEASE_NOTES}"
+          echo ""
+          
+          # Add rest of file (skip Unreleased section)
+          sed -n '/## \[Unreleased\]/,$ { /## \[Unreleased\]/d; /^$/d; p; }' FollowWeb/CHANGELOG.md | tail -n +2
+        } > FollowWeb/CHANGELOG.tmp
+        
+        mv FollowWeb/CHANGELOG.tmp FollowWeb/CHANGELOG.md
+      shell: bash
+    
+    - name: Commit and push changelog
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add FollowWeb/CHANGELOG.md
+        git commit -m "docs: update CHANGELOG.md for ${{ github.event.release.tag_name }}"
+        git push
+      shell: bash
