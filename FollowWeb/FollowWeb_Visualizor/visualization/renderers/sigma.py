@@ -412,11 +412,12 @@ class SigmaRenderer(Renderer):
                     html_content = template.render(
                         title=f"Instagram Network - {graph.number_of_nodes()} users",
                         data_file=json_filename,
+                        graph_data=graph_data,
                         config=config,
                         node_count=stats["node_count"],
                         edge_count=stats["edge_count"],
                         avg_degree=stats["avg_degree"],
-                        density=stats.get("density"),
+                        density=stats.get("density", 0),
                         show_centrality=any(
                             "betweenness" in m for m in node_metrics.values() if m
                         ),

@@ -10,9 +10,7 @@ tests\Output
 TestOutput*.txt
 
 # Output directory - keep only one example visualization
-Output/*.html
-Output/*.png
-!Output/freesound_example.html
+Output/
 !Output/.gitkeep
 
 analysis_reports/comprehensive_validation_*.json

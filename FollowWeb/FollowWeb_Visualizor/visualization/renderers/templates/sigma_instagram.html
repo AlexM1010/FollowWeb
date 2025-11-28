@@ -767,19 +767,8 @@
         </div>
 
         <div id="legend">
-            <h4>Node Colors</h4>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #ff6b9d;"></div>
-                <span>Popular (more followers)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #4ecdc4;"></div>
-                <span>Active (more following)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #6c8eff;"></div>
-                <span>Balanced</span>
-            </div>
+            <h4>Communities</h4>
+            <!-- Legend will be populated dynamically from graph data -->
         </div>
 
         <div id="tooltip"></div>
@@ -1435,6 +1424,31 @@
                 });
                 
                 initRenderer();
+                
+                // Populate legend with actual community colors from graph
+                const communityColors = new Map();
+                graph.forEachNode((node, attributes) => {
+                    if (attributes.color && attributes.community !== undefined) {
+                        communityColors.set(attributes.community, attributes.color);
+                    }
+                });
+                
+                const legend = document.getElementById('legend');
+                const legendTitle = legend.querySelector('h4');
+                legend.innerHTML = '';
+                legend.appendChild(legendTitle);
+                
+                Array.from(communityColors.entries())
+                    .sort((a, b) => a[0] - b[0])
+                    .forEach(([community, color]) => {
+                        const item = document.createElement('div');
+                        item.className = 'legend-item';
+                        item.innerHTML = `
+                            <div class="legend-color" style="background: ${color};"></div>
+                            <span>Community ${community + 1}</span>
+                        `;
+                        legend.appendChild(item);
+                    });
                 
                 // Set checkbox states based on config
                 document.getElementById('showLabels').checked = config.show_labels !== false;

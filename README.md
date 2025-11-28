@@ -7,7 +7,9 @@
 
 Network analysis and visualization tool that transforms connection data into interactive visualizations with automatic community detection, influence metrics, and audio playback capabilities.
 
-**🎵 [Live Demo: Freesound Network Explorer](https://visualise.music)** - Interactive network of 1000+ audio samples with click-to-play audio, automatically updated nightly.
+**🎵 [visualise.music](https://visualise.music)** - Interactive network of 1000+ audio samples from the freesound.org API with click-to-play audio, updated/expanded nightly.
+
+**👫![FollowWeb](FollowWeb/docs/demo/FollowWeb2xSpeedDemo.gif)**(2x Speed) - Instagram network visualization of follower/following relationships.
 
 ---
 
@@ -88,11 +90,16 @@ This architecture delivers 50x faster I/O operations and 20-30% overall speed im
 Multi-stage workflow architecture for continuous data collection and validation:
 
 **Five-Pipeline Architecture**:
-1. **Collection Pipeline**: [![Freesound Nightly Pipeline](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml) - Nightly data gathering (Mon-Sat 2 AM UTC) with circuit breaker (1,950 requests/day)
-2. **Repair Pipeline**: [![Freesound Data Repair](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-data-repair.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-data-repair.yml) - Validates and repairs data integrity issues
-3. **Validation Pipeline**: [![Freesound Validation](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-validation.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-validation.yml) - Weekly quick validation (300 samples, Sunday) and monthly full validation
-4. **Backup Pipeline**: [![Freesound Backup](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-backup.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-backup.yml) - Creates and manages tiered backups
-5. **Publish Pipeline**: [![Deploy Website](https://github.com/AlexM1010/FollowWeb/actions/workflows/deploy-website.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/deploy-website.yml) - Deploys visualizations to GitHub Pages
+1. **Collection Pipeline**: [![Freesound Nightly Pipeline](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-nightly-pipeline.yml)
+   - Nightly data gathering (Mon-Sat 2 AM UTC) with circuit breaker (1,950 requests/day)
+2. **Repair Pipeline**: [![Freesound Data Repair](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-data-repair.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-data-repair.yml)
+   - Validates and repairs data integrity issues
+3. **Validation Pipeline**: [![Freesound Quick Validation](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-quick-validation.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-quick-validation.yml) [![Freesound Full Validation](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-full-validation.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-full-validation.yml)
+   - Weekly quick validation (300 samples, Sunday) and monthly full validation
+4. **Backup Pipeline**: [![Freesound Backup](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-backup.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/freesound-backup.yml)
+   - Creates and manages tiered backups
+5. **Publish Pipeline**: [![Deploy Pages](https://github.com/AlexM1010/FollowWeb/actions/workflows/pages.yml/badge.svg)](https://github.com/AlexM1010/FollowWeb/actions/workflows/pages.yml)
+   - Deploys visualizations to GitHub Pages
 
 **Key Design Decisions**:
 - **Ephemeral Cache Strategy**: Workflow cache populated from private repo at start, wiped at end
@@ -170,8 +177,7 @@ FollowWeb/
 │   └── docs/                       # Documentation
 ├── .github/workflows/              # CI/CD workflows
 ├── Output/                         # Generated visualizations
-├── data/                           # Pipeline data (gitignored)
-└── generate_freesound_visualization.py  # Main pipeline script
+└── data/                           # Pipeline data
 ```
 
 ## Documentation

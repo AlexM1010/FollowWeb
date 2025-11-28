@@ -1,0 +1,98 @@
+{
+  "input_file": "examples/followers_following.json",
+  "output_file_prefix": "Output/instagram_demo",
+  "data_source": {
+    "source": "instagram"
+  },
+  "renderer": {
+    "renderer_type": "sigma",
+    "template_name": "sigma_instagram.html",
+    "sigma_interactive": {
+      "height": "100vh",
+      "width": "100%",
+      "enable_webgl": true,
+      "enable_audio_player": false
+    }
+  },
+  "pipeline": {
+    "strategy": "k-core",
+    "ego_username": null,
+    "enable_strategy": true,
+    "enable_analysis": true,
+    "enable_visualization": true,
+    "enable_community_detection": true,
+    "enable_centrality_analysis": true,
+    "enable_path_analysis": false
+  },
+  "analysis_mode": {
+    "mode": "full",
+    "sampling_threshold": 5000,
+    "max_layout_iterations": null,
+    "enable_fast_algorithms": false,
+    "skip_path_analysis": true
+  },
+  "k_values": {
+    "strategy_k_values": {
+      "k-core": 3,
+      "reciprocal_k-core": 3,
+      "ego_alter_k-core": 3
+    },
+    "default_k_value": 3,
+    "allow_cli_override": false
+  },
+  "output": {
+    "custom_output_directory": null,
+    "generate_html": true,
+    "generate_png": false,
+    "generate_reports": true,
+    "enable_timing_logs": true,
+    "formatting": {
+      "indent_size": 2,
+      "group_related_settings": true,
+      "highlight_key_values": true,
+      "use_human_readable_labels": true,
+      "emoji": {
+        "fallback_level": "full"
+      }
+    }
+  },
+  "visualization": {
+    "node_size_metric": "degree",
+    "base_node_size": 8.0,
+    "node_size_multiplier": 4.0,
+    "scaling_algorithm": "logarithmic",
+    "edge_thickness_metric": "weight",
+    "base_edge_thickness": 1.0,
+    "base_edge_width": 0.5,
+    "edge_width_multiplier": 1.5,
+    "edge_width_scaling": "logarithmic",
+    "intra_community_color": "#c0c0c0",
+    "bridge_color": "#6e6e6e",
+    "ui_background_color": "#1a1a2e",
+    "ui_highlight_color": "#16213e",
+    "ui_text_color": "#eaeaea",
+    "show_labels": true,
+    "show_tooltips": true,
+    "show_legend": true,
+    "font_size": 10,
+    "node_alpha": 0.9,
+    "edge_alpha": 0.4,
+    "layout": {
+      "algorithm": "spring",
+      "align_with_html": false,
+      "spring": {
+        "k": 0.5,
+        "iterations": 200,
+        "spring_length": 1.0,
+        "spring_constant": 1.2,
+        "repulsion_strength": 1.0,
+        "attraction_strength": 0.9,
+        "center_gravity": 0.015,
+        "damping": 0.88,
+        "min_velocity": 0.01,
+        "max_displacement": 10.0,
+        "enable_multistage": true
+      }
+    }
+  }
+}
