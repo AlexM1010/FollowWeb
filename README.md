@@ -7,9 +7,10 @@
 
 Network analysis and visualization tool that transforms connection data into interactive visualizations with automatic community detection, influence metrics, and audio playback capabilities.
 
-**🎵 [visualise.music](https://visualise.music)** - Interactive network of 1000+ audio samples from the freesound.org API with click-to-play audio, updated/expanded nightly.
+**🎵 [visualise.music](https://visualise.music)** *- Interactive network of 1000+ audio samples from the freesound.org API with click-to-play audio, updated/expanded nightly.*
 
-**👫![FollowWeb](FollowWeb/docs/demo/FollowWeb2xSpeedDemo.gif)**(2x Speed) - Instagram network visualization of follower/following relationships.
+![FollowWeb Package Demo](FollowWeb/docs/demo/FollowWeb2xSpeedDemo.gif)
+*Instagram network visualization (2x speed)*
 
 ---
 

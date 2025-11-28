@@ -6,6 +6,9 @@
 
 Network analysis and visualization tool for social networks and audio sample relationships with automatic community detection and influence metrics.
 
+![FollowWeb Demo](docs/demo/FollowWeb2xSpeedDemo.gif)
+*Instagram network visualization (2x speed)*
+
 ## Features
 
 - **Multiple Data Sources**: Instagram social networks and Freesound audio sample networks
