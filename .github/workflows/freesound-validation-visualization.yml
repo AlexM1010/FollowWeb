@@ -19,12 +19,19 @@ permissions:
   contents: write
 
 jobs:
+  restore-checkpoint:
+    name: Restore Checkpoint from Backup
+    uses: ./.github/workflows/freesound-checkpoint-restore.yml
+    secrets:
+      BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+
   validate-and-visualize:
     name: Validate Data & Generate Visualization
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    needs: restore-checkpoint
     # Only run if repair pipeline succeeded
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch') && !failure() && !cancelled() }}
     
     steps:
     - name: Checkout code
@@ -109,7 +116,7 @@ jobs:
       id: cache-restore
       with:
         path: data/freesound_library
-        key: ${{ steps.params.outputs.cache_key }}
+        key: ${{ needs.restore-checkpoint.outputs.cache_key || steps.params.outputs.cache_key }}
         restore-keys: |
           checkpoint-repaired-
           checkpoint-
