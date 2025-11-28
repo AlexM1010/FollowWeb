@@ -13,6 +13,19 @@ on:
     secrets:
       BACKUP_PAT:
         required: true
+    inputs:
+      run_id:
+        description: 'Run ID to use for cache key (optional)'
+        required: false
+        type: string
+      restore_keys:
+        description: 'Additional restore keys (newline separated)'
+        required: false
+        type: string
+        default: |
+          checkpoint-repaired-
+          checkpoint-restored-
+          checkpoint-
 
 jobs:
   restore-checkpoint:
@@ -27,11 +40,34 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Restore checkpoint from cache
+      id: cache-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: data/freesound_library
+        key: checkpoint-${{ inputs.run_id || github.run_id }}
+        restore-keys: ${{ inputs.restore_keys }}
+        fail-on-cache-miss: false
+
+    - name: Check cache restore status
+      id: cache-check
+      run: |
+        if [ -d "data/freesound_library" ] && [ "$(ls -A data/freesound_library 2>/dev/null)" ]; then
+          echo "✅ Cache restored successfully"
+          echo "cache_restored=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "⚠️ Cache restore failed or directory empty"
+          echo "cache_restored=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Restore checkpoint from backup repository
+      if: steps.cache-check.outputs.cache_restored != 'true'
       id: restore
       env:
         BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
       run: |
+        echo "Cache restore failed - downloading from backup repository..."
+        
         REPO_OWNER="${{ github.repository_owner }}"
         BACKUP_REPO="${REPO_OWNER}/freesound-backup"
         
@@ -75,7 +111,7 @@ jobs:
         echo "checkpoint_restored=true" >> "$GITHUB_OUTPUT"
     
     - name: Save checkpoint to cache
-      if: steps.restore.outputs.checkpoint_restored == 'true'
+      if: steps.restore.outputs.checkpoint_restored == 'true' && steps.cache-check.outputs.cache_restored != 'true'
       id: cache-save
       uses: actions/cache/save@v3
       with:

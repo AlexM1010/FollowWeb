@@ -19,10 +19,20 @@ permissions:
   contents: write
 
 jobs:
+  restore-checkpoint:
+    name: Restore Checkpoint
+    uses: ./.github/workflows/freesound-checkpoint-restore.yml
+    secrets:
+      BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
+    with:
+      # Pass run ID for cache key lookup
+      run_id: ${{ github.event.workflow_run.id }}
+
   validate-and-visualize:
     name: Validate Data & Generate Visualization
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    needs: restore-checkpoint
     # Only run if repair pipeline succeeded
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
@@ -109,7 +119,7 @@ jobs:
       id: cache-restore
       with:
         path: data/freesound_library
-        key: ${{ steps.params.outputs.cache_key }}
+        key: ${{ needs.restore-checkpoint.outputs.cache_key || steps.params.outputs.cache_key }}
         restore-keys: |
           checkpoint-repaired-
           checkpoint-
@@ -120,104 +130,13 @@ jobs:
       id: cache-check
       run: |
         # Check if cache was actually restored by verifying directory exists
-        # Note: cache-hit is false when restore-keys are used, even if cache was restored
         if [ -d "data/freesound_library" ] && [ "$(ls -A data/freesound_library 2>/dev/null)" ]; then
           echo "✅ Cache restored successfully"
-          if [ "${{ steps.cache-restore.outputs.cache-hit }}" = "true" ]; then
-            echo "  - Exact match: ${{ steps.params.outputs.cache_key }}"
-          else
-            echo "  - Fallback match: ${{ steps.cache-restore.outputs.cache-matched-key }}"
-          fi
           echo "cache_restored=true" >> "$GITHUB_OUTPUT"
         else
-          {
-            echo "## ⚠️  Cache Restore Failed"
-            echo ""
-            echo "**Cache Key:** \`${{ steps.params.outputs.cache_key }}\`"
-            echo ""
-            echo "**Attempting fallback to backup repository...**"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "⚠️ Cache restore failed - checkpoint directory not found"
           echo "cache_restored=false" >> "$GITHUB_OUTPUT"
         fi
-    
-    - name: Restore from backup repository
-      if: steps.cache-check.outputs.cache_restored != 'true'
-      id: backup-restore
-      env:
-        BACKUP_PAT: ${{ secrets.BACKUP_PAT }}
-      run: |
-        echo "Cache restore failed - downloading from backup repository..."
-        
-        REPO_OWNER="${{ github.repository_owner }}"
-        BACKUP_REPO="${REPO_OWNER}/freesound-backup"
-        
-        # Check if BACKUP_PAT is configured
-        if [ -z "$BACKUP_PAT" ]; then
-          echo "⚠️  BACKUP_PAT not configured - cannot download from backup"
-          echo "backup_restored=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        RELEASE_JSON=$(curl -s -H "Authorization: token $BACKUP_PAT" \
-          "https://api.github.com/repos/${BACKUP_REPO}/releases/tags/v-checkpoint")
-        
-        if echo "$RELEASE_JSON" | grep -q "Not Found"; then
-          echo "⚠️  v-checkpoint release not found in backup repository"
-          echo "This is expected for first pipeline run."
-          echo "backup_restored=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        # Get latest checkpoint backup (highest node count, most recent)
-        LATEST_ASSET=$(echo "$RELEASE_JSON" | jq -r '
-          .assets 
-          | map(select(.name | test("checkpoint_backup_[0-9]+nodes")))
-          | map(. + {node_count: (.name | capture("(?<nodes>[0-9]+)nodes") | .nodes | tonumber)})
-          | map(select(.node_count > 0))
-          | sort_by([-.node_count, .created_at])
-          | reverse
-          | .[0]')
-        
-        ASSET_NAME=$(echo "$LATEST_ASSET" | jq -r '.name')
-        ASSET_URL=$(echo "$LATEST_ASSET" | jq -r '.url')
-        
-        if [ "$ASSET_NAME" = "null" ] || [ -z "$ASSET_NAME" ]; then
-          echo "⚠️  No valid checkpoint backups found in v-checkpoint release"
-          echo "backup_restored=false" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        
-        echo "Found backup: $ASSET_NAME"
-        echo "Downloading..."
-        
-        curl -L -H "Authorization: token $BACKUP_PAT" \
-          -H "Accept: application/octet-stream" \
-          "$ASSET_URL" -o "$ASSET_NAME"
-        
-        echo "Extracting backup..."
-        mkdir -p data
-        tar -xzf "$ASSET_NAME" -C data/
-        
-        if [ ! -d "data/freesound_library" ]; then
-          echo "❌ Extraction failed - checkpoint directory not found"
-          echo "backup_restored=false" >> "$GITHUB_OUTPUT"
-          exit 1
-        fi
-        
-        echo "✅ Checkpoint restored from backup repository"
-        {
-          echo ""
-          echo "### ✅ Restored from Backup"
-          echo ""
-          echo "- Backup: \`$ASSET_NAME\`"
-          echo "- Source: \`${BACKUP_REPO}\`"
-          echo ""
-        } >> "$GITHUB_STEP_SUMMARY"
-        
-        echo "backup_restored=true" >> "$GITHUB_OUTPUT"
-        
-        # Clean up downloaded file
-        rm -f "$ASSET_NAME"
 
 
     
