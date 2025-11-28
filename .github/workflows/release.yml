@@ -143,7 +143,7 @@ jobs:
   update-changelog:
     name: Update Changelog
     runs-on: ubuntu-latest
-    needs: test
+    needs: verify-ci
     if: github.event_name == 'release'
     permissions:
       contents: write
