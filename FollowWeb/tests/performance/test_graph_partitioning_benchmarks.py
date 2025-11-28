@@ -200,20 +200,19 @@ class TestPartitioningPerformance:
             ratio = results[8] / results[2]
             assert ratio < 8, f"Merge time scaling too poor: {ratio}x"
 
-    @pytest.mark.skip(reason="Too slow for CI - takes 5+ minutes even with 10K nodes")
     def test_verify_1m_nodes_under_30_minutes(self):
         """Verify 1M nodes completes in under 30 minutes target."""
-        # Create a very sparse 10K node graph (scaled down for CI)
-        graph = create_sparse_graph(10000, edges_per_node=2)
+        # Create a very sparse 2K node graph (scaled down for CI speed)
+        graph = create_sparse_graph(2000, edges_per_node=2)
 
-        # Partition (2 partitions for 100K nodes)
+        # Partition (2 partitions)
         partitions, partition_time = benchmark_partition(graph, num_partitions=2)
         print(f"\nPartition time: {partition_time:.2f}s")
 
         # Analyze first 2 partitions (simulate parallel execution)
         sample_partitions = partitions[:2]
         sample_results, analysis_time = benchmark_analysis(sample_partitions)
-        print(f"Analysis time (5 partitions): {analysis_time:.2f}s")
+        print(f"Analysis time (2 partitions): {analysis_time:.2f}s")
 
         # Estimate total time for all 2 partitions (parallel execution)
         # Assume 2 partitions run in parallel (GitHub Actions max)
@@ -227,19 +226,18 @@ class TestPartitioningPerformance:
         estimated_total = partition_time + estimated_analysis_time + merge_time
 
         print(
-            f"\nEstimated total time for 10K nodes: {estimated_total:.2f}s ({estimated_total / 60:.2f} minutes)"
+            f"\nEstimated total time for 2K nodes: {estimated_total:.2f}s ({estimated_total / 60:.2f} minutes)"
         )
 
-        # Verify under 1 minute (60 seconds) for 10K nodes
+        # Verify under 30 seconds for 2K nodes
         # Use 2x safety factor for estimation
-        assert estimated_total * 2 < 60, (
+        assert estimated_total * 2 < 30, (
             f"Estimated time too slow: {estimated_total * 2:.2f}s"
         )
 
-    @pytest.mark.skip(reason="Too slow for CI - takes 3+ minutes")
     def test_benchmark_full_pipeline_100k(self):
-        """Benchmark complete pipeline for 10K nodes."""
-        graph = create_sparse_graph(10000)
+        """Benchmark complete pipeline for 2K nodes."""
+        graph = create_sparse_graph(2000)
 
         start_time = time.perf_counter()
 
@@ -262,7 +260,7 @@ class TestPartitioningPerformance:
 
         # Generate performance report
         report = {
-            "graph_size": 10000,
+            "graph_size": 2000,
             "num_partitions": 2,
             "partition_time": partition_time,
             "analysis_time": analysis_time,
@@ -272,7 +270,7 @@ class TestPartitioningPerformance:
         }
 
         print("\n" + "=" * 60)
-        print("Performance Report: 10K Node Graph")
+        print("Performance Report: 2K Node Graph")
         print("=" * 60)
         print(f"Graph size: {report['graph_size']:,} nodes")
         print(f"Partitions: {report['num_partitions']}")
@@ -284,17 +282,16 @@ class TestPartitioningPerformance:
         print("=" * 60)
 
         # Verify reasonable performance
-        assert total_time < 60, (
+        assert total_time < 30, (
             f"Pipeline too slow: {total_time:.2f}s"
-        )  # Under 1 minute
-        assert report["throughput"] > 100, (
+        )  # Under 30 seconds
+        assert report["throughput"] > 50, (
             f"Throughput too low: {report['throughput']:.0f} nodes/s"
         )
 
-    @pytest.mark.skip(reason="Too slow for CI - takes 5+ minutes")
     def test_benchmark_full_pipeline_300k(self):
-        """Benchmark complete pipeline for 30K nodes."""
-        graph = create_sparse_graph(30000, edges_per_node=2)
+        """Benchmark complete pipeline for 5K nodes."""
+        graph = create_sparse_graph(5000, edges_per_node=2)
 
         start_time = time.perf_counter()
 
@@ -317,7 +314,7 @@ class TestPartitioningPerformance:
 
         # Generate performance report
         report = {
-            "graph_size": 30000,
+            "graph_size": 5000,
             "num_partitions": 2,
             "partitions_analyzed": 2,
             "partition_time": partition_time,
@@ -328,7 +325,7 @@ class TestPartitioningPerformance:
         }
 
         print("\n" + "=" * 60)
-        print("Performance Report: 30K Node Graph")
+        print("Performance Report: 5K Node Graph")
         print("=" * 60)
         print(f"Graph size: {report['graph_size']:,} nodes")
         print(
@@ -342,17 +339,16 @@ class TestPartitioningPerformance:
         print("=" * 60)
 
         # Verify reasonable performance
-        assert total_time < 120, (
+        assert total_time < 60, (
             f"Pipeline too slow: {total_time:.2f}s"
-        )  # Under 2 minutes
+        )  # Under 1 minute
 
-    @pytest.mark.skip(reason="Too slow for CI - comprehensive report takes 3+ minutes")
     def test_generate_performance_report(self):
         """Generate comprehensive performance report."""
         test_cases = [
+            (500, 1),
             (1000, 1),
-            (5000, 1),
-            (10000, 2),
+            (2000, 2),
         ]
 
         print("\n" + "=" * 80)
@@ -387,10 +383,9 @@ class TestPartitioningPerformance:
 class TestScalabilityAnalysis:
     """Analyze scalability characteristics of partitioning system."""
 
-    @pytest.mark.skip(reason="Too slow for CI - scalability analysis takes 3+ minutes")
     def test_partition_time_scaling(self):
         """Analyze how partition time scales with graph size."""
-        sizes = [1000, 2500, 5000, 10000]
+        sizes = [500, 1000, 2000]
         times = []
 
         for size in sizes:
@@ -416,10 +411,9 @@ class TestScalabilityAnalysis:
                 f"Scaling too poor: {time_ratio:.1f}x for {size_ratio:.1f}x size"
             )
 
-    @pytest.mark.skip(reason="Too slow for CI - analysis scaling takes 2+ minutes")
     def test_analysis_time_scaling(self):
         """Analyze how analysis time scales with partition size."""
-        sizes = [1000, 2500, 5000]
+        sizes = [500, 1000, 2000]
         times = []
 
         for size in sizes:
@@ -440,10 +434,9 @@ class TestScalabilityAnalysis:
 
             print(f"Size ratio: {size_ratio:.1f}x, Time ratio: {time_ratio:.1f}x")
 
-    @pytest.mark.skip(reason="Too slow for CI - merge scaling takes 2+ minutes")
     def test_merge_time_scaling(self):
         """Analyze how merge time scales with partition count."""
-        graph = create_sparse_graph(10000)
+        graph = create_sparse_graph(2000)
         partition_counts = [2, 4]
         times = []
 
