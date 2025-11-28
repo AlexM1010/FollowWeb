@@ -20,7 +20,7 @@ jobs:
     
     steps:
       - name: Checkout private backup repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ secrets.BACKUP_REPO }}  # e.g., "username/freesound-backup"
           token: ${{ secrets.BACKUP_PAT }}
