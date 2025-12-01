@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 10
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
@@ -263,7 +263,7 @@ jobs:
     timeout-minutes: 10
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
@@ -350,7 +350,7 @@ jobs:
     continue-on-error: true  # This job won't fail the pipeline
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0  # Fetch all history for commit validation
     
