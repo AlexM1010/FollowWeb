@@ -495,7 +495,7 @@ jobs:
         echo "Updating landing page..."
         
         # Generate landing page with latest visualization and capture output
-        LANDING_OUTPUT=$(python generate_landing_page.py \
+        LANDING_OUTPUT=$(python scripts/generation/generate_landing_page.py \
           --output-dir . \
           --visualizations "Output/*.html" \
           --plausible-domain "alexm1010.github.io" 2>&1)
