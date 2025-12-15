@@ -115,7 +115,7 @@ jobs:
     
     - name: Restore checkpoint from cache
       if: steps.params.outputs.use_cache == 'true'
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v5
       id: cache-restore
       with:
         path: data/freesound_library
@@ -682,7 +682,7 @@ jobs:
     # Save checkpoint to cache for downstream workflows
     - name: Save to cache for Pages and Backup workflows
       if: steps.validation.outputs.validation_passed == 'true' && steps.visualization.outputs.visualization_generated == 'true' && steps.deployment.outputs.deployment_successful == 'true' && steps.verify-checkpoint.outputs.checkpoint_available == 'true'
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v5
       with:
         path: data/freesound_library
         key: checkpoint-${{ github.run_id }}

@@ -23,7 +23,7 @@ jobs:
         cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
     - name: Restore CI prebuild cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: |
           ~/.cache/pip
@@ -273,7 +273,7 @@ jobs:
         cache-dependency-path: 'FollowWeb/requirements-ci.txt'
     
     - name: Restore CI prebuild cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       with:
         path: |
           ~/.cache/pip
