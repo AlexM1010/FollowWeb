@@ -95,7 +95,7 @@ jobs:
           '
       
       - name: Upload partitions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: graph-partitions
           path: partitions/
@@ -165,7 +165,7 @@ jobs:
           '
       
       - name: Upload results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: partition-results-${{ matrix.partition_id }}
           path: results/partition-${{ matrix.partition_id }}-results.pkl
@@ -278,7 +278,7 @@ jobs:
           "
       
       - name: Upload final outputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: final-analysis
           path: |
