@@ -234,7 +234,7 @@ jobs:
         done
     
     - name: Upload documentation structure reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: documentation-structure-reports
@@ -323,7 +323,7 @@ jobs:
         python ../.github/scripts/ci_helpers.py info "\`\`\`" --summary-only
     
     - name: Upload docstring coverage reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: always()
       with:
         name: docstring-coverage-reports

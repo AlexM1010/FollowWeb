@@ -247,7 +247,7 @@ jobs:
     
     - name: Upload validation report
       if: steps.orchestration.outputs.can_proceed == 'true' && steps.validation.outputs.validation_status == 'success'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: full-validation-report-${{ steps.params.outputs.execution_id }}
         path: |
@@ -445,7 +445,7 @@ jobs:
     
     - name: Upload validation logs
       if: always() && steps.orchestration.outputs.can_proceed == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: full-validation-logs-${{ steps.params.outputs.execution_id }}
         path: |
@@ -456,7 +456,7 @@ jobs:
     
     - name: Upload checkpoint files (on failure)
       if: failure() && steps.orchestration.outputs.can_proceed == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: checkpoint-backup-${{ steps.params.outputs.execution_id }}
         path: |

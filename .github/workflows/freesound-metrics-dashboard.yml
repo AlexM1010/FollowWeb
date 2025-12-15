@@ -84,7 +84,7 @@ jobs:
       
       - name: Upload dashboard as artifact
         if: steps.check_dashboard.outputs.generated == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: metrics-dashboard
           path: Output/metrics_dashboard.png
