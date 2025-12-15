@@ -42,7 +42,7 @@ jobs:
     
     - name: Restore checkpoint from cache
       id: cache-restore
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v5
       with:
         path: data/freesound_library
         key: checkpoint-${{ inputs.run_id || github.run_id }}
@@ -113,7 +113,7 @@ jobs:
     - name: Save checkpoint to cache
       if: steps.restore.outputs.checkpoint_restored == 'true' && steps.cache-check.outputs.cache_restored != 'true'
       id: cache-save
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v5
       with:
         path: data/freesound_library
         key: checkpoint-restored-${{ github.run_id }}

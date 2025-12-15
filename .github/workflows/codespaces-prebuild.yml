@@ -46,7 +46,7 @@ jobs:
       
       - name: Cache prebuild environment
         id: cache-prebuild
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
